@@ -230,6 +230,10 @@ func _ready() -> void:
 	)
 	
 	vr.pose_recentered.connect(recenter)
+	# OpenXRInterface emits these when the headset comes off or a system window takes focus
+	if vr.xr_interface and vr.xr_interface.has_signal(&"session_visible"):
+		vr.xr_interface.connect(&"session_visible", _pause_if_playing)
+		vr.xr_interface.connect(&"session_stopping", _pause_if_playing)
 
 	debug_info_label.visible = Settings.show_debug_info
 	set_colors_from_settings()
@@ -258,6 +262,16 @@ func _ready() -> void:
 	set_background_texture()
 	
 	recenter()
+
+## Pauses when Android moves the app to the background.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
+		_pause_if_playing()
+
+## Pauses the song when the player can no longer see or control the game.
+func _pause_if_playing() -> void:
+	if gamestate == gamestate_playing:
+		_transition_game_state(gamestate_paused)
 
 func set_background_texture() -> void:
 	var environment : Environment = $WorldEnvironment.environment
