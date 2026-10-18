@@ -42,10 +42,6 @@ func _physics_process(game: BeepSaber_Game) -> void:
 		if game.song_player.get_playback_position() < 0.5:
 			game._audio_synced_after_restart = true
 
-var bomb_template := load("res://game/Bomb/Bomb.tscn") as PackedScene
-var wall_template := load("res://game/Wall/Wall.tscn") as PackedScene
-var arc_template := load("res://game/Arc/Arc.tscn") as PackedScene
-
 var _lead_in_shown := -1
 
 ## Shows the seconds left before the song and starts it when the lead-in runs out.
@@ -85,18 +81,15 @@ func _process_map(game: BeepSaber_Game) -> void:
 	
 	# spawn bombs
 	while not Map.bomb_stack.is_empty() and Map.bomb_stack[-1].beat <= look_ahead:
-		var bomb := bomb_template.instantiate() as Bomb
+		var bomb := GlobalReferences.bomb_pool.acquire() as Bomb
 		bomb.spawn(Map.bomb_stack.pop_back() as BombInfo, current_beat)
-		game.track.add_child(bomb)
 	
 	# spawn obstacles (walls)
 	while not Map.obstacle_stack.is_empty() and Map.obstacle_stack[-1].beat <= look_ahead:
-		var wall := wall_template.instantiate() as Wall
+		var wall := GlobalReferences.wall_pool.acquire() as Wall
 		wall.spawn(Map.obstacle_stack.pop_back() as ObstacleInfo, current_beat)
-		game.track.add_child(wall)
 	
 	while not Map.arc_stack.is_empty() and Map.arc_stack[-1].head_beat <= look_ahead:
-		var arc := arc_template.instantiate() as Arc
 		var arc_info := Map.arc_stack.pop_back() as ArcInfo
 		
 		# find starting cube to use as magnet trigger and mark start and end cubes as arc head/tail
@@ -121,8 +114,8 @@ func _process_map(game: BeepSaber_Game) -> void:
 			cube_id -= 1
 		
 		if have_head:
+			var arc := GlobalReferences.arc_pool.acquire() as Arc
 			arc.spawn(arc_info, current_beat, head_cube)
-			game.track.add_child(arc)
 	
 	while not Map.chain_stack.is_empty() and Map.chain_stack[-1].head_beat <= look_ahead:
 		var chain_info := Map.chain_stack.pop_back() as ChainInfo

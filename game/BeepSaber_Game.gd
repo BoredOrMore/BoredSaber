@@ -270,8 +270,14 @@ func _ready() -> void:
 	# pre-allocate scenes in our scene pools
 	GlobalReferences.cube_pool = $BeepCubePool
 	GlobalReferences.link_pool = $ChainLinkPool
+	GlobalReferences.bomb_pool = $BombPool
+	GlobalReferences.wall_pool = $WallPool
+	GlobalReferences.arc_pool = $ArcPool
 	GlobalReferences.cube_pool.presize(100)
 	GlobalReferences.link_pool.presize(100)
+	GlobalReferences.bomb_pool.presize(30)
+	GlobalReferences.wall_pool.presize(15)
+	GlobalReferences.arc_pool.presize(15)
 	
 	var xr_camera := $XROrigin3D/XRCamera3D as XRCamera3D
 	vr.initialize(
@@ -624,6 +630,8 @@ func _on_ScenePool_new_scene_instanced(obj: Node3D, during_presizing: bool) -> v
 			obj.hide_cube()
 		elif obj is ChainLink:
 			obj.hide_cube()
+		elif obj.has_method(&"hide_pooled"):
+			obj.hide_pooled()
 		else:
 			obj.visible = false
 

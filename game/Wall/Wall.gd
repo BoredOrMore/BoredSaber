@@ -1,4 +1,4 @@
-extends Node3D
+extends PooledNode3D
 class_name Wall
 
 var despawn_z: float
@@ -17,7 +17,8 @@ func _physics_process(delta: float) -> void:
 	var rz := global_transform.origin.dot(transform.basis.z)
 	
 	if rz > despawn_z:
-		queue_free()
+		hide_pooled()
+		release()
 
 	#transform.origin.x += speed * delta * sin(rotation.y)
 	#transform.origin.z += speed * delta * cos(rotation.y)
@@ -27,7 +28,23 @@ func _physics_process(delta: float) -> void:
 	#	queue_free()
 	
 
+## Hides the wall and stops its processing while it waits in the pool.
+func hide_pooled() -> void:
+	visible = false
+	($WallMeshOrientation/WallArea/CollisionShape3D as CollisionShape3D).set_deferred(&"disabled", true)
+	($AnimationPlayer as AnimationPlayer).stop()
+	process_mode = Node.PROCESS_MODE_DISABLED
+
+# call this when clearing the track
+func clear_from_track() -> void:
+	hide_pooled()
+	if not is_released():
+		release()
+
 func spawn(wall_info: ObstacleInfo, current_beat: float) -> void:
+	process_mode = Node.PROCESS_MODE_INHERIT
+	visible = true
+	($WallMeshOrientation/WallArea/CollisionShape3D as CollisionShape3D).set_deferred(&"disabled", false)
 	var mesh := $WallMeshOrientation/WallMesh as MeshInstance3D
 	var m := mesh.mesh as BoxMesh
 	var shape := ($WallMeshOrientation/WallArea/CollisionShape3D as CollisionShape3D).shape as BoxShape3D

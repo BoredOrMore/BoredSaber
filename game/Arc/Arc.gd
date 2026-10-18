@@ -1,4 +1,4 @@
-extends Node3D
+extends PooledNode3D
 class_name Arc
 
 static var left_material := load("res://game/Arc/Arc.material").duplicate() as ShaderMaterial
@@ -20,9 +20,11 @@ func spawn(info: ArcInfo, current_beat: float, _activator_cube: BeepCube = null)
 	
 	if abs(arc_info.head_rotation-arc_info.tail_rotation) > Constants.ROTATION_EPS: # or abs(arc_info.tail_rotation) > Constants.ROTATION_EPS:
 		# TODO: arcs will twist if rotations are different
-		queue_free()
+		release()
 		return
 	
+	process_mode = Node.PROCESS_MODE_INHERIT
+	visible = true
 	speed = Map.beat_distance * Map.beats_per_second()
 	var path := $Path3D as Path3D
 	visual = $Path3D/Visual
@@ -57,6 +59,20 @@ func _process(delta: float) -> void:
 	if Scoreboard.paused or not is_visible_in_tree() or not Map.current_info: return
 	transform.origin += speed * delta * transform.basis.z
 	if transform.origin.dot(transform.basis.z) >= despawn_z:
-		if activator_cube and activator_cube.cutted.is_connected(_on_activator_cube_cutted):
-			activator_cube.cutted.disconnect(_on_activator_cube_cutted)
-		queue_free()
+		hide_pooled()
+		release()
+
+## Hides the arc, drops its mesh and stops its processing while it waits in the pool.
+func hide_pooled() -> void:
+	if activator_cube and activator_cube.cutted.is_connected(_on_activator_cube_cutted):
+		activator_cube.cutted.disconnect(_on_activator_cube_cutted)
+	activator_cube = null
+	visible = false
+	visual.mesh = null
+	process_mode = Node.PROCESS_MODE_DISABLED
+
+# call this when clearing the track
+func clear_from_track() -> void:
+	hide_pooled()
+	if not is_released():
+		release()
