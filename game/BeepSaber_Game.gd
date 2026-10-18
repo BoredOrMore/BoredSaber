@@ -78,6 +78,10 @@ const LEAD_IN_MIN_SECONDS := 3.0
 # seconds left before the song starts, so the first notes can fly in; counted down by Playing
 var lead_in := 0.0
 
+const FAIL_SECONDS := 1.5
+# true while the "Failed" moment plays, before the score screen
+var failing := false
+
 func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	var map_data := Utils.binary_to_json(Utils.read_binary_file(info.filepath, map_difficulty.beatmap_filename))
 	
@@ -144,8 +148,24 @@ func update_health(delta: float) -> void:
 		if current_health > Constants.HEALTH_MAX:
 			current_health = Constants.HEALTH_MAX
 		percent_indicator.update_percent(current_health / Constants.HEALTH_MAX)
-		if current_health < 0:
-			_on_song_ended()
+		if current_health < 0 and gamestate == gamestate_playing and not failing:
+			_fail_song()
+
+## Shows "Failed" while the song winds down and the track freezes, then the score screen.
+func _fail_song() -> void:
+	failing = true
+	Scoreboard.paused = true
+	left_saber.set_swingcast_enabled(false)
+	right_saber.set_swingcast_enabled(false)
+	pause_countdown.set_label_text("Failed")
+	pause_countdown.visible = true
+	var tw := create_tween().set_parallel()
+	tw.tween_property(song_player, ^"pitch_scale", 0.3, FAIL_SECONDS)
+	tw.tween_property(song_player, ^"volume_db", -30.0, FAIL_SECONDS)
+	await tw.finished
+	pause_countdown.visible = false
+	failing = false
+	_on_song_ended()
 			
 # This function will transitioning the game from it's current state into
 # the provided 'next_state'.
@@ -277,7 +297,7 @@ func _notification(what: int) -> void:
 
 ## Pauses the song when the player can no longer see or control the game.
 func _pause_if_playing() -> void:
-	if gamestate == gamestate_playing:
+	if gamestate == gamestate_playing and not failing:
 		_transition_game_state(gamestate_paused)
 
 func set_background_texture() -> void:

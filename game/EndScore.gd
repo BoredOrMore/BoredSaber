@@ -48,6 +48,10 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 	nr_label.visible = is_new_record
 	name_label.text = song_string
 	details_mesh.text = "Score\n%d\n\nRecord\n%d" % [score,record]
+	# after a fail, trying again is the likely next step
+	var repeat_button := $Repeat as UIRaycastButton
+	repeat_button.text = "Retry" if percent < 0 else "Repeat"
+	repeat_button.set_primary(percent < 0)
 	
 	if percent >= 0.98:
 		grade_label.text = "[center][rainbow freq=0.5 sat=0.7 val=2]A+"

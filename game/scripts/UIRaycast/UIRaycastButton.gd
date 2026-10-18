@@ -44,6 +44,11 @@ func _ready() -> void:
 	var text_mesh := $Text as MeshInstance3D
 	(text_mesh.mesh as TextMesh).text = text
 
+## Fills the button with the pressed colour so it reads as the main action.
+func set_primary(primary: bool) -> void:
+	back_shader.set_shader_parameter(&"fill_color", Constants.UI_SURFACE_PRESSED if primary else Constants.UI_SURFACE)
+	back_shader.set_shader_parameter(&"border_color", Constants.UI_SURFACE_PRESSED if primary else Constants.UI_SURFACE)
+
 func ui_raycast_hit_event(_pos: Vector3, click: bool, release: bool) -> void:
 	if click:
 		if not held:
