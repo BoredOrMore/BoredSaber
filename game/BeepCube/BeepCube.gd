@@ -5,6 +5,10 @@ class_name BeepCube
 # emitted when the cube gets cutted, correct_saber is true if the right saber was used
 signal cutted(correct_saber: bool)
 
+# haptic strength for the sloppiest correct cut (a clean one is 1.0) and for a wrong-saber hit
+const MIN_CUT_RUMBLE := 0.3
+const WRONG_SABER_RUMBLE := 0.2
+
 @onready var mi := $BeepCubeMesh as MeshInstance3D
 @onready var collision_big := $BeepCube_Big/CollisionBig as CollisionShape3D
 @onready var collision_small := $BeepCube_Small/CollisionSmall as CollisionShape3D
@@ -150,9 +154,12 @@ func cut(saber: LightSaber, cut_speed: Vector3, cut_plane: Plane, controller: Be
 		# allows a bit of save margin where the beat is considered 100% correct
 		var beat_accuracy := clampf((1.0 - absf(global_transform.origin.z)) / 0.5, 0.0, 1.0)
 		Scoreboard.note_cut(saber, transform.origin, lane_rotation, beat_accuracy, cut_angle_accuracy, cut_distance_accuracy, travel_distance_factor, arc_head, arc_tail, chain_head)
+		# replaces the saber's flat contact rumble: cleaner cuts kick harder
+		controller.simple_rumble(lerpf(MIN_CUT_RUMBLE, 1.0, cut_angle_accuracy * cut_distance_accuracy), 0.1)
 		cutted.emit(true)
 	else:
 		Scoreboard.bad_cut(transform.origin, lane_rotation, "wrong saber")
+		controller.simple_rumble(WRONG_SABER_RUMBLE, 0.2)
 		cutted.emit(false)
 	
 	# reset the movement tracking volume for the next cut
