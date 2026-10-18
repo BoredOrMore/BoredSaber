@@ -265,6 +265,7 @@ func _ready() -> void:
 	debug_info_label.visible = Settings.show_debug_info
 	set_colors_from_settings()
 	($WorldEnvironment as WorldEnvironment).environment.glow_enabled = Settings.glare
+	($WorldEnvironment as WorldEnvironment).environment.adjustment_color_correction = _make_shadow_tint_lut()
 	
 	if not vr.inVR:
 		xr_origin.add_child(preload("res://OQ_Toolkit/OQ_ARVROrigin/Feature_VRSimulator.tscn").instantiate())
@@ -289,6 +290,25 @@ func _ready() -> void:
 	set_background_texture()
 	
 	recenter()
+
+## Builds the colour-correction LUT that tints the dark end of the scene towards Constants.SHADOW_TINT.
+## Highlights and mid-tones (note and saber colours) pass through unchanged.
+static func _make_shadow_tint_lut() -> ImageTexture3D:
+	var n := Constants.SHADOW_TINT_LUT_SIZE
+	var slices: Array[Image] = []
+	for b in n:
+		var img := Image.create_empty(n, n, false, Image.FORMAT_RGB8)
+		for g in n:
+			for r in n:
+				var c := Color(r / (n - 1.0), g / (n - 1.0), b / (n - 1.0))
+				var luma := c.r * 0.2126 + c.g * 0.7152 + c.b * 0.0722
+				var weight := 1.0 - smoothstep(0.0, Constants.SHADOW_TINT_FADE_LUMA, luma)
+				img.set_pixel(r, g, Color(c.r + Constants.SHADOW_TINT.r * weight,
+						c.g + Constants.SHADOW_TINT.g * weight, c.b + Constants.SHADOW_TINT.b * weight))
+		slices.append(img)
+	var lut := ImageTexture3D.new()
+	lut.create(Image.FORMAT_RGB8, n, n, n, false, slices)
+	return lut
 
 ## Pauses when Android moves the app to the background.
 func _notification(what: int) -> void:
