@@ -244,7 +244,7 @@ text = "3"
 font_size_multiplier = 4.587
 
 [node name="Settings_canvas" parent="." unique_id=1444993032 instance=ExtResource("3")]
-transform = Transform3D(2.3178, 0, 0, 0, 2.3178, 0, 0, 0, 2.3178, 0, 1.5, -1)
+transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 2.4, 0, 1.5, -1)
 visible = false
 
 [node name="settings_Panel" parent="Settings_canvas" unique_id=1568178862 node_paths=PackedStringArray("beepsaber_game") instance=ExtResource("19")]

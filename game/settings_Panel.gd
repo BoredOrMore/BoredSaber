@@ -4,44 +4,44 @@ class_name SettingsPanel
 signal apply()
 @export var beepsaber_game : BeepSaber_Game
 
-@onready var saber_control := $ScrollContainer/VBox/SaberTypeRow/saber as OptionButton
-@onready var color_preset_control := $ScrollContainer/VBox/ColorPresetRow/color_preset as OptionButton
-@onready var glare_control := $ScrollContainer/VBox/glare as CheckButton
-@onready var saber_tail_control := $ScrollContainer/VBox/saber_tail as CheckButton
-@onready var saber_thickness := $ScrollContainer/VBox/SaberThicknessRow/saber_thickness as HSlider
-@onready var cut_blocks := $ScrollContainer/VBox/cut_blocks as CheckButton
-@onready var left_saber_col := $ScrollContainer/VBox/SaberColorsRow/left_saber_col as ColorPickerButton
-@onready var right_saber_col := $ScrollContainer/VBox/SaberColorsRow/right_saber_col as ColorPickerButton
-@onready var show_debug_control := $ScrollContainer/VBox/show_debug as CheckButton
-@onready var mixed_reality_control := $ScrollContainer/VBox/mixed_reality as CheckButton
-@onready var explain_control := $ScrollContainer/VBox/explain as CheckButton
-@onready var left_handed_control := $ScrollContainer/VBox/left_handed as CheckButton
-@onready var not_music_dl_control := $ScrollContainer/VBox/not_music_dl as CheckButton
-@onready var swing_scoring_control := $ScrollContainer/VBox/swing_scoring as CheckButton
-@onready var show_collisions := $ScrollContainer/VBox/show_collisions as CheckButton
-@onready var ui_volume_slider := $ScrollContainer/VBox/UI_VolumeRow/ui_volume_slider as HSlider
-@onready var disable_map_color_control := $ScrollContainer/VBox/disable_map_color as CheckButton
-@onready var left_saber_posx_control := $ScrollContainer/VBox/left_saber_offset/posx as SpinBox
-@onready var left_saber_posy_control := $ScrollContainer/VBox/left_saber_offset/posy as SpinBox
-@onready var left_saber_posz_control := $ScrollContainer/VBox/left_saber_offset/posz as SpinBox
-@onready var left_saber_rotx_control := $ScrollContainer/VBox/left_saber_offset/rotx as SpinBox
-@onready var left_saber_roty_control := $ScrollContainer/VBox/left_saber_offset/roty as SpinBox
-@onready var left_saber_rotz_control := $ScrollContainer/VBox/left_saber_offset/rotz as SpinBox
-@onready var right_saber_posx_control := $ScrollContainer/VBox/right_saber_offset/posx as SpinBox
-@onready var right_saber_posy_control := $ScrollContainer/VBox/right_saber_offset/posy as SpinBox
-@onready var right_saber_posz_control := $ScrollContainer/VBox/right_saber_offset/posz as SpinBox
-@onready var right_saber_rotx_control := $ScrollContainer/VBox/right_saber_offset/rotx as SpinBox
-@onready var right_saber_roty_control := $ScrollContainer/VBox/right_saber_offset/roty as SpinBox
-@onready var right_saber_rotz_control := $ScrollContainer/VBox/right_saber_offset/rotz as SpinBox
-@onready var player_height_offset_control := $ScrollContainer/VBox/player_height_offset/pos as SpinBox
-@onready var audio_master_control := $ScrollContainer/VBox/audio/master/master_slider as HSlider
-@onready var audio_music_control := $ScrollContainer/VBox/audio/music/music_slider as HSlider
-@onready var audio_music_preview_control := $ScrollContainer/VBox/audio/music_preview/music_preview_slider as HSlider
-@onready var audio_sfx_control := $ScrollContainer/VBox/audio/sfx/sfx_slider as HSlider
-@onready var spectator_view_control := $ScrollContainer/VBox/spectator_view as CheckButton
-@onready var spectator_hud_control := $ScrollContainer/VBox/spectator_hud as CheckButton
-@onready var background_mode_control := $ScrollContainer/VBox/background_mode_grid/background_mode as OptionButton
-@onready var background_texture_control := $ScrollContainer/VBox/background_texture_grid/background_texture as OptionButton
+@onready var saber_control := $Tabs/Visuals/VBox/SaberTypeRow/saber as OptionButton
+@onready var color_preset_control := $Tabs/Visuals/VBox/ColorPresetRow/color_preset as OptionButton
+@onready var glare_control := $Tabs/Visuals/VBox/glare as CheckButton
+@onready var saber_tail_control := $Tabs/Visuals/VBox/saber_tail as CheckButton
+@onready var saber_thickness := $Tabs/Visuals/VBox/SaberThicknessRow/saber_thickness as HSlider
+@onready var cut_blocks := $Tabs/Visuals/VBox/cut_blocks as CheckButton
+@onready var left_saber_col := $Tabs/Visuals/VBox/SaberColorsRow/left_saber_col as ColorPickerButton
+@onready var right_saber_col := $Tabs/Visuals/VBox/SaberColorsRow/right_saber_col as ColorPickerButton
+@onready var show_debug_control := $Tabs/Advanced/VBox/show_debug as CheckButton
+@onready var mixed_reality_control := $Tabs/Visuals/VBox/mixed_reality as CheckButton
+@onready var explain_control := $Tabs/Gameplay/VBox/explain as CheckButton
+@onready var left_handed_control := $Tabs/Gameplay/VBox/left_handed as CheckButton
+@onready var not_music_dl_control := $Tabs/Audio/VBox/not_music_dl as CheckButton
+@onready var swing_scoring_control := $Tabs/Gameplay/VBox/swing_scoring as CheckButton
+@onready var show_collisions := $Tabs/Advanced/VBox/show_collisions as CheckButton
+@onready var ui_volume_slider := $Tabs/Audio/VBox/UI_VolumeRow/ui_volume_slider as HSlider
+@onready var disable_map_color_control := $Tabs/Gameplay/VBox/disable_map_color as CheckButton
+@onready var left_saber_posx_control := $Tabs/Advanced/VBox/left_saber_offset/posx as SpinBox
+@onready var left_saber_posy_control := $Tabs/Advanced/VBox/left_saber_offset/posy as SpinBox
+@onready var left_saber_posz_control := $Tabs/Advanced/VBox/left_saber_offset/posz as SpinBox
+@onready var left_saber_rotx_control := $Tabs/Advanced/VBox/left_saber_offset/rotx as SpinBox
+@onready var left_saber_roty_control := $Tabs/Advanced/VBox/left_saber_offset/roty as SpinBox
+@onready var left_saber_rotz_control := $Tabs/Advanced/VBox/left_saber_offset/rotz as SpinBox
+@onready var right_saber_posx_control := $Tabs/Advanced/VBox/right_saber_offset/posx as SpinBox
+@onready var right_saber_posy_control := $Tabs/Advanced/VBox/right_saber_offset/posy as SpinBox
+@onready var right_saber_posz_control := $Tabs/Advanced/VBox/right_saber_offset/posz as SpinBox
+@onready var right_saber_rotx_control := $Tabs/Advanced/VBox/right_saber_offset/rotx as SpinBox
+@onready var right_saber_roty_control := $Tabs/Advanced/VBox/right_saber_offset/roty as SpinBox
+@onready var right_saber_rotz_control := $Tabs/Advanced/VBox/right_saber_offset/rotz as SpinBox
+@onready var player_height_offset_control := $Tabs/Gameplay/VBox/player_height_offset/pos as SpinBox
+@onready var audio_master_control := $Tabs/Audio/VBox/audio/master/master_slider as HSlider
+@onready var audio_music_control := $Tabs/Audio/VBox/audio/music/music_slider as HSlider
+@onready var audio_music_preview_control := $Tabs/Audio/VBox/audio/music_preview/music_preview_slider as HSlider
+@onready var audio_sfx_control := $Tabs/Audio/VBox/audio/sfx/sfx_slider as HSlider
+@onready var spectator_view_control := $Tabs/Advanced/VBox/spectator_view as CheckButton
+@onready var spectator_hud_control := $Tabs/Advanced/VBox/spectator_hud as CheckButton
+@onready var background_mode_control := $Tabs/Visuals/VBox/background_mode_grid/background_mode as OptionButton
+@onready var background_texture_control := $Tabs/Visuals/VBox/background_texture_grid/background_texture as OptionButton
 
 var _play_ui_sound_demo := false
 var left_saber_col_state := false
@@ -80,7 +80,7 @@ func _ready() -> void:
 			
 	if OS.get_name() == &"Web":
 		# way too heavy for webxr
-		$ScrollContainer/VBox/glare.hide()
+		$Tabs/Visuals/VBox/glare.hide()
 		
 func _update_backgrounds() -> void:
 	var selected := 0
@@ -306,7 +306,7 @@ func _on_spectator_hud_toggled(value: bool) -> void:
 
 
 func _on_recenter_button_up() -> void:
-	var recenter_button : Button = $ScrollContainer/VBox/recenter
+	var recenter_button : Button = $Tabs/Gameplay/VBox/recenter
 	recenter_button.disabled = true
 	recenter_button.text = "3.."
 	await get_tree().create_timer(1).timeout
