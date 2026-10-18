@@ -4,6 +4,8 @@ class_name Cuttable
 var speed: float
 var beat: float
 var lane_rotation := 0.
+# direction of travel (the basis z without scale), set with the lane rotation
+var _forward := Vector3(0, 0, 1)
 
 # used to release the cube once both of it's cut pieces have died off
 # Note: serves no purpose for bombs
@@ -40,12 +42,13 @@ func add_lane_rotation(angle):
 	rotation.y = -angle
 	
 	lane_rotation = angle
+	_forward = Vector3(-s, 0.0, c)
 
 func _physics_process(delta: float) -> void:
 	if Scoreboard.paused or not is_visible_in_tree() or not Map.current_info: return
 	
-	transform.origin += speed * delta * transform.basis.orthonormalized().z
-	var rz := global_transform.origin.dot(transform.basis.orthonormalized().z)
+	transform.origin += speed * delta * _forward
+	var rz := global_transform.origin.dot(_forward)
 	
 	if rz > -3.0:
 		set_collision_disabled(false)
