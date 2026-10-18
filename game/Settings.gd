@@ -269,9 +269,10 @@ var default_values = {
 	flip = 0,
 	handedness = 0,
 	left_saber_offset_pos = Vector3.ZERO,
-	left_saber_offset_rot = Vector3.ZERO,
+	# sabers turned 5 degrees outward (positive y is outward on the left, negative on the right)
+	left_saber_offset_rot = Vector3(0, 5, 0),
 	right_saber_offset_pos = Vector3.ZERO,
-	right_saber_offset_rot = Vector3.ZERO,
+	right_saber_offset_rot = Vector3(0, -5, 0),
 	disable_map_color = false,
 	player_height_offset = 0.0,
 	audio_master = 0.8,
