@@ -106,6 +106,10 @@ const UI_TEXT_MUTED := Color(0.6, 0.63, 0.67)
 const SHADOW_TINT := Color(0.0, 0.0, 0.102)
 const SHADOW_TINT_FADE_LUMA := 0.45
 const SHADOW_TINT_LUT_SIZE := 32
+# Walls and bombs use one danger colour: warning amber, unless a note colour's hue is within
+# DANGER_MIN_HUE_GAP (0-1 around the colour wheel) of it; then whichever candidate is farthest from both.
+const DANGER_COLORS := [Color("ffb020"), Color("ff3b30"), Color("ffe14d")]
+const DANGER_MIN_HUE_GAP := 30.0 / 360.0
 
 # Difficulty colours as players know them from Beat Saber, keyed by the map's difficulty name.
 const DIFFICULTY_COLORS := {

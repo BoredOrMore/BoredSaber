@@ -43,7 +43,6 @@ func spawn(wall_info: ObstacleInfo, current_beat: float) -> void:
 	m.size.z = z_size
 	shape.size.z = z_size
 	despawn_z = Constants.MISS_Z + depth
-	(mesh.material_override as ShaderMaterial).set_shader_parameter(&"size", Vector3(x_size, y_size, z_size))
 	
 	var x := (0.5 * wall_info.width + wall_info.line_index - 2) * Settings.LANE_DISTANCE_X
 	var y := (0.5 * wall_info.height + wall_info.line_layer) * Constants.LANE_DISTANCE_Y

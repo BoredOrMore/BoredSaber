@@ -1,6 +1,7 @@
 [gd_scene load_steps=7 format=4 uid="uid://cxpnql8hhru8j"]
 
 [ext_resource type="PackedScene" uid="uid://b2r4nmdou52r8" path="res://game/Bomb/bomb.glb" id="2"]
+[ext_resource type="Material" path="res://game/Bomb/bomb_glow.tres" id="3"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_a4ib6"]
 shading_mode = 2
@@ -10,13 +11,6 @@ emission = Color(0.0941176, 0.0941176, 0.0941176, 1)
 rim = 0.19
 rim_tint = 0.41
 grow_amount = 0.186
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ipj5a"]
-cull_mode = 1
-shading_mode = 0
-albedo_color = Color(1, 0, 0.0980392, 1)
-grow = true
-grow_amount = 0.09
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_5cbfx"]
 
@@ -60,7 +54,7 @@ material_override = SubResource("StandardMaterial3D_a4ib6")
 [node name="Icosphere2" type="MeshInstance3D" parent="." index="1"]
 transform = Transform3D(1.91069e-15, 4.37114e-08, 1, 1, -4.37114e-08, 0, 4.37114e-08, 1, -4.37114e-08, 0, 0, 0)
 layers = 3
-material_override = SubResource("StandardMaterial3D_ipj5a")
+material_override = ExtResource("3")
 gi_mode = 0
 mesh = SubResource("ArrayMesh_wgfrt")
 skeleton = NodePath("")
