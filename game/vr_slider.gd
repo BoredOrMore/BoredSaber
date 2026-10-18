@@ -1,6 +1,8 @@
 extends Node
 
 @export var scroll_node_path: NodePath
+## Scroll with the thumbstick even when no pointer is over the list (for the screen's main list).
+@export var scroll_without_pointer := false
 var scroll_node: Control
 var v_scroll: VScrollBar
 var is_mouse_in := false
@@ -28,6 +30,17 @@ const JOYSTICK_SLOW_SCROLL_SPEED := 10.0
 # scrolling speed at full throw of the joystick.
 const JOYSTICK_FAST_SCROLL_SPEED := 2000.0
 
+# JOYSTICK_ACCELERATION
+# Description: How much faster scrolling gets per second the stick is held,
+# so short pushes move a few rows and long holds race through the list.
+const JOYSTICK_ACCELERATION := 1.5
+
+# JOYSTICK_MAX_BOOST
+# Description: The highest multiplier the hold acceleration can reach.
+const JOYSTICK_MAX_BOOST := 4.0
+
+var _hold_time := 0.0
+
 func _ready() -> void:
 	scroll_node = get_node(scroll_node_path) as Control
 	
@@ -48,16 +61,29 @@ func _process(delta: float) -> void:
 			# Scroll via "click & drag"
 			v_scroll.value += ((relpos - newpos) * 20.0)
 		else:
-			# Scroll via joystick
-			var y_joy := vr.rightController.get_vector2("primary").y
-			if absf(y_joy) > JOYSTICK_SCROLL_THRESHOLD:
-				# negate sign so positive scroll_amounts will scroll down
-				var scroll_amount := lerpf(
-					JOYSTICK_SLOW_SCROLL_SPEED,
-					JOYSTICK_FAST_SCROLL_SPEED,
-					absf(y_joy)) * -signf(y_joy) * delta
-				v_scroll.value += scroll_amount
+			_joystick_scroll(delta)
+	elif scroll_without_pointer and scroll_node.is_visible_in_tree():
+		_joystick_scroll(delta)
+	else:
+		_hold_time = 0.0
 	relpos = newpos
+
+## Scrolls by the stronger thumbstick of the two hands, faster the longer it is held.
+func _joystick_scroll(delta: float) -> void:
+	var y_left := vr.leftController.get_vector2("primary").y
+	var y_right := vr.rightController.get_vector2("primary").y
+	var y_joy := y_left if absf(y_left) > absf(y_right) else y_right
+	if absf(y_joy) <= JOYSTICK_SCROLL_THRESHOLD:
+		_hold_time = 0.0
+		return
+	_hold_time += delta
+	var boost := minf(1.0 + _hold_time * JOYSTICK_ACCELERATION, JOYSTICK_MAX_BOOST)
+	# negate sign so positive scroll_amounts will scroll down
+	var scroll_amount := lerpf(
+		JOYSTICK_SLOW_SCROLL_SPEED,
+		JOYSTICK_FAST_SCROLL_SPEED,
+		absf(y_joy)) * boost * -signf(y_joy) * delta
+	v_scroll.value += scroll_amount
 
 func _mouse_entered() -> void:
 	is_mouse_in = true
