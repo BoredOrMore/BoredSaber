@@ -56,6 +56,17 @@ offset_right = 840.0
 offset_bottom = 936.0
 text = "Search"
 
+[node name="Title" type="Label" parent="."]
+layout_mode = 0
+offset_left = 488.0
+offset_top = 16.0
+offset_right = 1000.0
+offset_bottom = 80.0
+theme_override_font_sizes/font_size = 36
+text = "BeatSaver"
+horizontal_alignment = 2
+vertical_alignment = 1
+
 [node name="back" type="Button" parent="."]
 layout_mode = 0
 offset_left = 16.0

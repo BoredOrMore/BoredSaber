@@ -139,6 +139,7 @@ offset_top = 616.0
 offset_right = 934.0
 offset_bottom = 696.0
 theme_override_font_sizes/font_size = 24
+toggle_mode = true
 text = "Modifiers"
 
 [node name="Settings_Button" type="Button" parent="." unique_id=1976522914]
@@ -157,6 +158,7 @@ offset_top = 616.0
 offset_right = 1256.0
 offset_bottom = 696.0
 theme_override_font_sizes/font_size = 24
+toggle_mode = true
 text = "More"
 
 [node name="ModifiersPanel" type="Panel" parent="."]
@@ -262,54 +264,64 @@ offset_top = 24.0
 offset_right = 1256.0
 offset_bottom = 600.0
 
+[node name="Title" type="Label" parent="MorePanel"]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 456.0
+offset_bottom = 52.0
+theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
+theme_override_font_sizes/font_size = 24
+text = "More"
+
 [node name="LoadPlaylists_Button" type="Button" parent="MorePanel" unique_id=793107135]
 layout_mode = 0
-offset_left = 24.0
-offset_top = 24.0
-offset_right = 448.0
-offset_bottom = 96.0
+offset_left = 16.0
+offset_top = 64.0
+offset_right = 456.0
+offset_bottom = 136.0
 text = "Refresh Songs"
 
 [node name="Delete_Button" type="Button" parent="MorePanel" unique_id=1222545396]
 layout_mode = 0
-offset_left = 24.0
-offset_top = 112.0
-offset_right = 448.0
-offset_bottom = 184.0
+offset_left = 16.0
+offset_top = 152.0
+offset_right = 456.0
+offset_bottom = 224.0
 disabled = true
 text = "Delete Song"
 
 [node name="Licenses" type="Button" parent="MorePanel" unique_id=980969105]
 layout_mode = 0
-offset_left = 24.0
-offset_top = 200.0
-offset_right = 448.0
-offset_bottom = 272.0
+offset_left = 16.0
+offset_top = 240.0
+offset_right = 456.0
+offset_bottom = 312.0
 text = "Licenses"
 
 [node name="Exit_Button" type="Button" parent="MorePanel" unique_id=1669148104]
 layout_mode = 0
-offset_left = 24.0
-offset_top = 288.0
-offset_right = 448.0
-offset_bottom = 360.0
+offset_left = 16.0
+offset_top = 328.0
+offset_right = 456.0
+offset_bottom = 400.0
 text = "Exit Game"
 
 [node name="upload_url" type="Label" parent="MorePanel" unique_id=1379669192]
 layout_mode = 0
-offset_left = 24.0
-offset_top = 384.0
-offset_right = 448.0
-offset_bottom = 500.0
+offset_left = 16.0
+offset_top = 424.0
+offset_right = 456.0
+offset_bottom = 504.0
 theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
 theme_override_font_sizes/font_size = 22
 autowrap_mode = 3
 
 [node name="version" type="Label" parent="MorePanel" unique_id=537676885]
 layout_mode = 0
-offset_left = 24.0
+offset_left = 16.0
 offset_top = 512.0
-offset_right = 448.0
+offset_right = 456.0
 offset_bottom = 548.0
 theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
 theme_override_font_sizes/font_size = 22

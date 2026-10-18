@@ -458,13 +458,18 @@ func _on_Settings_Button_pressed() -> void:
 
 ## Shows or hides the modifiers panel over the song details.
 func _on_modifiers_button_pressed() -> void:
-	$MorePanel.hide()
-	$ModifiersPanel.visible = not $ModifiersPanel.visible
+	_show_side_panel($ModifiersPanel if not $ModifiersPanel.visible else null)
 
 ## Shows or hides the panel with the less used actions (refresh, delete, licenses, exit).
 func _on_more_button_pressed() -> void:
-	$ModifiersPanel.hide()
-	$MorePanel.visible = not $MorePanel.visible
+	_show_side_panel($MorePanel if not $MorePanel.visible else null)
+
+## Shows one panel over the song details (null shows the details) and lights up its footer button.
+func _show_side_panel(panel: Panel) -> void:
+	$ModifiersPanel.visible = panel == $ModifiersPanel
+	$MorePanel.visible = panel == $MorePanel
+	$Modifiers_Button.set_pressed_no_signal($ModifiersPanel.visible)
+	$More_Button.set_pressed_no_signal($MorePanel.visible)
 
 const READ_PERMISSION = "android.permission.READ_EXTERNAL_STORAGE"
 
