@@ -176,7 +176,8 @@ func _submit_highscore(player_name: String) -> void:
 
 func _check_and_update_saber(controller: BeepSaberController, saber: LightSaber) -> void:
 	# to allow extending/sheething the saber while not playing a song
-	if ((not song_player.playing)
+	# (the song is also silent during the lead-in, so check the game state)
+	if ((gamestate != gamestate_playing)
 		and (controller.ax_just_pressed() or controller.by_just_pressed())
 		and (not saber._anim.is_playing())):
 		if (saber.is_extended()): saber._hide()
