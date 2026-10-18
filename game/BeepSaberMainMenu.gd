@@ -238,17 +238,13 @@ func _song_filter_is_off() -> bool:
 func _passes_song_filter(map: MapInfo) -> bool:
 	if _song_filter_is_off():
 		return true
-	var nps_range: Array = Constants.NPS_FILTERS[clampi(Settings.song_filter_nps, 0, Constants.NPS_FILTERS.size() - 1)]
-	var length_range: Array = Constants.LENGTH_FILTERS[clampi(Settings.song_filter_length, 0, Constants.LENGTH_FILTERS.size() - 1)]
+	var nps_range := MapStats.nps_filter()
+	var length_range := MapStats.length_filter()
 	for diff in map.difficulty_beatmaps:
 		var stats := MapStats.get_cached(map, diff)
-		if stats.is_empty() or (_in_filter_range(float(stats.nps), nps_range) and _in_filter_range(float(stats.seconds), length_range)):
+		if stats.is_empty() or (MapStats.in_filter(float(stats.nps), nps_range) and MapStats.in_filter(float(stats.seconds), length_range)):
 			return true
 	return false
-
-## True if value is inside a [id, label, min, max] filter entry; max <= 0 means no upper limit.
-static func _in_filter_range(value: float, filter: Array) -> bool:
-	return value >= float(filter[2]) and (float(filter[3]) <= 0.0 or value < float(filter[3]))
 
 ## Rebuilds the shown song list with the current search text and filters.
 func _refilter() -> void:
@@ -262,15 +258,13 @@ func _on_map_stats_counted() -> void:
 	if not _song_filter_is_off():
 		_refilter()
 
-## Stores the picked NPS filter and rebuilds the list.
+## Stores the picked NPS filter; on_settings_changed rebuilds the list.
 func _on_nps_filter_item_selected(index: int) -> void:
 	Settings.song_filter_nps = Constants.NPS_FILTERS[index][0]
-	_refilter()
 
-## Stores the picked length filter and rebuilds the list.
+## Stores the picked length filter; on_settings_changed rebuilds the list.
 func _on_length_filter_item_selected(index: int) -> void:
 	Settings.song_filter_length = Constants.LENGTH_FILTERS[index][0]
-	_refilter()
 
 var default_song_icon := preload("res://game/data/beepsaber_logo.png")
 
@@ -493,6 +487,11 @@ func on_settings_changed(key: StringName) -> void:
 	match key:
 		&"music_speed":
 			song_preview.pitch_scale = Settings.music_speed / 100.
+		&"song_filter_nps", &"song_filter_length":
+			# the BeatSaver panel shares these filters, so follow changes made there too
+			nps_filter.select(MapStats.nps_filter()[0])
+			length_filter.select(MapStats.length_filter()[0])
+			_refilter()
 
 func difficulty_modifier_changed() -> void:
 	pass			

@@ -16,10 +16,24 @@ theme = ExtResource("menu_theme")
 theme_override_styles/panel = SubResource("root")
 script = ExtResource("2")
 
-[node name="ItemList" type="ItemList" parent="."]
+[node name="NpsFilter" type="OptionButton" parent="."]
 layout_mode = 0
 offset_left = 16.0
 offset_top = 96.0
+offset_right = 500.0
+offset_bottom = 160.0
+
+[node name="LengthFilter" type="OptionButton" parent="."]
+layout_mode = 0
+offset_left = 516.0
+offset_top = 96.0
+offset_right = 1000.0
+offset_bottom = 160.0
+
+[node name="ItemList" type="ItemList" parent="."]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 176.0
 offset_right = 1000.0
 offset_bottom = 840.0
 max_text_lines = 1
@@ -159,3 +173,5 @@ list_path = NodePath("../ItemList")
 [connection signal="request_completed" from="HTTPDownload" to="." method="_on_HTTPRequest_download_completed"]
 [connection signal="request_completed" from="CoverDownload" to="." method="_update_cover"]
 [connection signal="request_completed" from="PreviewDownload" to="." method="_on_preview_download_completed"]
+[connection signal="item_selected" from="NpsFilter" to="." method="_on_nps_filter_item_selected"]
+[connection signal="item_selected" from="LengthFilter" to="." method="_on_length_filter_item_selected"]

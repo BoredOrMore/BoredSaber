@@ -70,6 +70,18 @@ static func _count(info: MapInfo, difficulty: DifficultyInfo) -> Dictionary:
 	var seconds := last_beat * 60.0 / info.beats_per_minute if info.beats_per_minute > 0.0 else 0.0
 	return {"notes": notes, "seconds": seconds, "nps": notes / seconds if seconds > 0.0 else 0.0}
 
+## The saved NPS filter entry [id, label, min, max] from Constants.NPS_FILTERS.
+static func nps_filter() -> Array:
+	return Constants.NPS_FILTERS[clampi(Settings.song_filter_nps, 0, Constants.NPS_FILTERS.size() - 1)]
+
+## The saved length filter entry [id, label, min, max] from Constants.LENGTH_FILTERS.
+static func length_filter() -> Array:
+	return Constants.LENGTH_FILTERS[clampi(Settings.song_filter_length, 0, Constants.LENGTH_FILTERS.size() - 1)]
+
+## True if value is inside a filter entry; max <= 0 means no upper limit.
+static func in_filter(value: float, filter: Array) -> bool:
+	return value >= float(filter[2]) and (float(filter[3]) <= 0.0 or value < float(filter[3]))
+
 ## Formats stats as "3:24 · 5.2 NPS".
 static func describe(stats: Dictionary) -> String:
 	var seconds := int(stats.get("seconds", 0.0))

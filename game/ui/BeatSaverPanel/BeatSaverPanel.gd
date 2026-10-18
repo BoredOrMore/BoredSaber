@@ -46,6 +46,8 @@ var downloading := []#[["name","version_info"]]
 @onready var httppreviewdownload := $PreviewDownload as HTTPRequest
 @onready var placeholder_cover := preload("res://game/data/beepsaber_logo.png")
 @onready var goto_maps_by := $gotoMapsBy as Button
+@onready var nps_filter := $NpsFilter as OptionButton
+@onready var length_filter := $LengthFilter as OptionButton
 @onready var v_scroll := item_list.get_v_scroll_bar()
 
 const MAX_BACK_STACK_DEPTH := 10
@@ -90,6 +92,50 @@ func _ready() -> void:
 		parent_canvas = parent_canvas.get_parent()
 
 	main_menu_ref.song_list_changed.connect(on_song_list_changed)
+	
+	for filter: Array in Constants.NPS_FILTERS:
+		nps_filter.add_item(filter[1])
+	for filter: Array in Constants.LENGTH_FILTERS:
+		length_filter.add_item(filter[1])
+	_sync_filter_controls()
+	Settings.changed.connect(_on_settings_changed)
+
+## Shows the saved song filters in the dropdowns.
+func _sync_filter_controls() -> void:
+	nps_filter.select(MapStats.nps_filter()[0])
+	length_filter.select(MapStats.length_filter()[0])
+
+## BeatSaver search parameters for the saved NPS and length filters, or "" when both are off.
+static func _filter_query() -> String:
+	var nps := MapStats.nps_filter()
+	var length := MapStats.length_filter()
+	var query := ""
+	if float(nps[2]) > 0.0:
+		query += "&minNps=%s" % nps[2]
+	if float(nps[3]) > 0.0:
+		query += "&maxNps=%s" % nps[3]
+	if float(length[2]) > 0.0:
+		query += "&minDuration=%d" % int(length[2])
+	if float(length[3]) > 0.0:
+		query += "&maxDuration=%d" % int(length[3])
+	return query
+
+## Follows filter changes (made here or in the song menu) and reloads the current list with them.
+func _on_settings_changed(key: StringName) -> void:
+	if key != &"song_filter_nps" and key != &"song_filter_length":
+		return
+	_sync_filter_controls()
+	if prev_request != null and prev_request.type != "uploader":
+		prev_request.page = 0
+		update_list(prev_request)
+
+## Stores the picked NPS filter.
+func _on_nps_filter_item_selected(index: int) -> void:
+	Settings.song_filter_nps = Constants.NPS_FILTERS[index][0]
+
+## Stores the picked length filter.
+func _on_length_filter_item_selected(index: int) -> void:
+	Settings.song_filter_length = Constants.LENGTH_FILTERS[index][0]
 
 # override hide() method to handle case where UI is inside a OQ_UI2DCanvas
 func _hide() -> void:
@@ -136,11 +182,16 @@ func update_list(req: BeatSaverRequest) -> void:
 		"list":
 			var list := req.data
 			mode_button.text = list.substr(0,1).capitalize() + list.substr(1)
-			httpreq.request("https://beatsaver.com/api/maps/%s/%s" % [list,req.page])
+			var filters := _filter_query()
+			if filters.is_empty():
+				httpreq.request("https://beatsaver.com/api/maps/%s/%s" % [list,req.page])
+			else:
+				# the list endpoints can't filter, so search everything by rating instead
+				httpreq.request("https://beatsaver.com/api/search/text/%s?q=&sortOrder=Rating&automapper=true%s" % [req.page,filters])
 		"text_search":
 			var search_text := req.data
 			mode_button.text = search_text
-			httpreq.request("https://beatsaver.com/api/search/text/%s?q=%s&sortOrder=Relevance&automapper=true" % [req.page,search_text.uri_encode()])
+			httpreq.request("https://beatsaver.com/api/search/text/%s?q=%s&sortOrder=Relevance&automapper=true%s" % [req.page,search_text.uri_encode(),_filter_query()])
 		"uploader":
 			var uploader_id := req.data
 			mode_button.text = "Uploader"
@@ -218,7 +269,10 @@ func _on_ItemList_item_selected(index: int) -> void:
 	for diff in version['diffs']:
 		var diff_name := str(diff.get('difficulty', ""))
 		var diff_color: Color = Constants.DIFFICULTY_COLORS.get(diff_name, Constants.UI_TEXT)
-		difficulties += " [color=#%s]%s[/color]" % [diff_color.to_html(false), diff_name]
+		var nps := Utils.get_float(diff, "nps", -1.0)
+		if nps >= 0.0:
+			diff_name += " %.1f NPS" % nps
+		difficulties += "\n[color=#%s]%s[/color]" % [diff_color.to_html(false), diff_name]
 	var text := """[center]%s By %s[/center]
 
 Map author: %s
