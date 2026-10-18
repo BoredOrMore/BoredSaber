@@ -391,7 +391,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.255, 0)
 [node name="CPUParticles3D" type="GPUParticles3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.736082, 0)
 emitting = false
-amount = 50
+amount = 25
 lifetime = 1.2
 speed_scale = 2.4
 randomness = 1.0
