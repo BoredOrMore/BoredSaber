@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3 uid="uid://buhdimf18mwbo"]
+[gd_scene load_steps=5 format=3 uid="uid://buhdimf18mwbo"]
 
 [ext_resource type="Script" path="res://game/sabers/default/tail.gd" id="1_mawj2"]
 
@@ -24,13 +24,9 @@ emission_energy_multiplier = 3.71
 emission_operator = 1
 emission_texture = SubResource("GradientTexture2D_i1q2c")
 
-[sub_resource type="ImmediateMesh" id="ImmediateMesh_f67k3"]
-resource_local_to_scene = true
-
 [node name="tail" type="Node3D"]
 script = ExtResource("1_mawj2")
 
 [node name="Mesh" type="MeshInstance3D" parent="."]
 layers = 3
 material_override = SubResource("StandardMaterial3D_6viak")
-mesh = SubResource("ImmediateMesh_f67k3")
