@@ -216,7 +216,9 @@ func _on_ItemList_item_selected(index: int) -> void:
 	goto_maps_by.visible = true
 	var difficulties := ""
 	for diff in version['diffs']:
-		difficulties += " %s" % diff['difficulty']
+		var diff_name := str(diff.get('difficulty', ""))
+		var diff_color: Color = Constants.DIFFICULTY_COLORS.get(diff_name, Constants.UI_TEXT)
+		difficulties += " [color=#%s]%s[/color]" % [diff_color.to_html(false), diff_name]
 	var text := """[center]%s By %s[/center]
 
 Map author: %s

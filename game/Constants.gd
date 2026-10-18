@@ -96,3 +96,12 @@ const UI_TEXT_MUTED := Color(0.6, 0.63, 0.67)
 const SHADOW_TINT := Color(0.0, 0.0, 0.204)
 const SHADOW_TINT_FADE_LUMA := 0.45
 const SHADOW_TINT_LUT_SIZE := 32
+
+# Difficulty colours as players know them from Beat Saber, keyed by the map's difficulty name.
+const DIFFICULTY_COLORS := {
+	"Easy": Color(0.24, 0.7, 0.44),
+	"Normal": Color(0.35, 0.69, 0.96),
+	"Hard": Color(1.0, 0.62, 0.26),
+	"Expert": Color(0.91, 0.3, 0.24),
+	"ExpertPlus": Color(0.61, 0.35, 0.71),
+}

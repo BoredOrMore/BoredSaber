@@ -301,6 +301,7 @@ func _select_song(id: int) -> void:
 	for diff in map.difficulty_beatmaps:
 		var diff_index := diff_menu.add_item(diff.get_display_name())
 		diff_menu.set_item_tooltip(diff_index, diff.difficulty + " / " + diff.get_display_name())
+		diff_menu.set_item_custom_fg_color(diff_index, Constants.DIFFICULTY_COLORS.get(diff.difficulty, Constants.UI_TEXT))
 	
 	var d := PlayCount.get_last_difficulty(map)
 	_select_difficulty(0 if d < 0 else (d & Constants.DIFFICULTY_MASK))
