@@ -1,4 +1,4 @@
-[gd_resource type="Theme" load_steps=14 format=3]
+[gd_resource type="Theme" load_steps=15 format=3]
 
 [ext_resource type="FontFile" uid="uid://cdsnr8tscm8y6" path="res://OQ_Toolkit/OQ_UI2D/theme/Roboto-Medium.ttf" id="1"]
 
@@ -80,6 +80,10 @@ corner_radius_bottom_right = 14
 corner_radius_bottom_left = 14
 
 [sub_resource type="StyleBoxFlat" id="list_selected"]
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
 bg_color = Color(0.2, 0.36, 0.45, 1)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
@@ -87,6 +91,10 @@ corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
 [sub_resource type="StyleBoxFlat" id="list_hover"]
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
 bg_color = Color(0.133, 0.149, 0.18, 1)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
@@ -115,6 +123,12 @@ corner_radius_top_right = 14
 
 [sub_resource type="StyleBoxEmpty" id="empty"]
 
+[sub_resource type="StyleBoxEmpty" id="tab_panel"]
+content_margin_left = 16.0
+content_margin_top = 20.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
 [sub_resource type="StyleBoxFlat" id="slider"]
 content_margin_top = 6.0
 content_margin_bottom = 6.0
@@ -136,6 +150,8 @@ corner_radius_bottom_left = 6
 [resource]
 default_font = ExtResource("1")
 default_font_size = 28
+BoxContainer/constants/separation = 12
+HBoxContainer/constants/separation = 16
 Button/colors/font_color = Color(0.894, 0.902, 0.922, 1)
 Button/colors/font_disabled_color = Color(0.45, 0.47, 0.5, 1)
 Button/colors/font_hover_color = Color(1, 1, 1, 1)
@@ -158,6 +174,7 @@ HSlider/styles/grabber_area_highlight = SubResource("slider_fill")
 HSlider/styles/slider = SubResource("slider")
 ItemList/colors/font_color = Color(0.894, 0.902, 0.922, 1)
 ItemList/colors/font_selected_color = Color(1, 1, 1, 1)
+ItemList/constants/h_separation = 16
 ItemList/constants/v_separation = 10
 ItemList/styles/focus = SubResource("empty")
 ItemList/styles/hovered = SubResource("list_hover")
@@ -181,7 +198,7 @@ SpinBox/colors/font_color = Color(0.894, 0.902, 0.922, 1)
 TabContainer/colors/font_hovered_color = Color(1, 1, 1, 1)
 TabContainer/colors/font_selected_color = Color(1, 1, 1, 1)
 TabContainer/colors/font_unselected_color = Color(0.6, 0.63, 0.67, 1)
-TabContainer/styles/panel = SubResource("empty")
+TabContainer/styles/panel = SubResource("tab_panel")
 TabContainer/styles/tab_hovered = SubResource("tab_unselected")
 TabContainer/styles/tab_selected = SubResource("tab_selected")
 TabContainer/styles/tab_unselected = SubResource("tab_unselected")

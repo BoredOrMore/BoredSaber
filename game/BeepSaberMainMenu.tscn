@@ -115,6 +115,7 @@ offset_left = 784.0
 offset_top = 240.0
 offset_right = 1256.0
 offset_bottom = 490.0
+theme_override_constants/h_separation = 40
 
 [node name="Play_Button" type="Button" parent="." unique_id=1531123587]
 layout_mode = 0
