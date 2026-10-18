@@ -14,6 +14,19 @@ const BACKGROUND_TEXTURES := [ ["res://game/data/background/fractal.jpg", "Fract
 		["res://game/data/background/nightsky.jpg", "Night Sky (credit: ESA/S. Brunier)"],
 		["res://game/data/background/bg_base.jpg", "Original Open Saber"] ]
 
+# Left/right note colours: bright enough to read as neon, but not fully saturated so long sessions are easier on the eyes.
+const COLOR_PRESETS := [
+		["Neon Classic", Color("3d7bff"), Color("ff3d5a")],
+		["Cyber Pink", Color("00d8f0"), Color("ff2e9a")],
+		["Synthwave", Color("8a5cff"), Color("ff8a3d")],
+		["Toxic", Color("39f088"), Color("c04bff")],
+		["Sunset", Color("ffb13d"), Color("ff4d8d")],
+		["Sky & Gold", Color("3da9ff"), Color("ffd84d")],
+		["Ice & Lava", Color("7fe0ff"), Color("ff5a1f")],
+		["Mint & Coral", Color("4df0c0"), Color("ff6f61")],
+		["Galaxy", Color("5b6cff"), Color("ff5be1")],
+		["Lime & Grape", Color("b0f03d"), Color("8e3dff")] ]
+
 const BACKGROUND_MODES := [ ["dynamic", "*Dynamic"],
 		["simple", "Simple"],
 		["static", "Static"] ]
@@ -228,8 +241,8 @@ const platform_default_values = {
 var default_values = {
 	thickness = 1.0,
 	cube_cuts_falloff = true,
-	color_left = Color("1a1aff"),
-	color_right = Color("ff1a1a"),
+	color_left = COLOR_PRESETS[0][1],
+	color_right = COLOR_PRESETS[0][2],
 	saber_tail = true,
 	gradual_rotation = 0,
 	glare = true,

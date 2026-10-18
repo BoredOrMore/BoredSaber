@@ -445,6 +445,21 @@ theme = SubResource("5")
 theme_override_fonts/font = SubResource("4")
 flat = true
 
+[node name="ColorPresetRow" type="HBoxContainer" parent="ScrollContainer/VBox"]
+layout_mode = 2
+
+[node name="color_preset_label" type="Label" parent="ScrollContainer/VBox/ColorPresetRow"]
+layout_mode = 2
+theme = SubResource("3")
+text = "Color Preset:"
+
+[node name="color_preset" type="OptionButton" parent="ScrollContainer/VBox/ColorPresetRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme = SubResource("5")
+theme_override_fonts/font = SubResource("4")
+flat = true
+
 [node name="SaberColorsRow" type="HBoxContainer" parent="ScrollContainer/VBox"]
 layout_mode = 2
 

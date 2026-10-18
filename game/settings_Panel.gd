@@ -5,6 +5,7 @@ signal apply()
 @export var beepsaber_game : BeepSaber_Game
 
 @onready var saber_control := $ScrollContainer/VBox/SaberTypeRow/saber as OptionButton
+@onready var color_preset_control := $ScrollContainer/VBox/ColorPresetRow/color_preset as OptionButton
 @onready var glare_control := $ScrollContainer/VBox/glare as CheckButton
 @onready var saber_tail_control := $ScrollContainer/VBox/saber_tail as CheckButton
 @onready var saber_thickness := $ScrollContainer/VBox/SaberThicknessRow/saber_thickness as HSlider
@@ -63,6 +64,11 @@ func _ready() -> void:
 	
 	_update_backgrounds()
 
+	color_preset_control.add_item("Custom")
+	for preset: Array in Settings.COLOR_PRESETS:
+		color_preset_control.add_item(preset[0])
+	color_preset_control.item_selected.connect(_on_color_preset_selected)
+
 	set_controls_from_settings()
 	_play_ui_sound_demo = true
 	for picker in [left_saber_col.get_picker(),right_saber_col.get_picker()]:
@@ -112,6 +118,7 @@ func set_controls_from_settings() -> void:
 	cut_blocks.button_pressed = Settings.cube_cuts_falloff
 	left_saber_col.color = Settings.color_left
 	right_saber_col.color = Settings.color_right
+	_update_color_preset_selection()
 	saber_tail_control.button_pressed = Settings.saber_tail
 	glare_control.button_pressed = Settings.glare
 	saber_control.select(Settings.saber_visual)
@@ -156,9 +163,30 @@ func _on_cut_blocks_toggled(button_pressed: bool) -> void:
 
 func _on_left_saber_color_changed(color: Color) -> void:
 	Settings.color_left = color
+	_update_color_preset_selection()
 
 func _on_right_saber_color_changed(color: Color) -> void:
 	Settings.color_right = color
+	_update_color_preset_selection()
+
+## Applies the chosen colour preset to both sabers. Item 0 is "Custom", presets start at item 1.
+func _on_color_preset_selected(index: int) -> void:
+	if index == 0:
+		return
+	var preset: Array = Settings.COLOR_PRESETS[index - 1]
+	Settings.color_left = preset[1]
+	Settings.color_right = preset[2]
+	left_saber_col.color = preset[1]
+	right_saber_col.color = preset[2]
+
+## Selects the preset matching the current saber colours, or "Custom" when none matches.
+func _update_color_preset_selection() -> void:
+	var selected := 0
+	for i in len(Settings.COLOR_PRESETS):
+		var preset: Array = Settings.COLOR_PRESETS[i]
+		if Settings.color_left.is_equal_approx(preset[1]) and Settings.color_right.is_equal_approx(preset[2]):
+			selected = i + 1
+	color_preset_control.selected = selected
 
 func _on_saber_tail_toggled(button_pressed: bool) -> void:
 	Settings.saber_tail = button_pressed
