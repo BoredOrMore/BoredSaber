@@ -1,15 +1,15 @@
-[gd_scene load_steps=3 format=3 uid="uid://btf734vme0j3t"]
+[gd_scene format=3 uid="uid://btf734vme0j3t"]
 
 [ext_resource type="Script" path="res://game/ui/MapDownloadPanel/MapSourceButton.gd" id="2"]
-[ext_resource type="Theme" uid="uid://cbutfawaljce6" path="res://game/BlackWhiteThem.tres" id="3"]
+[ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="menu_theme"]
 
 [node name="Button" type="Button"]
 offset_right = 494.0
 offset_bottom = 857.0
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme = ExtResource("3")
 script = ExtResource("2")
+theme = ExtResource("menu_theme")
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 0

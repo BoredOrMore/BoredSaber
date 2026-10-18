@@ -1,7 +1,7 @@
-[gd_scene load_steps=3 format=3 uid="uid://cj71atwq2eow8"]
+[gd_scene format=3 uid="uid://cj71atwq2eow8"]
 
-[ext_resource type="Theme" path="res://game/data/beep_saber.theme" id="1"]
 [ext_resource type="Script" path="res://game/ui/NameSelector/NameSelector.gd" id="2"]
+[ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="menu_theme"]
 
 [node name="NameSelector" type="Control"]
 clip_contents = true
@@ -9,8 +9,8 @@ layout_mode = 3
 anchors_preset = 0
 offset_right = 534.0
 offset_bottom = 60.0
-theme = ExtResource("1")
 script = ExtResource("2")
+theme = ExtResource("menu_theme")
 
 [node name="NameRow" type="HBoxContainer" parent="."]
 layout_mode = 0
