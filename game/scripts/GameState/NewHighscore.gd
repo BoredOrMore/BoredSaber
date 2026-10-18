@@ -8,7 +8,8 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.highscore_panel.load_highscores(
 		Map.current_info,Map.current_difficulty.difficulty_rank)
 	
-	game.endscore.set_buttons_disabled(true)
+	# the record is already saved under the default name; picking a name only renames it
+	game.endscore.set_buttons_disabled(false)
 	
 	# fill name selector with most recent player names
 	game._name_selector().clear_names()
@@ -17,12 +18,14 @@ func _ready(game: BeepSaber_Game) -> void:
 	# songs and many difficulties). If that ever becomes a
 	# concern, we may want to consider caching a list of the
 	# N most recent players instead.
-	# Guest and the keyboard come first so they are never clipped off the row,
-	# and a player can save the score without typing.
-	game._name_selector().add_name(GUEST_NAME)
+	# the saved name, Guest and the keyboard come first so they are never clipped off the row
+	var saved_name := game._default_player_name()
+	game._name_selector().add_name(saved_name)
+	if saved_name != GUEST_NAME:
+		game._name_selector().add_name(GUEST_NAME)
 	game._name_selector().add_keyboard_button()
 	for player_name in Highscores.get_all_player_names():
-		if player_name != GUEST_NAME:
+		if player_name != GUEST_NAME and player_name != saved_name:
 			game._name_selector().add_name(player_name)
 	
 	game.main_menu._hide()
@@ -40,7 +43,7 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.track.visible = false
 	game.left_ui_raycast.visible = true
 	game.right_ui_raycast.visible = true
-	game.highscore_keyboard._text_edit.placeholder_text = "New record! Type your name"
+	game.highscore_keyboard._text_edit.placeholder_text = "New record saved as %s. Type another name" % saved_name
 	game.highscore_keyboard._hide()
 	game.online_search_keyboard._hide()
 	game.left_saber.set_swingcast_enabled(false)

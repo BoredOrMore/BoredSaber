@@ -97,7 +97,8 @@ static func get_speed_from_rank(diff_rank: int) -> int:
 # score : integer score to store
 #
 # return : None
-func add_highscore(map_info: MapInfo, diff_rank: int, player_name: String, score: int) -> void:
+# return : the stored record, which rename_record() can change later
+func add_highscore(map_info: MapInfo, diff_rank: int, player_name: String, score: int) -> Dictionary:
 	# get existing records for song + difficulty
 	var hs_key := map_info.get_key()
 	diff_rank = get_rank_key(diff_rank)
@@ -117,6 +118,12 @@ func add_highscore(map_info: MapInfo, diff_rank: int, player_name: String, score
 		_hs_table[hs_key] = {}
 	_hs_table[hs_key][str(diff_rank)] = records
 	
+	save_hs_table()
+	return record
+
+## Changes the player name of a record returned by add_highscore().
+func rename_record(record: Dictionary, player_name: String) -> void:
+	record.player_name = player_name
 	save_hs_table()
 
 # return : the list of records for the given map + difficulty

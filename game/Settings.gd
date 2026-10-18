@@ -204,6 +204,10 @@ var fail_mode: int:
 	set(value):
 		fail_mode = value
 		set_and_emit(&"fail_mode", value)
+var player_name: String:
+	set(value):
+		player_name = value
+		set_and_emit(&"player_name", value)
 var damage_scale: float:
 	set(value):
 		damage_scale = value
@@ -291,6 +295,7 @@ var default_values = {
 	health_mode = true,
 	fail_mode = 0,
 	damage_scale = 1.0,
+	player_name = "Player",
 	arrows_enabled = true,
 	block_size = 100,
 	last_map = "",

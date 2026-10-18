@@ -79,6 +79,8 @@ const LEAD_IN_MIN_SECONDS := 3.0
 var lead_in := 0.0
 
 const FAIL_SECONDS := 1.5
+# the high score saved at the end of the last song, so the player can rename it
+var _new_record := {}
 const DANGER_WALL_MATERIAL := preload("res://game/Wall/danger_wall.tres")
 const BOMB_GLOW_MATERIAL := preload("res://game/Bomb/bomb_glow.tres")
 # how long a rumble that was on when the song failed takes to fade out
@@ -205,14 +207,12 @@ func show_MapSourceDialogs(showing: bool = true) -> void:
 			(first_dialog as OQ_UI2DCanvas)._show()
 
 # call this method to submit a new highscore to the database
+## Renames the record that was saved under the default name, and makes the name the new default.
 func _submit_highscore(player_name: String) -> void:
-	if gamestate == gamestate_newhighscore:
-		Highscores.add_highscore(
-			Map.current_info,
-			Map.current_difficulty.difficulty_rank,
-			player_name,
-			Scoreboard.points)
-			
+	player_name = player_name.strip_edges()
+	if gamestate == gamestate_newhighscore and not player_name.is_empty():
+		Highscores.rename_record(_new_record, player_name)
+		Settings.player_name = player_name
 		_transition_game_state(gamestate_mapcomplete)
 
 func _check_and_update_saber(controller: BeepSaberController, saber: LightSaber) -> void:
@@ -521,9 +521,21 @@ func _on_song_ended() -> void:
 	)
 	
 	if Highscores.is_new_highscore(Map.current_info,Map.current_difficulty.difficulty_rank,Scoreboard.points):
+		# save right away under the default name, so nobody is stuck picking a name;
+		# the score screen still offers to change it
+		_new_record = Highscores.add_highscore(
+			Map.current_info,
+			Map.current_difficulty.difficulty_rank,
+			_default_player_name(),
+			Scoreboard.points)
 		_transition_game_state(gamestate_newhighscore)
 	else:
 		_transition_game_state(gamestate_mapcomplete)
+
+## The saved player name, or "Player" if it was left empty.
+static func _default_player_name() -> String:
+	var player_name := Settings.player_name.strip_edges()
+	return player_name if not player_name.is_empty() else "Player"
 
 func _restart_button() -> void:
 	start_map(Map.current_info, Map.current_difficulty)
