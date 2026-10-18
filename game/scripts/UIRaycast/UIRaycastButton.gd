@@ -35,6 +35,11 @@ func _ready() -> void:
 	mesh.size.x = size.x
 	mesh.size.y = size.y
 	back_shader = back_panel.material_override as ShaderMaterial
+	back_shader.set_shader_parameter(&"fill_color", Constants.UI_SURFACE)
+	back_shader.set_shader_parameter(&"hover_color", Constants.UI_SURFACE_HOVER)
+	back_shader.set_shader_parameter(&"pressed_color", Constants.UI_SURFACE_PRESSED)
+	back_shader.set_shader_parameter(&"border_color", Constants.UI_SURFACE)
+	back_shader.set_shader_parameter(&"hover_border_color", Constants.UI_ACCENT)
 	
 	var text_mesh := $Text as MeshInstance3D
 	(text_mesh.mesh as TextMesh).text = text

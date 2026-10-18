@@ -1,35 +1,18 @@
-[gd_scene load_steps=8 format=3 uid="uid://bxsfwm7o1kryl"]
+[gd_scene format=3 uid="uid://bxsfwm7o1kryl"]
 
 [ext_resource type="Script" path="res://game/scripts/UIRaycast/UIRaycastButton.gd" id="1_xb2lf"]
 [ext_resource type="Material" uid="uid://dqox51k4cngtf" path="res://game/Text.material" id="2_3kli4"]
+[ext_resource type="Shader" path="res://game/UI_Panel.gdshader" id="3_panel"]
+[ext_resource type="FontFile" uid="uid://cdsnr8tscm8y6" path="res://OQ_Toolkit/OQ_UI2D/theme/Roboto-Medium.ttf" id="4_font"]
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_5e240"]
 resource_local_to_scene = true
 size = Vector3(0.25, 0.0625, 0.01)
 
-[sub_resource type="Shader" id="Shader_kudun"]
-code = "shader_type spatial;
-render_mode unshaded, cull_back;
-uniform vec2 size = vec2(1.0);
-uniform float highlight = 0.0;
-
-void fragment() {
-	float left_border = 1.0 / (128.0 * size.x);
-	float top_border = 1.0 / (128.0 * size.y);
-	float right_border = 1.0 - left_border;
-	float bottom_border = 1.0 - top_border;
-	if (UV.x < left_border || UV.x > right_border || UV.y < top_border || UV.y > bottom_border) {
-		ALBEDO = vec3(1.0);
-	} else {
-		ALBEDO = vec3(0.015625 * highlight);
-	}
-}
-"
-
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_tyoha"]
 resource_local_to_scene = true
 render_priority = 0
-shader = SubResource("Shader_kudun")
+shader = ExtResource("3_panel")
 shader_parameter/size = Vector2(0.5, 0.125)
 shader_parameter/highlight = 0.0
 
@@ -40,7 +23,9 @@ size = Vector2(0.25, 0.0625)
 [sub_resource type="TextMesh" id="TextMesh_u68ff"]
 resource_local_to_scene = true
 text = "Button"
-font_size = 4
+font = ExtResource("4_font")
+pixel_size = 0.001
+font_size = 50
 depth = 0.0
 
 [node name="RaycastButton" type="Area3D"]

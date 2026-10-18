@@ -1,4 +1,4 @@
-extends Node3D
+extends MeshInstance3D
 class_name EndScore
 
 signal mainmenu
@@ -8,7 +8,12 @@ var animated_percent: float = 0.0
 @onready var raycast_area := $RaycastArea as Area3D
 @onready var collision := $RaycastArea/CollisionShape3D as CollisionShape3D
 
+## Paints the panel and the percent ring in the menu colours and starts with the buttons off.
 func _ready() -> void:
+	var panel := (mesh as QuadMesh).material as ShaderMaterial
+	panel.set_shader_parameter(&"fill_color", Constants.UI_PANEL)
+	panel.set_shader_parameter(&"border_color", Constants.UI_BORDER)
+	(($PercentIndicator as PercentIndicator).material_override as ShaderMaterial).set_shader_parameter(&"color", Constants.UI_ACCENT)
 	set_buttons_disabled(true)
 
 func _show() -> void:
@@ -42,7 +47,7 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 	fc_label.visible = is_full_combo
 	nr_label.visible = is_new_record
 	name_label.text = song_string
-	details_mesh.text = "Your Score:\n%d\n\nRecord:\n%d" % [score,record]
+	details_mesh.text = "Score\n%d\n\nRecord\n%d" % [score,record]
 	
 	if percent >= 0.98:
 		grade_label.text = "[center][rainbow freq=0.5 sat=0.7 val=2]A+"
@@ -73,7 +78,7 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 		percent_indicator.update_percent(animated_percent)
 
 	tw = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT).set_parallel()
-	tw.tween_property(details_material,^"albedo_color",Color.WHITE,2).from(Color.TRANSPARENT)
+	tw.tween_property(details_material,^"albedo_color",Constants.UI_TEXT,2).from(Color.TRANSPARENT)
 	tw.tween_property(grade_label,^"modulate",Color.WHITE,2).from(Color.TRANSPARENT)
 	tw.tween_property(fc_label,^"modulate",Color.WHITE,2).from(Color.TRANSPARENT)
 	tw.tween_property(nr_label,^"modulate",Color.WHITE,2).from(Color.TRANSPARENT)

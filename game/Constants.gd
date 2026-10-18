@@ -81,3 +81,13 @@ const DIFFICULTY_BLOCK_SIZE_MASK := 0x1000000 | 0x2000000
 const DIFFICULTY_BLOCK_SIZE_SMALL := 0x1000000
 const DIFFICULTY_BLOCK_SIZE_BIG := 0x2000000
 const DIFFICULTY_BLOCK_SIZE_GIANT := 0x1000000 | 0x2000000
+
+# Menu colours, shared by the 3D panels (end score, buttons); keep in step with game/ui/menu_theme.tres.
+const UI_PANEL := Color(0.086, 0.094, 0.114)
+const UI_SURFACE := Color(0.133, 0.149, 0.18)
+const UI_SURFACE_HOVER := Color(0.173, 0.192, 0.231)
+const UI_SURFACE_PRESSED := Color(0.2, 0.36, 0.45)
+const UI_BORDER := Color(0.208, 0.227, 0.271)
+const UI_ACCENT := Color(0.37, 0.78, 0.94)
+const UI_TEXT := Color(0.894, 0.902, 0.922)
+const UI_TEXT_MUTED := Color(0.6, 0.63, 0.67)
