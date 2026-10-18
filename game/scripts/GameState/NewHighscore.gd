@@ -33,6 +33,7 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.track.visible = false
 	game.left_ui_raycast.visible = true
 	game.right_ui_raycast.visible = true
+	game.highscore_keyboard._text_edit.placeholder_text = "New record! Type your name"
 	game.highscore_keyboard._show()
 	game.online_search_keyboard._hide()
 	game.left_saber.set_swingcast_enabled(false)

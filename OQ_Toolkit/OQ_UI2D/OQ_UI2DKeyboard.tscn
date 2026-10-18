@@ -20,6 +20,7 @@ update_only_on_input = false
 offset_right = 512.0
 offset_bottom = 48.0
 theme = ExtResource("4")
+virtual_keyboard_enabled = false
 
 [connection signal="cancel_pressed" from="OQ_UI2DCanvas_Keyboard/VirtualKeyboard" to="." method="_on_cancel"]
 [connection signal="enter_pressed" from="OQ_UI2DCanvas_Keyboard/VirtualKeyboard" to="." method="_on_enter"]

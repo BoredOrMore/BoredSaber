@@ -506,6 +506,7 @@ func _on_LoadPlaylists_Button_pressed() -> void:
 
 
 func _on_Search_Button_button_up() -> void:
+	keyboard._text_edit.placeholder_text = "Search songs"
 	keyboard.visible=true
 	keyboard._text_edit.grab_focus()
 
