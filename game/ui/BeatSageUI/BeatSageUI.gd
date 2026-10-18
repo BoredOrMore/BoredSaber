@@ -136,8 +136,8 @@ func _on_BeatSageRequest_download_complete(filepath: String) -> void:
 	
 	var song_dir_name = filepath.get_basename().get_file()
 	var song_out_dir = BS_SONG_DIR + song_dir_name + '/'
-	var dir = DirAccess.make_dir_recursive_absolute(song_out_dir)
-	if !dir: 
+	var err := DirAccess.make_dir_recursive_absolute(song_out_dir)
+	if err != OK:
 		vr.log_error(
 			"_on_BeatSageRequest_download_complete - " +
 			"Failed to create song output dir '%s'" % song_out_dir)
@@ -147,6 +147,9 @@ func _on_BeatSageRequest_download_complete(filepath: String) -> void:
 		Utils.unzip(filepath,song_out_dir)
 	
 	DirAccess.remove_absolute(filepath)
+	
+	if okay:
+		GlobalReferences.main_game_scene.menu._on_LoadPlaylists_Button_pressed()
 
 func _on_BeatSageRequest_request_failed() -> void:
 	vr.log_error("BeatSage request failed!")
