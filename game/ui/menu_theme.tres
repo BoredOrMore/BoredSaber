@@ -1,6 +1,8 @@
-[gd_resource type="Theme" load_steps=15 format=3]
+[gd_resource type="Theme" format=3]
 
 [ext_resource type="FontFile" uid="uid://cdsnr8tscm8y6" path="res://OQ_Toolkit/OQ_UI2D/theme/Roboto-Medium.ttf" id="1"]
+[ext_resource type="Texture2D" path="res://game/ui/toggle_on.svg" id="toggle_on"]
+[ext_resource type="Texture2D" path="res://game/ui/toggle_off.svg" id="toggle_off"]
 
 [sub_resource type="StyleBoxFlat" id="panel"]
 bg_color = Color(0.086, 0.094, 0.114, 1)
@@ -123,6 +125,12 @@ corner_radius_top_right = 14
 
 [sub_resource type="StyleBoxEmpty" id="empty"]
 
+[sub_resource type="StyleBoxEmpty" id="toggle_idle"]
+content_margin_left = 16.0
+content_margin_top = 8.0
+content_margin_right = 16.0
+content_margin_bottom = 8.0
+
 [sub_resource type="StyleBoxEmpty" id="tab_panel"]
 content_margin_left = 16.0
 content_margin_top = 20.0
@@ -164,11 +172,16 @@ Button/styles/pressed = SubResource("surface_pressed")
 CheckButton/colors/font_color = Color(0.894, 0.902, 0.922, 1)
 CheckButton/colors/font_hover_color = Color(1, 1, 1, 1)
 CheckButton/colors/font_pressed_color = Color(1, 1, 1, 1)
+CheckButton/icons/checked = ExtResource("toggle_on")
+CheckButton/icons/checked_disabled = ExtResource("toggle_on")
+CheckButton/icons/unchecked = ExtResource("toggle_off")
+CheckButton/icons/unchecked_disabled = ExtResource("toggle_off")
+CheckButton/styles/disabled = SubResource("toggle_idle")
 CheckButton/styles/focus = SubResource("empty")
 CheckButton/styles/hover = SubResource("list_hover")
 CheckButton/styles/hover_pressed = SubResource("list_hover")
-CheckButton/styles/normal = SubResource("empty")
-CheckButton/styles/pressed = SubResource("empty")
+CheckButton/styles/normal = SubResource("toggle_idle")
+CheckButton/styles/pressed = SubResource("toggle_idle")
 HSlider/styles/grabber_area = SubResource("slider_fill")
 HSlider/styles/grabber_area_highlight = SubResource("slider_fill")
 HSlider/styles/slider = SubResource("slider")
