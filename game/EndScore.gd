@@ -70,8 +70,9 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 	else:
 		grade_label.text = "[center]F-"
 	
-	var tw := create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	var tw: Tween
 	if percent >= 0:
+		tw = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 		tw.tween_property(self,^"animated_percent",percent,3.0).from(0.0)
 		tw.play()
 		while tw.is_running():
