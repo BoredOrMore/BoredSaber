@@ -666,7 +666,7 @@ func _on_arrows_toggled(value: bool) -> void:
 	update_view()
 	
 func _are_mods_default() -> bool:
-	if Settings.health_mode or not Settings.bombs_enabled or not Settings.arrows_enabled:
+	if not Settings.health_mode or not Settings.bombs_enabled or not Settings.arrows_enabled:
 		return false
 	if Settings.claws or Settings.block_size != 100:
 		return false
@@ -726,7 +726,7 @@ func _on_handedness_item_selected(index: int) -> void:
 	update_view()
 
 func _on_reset_button_pressed() -> void:
-	Settings.health_mode = false
+	Settings.health_mode = true
 	Settings.bombs_enabled = true
 	Settings.claws = false
 	Settings.block_size = 100
