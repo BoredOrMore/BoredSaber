@@ -439,6 +439,11 @@ static func load_event_stack_v3(event_data: Array) -> void:
 	load_range.bind(midpoint, event_data.size()).call()
 	Utils.custom_thread_wait_to_finish(event_thread_1)
 	
+## Beats that pass per real second: the map's BPM sped up by the Speed modifier.
+## The song's playback position stays in song seconds, which use the plain BPM.
+static func beats_per_second() -> float:
+	return current_info.beats_per_minute * Settings.music_speed / 6000.
+
 static func get_last_beat() -> void:
 	current_info.last_beat = 0.
 	for note_info in note_stack:
@@ -515,7 +520,6 @@ static func load_beatmap(info: MapInfo, difficulty: DifficultyInfo, map_data: Di
 		Utils.custom_thread_call(arc_thread_0, load_arc_stack_v2, [Utils.get_array(map_data, "_sliders", []), rotations])
 		chain_stack.clear()
 		current_info = info
-		current_info.beats_per_minute *= Settings.music_speed / 100.
 		current_difficulty = difficulty
 		one_saber = difficulty.characteristic == "OneSaber"
 		Map.set_colors_from_custom_data()
@@ -574,7 +578,6 @@ static func load_beatmap(info: MapInfo, difficulty: DifficultyInfo, map_data: Di
 			else:
 				Utils.custom_thread_call(event_thread_0, load_event_stack_v3, [Utils.get_array(map_data, "basicBeatmapEvents", [])])
 			current_info = info
-			current_info.beats_per_minute *= Settings.music_speed / 100.
 			current_difficulty = difficulty
 			one_saber = difficulty.characteristic == "OneSaber"
 			Map.set_colors_from_custom_data()

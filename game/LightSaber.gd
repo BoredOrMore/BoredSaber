@@ -236,7 +236,7 @@ func _handle_area_collided(area: Area3D) -> void:
 	var o := controller.global_transform.origin
 	var controller_speed: Vector3 = (saber_end - saber_end_past) / last_dt
 	const BEAT_DISTANCE := 4.0
-	var cutplane := Plane(o, saber_end, saber_end_past + Vector3(0, 0, BEAT_DISTANCE * Map.current_info.beats_per_minute * last_dt / 30)) # Account for relative position to track speed
+	var cutplane := Plane(o, saber_end, saber_end_past + Vector3(0, 0, BEAT_DISTANCE * Map.beats_per_second() * 2.0 * last_dt)) # Account for relative position to track speed
 	note.cut(self, controller_speed, cutplane, controller)
 
 func _on_AnimationPlayer_animation_started(_anim_name: StringName) -> void:

@@ -43,7 +43,7 @@ func spawn(note_info: ColorNoteInfo, current_beat: float) -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	
 	var color := Map.color_left if note_info.color == 0 else Map.color_right
-	speed = Constants.BEAT_DISTANCE * Map.current_info.beats_per_minute * 0.016666666666666667
+	speed = Constants.BEAT_DISTANCE * Map.beats_per_second()
 	beat = note_info.beat
 	which_saber = note_info.color
 	is_dot = note_info.cut_angle >= Constants.DIRECTION8_COMPARE

@@ -23,7 +23,7 @@ func spawn(info: ArcInfo, current_beat: float, _activator_cube: BeepCube = null)
 		queue_free()
 		return
 	
-	speed = Constants.BEAT_DISTANCE * Map.current_info.beats_per_minute * 0.016666666666666667
+	speed = Constants.BEAT_DISTANCE * Map.beats_per_second()
 	var path := $Path3D as Path3D
 	visual = $Path3D/Visual
 	visual.material_override = right_material if arc_info.color == 1 else left_material

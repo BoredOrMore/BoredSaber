@@ -122,7 +122,7 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	
 	_audio_synced_after_restart = false
 	song_player.stop()
-	lead_in = maxf(LEAD_IN_MIN_SECONDS, GameStatePlaying.BEATS_AHEAD * 60.0 / Map.current_info.beats_per_minute)
+	lead_in = maxf(LEAD_IN_MIN_SECONDS, GameStatePlaying.BEATS_AHEAD / Map.beats_per_second())
 	song_player.volume_db = 0.0
 	song_player.pitch_scale = Settings.music_speed / 100.
 	_in_wall = false
@@ -386,10 +386,11 @@ func _on_PlayerHead_area_exited(area: Area3D) -> void:
 		_in_wall = false
 		Scoreboard.exit_wall()
 		
-## Song position in seconds; negative while the lead-in before the song runs.
+## Song position in song seconds; negative while the lead-in before the song runs.
 func get_current_time() -> float:
 	if lead_in > 0.0:
-		return -lead_in
+		# lead_in counts real seconds, which the Speed modifier stretches
+		return -lead_in * Settings.music_speed / 100.
 	return song_player.get_playback_position()
 
 # when the song ended we want to display the current score and

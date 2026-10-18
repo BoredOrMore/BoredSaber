@@ -58,5 +58,5 @@ func spawn(wall_info: ObstacleInfo, current_beat: float) -> void:
 		
 	rotation.y = -wall_info.rotation
 	
-	speed = Constants.BEAT_DISTANCE * Map.current_info.beats_per_minute / 60.0
+	speed = Constants.BEAT_DISTANCE * Map.beats_per_second()
 	($AnimationPlayer as AnimationPlayer).play(&"Spawn")
