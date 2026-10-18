@@ -48,7 +48,10 @@ jobs:
           curl -fsSL -o /tmp/vendors.zip "https://github.com/GodotVR/godot_openxr_vendors/releases/download/${VENDORS_VERSION}-stable/godotopenxrvendorsaddon.zip"
           unzip -q /tmp/vendors.zip -d /tmp/vendors
           rm -rf addons/godotopenxrvendors
+          # addons/ has no tracked files, so create it or cp would make addons/ the plugin folder itself.
+          mkdir -p addons
           cp -r /tmp/vendors/asset/addons/godotopenxrvendors addons/
+          test -f addons/godotopenxrvendors/plugin.gdextension
 
       - name: Configure Android export
         run: |
@@ -78,6 +81,8 @@ jobs:
           ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 --headless --path . \
             --install-android-build-template --export-debug "Pico 4" build/BoredSaber-Pico4.apk
           test -f build/BoredSaber-Pico4.apk
+          # Without the vendors plugin the game still starts but loses Pico OpenXR support.
+          unzip -l build/BoredSaber-Pico4.apk | grep -q 'lib/arm64-v8a/libgodotopenxrvendors.so'
 
       - uses: actions/upload-artifact@v4
         with:
