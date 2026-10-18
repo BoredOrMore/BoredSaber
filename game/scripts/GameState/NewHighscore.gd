@@ -1,6 +1,8 @@
 extends GameState
 class_name GameStateNewHighScore
 
+const GUEST_NAME := "Guest"
+
 func _ready(game: BeepSaber_Game) -> void:
 	# populate highscore panel with records
 	game.highscore_panel.load_highscores(
@@ -15,8 +17,13 @@ func _ready(game: BeepSaber_Game) -> void:
 	# songs and many difficulties). If that ever becomes a
 	# concern, we may want to consider caching a list of the
 	# N most recent players instead.
+	# Guest and the keyboard come first so they are never clipped off the row,
+	# and a player can save the score without typing.
+	game._name_selector().add_name(GUEST_NAME)
+	game._name_selector().add_keyboard_button()
 	for player_name in Highscores.get_all_player_names():
-		game._name_selector().add_name(player_name)
+		if player_name != GUEST_NAME:
+			game._name_selector().add_name(player_name)
 	
 	game.main_menu._hide()
 	game.settings_canvas._hide()
@@ -34,7 +41,7 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.left_ui_raycast.visible = true
 	game.right_ui_raycast.visible = true
 	game.highscore_keyboard._text_edit.placeholder_text = "New record! Type your name"
-	game.highscore_keyboard._show()
+	game.highscore_keyboard._hide()
 	game.online_search_keyboard._hide()
 	game.left_saber.set_swingcast_enabled(false)
 	game.right_saber.set_swingcast_enabled(false)
