@@ -12,8 +12,6 @@ signal difficulty_changed(map_info: MapInfo, diff_rank: int)
 signal settings_requested()
 signal start_map(info: MapInfo, difficulty: DifficultyInfo, health: bool)
 
-var _cover_texture_create_sw := StopwatchFactory.create("cover_texture_create",10,true)
-
 const FAVORITE_MASK := 0x4000000000000000
 @export var main_song_player_ref: AudioStreamPlayer
 @export var keyboard: OQ_UI2DKeyboard
@@ -281,10 +279,7 @@ func _on_cover_loaded(img_tex: Texture2D, is_main_cover: bool, list_idx: int) ->
 
 func _load_cover(cover_path: String, filename: String) -> ImageTexture:
 	# parse buffer into an ImageTexture
-	_cover_texture_create_sw.start()
-	var tex := ImageTexture.create_from_image(Image.load_from_file(cover_path+filename))
-	_cover_texture_create_sw.stop()
-	return tex
+	return ImageTexture.create_from_image(Image.load_from_file(cover_path+filename))
 
 func play_preview(buffer: PackedByteArray, start_time: float = 0.0, duration: float = -1.0, buffer_data_type_hint: String = 'ogg') -> void:
 	var stream: AudioStream

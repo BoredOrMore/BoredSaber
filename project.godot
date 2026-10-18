@@ -36,7 +36,6 @@ Settings="*res://game/Settings.gd"
 vr="*res://OQ_Toolkit/vr_autoload.gd"
 Highscores="*res://game/scripts/HighscoreTable/HighscoreTable.gd"
 PlayCount="*res://game/scripts/PlayCountTable.gd"
-StopwatchFactory="*res://addons/stopwatch/public/StopwatchFactory.gd"
 UI_AudioEngine="*res://game/ui/UI_AudioEngine/UI_AudioEngine.tscn"
 GlobalReferences="*res://game/scripts/global_references.gd"
 
@@ -56,10 +55,6 @@ window/size/viewport_height=540
 window/subwindows/embed_subwindows=false
 window/per_pixel_transparency/allowed=true
 window/vsync/vsync_mode=false
-
-[editor_plugins]
-
-enabled=PackedStringArray("res://addons/stopwatch/plugin.cfg")
 
 [filesystem]
 

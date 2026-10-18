@@ -25,7 +25,6 @@ var _prev_ray_positions: Array[Vector3] = []
 var _rays: Array[RayCast3D]
 var _debug_curr_balls: Array[MeshInstance3D] = []
 var _debug_raycast_trail := LinkedList.new()
-@onready var _sw := StopwatchFactory.create(name, 10, true)
 
 func _ready() -> void:
 	await get_tree().physics_frame
@@ -88,7 +87,6 @@ func _update_element_positions() -> void:
 
 func _physics_process(_delta: float) -> void:
 	if not enabled: return
-	_sw.start()
 	# see if 'core' ray is colliding with anything
 	var coll := get_collider()
 	if coll is Area3D:
@@ -124,7 +122,6 @@ func _physics_process(_delta: float) -> void:
 			old_slice[i].target_position = _rays[i].target_position
 
 		_debug_raycast_trail.push_front(old_slice)
-	_sw.stop()
 
 func _on_SwingableRayCast_tree_entered() -> void:
 	if DEBUG:
