@@ -14,7 +14,7 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 
 [application]
 
-config/name="Open Saber"
+config/name="BoredSaber"
 config/version="0.7.67"
 run/main_scene="res://game/BeepSaber_Game.tscn"
 config/features=PackedStringArray("4.6")
@@ -147,7 +147,8 @@ common/physics_fps=72
 
 [rendering]
 
-renderer/rendering_method="mobile"
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true
 shading/overrides/force_lambert_over_burley=true
 environment/defaults/default_clear_color=Color(0, 0, 0, 1)

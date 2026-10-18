@@ -79,20 +79,10 @@ jobs:
             --install-android-build-template --export-debug "Pico 4" build/BoredSaber-Pico4.apk
           test -f build/BoredSaber-Pico4.apk
 
-      # Same game on the OpenGL ES (Compatibility) renderer, to compare against Vulkan on the headset.
-      - name: Export Pico 4 APK (Compatibility renderer)
-        run: |
-          sed -i 's|^renderer/rendering_method="mobile"$|renderer/rendering_method="gl_compatibility"\nrenderer/rendering_method.mobile="gl_compatibility"|' project.godot
-          grep -q 'rendering_method.mobile="gl_compatibility"' project.godot
-          ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 --headless --path . \
-            --export-debug "Pico 4" build/BoredSaber-Pico4-compat.apk
-          test -f build/BoredSaber-Pico4-compat.apk
-          git checkout project.godot
-
       - uses: actions/upload-artifact@v4
         with:
           name: BoredSaber-Pico4
-          path: build/BoredSaber-Pico4*.apk
+          path: build/BoredSaber-Pico4.apk
 
       # A fixed release URL lets the headset browser download the APK without a GitHub login.
       - name: Publish pico4-latest release
@@ -101,6 +91,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete pico4-latest --yes --cleanup-tag || true
-          gh release create pico4-latest build/BoredSaber-Pico4.apk build/BoredSaber-Pico4-compat.apk --prerelease --target "$GITHUB_SHA" \
+          gh release create pico4-latest build/BoredSaber-Pico4.apk --prerelease --target "$GITHUB_SHA" \
             --title "Pico 4 latest build" \
             --notes "Debug APK built from ${GITHUB_SHA::7} on ${GITHUB_REF_NAME}."

@@ -30,7 +30,8 @@ The `Pico 4` export preset builds an APK with the Pico OpenXR loader. GitHub Act
 (`.github/workflows/build-pico4.yml`) with Godot 4.6.2 and godot_openxr_vendors 4.3.1, and uploads it as the
 `BoredSaber-Pico4` artifact. Pushes to `pico4-offline` or the default branch also replace the `pico4-latest` release, so the
 headset browser can download https://github.com/BoredOrMore/BoredSaber/releases/download/pico4-latest/BoredSaber-Pico4.apk
-without a GitHub login. Godot 4.6.3 is avoided because it crashes on Pico 4 at startup.
+without a GitHub login. The project uses the Compatibility (OpenGL ES) renderer and targets OpenXR 1.0: on Pico OS 5.12
+the Vulkan path segfaults inside the Pico runtime, and the runtime rejects OpenXR 1.1 binding paths.
 
 Downloaded songs are stored on the headset, so they stay playable without an internet connection.
 
