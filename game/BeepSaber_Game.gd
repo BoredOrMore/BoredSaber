@@ -79,6 +79,8 @@ const LEAD_IN_MIN_SECONDS := 3.0
 var lead_in := 0.0
 
 const FAIL_SECONDS := 1.5
+# how long a rumble that was on when the song failed takes to fade out
+const FAIL_RUMBLE_FADE_SECONDS := 0.6
 # true while the "Failed" moment plays, before the score screen
 var failing := false
 
@@ -170,6 +172,12 @@ func _fail_song() -> void:
 	pause_countdown.set_label_text("Failed")
 	pause_countdown.visible = true
 	var tw := create_tween().set_parallel()
+	# the frozen wall that failed the song would otherwise keep the controllers buzzing
+	_in_wall = false
+	for controller: BeepSaberController in [left_controller, right_controller]:
+		var from := controller.get_rumble_intensity()
+		if from > 0.0:
+			tw.tween_method(func(amount: float) -> void: controller.simple_rumble(amount, 0.05), from, 0.0, FAIL_RUMBLE_FADE_SECONDS)
 	tw.tween_property(song_player, ^"pitch_scale", 0.3, FAIL_SECONDS)
 	tw.tween_property(song_player, ^"volume_db", -30.0, FAIL_SECONDS)
 	await tw.finished
@@ -214,14 +222,17 @@ func _check_and_update_saber(controller: BeepSaberController, saber: LightSaber)
 		if (saber.is_extended()): saber._hide()
 		else: saber._show()
 		
-	if _in_wall:
+	# walls only count while playing; after a fail or the song's end the head
+	# can still be inside a frozen or hidden wall
+	var walled := _in_wall and gamestate == gamestate_playing and not failing
+	if walled:
 		Scoreboard.enter_wall()
 	
 	# check for saber rumble (only when extended and not already rumbling)
 	# this check is necessary to not overwrite a rumble set from somewhere else
-	# (in this case it can come from cutting cubes)
-	if not controller.is_simple_rumbling(): 
-		if _in_wall:
+	# (in this case it can come from cutting cubes); a fail fades its own rumble
+	if not controller.is_simple_rumbling() and not failing: 
+		if walled:
 			# weak rumble on both controllers when player is inside wall
 			controller.simple_rumble(0.3, 0.3)
 		elif saber.get_overlapping_areas().size() > 0 or saber.get_overlapping_bodies().size() > 0:
@@ -391,6 +402,8 @@ func update_right_color(color: Color) -> void:
 	standing_ground.update_right_color(color)
 
 func _clear_track() -> void:
+	# cleared walls don't report the head leaving them
+	_in_wall = false
 	for c in track.get_children():
 		if c.has_method("clear_from_track"):
 			c.clear_from_track()

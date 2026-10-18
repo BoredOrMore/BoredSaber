@@ -68,14 +68,20 @@ func reset_movement_aabb() -> void:
 
 var _is_simple_rumbling := false
 var _rumble_duration_remaining := 0.0
+var _rumble_intensity := 0.0
 
 func simple_rumble(intensity: float, duration: float) -> void:
 	_rumble_duration_remaining = duration;
 	_is_simple_rumbling = true
+	_rumble_intensity = intensity
 	trigger_haptic_pulse("haptic", 20, intensity, duration, 0)
 	
 func is_simple_rumbling() -> bool:
 	return _is_simple_rumbling
+
+## Strength of the rumble playing now, or 0 if none is.
+func get_rumble_intensity() -> float:
+	return _rumble_intensity if _is_simple_rumbling else 0.0
 	
 func _update_rumble(dt: float) -> void:
 	if _rumble_duration_remaining > 0.0:
@@ -83,6 +89,7 @@ func _update_rumble(dt: float) -> void:
 	if _rumble_duration_remaining <= 0.0:
 		_rumble_duration_remaining = 0.0
 		_is_simple_rumbling = false
+		_rumble_intensity = 0.0
 
 var first_time := true
 
