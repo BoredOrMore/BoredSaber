@@ -84,6 +84,7 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	if (map_data.is_empty()):
 		vr.log_error("Could not read map data from " + info.filepath + "/" + map_difficulty.beatmap_filename)
 	if not Map.load_beatmap(info, map_difficulty, map_data):
+		menu.show_play_error()
 		return
 		
 	event_driver.set_background_texture()

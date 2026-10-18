@@ -329,6 +329,7 @@ func _load_map_and_start(map: MapInfo) -> void:
 	var set0 := map.difficulty_beatmaps
 	if (set0.size() == 0):
 		vr.log_error("No _difficultyBeatmaps in set")
+		show_play_error()
 		return
 	
 	var diff_info := set0[_map_difficulty]
@@ -448,7 +449,23 @@ func _on_Play_Button_pressed() -> void:
 		Settings.last_map = map.filepath
 		song_preview.stop()
 		Settings.save()
+		var play_button := $Play_Button as Button
+		play_button.text = "Loading..."
+		play_button.disabled = true
+		# loading blocks the main thread, so let the button redraw first
+		await get_tree().process_frame
+		await get_tree().process_frame
 		_load_map_and_start(map)
+		play_button.disabled = false
+		if play_button.text == "Loading...":
+			play_button.text = "Play"
+
+## Tells the player on the Play button that the selected map couldn't be loaded.
+func show_play_error() -> void:
+	var play_button := $Play_Button as Button
+	play_button.text = "Can't load map"
+	await get_tree().create_timer(3.0).timeout
+	play_button.text = "Play"
 
 func _on_Exit_Button_pressed() -> void:
 	get_tree().quit()
