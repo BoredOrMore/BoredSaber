@@ -299,7 +299,7 @@ func _select_song(id: int) -> void:
 	
 	diff_menu.clear()
 	for diff in map.difficulty_beatmaps:
-		var diff_index := diff_menu.add_item(diff.get_display_name())
+		var diff_index := diff_menu.add_item("%s   %s" % [diff.get_display_name(), MapStats.describe(MapStats.get_stats(map, diff))])
 		diff_menu.set_item_tooltip(diff_index, diff.difficulty + " / " + diff.get_display_name())
 		diff_menu.set_item_custom_fg_color(diff_index, Constants.DIFFICULTY_COLORS.get(diff.difficulty, Constants.UI_TEXT))
 	
