@@ -17,6 +17,10 @@ func show_points(_position: Vector3, _rotation: float, value: String):
 	if value == "0":
 		value = "x"
 	var color := Color(1,0,0) if value == "x" else Color(1,1,1)
+	var good := Constants.SWING_GOOD_SCORE if Settings.swing_scoring else Constants.OPENSABER_GOOD_SCORE
+	if value.get_slice(" ", 0).to_int() >= good:
+		# a good cut stands out from an average one
+		color = Constants.UI_ACCENT
 	points_label[current_point_label].show_points(_position,_rotation,value,color)
 	current_point_label += 1
 	current_point_label %= 4
