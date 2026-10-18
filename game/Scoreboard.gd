@@ -57,7 +57,8 @@ func exit_wall() -> void:
 	in_wall = false
 	last_in_wall_time = -1000.
 
-func add_points(position: Vector3, _rotation: float, amount: int, comment: String = "") -> void:
+## Adds a cut's points. good is the score that counts as a 100% hit (0 uses the default).
+func add_points(position: Vector3, _rotation: float, amount: int, comment: String = "", good: float = 0.0) -> void:
 	if amount > 0:
 		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_HIT)
 	
@@ -69,9 +70,10 @@ func add_points(position: Vector3, _rotation: float, amount: int, comment: Strin
 	
 	points_awarded.emit(position, _rotation, str(amount)+(comment if Settings.explain else ""))
 	score_changed.emit()
-	# track accuracy percent
-	var good = Constants.SWING_GOOD_SCORE if Settings.swing_scoring else Constants.OPENSABER_GOOD_SCORE
-	var normalized_points := clampf(float(points)/good, 0.0, 1.0)
+	# track accuracy percent from this cut's score, not the running total
+	if good <= 0.0:
+		good = Constants.SWING_GOOD_SCORE if Settings.swing_scoring else Constants.OPENSABER_GOOD_SCORE
+	var normalized_points := clampf(float(amount)/good, 0.0, 1.0)
 	right_notes += normalized_points
 	wrong_notes += 1.0-normalized_points
 	
@@ -82,7 +84,9 @@ func add_swing_score(position: Vector3, _rotation: float, accuracy: float, presw
 	add_points(position, _rotation, score, "  (%d %d %d)" % [int(roundf(accuracy)),int(roundf(preswing)),int(roundf(followthrough))])
 
 func chain_link_cut(position: Vector3, _rotation: float) -> void:
-	add_points(position, _rotation, Constants.SWING_CHAIN_LINK_SCORE if Settings.swing_scoring else Constants.OPENSABER_CHAIN_LINK_SCORE)
+	var link_score := Constants.SWING_CHAIN_LINK_SCORE if Settings.swing_scoring else Constants.OPENSABER_CHAIN_LINK_SCORE
+	# a cut chain link is always a full hit for the accuracy percent
+	add_points(position, _rotation, link_score, "", link_score)
 
 func note_cut(saber: LightSaber, position: Vector3, _rotation: float, beat_accuracy: float, cut_angle_accuracy: float, cut_distance_accuracy: float, 
 		travel_distance_factor: float, arc_head: bool, arc_tail: bool, chain_head: bool) -> void:
