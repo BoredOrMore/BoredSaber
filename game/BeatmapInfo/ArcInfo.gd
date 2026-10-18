@@ -8,6 +8,11 @@ const MID_ANCHOR_MODE_COUNTERCLOCKWISE := 2
 const arc_angle_force := 2.0
 const mid_points := 3
 
+const MESH_RADIUS := 0.04
+const MESH_INTERVAL := 0.13
+# diamond cross-section, same as the old CSGPolygon3D polygon
+const MESH_POLYGON: Array[Vector2] = [Vector2(-MESH_RADIUS, 0), Vector2(0, MESH_RADIUS), Vector2(MESH_RADIUS, 0), Vector2(0, -MESH_RADIUS)]
+
 var color: int
 var head_beat: float
 var head_line_index: float
@@ -25,6 +30,7 @@ var tail_rotation: float
 var curve: Curve3D
 var tail_pos: Vector3
 var head_pos: Vector3
+var mesh_arrays: Array
 
 @warning_ignore("shadowed_variable")
 func _init(
@@ -53,6 +59,7 @@ func _init(
 		self.tail_rotation += Settings.gradual_rotation * tail_beat
 		
 	create_curve()
+	build_mesh_arrays()
 	
 func create_curve() -> void:
 	head_pos = Vector3(
@@ -111,6 +118,61 @@ func create_curve() -> void:
 			curve.set_point_out(smoothpoint_id + 1, smooth_dir * distance)
 	
 	curve.add_point(tail_pos - tail_pos, Vector3(tail_cut_rotation.x, tail_cut_rotation.y, 0.0) * arc_angle_force, Vector3.ZERO)
+
+## Extrudes the diamond along the curve once at map load, so spawning an arc
+## only uploads a ready mesh instead of running CSG. Matches the old
+## CSGPolygon3D: rings every ~MESH_INTERVAL, u = distance along the curve,
+## sides in the top half of v, caps in the bottom half.
+func build_mesh_arrays() -> void:
+	var length := curve.get_baked_length()
+	var rings := maxi(1, ceili(length / MESH_INTERVAL))
+	var step := length / rings
+	var sides := MESH_POLYGON.size()
+	var verts := PackedVector3Array()
+	var normals := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	var indices := PackedInt32Array()
+	var ring_bases: Array[Basis] = []
+	var ring_points: Array[Vector3] = []
+	var prev_point := curve.sample_baked(0.0)
+	for i in rings + 1:
+		var offset := i * step
+		var point := curve.sample_baked(offset)
+		var direction := point - prev_point if i > 0 else curve.sample_baked(step) - point
+		var basis := Basis.looking_at(direction, curve.sample_baked_up_vector(offset, true))
+		ring_bases.append(basis)
+		ring_points.append(point)
+		for j in sides + 1:
+			var p := MESH_POLYGON[j % sides]
+			var local := basis * Vector3(p.x, p.y, 0.0)
+			verts.append(point + local)
+			normals.append(local.normalized())
+			uvs.append(Vector2(offset, j * 0.5 / sides))
+		if i > 0:
+			var a := (i - 1) * (sides + 1)
+			var b := i * (sides + 1)
+			for j in sides:
+				indices.append_array([a + j, b + j, a + j + 1, b + j, b + j + 1, a + j + 1])
+		prev_point = point
+	# caps, with polygon coordinates mapped into the bottom half of the texture
+	for end in 2:
+		var basis := ring_bases[0 if end == 0 else rings]
+		var start := verts.size()
+		for p in MESH_POLYGON:
+			verts.append(ring_points[0 if end == 0 else rings] + basis * Vector3(p.x, p.y, 0.0))
+			normals.append(basis.z if end == 0 else -basis.z)
+			var n := (p + Vector2(MESH_RADIUS, MESH_RADIUS)) / (2.0 * MESH_RADIUS)
+			uvs.append(Vector2(0.5 * n.x if end == 0 else 1.0 - 0.5 * n.x, 1.0 - 0.5 * n.y))
+		if end == 0:
+			indices.append_array([start, start + 1, start + 2, start, start + 2, start + 3])
+		else:
+			indices.append_array([start, start + 2, start + 1, start, start + 3, start + 2])
+	mesh_arrays = []
+	mesh_arrays.resize(Mesh.ARRAY_MAX)
+	mesh_arrays[Mesh.ARRAY_VERTEX] = verts
+	mesh_arrays[Mesh.ARRAY_NORMAL] = normals
+	mesh_arrays[Mesh.ARRAY_TEX_UV] = uvs
+	mesh_arrays[Mesh.ARRAY_INDEX] = indices
 
 static func new_v2(arc_dict: Dictionary) -> ArcInfo:
 	return ArcInfo.new(

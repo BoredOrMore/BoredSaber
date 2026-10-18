@@ -17,20 +17,6 @@ script = ExtResource("1_5s55r")
 [node name="Path3D" type="Path3D" parent="."]
 curve = SubResource("Curve3D_n4apf")
 
-[node name="Visual" type="CSGPolygon3D" parent="Path3D"]
+[node name="Visual" type="MeshInstance3D" parent="Path3D"]
 layers = 3
 material_override = ExtResource("2_6ceex")
-calculate_tangents = false
-polygon = PackedVector2Array(-0.04, 0, 0, 0.04, 0.04, 0, 0, -0.04)
-mode = 2
-path_node = NodePath("..")
-path_interval_type = 0
-path_interval = 0.13
-path_simplify_angle = 0.0
-path_rotation = 2
-path_rotation_accurate = false
-path_local = true
-path_continuous_u = true
-path_u_distance = 1.0
-path_joined = false
-smooth_faces = true

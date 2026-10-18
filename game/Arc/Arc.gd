@@ -7,7 +7,7 @@ static var right_material := left_material.duplicate() as ShaderMaterial
 static var left_material_magnet := left_material.duplicate() as ShaderMaterial
 static var right_material_magnet := right_material.duplicate() as ShaderMaterial
 
-@onready var visual: CSGPolygon3D = $Path3D/Visual
+@onready var visual: MeshInstance3D = $Path3D/Visual
 
 var arc_info: ArcInfo
 var activator_cube: BeepCube
@@ -33,10 +33,11 @@ func spawn(info: ArcInfo, current_beat: float, _activator_cube: BeepCube = null)
 	else:
 		start_magnet()
 	
-	path.set_curve(info.curve)
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, info.mesh_arrays)
+	visual.mesh = mesh
 	despawn_z = Constants.MISS_Z - info.tail_pos.z - current_beat*Map.beat_distance
 	
-	path.set_curve(arc_info.curve)
 	# sets the origin of the tail at the tail point to use in the shader for a fade out effect
 	path.position =  info.tail_pos + Vector3(0,0,current_beat*Map.beat_distance)
 	rotation.y = -arc_info.head_rotation
