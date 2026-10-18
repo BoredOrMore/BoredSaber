@@ -25,6 +25,15 @@ There is one demo song included that is part of the deployed package.
 
 You can play custom songs by downloading them in the in-game menu. 
 
+# Pico 4
+The `Pico 4` export preset builds an APK with the Pico OpenXR loader. GitHub Actions builds it on every push
+(`.github/workflows/build-pico4.yml`) with Godot 4.6.2 and godot_openxr_vendors 4.3.1, and uploads it as the
+`BoredSaber-Pico4` artifact. Godot 4.6.3 is avoided because it crashes on Pico 4 at startup.
+
+Downloaded songs are stored on the headset, so they stay playable without an internet connection.
+
+Map parsing tests run headless: `godot --headless --path . res://tests/test_map_info.tscn`
+
 # Credits
 The included Music Track is Time Lapse by TheFatRat (https://www.youtube.com/watch?v=3fxq7kqyWO8)
 
