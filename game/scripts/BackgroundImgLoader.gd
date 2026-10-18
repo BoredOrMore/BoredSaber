@@ -44,6 +44,7 @@ func _start_next_img_load() -> void:
 func _load_img_threaded(req: ImgLoadRequest) -> void:
 	# read cover image data from file into a buffer
 	var data := Utils.read_binary_file(req.path,req.file)
+	var tex: ImageTexture = null
 	if len(data) > 0:
 		var img : Image
 		if req.file.to_lower().ends_with(".png"):
@@ -54,15 +55,19 @@ func _load_img_threaded(req: ImgLoadRequest) -> void:
 			img.load_jpg_from_buffer(data)
 		else:
 			img = Image.load_from_file(req.path + req.file)
-		var tex := ImageTexture.create_from_image(img)
-		
-		# perform callback in the form of my_callback(texture, filepath, ...)
-		req.callback_func.bind(tex, req.is_main_cover, req.index).call()
-		
-		# decrement count to show that this thread is done and another can start
-		_img_load_mutex.lock()
-		_running_img_load_threads -= 1
-		_img_load_mutex.unlock()
+		if img != null and not img.is_empty():
+			tex = ImageTexture.create_from_image(img)
+	
+	# perform callback in the form of my_callback(texture, filepath, ...);
+	# texture is null if the file was missing or couldn't be decoded
+	req.callback_func.bind(tex, req.is_main_cover, req.index).call()
+	
+	# decrement count to show that this thread is done and another can start;
+	# this must happen for failed loads too, or each missing cover would
+	# use up a thread for good and covers would stop loading
+	_img_load_mutex.lock()
+	_running_img_load_threads -= 1
+	_img_load_mutex.unlock()
 	
 	# start next load if there are any waiting
 	_start_next_img_load()
