@@ -43,7 +43,7 @@ func spawn(note_info: ColorNoteInfo, current_beat: float) -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	
 	var color := Map.color_left if note_info.color == 0 else Map.color_right
-	speed = Constants.BEAT_DISTANCE * Map.beats_per_second()
+	speed = Map.beat_distance * Map.beats_per_second()
 	beat = note_info.beat
 	which_saber = note_info.color
 	is_dot = note_info.cut_angle >= Constants.DIRECTION8_COMPARE
@@ -56,7 +56,7 @@ func spawn(note_info: ColorNoteInfo, current_beat: float) -> void:
 	scale = Vector3(Settings.block_size/100.,Settings.block_size/100.,Settings.block_size/100.)
 	transform.origin.x = Settings.LANE_DISTANCE_X * float(note_info.line_index) + Settings.LANE_ZERO_X
 	transform.origin.y = Constants.LANE_DISTANCE_Y * float(note_info.line_layer) + Constants.LAYER_ZERO_Y
-	transform.origin.z = -(note_info.beat - current_beat) * Constants.BEAT_DISTANCE
+	transform.origin.z = -(note_info.beat - current_beat) * Map.beat_distance
 	
 	add_lane_rotation(note_info.rotation)
 	

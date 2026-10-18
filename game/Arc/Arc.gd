@@ -23,7 +23,7 @@ func spawn(info: ArcInfo, current_beat: float, _activator_cube: BeepCube = null)
 		queue_free()
 		return
 	
-	speed = Constants.BEAT_DISTANCE * Map.beats_per_second()
+	speed = Map.beat_distance * Map.beats_per_second()
 	var path := $Path3D as Path3D
 	visual = $Path3D/Visual
 	visual.material_override = right_material if arc_info.color == 1 else left_material
@@ -34,11 +34,11 @@ func spawn(info: ArcInfo, current_beat: float, _activator_cube: BeepCube = null)
 		start_magnet()
 	
 	path.set_curve(info.curve)
-	despawn_z = Constants.MISS_Z - info.tail_pos.z - current_beat*Constants.BEAT_DISTANCE
+	despawn_z = Constants.MISS_Z - info.tail_pos.z - current_beat*Map.beat_distance
 	
 	path.set_curve(arc_info.curve)
 	# sets the origin of the tail at the tail point to use in the shader for a fade out effect
-	path.position =  info.tail_pos + Vector3(0,0,current_beat*Constants.BEAT_DISTANCE)
+	path.position =  info.tail_pos + Vector3(0,0,current_beat*Map.beat_distance)
 	rotation.y = -arc_info.head_rotation
 
 func _on_activator_cube_cutted(correct_saber: bool) -> void:

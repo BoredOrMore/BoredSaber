@@ -62,7 +62,6 @@ func _physics_process(game: BeepSaber_Game) -> void:
 var bomb_template := load("res://game/Bomb/Bomb.tscn") as PackedScene
 var wall_template := load("res://game/Wall/Wall.tscn") as PackedScene
 var arc_template := load("res://game/Arc/Arc.tscn") as PackedScene
-const BEATS_AHEAD := 4.0
 
 var _lead_in_shown := -1
 
@@ -84,7 +83,7 @@ func _process_map(game: BeepSaber_Game) -> void:
 		return
 	
 	var current_beat := game.get_current_time() * Map.current_info.beats_per_minute * 0.016666666666666667
-	var look_ahead := current_beat + BEATS_AHEAD
+	var look_ahead := current_beat + Map.half_jump_beats
 	
 	# chains connect to a regular colornote and modify it, so we have to keep
 	# track of what notes were spawned this frame, in case any become the head

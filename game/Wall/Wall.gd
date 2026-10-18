@@ -34,7 +34,7 @@ func spawn(wall_info: ObstacleInfo, current_beat: float) -> void:
 	
 	var x_size := wall_info.width * Settings.LANE_DISTANCE_X
 	var y_size := wall_info.height * Constants.LANE_DISTANCE_Y
-	var z_size := wall_info.duration * Constants.BEAT_DISTANCE
+	var z_size := wall_info.duration * Map.beat_distance
 	var depth := z_size * 0.5
 	m.size.x = x_size
 	shape.size.x = x_size
@@ -47,7 +47,7 @@ func spawn(wall_info: ObstacleInfo, current_beat: float) -> void:
 	
 	var x := (0.5 * wall_info.width + wall_info.line_index - 2) * Settings.LANE_DISTANCE_X
 	var y := (0.5 * wall_info.height + wall_info.line_layer) * Constants.LANE_DISTANCE_Y
-	var z := (current_beat - wall_info.beat) * Constants.BEAT_DISTANCE - depth
+	var z := (current_beat - wall_info.beat) * Map.beat_distance - depth
 	
 	var c := cos(wall_info.rotation)
 	var s := sin(wall_info.rotation)
@@ -58,5 +58,5 @@ func spawn(wall_info: ObstacleInfo, current_beat: float) -> void:
 		
 	rotation.y = -wall_info.rotation
 	
-	speed = Constants.BEAT_DISTANCE * Map.beats_per_second()
+	speed = Map.beat_distance * Map.beats_per_second()
 	($AnimationPlayer as AnimationPlayer).play(&"Spawn")

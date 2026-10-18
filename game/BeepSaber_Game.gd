@@ -122,7 +122,7 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	
 	_audio_synced_after_restart = false
 	song_player.stop()
-	lead_in = maxf(LEAD_IN_MIN_SECONDS, GameStatePlaying.BEATS_AHEAD / Map.beats_per_second())
+	lead_in = maxf(LEAD_IN_MIN_SECONDS, Map.half_jump_beats / Map.beats_per_second())
 	song_player.volume_db = 0.0
 	song_player.pitch_scale = Settings.music_speed / 100.
 	_in_wall = false

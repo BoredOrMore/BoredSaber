@@ -7,6 +7,10 @@ class_name Map
 
 static var current_info: MapInfo
 static var current_difficulty: DifficultyInfo
+# metres a note travels per beat, and how many beats before its beat it appears;
+# set from the map's note jump speed before the loader threads start
+static var beat_distance := Constants.BEAT_DISTANCE
+static var half_jump_beats := 4.0
 
 static var note_stack: Array[ColorNoteInfo]
 static var bomb_stack: Array[BombInfo]
@@ -439,6 +443,22 @@ static func load_event_stack_v3(event_data: Array) -> void:
 	load_range.bind(midpoint, event_data.size()).call()
 	Utils.custom_thread_wait_to_finish(event_thread_1)
 	
+## Sets how far ahead notes appear and how fast they fly from the map's note jump speed (NJS)
+## and offset, as Beat Saber does: a note appears half a jump before its beat. Maps without
+## an NJS keep the old fixed 4 m per beat, 4 beats ahead.
+static func set_note_jump(info: MapInfo, difficulty: DifficultyInfo) -> void:
+	var njs := difficulty.note_jump_movement_speed
+	if njs <= 0.0:
+		beat_distance = Constants.BEAT_DISTANCE
+		half_jump_beats = 4.0
+		return
+	var seconds_per_beat := 60.0 / info.beats_per_minute
+	var hjd := 4.0
+	while njs * seconds_per_beat * hjd > 17.999:
+		hjd /= 2.0
+	half_jump_beats = maxf(hjd + difficulty.note_jump_start_beat_offset, 0.25)
+	beat_distance = njs * seconds_per_beat
+
 ## Beats that pass per real second: the map's BPM sped up by the Speed modifier.
 ## The song's playback position stays in song seconds, which use the plain BPM.
 static func beats_per_second() -> float:
@@ -505,6 +525,8 @@ static func get_rotations_v3(events: Array) -> Array:
 	return r
 
 static func load_beatmap(info: MapInfo, difficulty: DifficultyInfo, map_data: Dictionary) -> bool:
+	set_note_jump(info, difficulty)
+	
 	# Ensures the map_data dict has a version (some maps include the version only on info but not in the data)
 	if !map_data.has("_version") and !map_data.has("version"):
 		if info.version.begins_with("2.") or info.version.begins_with("1."):
