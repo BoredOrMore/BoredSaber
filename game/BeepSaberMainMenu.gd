@@ -27,18 +27,18 @@ const FAVORITE_MASK := 0x4000000000000000
 @onready var cover := $cover as TextureRect
 @onready var songs_menu := $SongsMenu as ItemList
 @onready var diff_menu := $DifficultyMenu as ItemList
-@onready var delete_button := $Delete_Button as Button
-@onready var health_control := $Modifiers/Health as CheckButton
-@onready var bombs_control := $Modifiers/Health/Bombs as CheckButton
-@onready var arrows_control := $Modifiers/Health/Bombs/Arrows as CheckButton
-@onready var flip_control := $Modifiers3/Flip as OptionButton
-@onready var handedness_control := $Modifiers3/Flip/Speed/Handedness as OptionButton
-@onready var claws_control := $Modifiers2/Claws as CheckButton
-@onready var size_control := $Modifiers2/Claws/Size as OptionButton
-@onready var width_control := $Modifiers2/Claws/Size/Width as OptionButton
-@onready var speed_control := $Modifiers3/Flip/Speed as OptionButton
+@onready var delete_button := $MorePanel/Delete_Button as Button
+@onready var health_control := $ModifiersPanel/Modifiers/Health as CheckButton
+@onready var bombs_control := $ModifiersPanel/Modifiers/Health/Bombs as CheckButton
+@onready var arrows_control := $ModifiersPanel/Modifiers/Health/Bombs/Arrows as CheckButton
+@onready var flip_control := $ModifiersPanel/Modifiers3/Flip as OptionButton
+@onready var handedness_control := $ModifiersPanel/Modifiers3/Flip/Speed/Handedness as OptionButton
+@onready var claws_control := $ModifiersPanel/Modifiers2/Claws as CheckButton
+@onready var size_control := $ModifiersPanel/Modifiers2/Claws/Size as OptionButton
+@onready var width_control := $ModifiersPanel/Modifiers2/Claws/Size/Width as OptionButton
+@onready var speed_control := $ModifiersPanel/Modifiers3/Flip/Speed as OptionButton
 @onready var favorite_button := $Favorite_Button as Button
-@onready var reset_button := $Reset_Button as Button
+@onready var reset_button := $ModifiersPanel/Reset_Button as Button
 
 @onready var song_preview := $song_prev as AudioStreamPlayer
 var song_preview_transition_time := 1.0
@@ -281,12 +281,9 @@ func _select_song(id: int) -> void:
 	favorite_button.show()
 	
 	var map := _currently_selected_songlist_ref[id]
-	($SongInfo_Label as Label).text = """Song Author: %s
-	Song Title: %s
-	Beatmap Author: %s
-	Play Count: %d""" % [
-		map.song_author_name,
+	($SongInfo_Label as Label).text = "%s\n%s\n\nMapped by %s\nPlayed %d times" % [
 		map.song_name,
+		map.song_author_name,
 		map.level_author_name,
 		PlayCount.get_total_play_count(map)
 	]
@@ -427,15 +424,15 @@ func _ready() -> void:
 	playlist_selector.item_selected.emit(1)
 	
 	if song_uploader_ref and song_uploader_ref.active:
-		$upload_url.text = "Manually Upload Songs/Backgrounds: \n%s"%[
+		$MorePanel/upload_url.text = "Manually Upload Songs/Backgrounds: \n%s"%[
 			song_uploader_ref.get_server_url()
 		]
 	else:
-		$upload_url.text = ""
+		$MorePanel/upload_url.text = ""
 	
-	$version.text = beepsaber_game.version
+	$MorePanel/version.text = beepsaber_game.version
 	if OS.get_name() == &"Web":
-		$Exit_Button.hide()
+		$MorePanel/Exit_Button.hide()
 		
 func on_settings_changed(key: StringName) -> void:
 	match key:
@@ -458,6 +455,16 @@ func _on_Exit_Button_pressed() -> void:
 
 func _on_Settings_Button_pressed() -> void:
 	settings_requested.emit()
+
+## Shows or hides the modifiers panel over the song details.
+func _on_modifiers_button_pressed() -> void:
+	$MorePanel.hide()
+	$ModifiersPanel.visible = not $ModifiersPanel.visible
+
+## Shows or hides the panel with the less used actions (refresh, delete, licenses, exit).
+func _on_more_button_pressed() -> void:
+	$ModifiersPanel.hide()
+	$MorePanel.visible = not $MorePanel.visible
 
 const READ_PERMISSION = "android.permission.READ_EXTERNAL_STORAGE"
 
