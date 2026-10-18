@@ -40,11 +40,15 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.left_saber.set_swingcast_enabled(true)
 	game.right_saber.set_swingcast_enabled(true)
 	Scoreboard.paused = false
+	_lead_in_shown = -1
 
 func _physics_process(game: BeepSaber_Game) -> void:
 	if game.left_controller.by_just_pressed() or game.left_controller.menu_just_pressed():
 		game._transition_game_state(game.gamestate_paused)
-	if game._audio_synced_after_restart:
+	if game.lead_in > 0.0:
+		_count_down_lead_in(game)
+		_process_map(game)
+	elif game._audio_synced_after_restart:
 		_process_map(game)
 	else:
 		# 0.5 seconds is a pretty concervative number to use for the audio
@@ -58,11 +62,26 @@ var wall_template := load("res://game/Wall/Wall.tscn") as PackedScene
 var arc_template := load("res://game/Arc/Arc.tscn") as PackedScene
 const BEATS_AHEAD := 4.0
 
+var _lead_in_shown := -1
+
+## Shows the seconds left before the song and starts it when the lead-in runs out.
+func _count_down_lead_in(game: BeepSaber_Game) -> void:
+	game.lead_in -= game.get_physics_process_delta_time()
+	var seconds := ceili(game.lead_in)
+	if seconds != _lead_in_shown:
+		_lead_in_shown = seconds
+		game.pause_countdown.visible = seconds > 0
+		if seconds > 0:
+			game.pause_countdown.set_label_text(str(seconds))
+	if game.lead_in <= 0.0:
+		game.lead_in = 0.0
+		game.song_player.play(0.0)
+
 func _process_map(game: BeepSaber_Game) -> void:
 	if (Map.current_info == null):
 		return
 	
-	var current_beat := game.song_player.get_playback_position() * Map.current_info.beats_per_minute * 0.016666666666666667
+	var current_beat := game.get_current_time() * Map.current_info.beats_per_minute * 0.016666666666666667
 	var look_ahead := current_beat + BEATS_AHEAD
 	
 	# chains connect to a regular colornote and modify it, so we have to keep

@@ -74,6 +74,10 @@ var _in_wall := false
 #prevents the song for starting from the start when pausing and unpausing
 var pause_position := 0.0
 
+const LEAD_IN_MIN_SECONDS := 3.0
+# seconds left before the song starts, so the first notes can fly in; counted down by Playing
+var lead_in := 0.0
+
 func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	var map_data := Utils.binary_to_json(Utils.read_binary_file(info.filepath, map_difficulty.beatmap_filename))
 	
@@ -116,7 +120,8 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 			song_player.stream = wav
 	
 	_audio_synced_after_restart = false
-	song_player.play(0.0)
+	song_player.stop()
+	lead_in = maxf(LEAD_IN_MIN_SECONDS, GameStatePlaying.BEATS_AHEAD * 60.0 / Map.current_info.beats_per_minute)
 	song_player.volume_db = 0.0
 	song_player.pitch_scale = Settings.music_speed / 100.
 	_in_wall = false
@@ -380,7 +385,10 @@ func _on_PlayerHead_area_exited(area: Area3D) -> void:
 		_in_wall = false
 		Scoreboard.exit_wall()
 		
+## Song position in seconds; negative while the lead-in before the song runs.
 func get_current_time() -> float:
+	if lead_in > 0.0:
+		return -lead_in
 	return song_player.get_playback_position()
 
 # when the song ended we want to display the current score and
@@ -443,8 +451,9 @@ func _unpause_button() -> void:
 	await get_tree().create_timer(0.5).timeout
 	pause_countdown.visible = false
 	
-	# continue game play
-	song_player.play(pause_position)
+	# continue game play; a lead-in that was cut short keeps counting in Playing
+	if lead_in <= 0.0:
+		song_player.play(pause_position)
 	_transition_game_state(gamestate_playing)
 
 func _on_BeepSaberMainMenu_difficulty_changed(map_info: MapInfo, diff_rank: int) -> void:
