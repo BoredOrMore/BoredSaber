@@ -37,7 +37,8 @@ func _ready() -> void:
 		new_ray.collision_mask = collision_mask
 		new_ray.collide_with_areas = collide_with_areas
 		new_ray.collide_with_bodies = collide_with_bodies
-		new_ray.enabled = enabled
+		# only cast through force_raycast_update() in _physics_process()
+		new_ray.enabled = false
 		add_child(new_ray)
 		_prev_ray_positions.append(Vector3())
 		_rays.append(new_ray)
