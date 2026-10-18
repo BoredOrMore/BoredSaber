@@ -3,15 +3,17 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dni5frh7n4p12"
-path="res://.godot/imported/bg_2.png-9dda0b53afd33a6be9e4055307805ca5.ctex"
+path.s3tc="res://.godot/imported/bg_2.png-9dda0b53afd33a6be9e4055307805ca5.s3tc.ctex"
+path.etc2="res://.godot/imported/bg_2.png-9dda0b53afd33a6be9e4055307805ca5.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://game/data/background/bg_2.png"
-dest_files=["res://.godot/imported/bg_2.png-9dda0b53afd33a6be9e4055307805ca5.ctex"]
+dest_files=["res://.godot/imported/bg_2.png-9dda0b53afd33a6be9e4055307805ca5.s3tc.ctex", "res://.godot/imported/bg_2.png-9dda0b53afd33a6be9e4055307805ca5.etc2.ctex"]
 
 [params]
 

@@ -3,15 +3,17 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://tunmi5sdu42a"
-path="res://.godot/imported/bg_3.png-5a8d52ec2007f035c41952bc14480fce.ctex"
+path.s3tc="res://.godot/imported/bg_3.png-5a8d52ec2007f035c41952bc14480fce.s3tc.ctex"
+path.etc2="res://.godot/imported/bg_3.png-5a8d52ec2007f035c41952bc14480fce.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://game/data/background/bg_3.png"
-dest_files=["res://.godot/imported/bg_3.png-5a8d52ec2007f035c41952bc14480fce.ctex"]
+dest_files=["res://.godot/imported/bg_3.png-5a8d52ec2007f035c41952bc14480fce.s3tc.ctex", "res://.godot/imported/bg_3.png-5a8d52ec2007f035c41952bc14480fce.etc2.ctex"]
 
 [params]
 
