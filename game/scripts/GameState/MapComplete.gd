@@ -2,13 +2,16 @@ extends GameState
 class_name GameStateMapComplete
 
 func _ready(game: BeepSaber_Game) -> void:
+	# show this map's records next to the score, as after a new record
+	game.highscore_panel.load_highscores(
+		Map.current_info,Map.current_difficulty.difficulty_rank)
 	game.endscore.set_buttons_disabled(false)
 	game.main_menu._hide()
 	game.settings_canvas._hide()
 	game.show_MapSourceDialogs(false)
 	game.endscore._show()
 	game.pause_menu._hide()
-	game.highscore_canvas._hide()
+	game.highscore_canvas._show()
 	game.name_selector_canvas._hide()
 	game.left_saber._hide()
 	game.right_saber._hide()
