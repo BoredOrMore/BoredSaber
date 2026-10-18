@@ -102,26 +102,37 @@ static func binary_to_json(data: PackedByteArray) -> Dictionary:
 		return dict
 	
 static var thread_finished : Array[Thread] = []
+## Guards thread_finished, which several map loading threads change at once.
+static var thread_finished_mutex := Mutex.new()
 static var fake_thread_finished = {}
 
+## Waits for a thread started with custom_thread_call and returns its result, or null if it was never started.
 static func custom_thread_wait_to_finish(thread : Thread):
-	if thread in thread_finished:
-		var r = thread.wait_to_finish()
-		thread_finished.remove_at(thread_finished.find(thread))
-		return r
+	thread_finished_mutex.lock()
+	var started := thread in thread_finished
+	if started:
+		thread_finished.erase(thread)
+	thread_finished_mutex.unlock()
+	if started:
+		return thread.wait_to_finish()
 	elif thread in fake_thread_finished:
 		var r = fake_thread_finished[thread]
 		fake_thread_finished.erase(thread)
 		return r
 	return null
 
+## Runs function with params on thread (or directly on the web, which has no threads) and returns the start error.
 static func custom_thread_call(thread : Thread, function : Callable, params := []):
 	if OS.get_name() == &"Web":
 		fake_thread_finished[thread] = function.callv(params)
 		return 0
 	else:
-		thread_finished.append(thread)
-		return thread.start(function.bindv(params))
+		var err := thread.start(function.bindv(params))
+		if err == OK:
+			thread_finished_mutex.lock()
+			thread_finished.append(thread)
+			thread_finished_mutex.unlock()
+		return err
 
 static func precise_measurement(x : int) -> float:
 	if x < 1000:
