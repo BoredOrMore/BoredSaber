@@ -69,10 +69,24 @@ offset_top = 24.0
 offset_right = 760.0
 offset_bottom = 84.0
 
-[node name="SongsMenu" type="ItemList" parent="." unique_id=1448329630]
+[node name="NpsFilter" type="OptionButton" parent="." unique_id=1730492215]
 layout_mode = 0
 offset_left = 24.0
 offset_top = 100.0
+offset_right = 384.0
+offset_bottom = 160.0
+
+[node name="LengthFilter" type="OptionButton" parent="." unique_id=1730492216]
+layout_mode = 0
+offset_left = 400.0
+offset_top = 100.0
+offset_right = 760.0
+offset_bottom = 160.0
+
+[node name="SongsMenu" type="ItemList" parent="." unique_id=1448329630]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 176.0
 offset_right = 760.0
 offset_bottom = 696.0
 fixed_icon_size = Vector2i(72, 72)
@@ -383,6 +397,8 @@ list_path = NodePath("../SongsMenu")
 [connection signal="button_up" from="Search_Button" to="." method="_on_Search_Button_button_up"]
 [connection signal="item_selected" from="SongsMenu" to="." method="_select_song"]
 [connection signal="item_selected" from="PlaylistSelector" to="." method="_on_PlaylistSelector_item_selected"]
+[connection signal="item_selected" from="NpsFilter" to="." method="_on_nps_filter_item_selected"]
+[connection signal="item_selected" from="LengthFilter" to="." method="_on_length_filter_item_selected"]
 [connection signal="item_selected" from="DifficultyMenu" to="." method="_select_difficulty"]
 [connection signal="pressed" from="MorePanel/LoadPlaylists_Button" to="." method="_on_LoadPlaylists_Button_pressed"]
 [connection signal="timeout" from="song_prev/stop_prev" to="." method="_on_stop_prev_timeout"]

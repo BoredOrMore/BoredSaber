@@ -22,6 +22,8 @@ const FAVORITE_MASK := 0x4000000000000000
 @export var song_uploader_ref: SongUploader
 
 @onready var playlist_selector := $PlaylistSelector as OptionButton
+@onready var nps_filter := $NpsFilter as OptionButton
+@onready var length_filter := $LengthFilter as OptionButton
 @onready var _bg_img_loader := preload("res://game/scripts/BackgroundImgLoader.gd").new()
 
 @onready var cover := $cover as TextureRect
@@ -168,6 +170,7 @@ func _load_playlists() -> void:
 	_discover_all_songs(Constants.APPDATA_PATH+"Songs/")
 	
 	_sort_songs()
+	MapStats.count_all_async(_all_songs, _on_map_stats_counted)
 		
 	var canvas := get_parent().get_parent()
 	if canvas is OQ_UI2DCanvas:
@@ -201,6 +204,11 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 	current_map = null
 	if current_selected >= 0:
 		current_map = _currently_selected_songlist_ref[current_selected]
+	var shown: Array[MapInfo] = []
+	for map in songs:
+		if _passes_song_filter(map):
+			shown.append(map)
+	songs = shown
 	_currently_selected_songlist_ref = songs
 	songs_menu.clear()
 	
@@ -220,6 +228,49 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 				_select_song(i)
 		if current_selected == -1:
 			songs_menu.select(-1)
+
+## True if no song filter is set.
+func _song_filter_is_off() -> bool:
+	return Settings.song_filter_nps == 0 and Settings.song_filter_length == 0
+
+## True if any difficulty of the map is inside the NPS and length filters. Maps that haven't been
+## counted yet pass, so the list never hides songs it knows nothing about.
+func _passes_song_filter(map: MapInfo) -> bool:
+	if _song_filter_is_off():
+		return true
+	var nps_range: Array = Constants.NPS_FILTERS[clampi(Settings.song_filter_nps, 0, Constants.NPS_FILTERS.size() - 1)]
+	var length_range: Array = Constants.LENGTH_FILTERS[clampi(Settings.song_filter_length, 0, Constants.LENGTH_FILTERS.size() - 1)]
+	for diff in map.difficulty_beatmaps:
+		var stats := MapStats.get_cached(map, diff)
+		if stats.is_empty() or (_in_filter_range(float(stats.nps), nps_range) and _in_filter_range(float(stats.seconds), length_range)):
+			return true
+	return false
+
+## True if value is inside a [id, label, min, max] filter entry; max <= 0 means no upper limit.
+static func _in_filter_range(value: float, filter: Array) -> bool:
+	return value >= float(filter[2]) and (float(filter[3]) <= 0.0 or value < float(filter[3]))
+
+## Rebuilds the shown song list with the current search text and filters.
+func _refilter() -> void:
+	if keyboard.is_node_ready():
+		_text_input_changed()
+	else:
+		refresh_playlist()
+
+## Called when the background count of song stats finishes.
+func _on_map_stats_counted() -> void:
+	if not _song_filter_is_off():
+		_refilter()
+
+## Stores the picked NPS filter and rebuilds the list.
+func _on_nps_filter_item_selected(index: int) -> void:
+	Settings.song_filter_nps = Constants.NPS_FILTERS[index][0]
+	_refilter()
+
+## Stores the picked length filter and rebuilds the list.
+func _on_length_filter_item_selected(index: int) -> void:
+	Settings.song_filter_length = Constants.LENGTH_FILTERS[index][0]
+	_refilter()
 
 var default_song_icon := preload("res://game/data/beepsaber_logo.png")
 
@@ -409,6 +460,8 @@ func _ready() -> void:
 	playlist_selector.add_item("All Songs")
 	playlist_selector.add_item("Recently Added")
 	playlist_selector.add_item("Most Played")
+	_drop_down(nps_filter, Constants.NPS_FILTERS, Settings.song_filter_nps, 0)
+	_drop_down(length_filter, Constants.LENGTH_FILTERS, Settings.song_filter_length, 0)
 	
 	_load_playlists()
 	
