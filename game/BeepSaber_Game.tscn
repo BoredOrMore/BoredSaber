@@ -197,7 +197,7 @@ beepsaber_game = NodePath("../..")
 song_uploader_ref = NodePath("../../SongUploader")
 
 [node name="Multiplier_Label" type="MeshInstance3D" parent="." unique_id=1751030463]
-transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, -1.5, 1.375, -2.5)
+transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, -1.9, 1.375, -2.5)
 material_override = ExtResource("13_3xkki")
 mesh = SubResource("TextMesh_cx1im")
 skeleton = NodePath("")
@@ -210,7 +210,7 @@ mesh = SubResource("PlaneMesh_b2wmm")
 skeleton = NodePath("")
 
 [node name="Point_Label" type="MeshInstance3D" parent="." unique_id=107044941]
-transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 1.5, 1.54, -2.5)
+transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 1.9, 1.54, -2.5)
 material_override = ExtResource("13_3xkki")
 mesh = SubResource("TextMesh_0bbpk")
 skeleton = NodePath("")
@@ -223,7 +223,7 @@ mesh = SubResource("PlaneMesh_4xldb")
 skeleton = NodePath("")
 
 [node name="Percent_Indicator" parent="." unique_id=1987737042 instance=ExtResource("16")]
-transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 1.5, 1, -2.5)
+transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 1.9, 1, -2.5)
 material_override = SubResource("ShaderMaterial_rsu5u")
 mesh = SubResource("QuadMesh_02xdc")
 
