@@ -3,6 +3,8 @@ class_name EventDriver
 
 ## How far a flash overshoots the base light colour. Kept low: jumps to near-white strain the eyes.
 const FLASH_BOOST := 1.6
+# sphere shader parameter per light type, so tween steps don't format a name every frame
+const INTENSITY_PARAMS: Array[StringName] = [&"bg_0_intensity", &"bg_1_intensity", &"bg_2_intensity", &"bg_3_intensity", &"bg_4_intensity"]
 
 var ring_rot_speed := 0.0
 var ring_rot_inv_dir := false
@@ -340,4 +342,4 @@ func fade_light(type: int, from: Color, to: Color, turn_off_after_fade: bool, tr
 		_on_Tween_tween_step(Color.BLACK, type)
 
 func _on_Tween_tween_step(value: Color, id: int) -> void:
-	sphere_material.set_shader_parameter("bg_%d_intensity"%id,value.v)
+	sphere_material.set_shader_parameter(INTENSITY_PARAMS[id],value.v)
