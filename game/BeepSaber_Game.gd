@@ -70,6 +70,8 @@ var current_health := Constants.HEALTH_START
 var _audio_synced_after_restart := false
 
 var _in_wall := false
+# last clock value pushed to the score labels
+var _shown_seconds_left := -1
 
 #prevents the song for starting from the start when pausing and unpausing
 var pause_position := 0.0
@@ -246,7 +248,11 @@ func _check_and_update_saber(controller: BeepSaberController, saber: LightSaber)
 
 
 func _physics_process(_dt: float) -> void:
-	Scoreboard.score_changed.emit()
+	# score changes emit on their own; this only ticks the clock under the score
+	var seconds_left := _seconds_left()
+	if seconds_left != _shown_seconds_left:
+		_shown_seconds_left = seconds_left
+		Scoreboard.score_changed.emit()
 	
 	if debug_info_label.visible:
 		var dbg_text := "FPS: %d\nCube Pool: %d free of %d\nLink Pool: %d free of %d" % [
@@ -452,15 +458,9 @@ func _display_points() -> void:
 	else:
 		hit_rate = 1.0
 	
-	var minutes = 0
-	var seconds = 0
-	if Map.current_info != null:
-		var time_left = Map.current_info.get_length_seconds() - get_current_time()
-		if time_left < 0:
-			time_left = 0
-		minutes = int(time_left) / 60
-		seconds = int(time_left) % 60
-	var display = "Score %6d\n%02d:%02d" % [Scoreboard.points,minutes,seconds]
+	var seconds_left := _seconds_left()
+	@warning_ignore("integer_division")
+	var display = "Score %6d\n%02d:%02d" % [Scoreboard.points,seconds_left / 60,seconds_left % 60]
 	if (point_label.mesh as TextMesh).text != display:
 		(point_label.mesh as TextMesh).text = display
 	display = "x %d\nCombo %d" % [Scoreboard.multiplier, Scoreboard.combo]
@@ -468,6 +468,12 @@ func _display_points() -> void:
 		(multiplier_label.mesh as TextMesh).text = display
 	if not Settings.health_mode:
 		percent_indicator.update_percent(hit_rate)
+
+## Whole seconds left in the current map, for the clock under the score.
+func _seconds_left() -> int:
+	if Map.current_info == null:
+		return 0
+	return maxi(0, int(Map.current_info.get_length_seconds() - get_current_time()))
 
 # accessor method for the player name selector UI element
 func _name_selector() -> NameSelector:

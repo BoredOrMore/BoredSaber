@@ -69,13 +69,13 @@ func add_points(position: Vector3, _rotation: float, amount: int, comment: Strin
 	points += amount * multiplier
 	
 	points_awarded.emit(position, _rotation, str(amount)+(comment if Settings.explain else ""))
-	score_changed.emit()
 	# track accuracy percent from this cut's score, not the running total
 	if good <= 0.0:
 		good = Constants.SWING_GOOD_SCORE if Settings.swing_scoring else Constants.OPENSABER_GOOD_SCORE
 	var normalized_points := clampf(float(amount)/good, 0.0, 1.0)
 	right_notes += normalized_points
 	wrong_notes += 1.0-normalized_points
+	score_changed.emit()
 	
 func add_swing_score(position: Vector3, _rotation: float, accuracy: float, preswing: float, followthrough: float) -> void:
 	var score := int(roundf(accuracy + 
