@@ -35,6 +35,9 @@ corner_radius_bottom_left = 14
 
 [sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_3ptxp"]
 
+[sub_resource type="Theme" id="panel_text"]
+default_font_size = 24
+
 [node name="BeepSaberMainMenu" type="Panel" unique_id=1329467298]
 offset_right = 1280.0
 offset_bottom = 720.0
@@ -164,96 +167,92 @@ offset_top = 24.0
 offset_right = 1256.0
 offset_bottom = 600.0
 
-[node name="Modifiers" type="Control" parent="ModifiersPanel" unique_id=326845635]
-anchors_preset = 0
-offset_left = 24.0
-offset_top = 24.0
-offset_right = 448.0
-offset_bottom = 180.0
+[node name="Margin" type="MarginContainer" parent="ModifiersPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme = SubResource("panel_text")
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
 
-[node name="Health" type="CheckButton" parent="ModifiersPanel/Modifiers" unique_id=873354398]
-layout_mode = 0
-offset_right = 360.0
-offset_bottom = 48.0
+[node name="Rows" type="VBoxContainer" parent="ModifiersPanel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Header" type="HBoxContainer" parent="ModifiersPanel/Margin/Rows"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+
+[node name="Title" type="Label" parent="ModifiersPanel/Margin/Rows/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
+text = "Modifiers"
+
+[node name="Reset_Button" type="Button" parent="ModifiersPanel/Margin/Rows/Header" unique_id=1815398217]
+custom_minimum_size = Vector2(56, 44)
+layout_mode = 2
+tooltip_text = "Reset modifiers"
+text = "X"
+
+[node name="Toggles" type="GridContainer" parent="ModifiersPanel/Margin/Rows"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 2
+
+[node name="Health" type="CheckButton" parent="ModifiersPanel/Margin/Rows/Toggles" unique_id=873354398]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
 text = "Health"
 
-[node name="Bombs" type="CheckButton" parent="ModifiersPanel/Modifiers/Health" unique_id=232093017]
-layout_mode = 0
-offset_top = 52.0
-offset_right = 360.0
-offset_bottom = 100.0
+[node name="Bombs" type="CheckButton" parent="ModifiersPanel/Margin/Rows/Toggles" unique_id=232093017]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
 text = "Bombs"
 
-[node name="Arrows" type="CheckButton" parent="ModifiersPanel/Modifiers/Health/Bombs" unique_id=2103954553]
-layout_mode = 0
-offset_top = 52.0
-offset_right = 360.0
-offset_bottom = 100.0
+[node name="Arrows" type="CheckButton" parent="ModifiersPanel/Margin/Rows/Toggles" unique_id=2103954553]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
 text = "Arrows"
 
-[node name="Modifiers2" type="Control" parent="ModifiersPanel" unique_id=2025656734]
-anchors_preset = 0
-offset_left = 24.0
-offset_top = 196.0
-offset_right = 448.0
-offset_bottom = 352.0
-
-[node name="Claws" type="CheckButton" parent="ModifiersPanel/Modifiers2" unique_id=419381851]
-layout_mode = 0
-offset_right = 360.0
-offset_bottom = 48.0
+[node name="Claws" type="CheckButton" parent="ModifiersPanel/Margin/Rows/Toggles" unique_id=419381851]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+size_flags_horizontal = 3
 text = "Short Sword"
 
-[node name="Size" type="OptionButton" parent="ModifiersPanel/Modifiers2/Claws" unique_id=496871731]
-layout_mode = 0
-offset_top = 56.0
-offset_right = 424.0
-offset_bottom = 104.0
-theme_override_font_sizes/font_size = 24
+[node name="Sep1" type="HSeparator" parent="ModifiersPanel/Margin/Rows"]
+layout_mode = 2
 
-[node name="Width" type="OptionButton" parent="ModifiersPanel/Modifiers2/Claws/Size" unique_id=593606118]
-layout_mode = 0
-offset_top = 52.0
-offset_right = 424.0
-offset_bottom = 100.0
-theme_override_font_sizes/font_size = 24
+[node name="Size" type="OptionButton" parent="ModifiersPanel/Margin/Rows" unique_id=496871731]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
 
-[node name="Modifiers3" type="Control" parent="ModifiersPanel" unique_id=314187827]
-anchors_preset = 0
-offset_left = 24.0
-offset_top = 368.0
-offset_right = 448.0
-offset_bottom = 548.0
+[node name="Width" type="OptionButton" parent="ModifiersPanel/Margin/Rows" unique_id=593606118]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
 
-[node name="Flip" type="OptionButton" parent="ModifiersPanel/Modifiers3" unique_id=376088449]
-layout_mode = 0
-offset_right = 424.0
-offset_bottom = 48.0
-theme_override_font_sizes/font_size = 24
+[node name="Sep2" type="HSeparator" parent="ModifiersPanel/Margin/Rows"]
+layout_mode = 2
 
-[node name="Speed" type="OptionButton" parent="ModifiersPanel/Modifiers3/Flip" unique_id=1987793820]
-layout_mode = 0
-offset_top = 52.0
-offset_right = 424.0
-offset_bottom = 100.0
-theme_override_font_sizes/font_size = 24
+[node name="Flip" type="OptionButton" parent="ModifiersPanel/Margin/Rows" unique_id=376088449]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
 
-[node name="Handedness" type="OptionButton" parent="ModifiersPanel/Modifiers3/Flip/Speed" unique_id=1664220508]
-layout_mode = 0
-offset_top = 52.0
-offset_right = 424.0
-offset_bottom = 100.0
-theme_override_font_sizes/font_size = 24
+[node name="Speed" type="OptionButton" parent="ModifiersPanel/Margin/Rows" unique_id=1987793820]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
 
-[node name="Reset_Button" type="Button" parent="ModifiersPanel" unique_id=1815398217]
-layout_mode = 0
-offset_left = 388.0
-offset_top = 16.0
-offset_right = 456.0
-offset_bottom = 84.0
-tooltip_text = "Reset modifiers"
-theme_override_font_sizes/font_size = 40
-text = "X"
+[node name="Handedness" type="OptionButton" parent="ModifiersPanel/Margin/Rows" unique_id=1664220508]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
 
 [node name="MorePanel" type="Panel" parent="."]
 visible = false
@@ -353,15 +352,15 @@ scroll_node_path = NodePath("../DifficultyMenu")
 script = ExtResource("marquee")
 list_path = NodePath("../SongsMenu")
 
-[connection signal="toggled" from="ModifiersPanel/Modifiers/Health" to="." method="_on_health_toggled"]
-[connection signal="toggled" from="ModifiersPanel/Modifiers/Health/Bombs" to="." method="_on_bombs_toggled"]
-[connection signal="toggled" from="ModifiersPanel/Modifiers/Health/Bombs/Arrows" to="." method="_on_arrows_toggled"]
-[connection signal="toggled" from="ModifiersPanel/Modifiers2/Claws" to="." method="_on_claws_toggled"]
-[connection signal="item_selected" from="ModifiersPanel/Modifiers2/Claws/Size" to="." method="_on_size_item_selected"]
-[connection signal="item_selected" from="ModifiersPanel/Modifiers2/Claws/Size/Width" to="." method="_on_width_item_selected"]
-[connection signal="item_selected" from="ModifiersPanel/Modifiers3/Flip" to="." method="_on_flip_item_selected"]
-[connection signal="item_selected" from="ModifiersPanel/Modifiers3/Flip/Speed" to="." method="_on_speed_item_selected"]
-[connection signal="item_selected" from="ModifiersPanel/Modifiers3/Flip/Speed/Handedness" to="." method="_on_handedness_item_selected"]
+[connection signal="toggled" from="ModifiersPanel/Margin/Rows/Toggles/Health" to="." method="_on_health_toggled"]
+[connection signal="toggled" from="ModifiersPanel/Margin/Rows/Toggles/Bombs" to="." method="_on_bombs_toggled"]
+[connection signal="toggled" from="ModifiersPanel/Margin/Rows/Toggles/Arrows" to="." method="_on_arrows_toggled"]
+[connection signal="toggled" from="ModifiersPanel/Margin/Rows/Toggles/Claws" to="." method="_on_claws_toggled"]
+[connection signal="item_selected" from="ModifiersPanel/Margin/Rows/Size" to="." method="_on_size_item_selected"]
+[connection signal="item_selected" from="ModifiersPanel/Margin/Rows/Width" to="." method="_on_width_item_selected"]
+[connection signal="item_selected" from="ModifiersPanel/Margin/Rows/Flip" to="." method="_on_flip_item_selected"]
+[connection signal="item_selected" from="ModifiersPanel/Margin/Rows/Speed" to="." method="_on_speed_item_selected"]
+[connection signal="item_selected" from="ModifiersPanel/Margin/Rows/Handedness" to="." method="_on_handedness_item_selected"]
 [connection signal="pressed" from="Play_Button" to="." method="_on_Play_Button_pressed"]
 [connection signal="button_up" from="MorePanel/Delete_Button" to="." method="_on_Delete_Button_button_up"]
 [connection signal="pressed" from="MorePanel/Exit_Button" to="." method="_on_Exit_Button_pressed"]
@@ -376,4 +375,4 @@ list_path = NodePath("../SongsMenu")
 [connection signal="pressed" from="MorePanel/LoadPlaylists_Button" to="." method="_on_LoadPlaylists_Button_pressed"]
 [connection signal="timeout" from="song_prev/stop_prev" to="." method="_on_stop_prev_timeout"]
 [connection signal="pressed" from="Favorite_Button" to="." method="_on_favorite_button_pressed"]
-[connection signal="pressed" from="ModifiersPanel/Reset_Button" to="." method="_on_reset_button_pressed"]
+[connection signal="pressed" from="ModifiersPanel/Margin/Rows/Header/Reset_Button" to="." method="_on_reset_button_pressed"]
