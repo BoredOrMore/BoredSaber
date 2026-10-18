@@ -5,8 +5,6 @@
 [ext_resource type="Shader" path="res://game/BeepCube/BeepCube.gdshader" id="3_7slj3"]
 [ext_resource type="Texture2D" uid="uid://drc5tdiltfqnk" path="res://game/BeepCube/BeepCubeEmission.png" id="4_10m2m"]
 [ext_resource type="PackedScene" uid="uid://cplhsipk6vhem" path="res://game/BeepCube/BeepCube_SliceParticles.tscn" id="5_tissj"]
-[ext_resource type="Shader" path="res://game/BeepCube/BeepCubeHalo.gdshader" id="6_halo"]
-[ext_resource type="Texture2D" path="res://game/BeepCube/BeepCubeHalo.png" id="7_halo"]
 
 [sub_resource type="BoxShape3D" id="1"]
 size = Vector3(0.8, 0.5, 1)
@@ -93,16 +91,6 @@ shader_parameter/cut_plane_dist = 0.0
 shader_parameter/scale = 1.0
 shader_parameter/texture_emission = ExtResource("4_10m2m")
 
-[sub_resource type="QuadMesh" id="QuadMesh_halo"]
-size = Vector2(1, 1)
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_halo"]
-resource_local_to_scene = true
-shader = ExtResource("6_halo")
-shader_parameter/color = Color(1, 0, 0, 1)
-shader_parameter/intensity = 0.6
-shader_parameter/falloff = ExtResource("7_halo")
-
 [node name="BeepCube" type="Node3D"]
 script = ExtResource("1_7mymb")
 
@@ -131,11 +119,5 @@ libraries = {
 transform = Transform3D(0.8, 0, 0, 0, 0.8, 0, 0, 0, 0.8, 0, 0, 0)
 layers = 3
 material_override = SubResource("ShaderMaterial_ju3ro")
-
-[node name="Halo" type="MeshInstance3D" parent="BeepCubeMesh"]
-layers = 3
-cast_shadow = 0
-mesh = SubResource("QuadMesh_halo")
-material_override = SubResource("ShaderMaterial_halo")
 
 [node name="SliceParticles" parent="." instance=ExtResource("5_tissj")]

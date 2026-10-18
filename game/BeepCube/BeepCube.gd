@@ -6,7 +6,6 @@ class_name BeepCube
 signal cutted(correct_saber: bool)
 
 @onready var mi := $BeepCubeMesh as MeshInstance3D
-@onready var halo := $BeepCubeMesh/Halo as MeshInstance3D
 @onready var collision_big := $BeepCube_Big/CollisionBig as CollisionShape3D
 @onready var collision_small := $BeepCube_Small/CollisionSmall as CollisionShape3D
 @onready var slice_particles := $SliceParticles as BeepCubeSliceParticles
@@ -66,7 +65,6 @@ func spawn(note_info: ColorNoteInfo, current_beat: float) -> void:
 	piece_left.set_color(color, is_dot)
 	piece_right.set_color(color, is_dot)
 	_mat.set_shader_parameter(&"color", color)
-	(halo.material_override as ShaderMaterial).set_shader_parameter(&"color", color)
 	_mat.set_shader_parameter(&"is_dot", is_dot)
 	_mat.set_shader_parameter(&"arrows_enabled", Settings.arrows_enabled)
 	# since cube instances get recycled, we gotta reset cubes that were chain
