@@ -2,6 +2,21 @@
 
 BoredSaber is a Godot 4.6 (GDScript) Beat Saber-style game for standalone Pico 4, based on Open Saber Plus.
 
+## Repository map
+
+Each folder below has its own `AGENTS.md` with a file map, gotchas and "where to change X" recipes.
+Read the one for the folder you are changing before editing.
+
+- `game/`: main scene, autoloads, note/bomb/chain/arc/wall/saber entities, assets in `game/data/`.
+- `game/scripts/`: shared scripts (utils, controllers, highscores, pools, raycasts, song uploader).
+- `game/scripts/GameState/`: the game state machine (menu, playing, paused, fail, score screen).
+- `game/BeatmapInfo/`: beatmap data model and how `game/Map.gd` parses Beat Saber map formats.
+- `game/ui/`: menus, shared theme and UI palette, BeatSaver download panels.
+- `OQ_Toolkit/`: partially ported VR toolkit (`vr` autoload, 2D-in-VR canvases, keyboard).
+- `tests/`: headless tests.
+- `.github/`: CI build, APK release and how to test a build on the headset with adb.
+- `addons/`: not tracked; CI installs godot_openxr_vendors there.
+
 ## Rules
 
 - Keep diffs minimal: touch only the files the change needs. No unrelated
