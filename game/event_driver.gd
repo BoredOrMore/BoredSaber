@@ -1,6 +1,9 @@
 extends Node3D
 class_name EventDriver
 
+## How far a flash overshoots the base light colour. Kept low: jumps to near-white strain the eyes.
+const FLASH_BOOST := 1.6
+
 var ring_rot_speed := 0.0
 var ring_rot_inv_dir := false
 var rings_in := false
@@ -275,11 +278,11 @@ func turn_light_on(type: int, color: Color) -> void:
 
 func flash_light_on(type: int, color: Color) -> void:
 	sphere_material.set_shader_parameter("bg_%d_tint"%type, color)
-	fade_light(type, color * 3.0, color, false, Tween.TRANS_LINEAR, Tween.EASE_OUT)
+	fade_light(type, color * FLASH_BOOST, color, false, Tween.TRANS_LINEAR, Tween.EASE_OUT)
 
 func flash_light_then_fade_off(type: int, color: Color) -> void:
 	sphere_material.set_shader_parameter("bg_%d_tint"%type, color)
-	fade_light(type, color * 3.0, Color.BLACK, true, Tween.TRANS_QUAD, Tween.EASE_IN)
+	fade_light(type, color * FLASH_BOOST, Color.BLACK, true, Tween.TRANS_QUAD, Tween.EASE_IN)
 
 func fade_light_from_current(type: int, to_color: Color) -> void:
 	var current_color: Color

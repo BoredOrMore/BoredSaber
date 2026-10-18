@@ -227,9 +227,6 @@ func _ready() -> void:
 		save()
 
 const platform_default_values = {
-	Android = {
-		glare = false,
-	},
 	Web = {
 		glare = false,
 		saber_tail = false,

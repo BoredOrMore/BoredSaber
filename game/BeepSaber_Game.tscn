@@ -44,10 +44,11 @@ ambient_light_sky_contribution = 0.37
 ssr_fade_in = 0.197926
 ssr_fade_out = 1.41421
 glow_enabled = true
-glow_intensity = 1.63
-glow_strength = 0.83
-glow_bloom = 0.03
-glow_hdr_threshold = 1.04
+glow_intensity = 0.9
+glow_strength = 1.0
+glow_bloom = 0.0
+glow_blend_mode = 1
+glow_hdr_threshold = 0.75
 fog_density = 0.0015
 
 [sub_resource type="SphereShape3D" id="2"]
