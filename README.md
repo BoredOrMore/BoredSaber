@@ -28,7 +28,9 @@ You can play custom songs by downloading them in the in-game menu.
 # Pico 4
 The `Pico 4` export preset builds an APK with the Pico OpenXR loader. GitHub Actions builds it on every push
 (`.github/workflows/build-pico4.yml`) with Godot 4.6.2 and godot_openxr_vendors 4.3.1, and uploads it as the
-`BoredSaber-Pico4` artifact. Godot 4.6.3 is avoided because it crashes on Pico 4 at startup.
+`BoredSaber-Pico4` artifact. Pushes to `pico4-offline` or the default branch also replace the `pico4-latest` release, so the
+headset browser can download https://github.com/BoredOrMore/BoredSaber/releases/download/pico4-latest/BoredSaber-Pico4.apk
+without a GitHub login. Godot 4.6.3 is avoided because it crashes on Pico 4 at startup.
 
 Downloaded songs are stored on the headset, so they stay playable without an internet connection.
 

@@ -13,6 +13,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -82,3 +84,14 @@ jobs:
         with:
           name: BoredSaber-Pico4
           path: build/BoredSaber-Pico4.apk
+
+      # A fixed release URL lets the headset browser download the APK without a GitHub login.
+      - name: Publish pico4-latest release
+        if: github.event_name != 'pull_request' && (github.ref_name == 'pico4-offline' || github.ref_name == github.event.repository.default_branch)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete pico4-latest --yes --cleanup-tag || true
+          gh release create pico4-latest build/BoredSaber-Pico4.apk --prerelease --target "$GITHUB_SHA" \
+            --title "Pico 4 latest build" \
+            --notes "Debug APK built from ${GITHUB_SHA::7} on ${GITHUB_REF_NAME}."
