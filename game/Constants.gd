@@ -103,7 +103,7 @@ const UI_TEXT := Color(0.894, 0.902, 0.922)
 const UI_TEXT_MUTED := Color(0.6, 0.63, 0.67)
 
 # Shadow toning for the whole scene: black becomes SHADOW_TINT, fading out by SHADOW_TINT_FADE_LUMA (sRGB luma).
-const SHADOW_TINT := Color(0.0, 0.0, 0.204)
+const SHADOW_TINT := Color(0.0, 0.0, 0.102)
 const SHADOW_TINT_FADE_LUMA := 0.45
 const SHADOW_TINT_LUT_SIZE := 32
 
