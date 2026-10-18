@@ -47,7 +47,9 @@ const FAIL_MODE_LIVES := 1
 const FAIL_MODE_INSTANT := 2
 const FAIL_LIVES := 4
 # Modifiers dropdown: [health_mode, fail_mode, label]
-const FAIL_OPTIONS := [ [false, FAIL_MODE_BAR, "No Fail"], [true, FAIL_MODE_BAR, "Health Bar"], [true, FAIL_MODE_LIVES, "4 Lives"], [true, FAIL_MODE_INSTANT, "Instant Fail"] ]
+# Health bar damage choices: [scale applied to every health loss, label]
+const DAMAGE_SCALES := [ [0.5, "Damage 0.5x"], [1.0, "Damage 1x"], [1.5, "Damage 1.5x"] ]
+const FAIL_OPTIONS := [ [false, FAIL_MODE_BAR, "No Fail"], [true, FAIL_MODE_BAR, "Health"], [true, FAIL_MODE_LIVES, "4 Lives"], [true, FAIL_MODE_INSTANT, "Instant"] ]
 const DIFFICULTY_MASK := 0xFF
 const DIFFICULTY_HEALTH := 0x100
 const DIFFICULTY_BOMBS := 0x200
@@ -101,10 +103,10 @@ const UI_BORDER := Color(0.208, 0.227, 0.271)
 const UI_ACCENT := Color(0.37, 0.78, 0.94)
 const UI_TEXT := Color(0.894, 0.902, 0.922)
 const UI_TEXT_MUTED := Color(0.6, 0.63, 0.67)
-
-# Shadow toning for the whole scene: black becomes SHADOW_TINT, fading out by SHADOW_TINT_FADE_LUMA (sRGB luma).
 # The X shown for a missed note: a softer red than pure red
 const MISS_COLOR := Color("ff4d5e")
+
+# Shadow toning for the whole scene: black becomes SHADOW_TINT, fading out by SHADOW_TINT_FADE_LUMA (sRGB luma).
 const SHADOW_TINT := Color(0.0, 0.0, 0.102)
 const SHADOW_TINT_FADE_LUMA := 0.45
 const SHADOW_TINT_LUT_SIZE := 32

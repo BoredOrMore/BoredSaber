@@ -30,7 +30,8 @@ const FAVORITE_MASK := 0x4000000000000000
 @onready var songs_menu := $SongsMenu as ItemList
 @onready var diff_menu := $DifficultyMenu as ItemList
 @onready var delete_button := $MorePanel/Delete_Button as Button
-@onready var fail_control := $ModifiersPanel/Margin/Rows/Toggles/Fail as OptionButton
+@onready var fail_row := $FailRow as HBoxContainer
+@onready var damage_row := $DamageRow as HBoxContainer
 @onready var bombs_control := $ModifiersPanel/Margin/Rows/Toggles/Bombs as CheckButton
 @onready var arrows_control := $ModifiersPanel/Margin/Rows/Toggles/Arrows as CheckButton
 @onready var flip_control := $ModifiersPanel/Margin/Rows/Flip as OptionButton
@@ -427,11 +428,7 @@ func _drop_down(control: OptionButton, list: Array, value: Variant, defaultIndex
 	control.selected = index
 	
 func _update_mod_controls() -> void:
-	fail_control.clear()
-	for option: Array in Constants.FAIL_OPTIONS:
-		fail_control.add_item(option[2])
-		if option[0] == Settings.health_mode and (not Settings.health_mode or option[1] == Settings.fail_mode):
-			fail_control.select(fail_control.item_count - 1)
+	_sync_difficulty_rows()
 	arrows_control.button_pressed = Settings.arrows_enabled
 	
 	_drop_down(flip_control, Constants.FLIPS, Settings.flip, 0)
@@ -449,6 +446,7 @@ func _ready() -> void:
 
 	Settings.changed.connect(on_settings_changed)
 	
+	_build_difficulty_rows()
 	_update_mod_controls()
 	favorite_button.hide()
 	
@@ -653,10 +651,51 @@ func update_view() -> void:
 		difficulty_changed.emit(null, -1)
 	_set_reset_icon()
 
+## Fills the fail and damage rows with one toggle button per option, so they're a single press away.
+func _build_difficulty_rows() -> void:
+	var fail_group := ButtonGroup.new()
+	for i in Constants.FAIL_OPTIONS.size():
+		fail_row.add_child(_make_row_button(Constants.FAIL_OPTIONS[i][2], fail_group, _on_fail_option_pressed.bind(i)))
+	var damage_group := ButtonGroup.new()
+	for i in Constants.DAMAGE_SCALES.size():
+		damage_row.add_child(_make_row_button(Constants.DAMAGE_SCALES[i][1], damage_group, _on_damage_option_pressed.bind(i)))
+	_sync_difficulty_rows()
+
+## One option of a button row.
+func _make_row_button(text: String, group: ButtonGroup, on_pressed: Callable) -> Button:
+	var button := Button.new()
+	button.text = text
+	button.toggle_mode = true
+	button.button_group = group
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.add_theme_font_size_override(&"font_size", 20)
+	button.pressed.connect(on_pressed)
+	return button
+
+## Shows the saved fail mode and damage scale in the rows; damage only matters for the health bar.
+func _sync_difficulty_rows() -> void:
+	if fail_row.get_child_count() == 0:
+		return
+	for i in Constants.FAIL_OPTIONS.size():
+		var option: Array = Constants.FAIL_OPTIONS[i]
+		(fail_row.get_child(i) as Button).set_pressed_no_signal(option[0] == Settings.health_mode and (not Settings.health_mode or option[1] == Settings.fail_mode))
+	var damage_counts := Settings.health_mode and Settings.fail_mode == Constants.FAIL_MODE_BAR
+	for i in Constants.DAMAGE_SCALES.size():
+		var button := damage_row.get_child(i) as Button
+		button.set_pressed_no_signal(is_equal_approx(Constants.DAMAGE_SCALES[i][0], Settings.damage_scale))
+		button.disabled = not damage_counts
+
 ## Stores the picked fail option: No Fail turns health mode off, the others pick how to fail.
-func _on_fail_item_selected(index: int) -> void:
+func _on_fail_option_pressed(index: int) -> void:
 	Settings.health_mode = Constants.FAIL_OPTIONS[index][0]
 	Settings.fail_mode = Constants.FAIL_OPTIONS[index][1]
+	_sync_difficulty_rows()
+	update_view()
+
+## Stores the picked damage scale.
+func _on_damage_option_pressed(index: int) -> void:
+	Settings.damage_scale = Constants.DAMAGE_SCALES[index][0]
+	_sync_difficulty_rows()
 	update_view()
 
 func _on_claws_toggled(value: bool) -> void:
@@ -672,7 +711,7 @@ func _on_arrows_toggled(value: bool) -> void:
 	update_view()
 	
 func _are_mods_default() -> bool:
-	if not Settings.health_mode or Settings.fail_mode != Constants.FAIL_MODE_BAR or not Settings.bombs_enabled or not Settings.arrows_enabled:
+	if not Settings.health_mode or Settings.fail_mode != Constants.FAIL_MODE_BAR or Settings.damage_scale != 1.0 or not Settings.bombs_enabled or not Settings.arrows_enabled:
 		return false
 	if Settings.claws or Settings.block_size != 100:
 		return false
@@ -734,6 +773,7 @@ func _on_handedness_item_selected(index: int) -> void:
 func _on_reset_button_pressed() -> void:
 	Settings.health_mode = true
 	Settings.fail_mode = Constants.FAIL_MODE_BAR
+	Settings.damage_scale = 1.0
 	Settings.bombs_enabled = true
 	Settings.claws = false
 	Settings.block_size = 100

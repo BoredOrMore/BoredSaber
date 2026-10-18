@@ -204,6 +204,10 @@ var fail_mode: int:
 	set(value):
 		fail_mode = value
 		set_and_emit(&"fail_mode", value)
+var damage_scale: float:
+	set(value):
+		damage_scale = value
+		set_and_emit(&"damage_scale", value)
 var arrows_enabled: bool:
 	set(value):
 		arrows_enabled = value
@@ -286,6 +290,7 @@ var default_values = {
 	background_texture = "res://game/data/background/nightsky.jpg",
 	health_mode = true,
 	fail_mode = 0,
+	damage_scale = 1.0,
 	arrows_enabled = true,
 	block_size = 100,
 	last_map = "",

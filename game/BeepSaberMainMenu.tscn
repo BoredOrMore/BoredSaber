@@ -131,13 +131,29 @@ layout_mode = 0
 offset_left = 784.0
 offset_top = 240.0
 offset_right = 1256.0
-offset_bottom = 490.0
+offset_bottom = 400.0
 theme_override_constants/h_separation = 40
+
+[node name="FailRow" type="HBoxContainer" parent="." unique_id=1730492217]
+layout_mode = 0
+offset_left = 784.0
+offset_top = 408.0
+offset_right = 1256.0
+offset_bottom = 456.0
+theme_override_constants/separation = 4
+
+[node name="DamageRow" type="HBoxContainer" parent="." unique_id=1730492218]
+layout_mode = 0
+offset_left = 784.0
+offset_top = 462.0
+offset_right = 1256.0
+offset_bottom = 510.0
+theme_override_constants/separation = 4
 
 [node name="Play_Button" type="Button" parent="." unique_id=1531123587]
 layout_mode = 0
 offset_left = 784.0
-offset_top = 506.0
+offset_top = 520.0
 offset_right = 1256.0
 offset_bottom = 600.0
 theme_override_font_sizes/font_size = 40
@@ -219,12 +235,6 @@ layout_mode = 2
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 columns = 2
-
-[node name="Fail" type="OptionButton" parent="ModifiersPanel/Margin/Rows/Toggles" unique_id=873354398]
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-size_flags_horizontal = 3
-tooltip_text = "How a song is failed"
 
 [node name="Bombs" type="CheckButton" parent="ModifiersPanel/Margin/Rows/Toggles" unique_id=232093017]
 custom_minimum_size = Vector2(0, 44)
@@ -378,7 +388,6 @@ scroll_node_path = NodePath("../DifficultyMenu")
 script = ExtResource("marquee")
 list_path = NodePath("../SongsMenu")
 
-[connection signal="item_selected" from="ModifiersPanel/Margin/Rows/Toggles/Fail" to="." method="_on_fail_item_selected"]
 [connection signal="toggled" from="ModifiersPanel/Margin/Rows/Toggles/Bombs" to="." method="_on_bombs_toggled"]
 [connection signal="toggled" from="ModifiersPanel/Margin/Rows/Toggles/Arrows" to="." method="_on_arrows_toggled"]
 [connection signal="toggled" from="ModifiersPanel/Margin/Rows/Toggles/Claws" to="." method="_on_claws_toggled"]

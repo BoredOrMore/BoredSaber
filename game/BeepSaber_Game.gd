@@ -159,7 +159,7 @@ func update_health(delta: float, mistake: bool = false) -> void:
 				if mistake:
 					current_health = 0.0
 			_:
-				current_health += delta
+				current_health += delta * Settings.damage_scale if delta < 0.0 else delta
 		if current_health > Constants.HEALTH_MAX:
 			current_health = Constants.HEALTH_MAX
 		percent_indicator.update_percent(current_health / Constants.HEALTH_MAX)
