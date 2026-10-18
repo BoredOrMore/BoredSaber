@@ -30,7 +30,7 @@ const FAVORITE_MASK := 0x4000000000000000
 @onready var songs_menu := $SongsMenu as ItemList
 @onready var diff_menu := $DifficultyMenu as ItemList
 @onready var delete_button := $MorePanel/Delete_Button as Button
-@onready var health_control := $ModifiersPanel/Margin/Rows/Toggles/Health as CheckButton
+@onready var fail_control := $ModifiersPanel/Margin/Rows/Toggles/Fail as OptionButton
 @onready var bombs_control := $ModifiersPanel/Margin/Rows/Toggles/Bombs as CheckButton
 @onready var arrows_control := $ModifiersPanel/Margin/Rows/Toggles/Arrows as CheckButton
 @onready var flip_control := $ModifiersPanel/Margin/Rows/Flip as OptionButton
@@ -427,7 +427,11 @@ func _drop_down(control: OptionButton, list: Array, value: Variant, defaultIndex
 	control.selected = index
 	
 func _update_mod_controls() -> void:
-	health_control.button_pressed = Settings.health_mode
+	fail_control.clear()
+	for option: Array in Constants.FAIL_OPTIONS:
+		fail_control.add_item(option[2])
+		if option[0] == Settings.health_mode and (not Settings.health_mode or option[1] == Settings.fail_mode):
+			fail_control.select(fail_control.item_count - 1)
 	arrows_control.button_pressed = Settings.arrows_enabled
 	
 	_drop_down(flip_control, Constants.FLIPS, Settings.flip, 0)
@@ -649,8 +653,10 @@ func update_view() -> void:
 		difficulty_changed.emit(null, -1)
 	_set_reset_icon()
 
-func _on_health_toggled(value: bool) -> void:
-	Settings.health_mode = value
+## Stores the picked fail option: No Fail turns health mode off, the others pick how to fail.
+func _on_fail_item_selected(index: int) -> void:
+	Settings.health_mode = Constants.FAIL_OPTIONS[index][0]
+	Settings.fail_mode = Constants.FAIL_OPTIONS[index][1]
 	update_view()
 
 func _on_claws_toggled(value: bool) -> void:
@@ -666,7 +672,7 @@ func _on_arrows_toggled(value: bool) -> void:
 	update_view()
 	
 func _are_mods_default() -> bool:
-	if not Settings.health_mode or not Settings.bombs_enabled or not Settings.arrows_enabled:
+	if not Settings.health_mode or Settings.fail_mode != Constants.FAIL_MODE_BAR or not Settings.bombs_enabled or not Settings.arrows_enabled:
 		return false
 	if Settings.claws or Settings.block_size != 100:
 		return false
@@ -727,6 +733,7 @@ func _on_handedness_item_selected(index: int) -> void:
 
 func _on_reset_button_pressed() -> void:
 	Settings.health_mode = true
+	Settings.fail_mode = Constants.FAIL_MODE_BAR
 	Settings.bombs_enabled = true
 	Settings.claws = false
 	Settings.block_size = 100

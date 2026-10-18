@@ -45,7 +45,7 @@ func enter_wall() -> void:
 	var beat : float
 	var time := GlobalReferences.main_game_scene.get_current_time()
 	if last_in_wall_time < 0:
-		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_OBSTACLE_PER_SECOND *.1)
+		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_OBSTACLE_PER_SECOND *.1, not in_wall)
 		last_in_wall_time = time
 	elif time > 0 and last_in_wall_time >= 0 and last_in_wall_time + 0.1 <= time:
 		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_OBSTACLE_PER_SECOND *(time-last_in_wall_time))
@@ -112,13 +112,13 @@ func note_cut(saber: LightSaber, position: Vector3, _rotation: float, beat_accur
 func bad_cut(position: Vector3, _rotation: float, description: String) -> void:
 	if description == "bomb":
 		reset_combo(false)
-		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_BOMB)
+		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_BOMB, true)
 	elif description == "wrong saber" or description == "miss":
 		reset_combo(true)
-		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_MISS)
+		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_MISS, true)
 		if description == "miss":
 			description = ""
 	else:
 		reset_combo(true)
-		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_BAD_CUT)
+		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_BAD_CUT, true)
 	points_awarded.emit(position, _rotation, description if Settings.explain else "x")

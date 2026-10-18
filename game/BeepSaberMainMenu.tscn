@@ -220,11 +220,11 @@ theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 columns = 2
 
-[node name="Health" type="CheckButton" parent="ModifiersPanel/Margin/Rows/Toggles" unique_id=873354398]
+[node name="Fail" type="OptionButton" parent="ModifiersPanel/Margin/Rows/Toggles" unique_id=873354398]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Health"
+tooltip_text = "How a song is failed"
 
 [node name="Bombs" type="CheckButton" parent="ModifiersPanel/Margin/Rows/Toggles" unique_id=232093017]
 custom_minimum_size = Vector2(0, 44)
@@ -378,7 +378,7 @@ scroll_node_path = NodePath("../DifficultyMenu")
 script = ExtResource("marquee")
 list_path = NodePath("../SongsMenu")
 
-[connection signal="toggled" from="ModifiersPanel/Margin/Rows/Toggles/Health" to="." method="_on_health_toggled"]
+[connection signal="item_selected" from="ModifiersPanel/Margin/Rows/Toggles/Fail" to="." method="_on_fail_item_selected"]
 [connection signal="toggled" from="ModifiersPanel/Margin/Rows/Toggles/Bombs" to="." method="_on_bombs_toggled"]
 [connection signal="toggled" from="ModifiersPanel/Margin/Rows/Toggles/Arrows" to="." method="_on_arrows_toggled"]
 [connection signal="toggled" from="ModifiersPanel/Margin/Rows/Toggles/Claws" to="." method="_on_claws_toggled"]

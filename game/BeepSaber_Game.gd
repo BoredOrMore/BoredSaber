@@ -136,19 +136,29 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	percent_indicator.start_map()
 	percent_indicator.set_health_mode(Settings.health_mode)
 	if Settings.health_mode:
-		current_health = Constants.HEALTH_START
+		current_health = Constants.HEALTH_START if Settings.fail_mode == Constants.FAIL_MODE_BAR else Constants.HEALTH_MAX
 		percent_indicator.update_percent(current_health / Constants.HEALTH_MAX)
 	
 	_clear_track()
 	_transition_game_state(gamestate_playing)
 
-func update_health(delta: float) -> void:
+## Changes health by delta in the health bar mode. mistake is a miss, bad cut, bomb or wall
+## entry, which costs a life in 4 Lives mode and ends the song in Instant Fail mode.
+func update_health(delta: float, mistake: bool = false) -> void:
 	if Settings.health_mode:
-		current_health += delta
+		match Settings.fail_mode:
+			Constants.FAIL_MODE_LIVES:
+				if mistake:
+					current_health -= Constants.HEALTH_MAX / Constants.FAIL_LIVES
+			Constants.FAIL_MODE_INSTANT:
+				if mistake:
+					current_health = 0.0
+			_:
+				current_health += delta
 		if current_health > Constants.HEALTH_MAX:
 			current_health = Constants.HEALTH_MAX
 		percent_indicator.update_percent(current_health / Constants.HEALTH_MAX)
-		if current_health < 0 and gamestate == gamestate_playing and not failing:
+		if current_health <= 0 and gamestate == gamestate_playing and not failing:
 			_fail_song()
 
 ## Shows "Failed" while the song winds down and the track freezes, then the score screen.

@@ -41,6 +41,13 @@ const HEALTH_OBSTACLE_PER_SECOND := -130.
 const HEALTH_BOMB := -15.
 const HEALTH_MAX := 100.
 const HEALTH_START := 50.
+# How a song is failed when health mode is on, like Beat Saber's energy bar, 4 Lives and Instant Fail
+const FAIL_MODE_BAR := 0
+const FAIL_MODE_LIVES := 1
+const FAIL_MODE_INSTANT := 2
+const FAIL_LIVES := 4
+# Modifiers dropdown: [health_mode, fail_mode, label]
+const FAIL_OPTIONS := [ [false, FAIL_MODE_BAR, "No Fail"], [true, FAIL_MODE_BAR, "Health Bar"], [true, FAIL_MODE_LIVES, "4 Lives"], [true, FAIL_MODE_INSTANT, "Instant Fail"] ]
 const DIFFICULTY_MASK := 0xFF
 const DIFFICULTY_HEALTH := 0x100
 const DIFFICULTY_BOMBS := 0x200
