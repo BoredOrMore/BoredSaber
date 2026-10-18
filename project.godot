@@ -179,8 +179,6 @@ right_saber={
 
 openxr/enabled=true
 openxr/target_api_version="1.0.0"
-openxr/foveation_level=3
-openxr/foveation_dynamic=true
 openxr/reference_space=2
 openxr/environment_blend_mode=0
 openxr/startup_alert=false
