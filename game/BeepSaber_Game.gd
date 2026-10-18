@@ -196,8 +196,9 @@ func _submit_highscore(player_name: String) -> void:
 
 func _check_and_update_saber(controller: BeepSaberController, saber: LightSaber) -> void:
 	# to allow extending/sheething the saber while not playing a song
-	# (the song is also silent during the lead-in, so check the game state)
-	if ((gamestate != gamestate_playing)
+	# (the song is also silent during the lead-in, so check the game state; the
+	# pause menu keeps them sheathed so they don't get in the way of pointing)
+	if ((gamestate != gamestate_playing and gamestate != gamestate_paused)
 		and (controller.ax_just_pressed() or controller.by_just_pressed())
 		and (not saber._anim.is_playing())):
 		if (saber.is_extended()): saber._hide()
@@ -482,8 +483,33 @@ func _main_menu_button() -> void:
 	_clear_track()
 	_transition_game_state(gamestate_mapselection)
 
+## Extends the sabers the current map and handedness setting call for, and sheathes the others.
+func show_sabers_for_map() -> void:
+	if Settings.handedness == 0:
+		if Map.one_saber:
+			if Settings.left_handed:
+				right_saber._hide()
+				left_saber._show()
+			else:
+				left_saber._hide()
+				right_saber._show()
+		else:
+			right_saber._show()
+			left_saber._show()
+	elif Settings.handedness == Constants.HANDEDNESS_FORCE_LEFT:
+		right_saber._hide()
+		left_saber._show()
+	elif Settings.handedness == Constants.HANDEDNESS_FORCE_RIGHT:
+		right_saber._show()
+		left_saber._hide()
+	elif Settings.handedness == Constants.HANDEDNESS_IGNORE:
+		right_saber._show()
+		left_saber._show()
+
 func _unpause_button() -> void:
 	pause_menu.visible = false
+	# draw the sabers during the countdown so they're out before notes move again
+	show_sabers_for_map()
 	pause_countdown.visible = true
 	track.visible = true
 	pause_countdown.set_label_text("3")
