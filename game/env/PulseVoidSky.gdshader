@@ -40,17 +40,17 @@ void vertex() {
 void fragment() {
 	if ((debug_view & 16) != 0) {
 		ALBEDO = vec3(0.0);
-		return;
+	} else {
+		vec3 d = normalize(dir);
+		// 0 looking straight down the track, 2 looking straight back
+		float off_axis = 1.0 - dot(d, TRACK_DIR);
+		vec3 sky = env_haze.rgb * (SKY_HAZE + exp(-off_axis / HALO_WIDTH) * 0.3);
+		sky += bg_4_tint.rgb * bg_4_intensity * CORE_STRENGTH * exp(-off_axis / CORE_WIDTH);
+		sky += bg_0_tint.rgb * bg_0_intensity * HALO_STRENGTH * exp(-off_axis / HALO_WIDTH);
+		sky += bg_1_tint.rgb * bg_1_intensity * BAND_STRENGTH * exp(-abs(d.y) * BAND_SHARPNESS);
+		float side_fade = exp(-off_axis) * SIDE_STRENGTH;
+		sky += bg_2_tint.rgb * bg_2_intensity * smoothstep(0.2, 1.0, -d.x) * side_fade;
+		sky += bg_3_tint.rgb * bg_3_intensity * smoothstep(0.2, 1.0, d.x) * side_fade;
+		ALBEDO = sky;
 	}
-	vec3 d = normalize(dir);
-	// 0 looking straight down the track, 2 looking straight back
-	float off_axis = 1.0 - dot(d, TRACK_DIR);
-	vec3 sky = env_haze.rgb * (SKY_HAZE + exp(-off_axis / HALO_WIDTH) * 0.3);
-	sky += bg_4_tint.rgb * bg_4_intensity * CORE_STRENGTH * exp(-off_axis / CORE_WIDTH);
-	sky += bg_0_tint.rgb * bg_0_intensity * HALO_STRENGTH * exp(-off_axis / HALO_WIDTH);
-	sky += bg_1_tint.rgb * bg_1_intensity * BAND_STRENGTH * exp(-abs(d.y) * BAND_SHARPNESS);
-	float side_fade = exp(-off_axis) * SIDE_STRENGTH;
-	sky += bg_2_tint.rgb * bg_2_intensity * smoothstep(0.2, 1.0, -d.x) * side_fade;
-	sky += bg_3_tint.rgb * bg_3_intensity * smoothstep(0.2, 1.0, d.x) * side_fade;
-	ALBEDO = sky;
 }

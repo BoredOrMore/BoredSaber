@@ -42,18 +42,18 @@ const float WINDOW_PERIOD = 6.0;
 void fragment() {
 	if ((debug_view & 16) != 0) {
 		ALBEDO = vec3(0.0);
-		return;
+	} else {
+		mediump vec2 band_uv = vec2(UV.x, (UV.y - V_TOP) / (V_BOTTOM - V_TOP));
+		mediump vec4 sharp = texture(sharp_masks, band_uv);
+		mediump vec2 soft = texture(soft_masks, band_uv).rg;
+		// each window starts its cycle at its own time, so they never all change together
+		mediump float cycle = floor(TIME / WINDOW_PERIOD + sharp.b * 8.0);
+		mediump float on = step(fract(sharp.b * 91.7 + cycle * 0.618), WINDOWS_ON);
+		mediump vec3 window_light = mix(bg_2_tint.rgb * bg_2_intensity, bg_3_tint.rgb * bg_3_intensity, step(0.5, fract(sharp.b * 3.7)));
+		ALBEDO = env_haze.rgb * (sharp.r * HAZE_SCALE)
+				+ (window_light * WINDOW_LIGHT + env_haze.rgb * WINDOW_HAZE) * (sharp.g * on)
+				+ bg_1_tint.rgb * (bg_1_intensity * sharp.a * RIM_SCALE)
+				+ bg_0_tint.rgb * (bg_0_intensity * soft.r * BAND_SCALE)
+				+ bg_4_tint.rgb * (bg_4_intensity * soft.g * GLOW_SCALE);
 	}
-	mediump vec2 band_uv = vec2(UV.x, (UV.y - V_TOP) / (V_BOTTOM - V_TOP));
-	mediump vec4 sharp = texture(sharp_masks, band_uv);
-	mediump vec2 soft = texture(soft_masks, band_uv).rg;
-	// each window starts its cycle at its own time, so they never all change together
-	mediump float cycle = floor(TIME / WINDOW_PERIOD + sharp.b * 8.0);
-	mediump float on = step(fract(sharp.b * 91.7 + cycle * 0.618), WINDOWS_ON);
-	mediump vec3 window_light = mix(bg_2_tint.rgb * bg_2_intensity, bg_3_tint.rgb * bg_3_intensity, step(0.5, fract(sharp.b * 3.7)));
-	ALBEDO = env_haze.rgb * (sharp.r * HAZE_SCALE)
-			+ (window_light * WINDOW_LIGHT + env_haze.rgb * WINDOW_HAZE) * (sharp.g * on)
-			+ bg_1_tint.rgb * (bg_1_intensity * sharp.a * RIM_SCALE)
-			+ bg_0_tint.rgb * (bg_0_intensity * soft.r * BAND_SCALE)
-			+ bg_4_tint.rgb * (bg_4_intensity * soft.g * GLOW_SCALE);
 }

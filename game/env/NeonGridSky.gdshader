@@ -38,16 +38,16 @@ const float SIDE_SCALE = 0.25;
 void fragment() {
 	if ((debug_view & 16) != 0) {
 		ALBEDO = vec3(0.0);
-		return;
+	} else {
+		// UV.x 0.5 is straight down the track, above 0.5 is the player's left
+		mediump vec2 band_uv = vec2(UV.x, (UV.y - V_TOP) / (V_BOTTOM - V_TOP));
+		mediump vec3 sharp = texture(sharp_masks, band_uv).rgb;
+		mediump vec2 soft = texture(soft_masks, band_uv).rg;
+		mediump vec3 side_light = mix(bg_3_tint.rgb * bg_3_intensity, bg_2_tint.rgb * bg_2_intensity, step(0.5, UV.x));
+		ALBEDO = env_haze.rgb * (sharp.r * HAZE_SCALE)
+				+ bg_4_tint.rgb * (bg_4_intensity * sharp.g * SUN_SCALE)
+				+ bg_1_tint.rgb * (bg_1_intensity * sharp.b * RING_SCALE)
+				+ bg_0_tint.rgb * (bg_0_intensity * soft.r * BAND_SCALE)
+				+ side_light * (soft.g * SIDE_SCALE);
 	}
-	// UV.x 0.5 is straight down the track, above 0.5 is the player's left
-	mediump vec2 band_uv = vec2(UV.x, (UV.y - V_TOP) / (V_BOTTOM - V_TOP));
-	mediump vec3 sharp = texture(sharp_masks, band_uv).rgb;
-	mediump vec2 soft = texture(soft_masks, band_uv).rg;
-	mediump vec3 side_light = mix(bg_3_tint.rgb * bg_3_intensity, bg_2_tint.rgb * bg_2_intensity, step(0.5, UV.x));
-	ALBEDO = env_haze.rgb * (sharp.r * HAZE_SCALE)
-			+ bg_4_tint.rgb * (bg_4_intensity * sharp.g * SUN_SCALE)
-			+ bg_1_tint.rgb * (bg_1_intensity * sharp.b * RING_SCALE)
-			+ bg_0_tint.rgb * (bg_0_intensity * soft.r * BAND_SCALE)
-			+ side_light * (soft.g * SIDE_SCALE);
 }
