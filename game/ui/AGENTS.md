@@ -13,7 +13,7 @@
 - `NameSelector/`: "Saved as <name>" plus an "Edit name" button that opens the keyboard, for new highscores.
 - `UI_AudioEngine/`: autoload; `attach_children(node)` wires hover/click sounds to every `Button` below `node`.
 - `YouTubeUI/` (+ `YouTubeAPI/`): YouTube search used by BeatSage.
-- In `game/`: `BeepSaberMainMenu.gd/.tscn` (class `MainMenu`: song list, difficulty, modifiers/more side panels),
+- In `game/`: `BeepSaberMainMenu.gd/.tscn` (class `MainMenu`: song list, difficulty, Song/Modifiers/Settings/More tabs above the right column),
   `settings_Panel.gd/.tscn` (class `SettingsPanel`, tabs Gameplay/Visuals/Audio/Advanced), `HighscorePanel`,
   `Pause_Panel` (signals `continue_button`/`restart_button`/`mainmenu_button`), `EndScore` (3D `MeshInstance3D`, not a
   canvas), `vr_slider.gd` (thumbstick/drag scrolling), `UI_Panel.gdshader` (rounded 3D panel used by `EndScore.tscn`

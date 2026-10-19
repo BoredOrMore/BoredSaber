@@ -439,6 +439,7 @@ func _ready() -> void:
 	
 	_build_difficulty_rows()
 	_build_difficulty_picker()
+	_build_tabs()
 	_show_player_name()
 	_update_mod_controls()
 	favorite_button.hide()
@@ -520,23 +521,31 @@ func show_play_error() -> void:
 func _on_Exit_Button_pressed() -> void:
 	get_tree().quit()
 
-func _on_Settings_Button_pressed() -> void:
-	settings_requested.emit()
+## Tabs above the right column, in order.
+enum Tab { SONG, MODIFIERS, SETTINGS, MORE }
+const TAB_LABELS := ["Song", "Modifiers", "Settings", "More"]
 
-## Shows or hides the modifiers panel over the song details.
-func _on_modifiers_button_pressed() -> void:
-	_show_side_panel($ModifiersPanel if not $ModifiersPanel.visible else null)
+## Fills the tab row; Song shows the details and Play, Settings opens the settings screen.
+func _build_tabs() -> void:
+	var group := ButtonGroup.new()
+	for i in TAB_LABELS.size():
+		$Tabs.add_child(_make_row_button(TAB_LABELS[i], group, _on_tab_pressed.bind(i)))
+	_show_tab(Tab.SONG)
 
-## Shows or hides the panel with the less used actions (refresh, delete, licenses, exit).
-func _on_more_button_pressed() -> void:
-	_show_side_panel($MorePanel if not $MorePanel.visible else null)
+func _on_tab_pressed(tab: int) -> void:
+	if tab == Tab.SETTINGS:
+		# the settings screen replaces the menu; come back to the song details
+		_show_tab(Tab.SONG)
+		settings_requested.emit()
+	else:
+		_show_tab(tab)
 
-## Shows one panel over the song details (null shows the details) and lights up its footer button.
-func _show_side_panel(panel: Panel) -> void:
-	$ModifiersPanel.visible = panel == $ModifiersPanel
-	$MorePanel.visible = panel == $MorePanel
-	$Modifiers_Button.set_pressed_no_signal($ModifiersPanel.visible)
-	$More_Button.set_pressed_no_signal($MorePanel.visible)
+## Shows the tab's panel over the song details (Song shows the details) and lights up its tab.
+func _show_tab(tab: int) -> void:
+	$ModifiersPanel.visible = tab == Tab.MODIFIERS
+	$MorePanel.visible = tab == Tab.MORE
+	for i in $Tabs.get_child_count():
+		($Tabs.get_child(i) as Button).set_pressed_no_signal(i == tab)
 
 const READ_PERMISSION = "android.permission.READ_EXTERNAL_STORAGE"
 

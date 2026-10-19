@@ -94,9 +94,9 @@ fixed_icon_size = Vector2i(72, 72)
 [node name="cover" type="TextureRect" parent="." unique_id=925358881]
 layout_mode = 0
 offset_left = 784.0
-offset_top = 24.0
+offset_top = 88.0
 offset_right = 984.0
-offset_bottom = 224.0
+offset_bottom = 288.0
 texture = ExtResource("3_wpmn0")
 expand_mode = 1
 stretch_mode = 5
@@ -104,9 +104,9 @@ stretch_mode = 5
 [node name="SongInfo_Label" type="Label" parent="." unique_id=347010549]
 layout_mode = 0
 offset_left = 1000.0
-offset_top = 24.0
+offset_top = 88.0
 offset_right = 1256.0
-offset_bottom = 224.0
+offset_bottom = 288.0
 theme_override_font_sizes/font_size = 24
 autowrap_mode = 3
 clip_text = true
@@ -115,9 +115,9 @@ text_overrun_behavior = 3
 [node name="Favorite_Button" type="Button" parent="." unique_id=1448413959]
 layout_mode = 0
 offset_left = 924.0
-offset_top = 164.0
+offset_top = 228.0
 offset_right = 984.0
-offset_bottom = 224.0
+offset_bottom = 288.0
 theme_override_font_sizes/font_size = 48
 theme_override_styles/normal = SubResource("StyleBoxEmpty_3ptxp")
 theme_override_styles/pressed = SubResource("StyleBoxEmpty_3ptxp")
@@ -129,9 +129,9 @@ text = "X"
 [node name="DifficultyPicker" type="VBoxContainer" parent="." unique_id=1422990200]
 layout_mode = 0
 offset_left = 784.0
-offset_top = 240.0
+offset_top = 304.0
 offset_right = 1256.0
-offset_bottom = 400.0
+offset_bottom = 480.0
 theme_override_constants/separation = 6
 alignment = 1
 
@@ -154,25 +154,25 @@ text_overrun_behavior = 3
 [node name="FailRow" type="HBoxContainer" parent="." unique_id=1730492217]
 layout_mode = 0
 offset_left = 784.0
-offset_top = 408.0
+offset_top = 488.0
 offset_right = 1256.0
-offset_bottom = 456.0
+offset_bottom = 536.0
 theme_override_constants/separation = 4
 
 [node name="DamageRow" type="HBoxContainer" parent="." unique_id=1730492218]
 layout_mode = 0
 offset_left = 784.0
-offset_top = 462.0
+offset_top = 542.0
 offset_right = 1256.0
-offset_bottom = 510.0
+offset_bottom = 590.0
 theme_override_constants/separation = 4
 
 [node name="Play_Button" type="Button" parent="." unique_id=1531123587]
 layout_mode = 0
 offset_left = 784.0
-offset_top = 520.0
+offset_top = 600.0
 offset_right = 1256.0
-offset_bottom = 600.0
+offset_bottom = 696.0
 theme_override_font_sizes/font_size = 40
 theme_override_styles/normal = SubResource("play")
 theme_override_styles/pressed = SubResource("play_hover")
@@ -189,42 +189,21 @@ text = "Player: Player"
 text_overrun_behavior = 3
 alignment = 0
 
-[node name="Modifiers_Button" type="Button" parent="."]
+[node name="Tabs" type="HBoxContainer" parent="."]
 layout_mode = 0
 offset_left = 784.0
-offset_top = 616.0
-offset_right = 934.0
-offset_bottom = 696.0
-theme_override_font_sizes/font_size = 24
-toggle_mode = true
-text = "Modifiers"
-
-[node name="Settings_Button" type="Button" parent="." unique_id=1976522914]
-layout_mode = 0
-offset_left = 945.0
-offset_top = 616.0
-offset_right = 1095.0
-offset_bottom = 696.0
-theme_override_font_sizes/font_size = 24
-text = "Settings"
-
-[node name="More_Button" type="Button" parent="."]
-layout_mode = 0
-offset_left = 1106.0
-offset_top = 616.0
+offset_top = 24.0
 offset_right = 1256.0
-offset_bottom = 696.0
-theme_override_font_sizes/font_size = 24
-toggle_mode = true
-text = "More"
+offset_bottom = 80.0
+theme_override_constants/separation = 4
 
 [node name="ModifiersPanel" type="Panel" parent="."]
 visible = false
 layout_mode = 0
 offset_left = 784.0
-offset_top = 24.0
+offset_top = 88.0
 offset_right = 1256.0
-offset_bottom = 600.0
+offset_bottom = 696.0
 
 [node name="Margin" type="MarginContainer" parent="ModifiersPanel"]
 layout_mode = 1
@@ -311,9 +290,9 @@ layout_mode = 2
 visible = false
 layout_mode = 0
 offset_left = 784.0
-offset_top = 24.0
+offset_top = 88.0
 offset_right = 1256.0
-offset_bottom = 600.0
+offset_bottom = 696.0
 
 [node name="Title" type="Label" parent="MorePanel"]
 layout_mode = 0
@@ -423,9 +402,6 @@ list_path = NodePath("../SongsMenu")
 [connection signal="pressed" from="Play_Button" to="." method="_on_Play_Button_pressed"]
 [connection signal="button_up" from="MorePanel/Delete_Button" to="." method="_on_Delete_Button_button_up"]
 [connection signal="pressed" from="MorePanel/Exit_Button" to="." method="_on_Exit_Button_pressed"]
-[connection signal="pressed" from="Settings_Button" to="." method="_on_Settings_Button_pressed"]
-[connection signal="pressed" from="Modifiers_Button" to="." method="_on_modifiers_button_pressed"]
-[connection signal="pressed" from="More_Button" to="." method="_on_more_button_pressed"]
 [connection signal="pressed" from="MorePanel/Licenses" to="." method="_on_licenses_pressed"]
 [connection signal="button_up" from="Search_Button" to="." method="_on_Search_Button_button_up"]
 [connection signal="pressed" from="PlayerName_Button" to="." method="_on_PlayerName_Button_pressed"]
