@@ -89,6 +89,10 @@ const DANGER_WALL_MATERIAL := preload("res://game/Wall/danger_wall.tres")
 const BOMB_GLOW_MATERIAL := preload("res://game/Bomb/bomb_glow.tres")
 # how long a rumble that was on when the song failed takes to fade out
 const FAIL_RUMBLE_FADE_SECONDS := 0.6
+# a combo milestone buzzes both controllers once, after the cut's own rumble has passed (untuned)
+const MILESTONE_RUMBLE := 0.4
+const MILESTONE_RUMBLE_SECONDS := 0.12
+const MILESTONE_RUMBLE_DELAY := 0.12
 # true while the "Failed" moment plays, before the score screen
 var failing := false
 
@@ -331,6 +335,7 @@ func _ready() -> void:
 	
 	@warning_ignore("return_value_discarded")
 	Scoreboard.score_changed.connect(_display_points)
+	(multiplier_label as ComboHud).milestone_reached.connect(_on_combo_milestone)
 	@warning_ignore("return_value_discarded")
 	Scoreboard.points_awarded.connect(points_label_driver.show_points)
 	
@@ -442,6 +447,12 @@ func _clear_track() -> void:
 		else:
 			track.remove_child(c)
 			c.queue_free()
+
+func _on_combo_milestone(_combo: int) -> void:
+	event_driver.combo_pulse()
+	await get_tree().create_timer(MILESTONE_RUMBLE_DELAY).timeout
+	for controller: BeepSaberController in [left_controller, right_controller]:
+		controller.simple_rumble(MILESTONE_RUMBLE, MILESTONE_RUMBLE_SECONDS)
 
 func _display_points() -> void:
 	var seconds_left := _seconds_left()

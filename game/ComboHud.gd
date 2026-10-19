@@ -6,6 +6,9 @@ class_name ComboHud
 ## Kept moderate on purpose: too much feedback makes a game feel and play worse, not better (Kao 2020, "The effects
 ## of juiciness in an action RPG"), and big flashes are tiring in a headset.
 
+## a combo of 50, then every 100: the game also brightens the air and buzzes the controllers
+signal milestone_reached(combo: int)
+
 ## how much the combo count grows on a hit, and how long it takes to settle back (untuned)
 const HIT_POP := 0.12
 const HIT_POP_SECONDS := 0.12
@@ -22,6 +25,14 @@ const RING_FILL_SPEED := 12.0
 ## the ring sits under the combo count as the accuracy ring sits under the score
 const RING_OFFSET := Vector3(0, -0.4933, 0)
 const RING_SIZE := 0.5
+## the first milestone, then one every MILESTONE_STEP
+const FIRST_MILESTONE := 50
+const MILESTONE_STEP := 100
+## the "100 COMBO" text rises from above the combo count and fades out (this node's units, untuned)
+const MILESTONE_START := Vector3(0, 0.12, 0)
+const MILESTONE_RISE := 0.15
+const MILESTONE_SECONDS := 1.2
+const MILESTONE_POP := 0.3
 
 var _base_position: Vector3
 var _text_size: float
@@ -39,6 +50,11 @@ var _shake_left := 0.0
 var _pop_tween: Tween
 var _raise_tween: Tween
 var _tint_tween: Tween
+var _milestone_label: MeshInstance3D
+var _milestone_mesh: TextMesh
+var _milestone_material: BaseMaterial3D
+var _milestone_size: float
+var _milestone_tween: Tween
 
 func _ready() -> void:
 	_base_position = position
@@ -79,6 +95,19 @@ func _ready() -> void:
 	multiplier_label.layers = layers
 	ring.add_child(multiplier_label)
 
+	_milestone_label = MeshInstance3D.new()
+	_milestone_mesh = _multiplier_mesh.duplicate() as TextMesh
+	_milestone_mesh.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+	_milestone_size = _milestone_mesh.pixel_size
+	_milestone_label.mesh = _milestone_mesh
+	_milestone_material = _text_material.duplicate() as BaseMaterial3D
+	_milestone_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_milestone_material.albedo_color = Constants.UI_ACCENT
+	_milestone_label.material_override = _milestone_material
+	_milestone_label.layers = layers
+	_milestone_label.visible = false
+	add_child(_milestone_label)
+
 	Scoreboard.score_changed.connect(refresh)
 	Scoreboard.combo_hit.connect(_on_combo_hit)
 	Scoreboard.multiplier_raised.connect(_on_multiplier_raised)
@@ -108,11 +137,31 @@ func _process(delta: float) -> void:
 		var amount := BREAK_SHAKE * _shake_left / BREAK_SHAKE_SECONDS
 		position = _base_position + Vector3(sin(_shake_left * BREAK_SHAKE_SPEED) * amount, 0, 0)
 
+## True for the combos that get a milestone: 50, 100, 200, 300...
+static func is_milestone(combo: int) -> bool:
+	return combo == FIRST_MILESTONE or (combo >= MILESTONE_STEP and combo % MILESTONE_STEP == 0)
+
 func _on_combo_hit() -> void:
+	if is_milestone(Scoreboard.combo):
+		_show_milestone(Scoreboard.combo)
+		milestone_reached.emit(Scoreboard.combo)
 	if _pop_tween:
 		_pop_tween.kill()
 	_pop_tween = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	_pop_tween.tween_property(mesh, ^"pixel_size", _text_size, HIT_POP_SECONDS).from(_text_size * (1.0 + HIT_POP))
+
+func _show_milestone(combo: int) -> void:
+	_milestone_mesh.text = "%d COMBO" % combo
+	_milestone_label.visible = true
+	if _milestone_tween:
+		_milestone_tween.kill()
+	_milestone_tween = create_tween().set_parallel()
+	_milestone_tween.tween_property(_milestone_label, ^"position", MILESTONE_START + Vector3(0, MILESTONE_RISE, 0), MILESTONE_SECONDS).from(MILESTONE_START).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_milestone_tween.tween_property(_milestone_mesh, ^"pixel_size", _milestone_size, MILESTONE_SECONDS * 0.25).from(_milestone_size * (1.0 + MILESTONE_POP)).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	var faded := Constants.UI_ACCENT
+	faded.a = 0.0
+	_milestone_tween.tween_property(_milestone_material, ^"albedo_color", faded, MILESTONE_SECONDS * 0.5).from(Constants.UI_ACCENT).set_delay(MILESTONE_SECONDS * 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_milestone_tween.chain().tween_callback(_milestone_label.hide)
 
 func _on_multiplier_raised(_multiplier: int) -> void:
 	if _raise_tween:

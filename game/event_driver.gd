@@ -8,6 +8,10 @@ const INTENSITY_PARAMS: Array[StringName] = [&"bg_0_intensity", &"bg_1_intensity
 ## Air colour with every light off, and how much each lit group tints the haze (sky, distant scenery). Untuned.
 const HAZE_BASE := Color(0.01, 0.01, 0.02)
 const HAZE_LIGHT_WEIGHT := 0.08
+## A combo milestone (ComboHud) brightens the air for a moment: the haze jumps by this part of itself and fades
+## out over COMBO_PULSE_SECONDS. Below the map's own flashes (FLASH_BOOST), so it reads as a bonus, not an event. Untuned.
+const COMBO_PULSE := 0.8
+const COMBO_PULSE_SECONDS := 0.6
 ## The sky draws after every other solid thing, so the GPU skips the parts of it hidden behind the floor,
 ## the track and the scenery instead of shading the whole sphere first (Godot draws higher priority later).
 const SKY_RENDER_PRIORITY := Material.RENDER_PRIORITY_MAX
@@ -41,6 +45,8 @@ var environment := "classic"
 ## Only Classic has the tunnel rings; the others open the view.
 var rings_enabled := true
 var _sky_materials := {}
+## 1 right after a combo milestone, falling to 0
+var _combo_pulse := 0.0
 
 @onready var ring_holder := $Level/rings as Node3D
 @onready var diagonal_lasers_holder := $Level/DiagonalLasers as Node3D
@@ -214,6 +220,7 @@ func set_background() -> void:
 			turn_light_on(EventInfo.TYPE_FLOOR_LIGHTS, Color.WHITE)
 
 func _process(delta: float) -> void:
+	_combo_pulse = maxf(_combo_pulse - delta / COMBO_PULSE_SECONDS, 0.0)
 	_update_haze()
 	# update the level animations
 	#procces ring rotations
@@ -231,8 +238,13 @@ func _update_haze() -> void:
 		haze += (m.get_shader_parameter(&"light_color") as Color) * HAZE_LIGHT_WEIGHT
 	if track_lights_holder.visible:
 		haze += floor_material.albedo_color * HAZE_LIGHT_WEIGHT
+	haze *= 1.0 + COMBO_PULSE * _combo_pulse * _combo_pulse
 	haze.a = 1.0
 	RenderingServer.global_shader_parameter_set(&"env_haze", haze)
+
+## Brightens the air for a moment, for a combo milestone.
+func combo_pulse() -> void:
+	_combo_pulse = 1.0
 
 func update_left_color(color: Color) -> void:
 	left_color = color
