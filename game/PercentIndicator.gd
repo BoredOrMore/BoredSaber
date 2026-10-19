@@ -12,9 +12,11 @@ func _ready() -> void:
 	label = label_instance.mesh as TextMesh
 	label_instance.layers = layers
 	# a target under the ring says what the number is without words
-	var icon := $Icon as Sprite3D
-	icon.modulate = Constants.UI_TEXT_MUTED
-	icon.layers = layers
+	# (the spectator window's copy of the ring has no icon)
+	var icon := get_node_or_null(^"Icon") as Sprite3D
+	if icon:
+		icon.modulate = Constants.UI_TEXT_MUTED
+		icon.layers = layers
 
 func _process(delta: float) -> void:
 	how_full_display = lerpf(how_full_display, how_full, delta*8)
