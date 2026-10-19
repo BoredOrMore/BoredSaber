@@ -33,10 +33,10 @@ var right_color: Color
 @onready var track_lights_holder := $Level/TrackLights as Node3D
 
 @onready var sphere_material := ($Level/Sphere as MeshInstance3D).material_override as ShaderMaterial
-@onready var diagonal_lasers_material := ($Level/DiagonalLasers/laser1/Bar7 as MeshInstance3D).material_override as StandardMaterial3D
-@onready var square_lasers_material := ($Level/SquareLasers/Bar7 as MeshInstance3D).material_override as StandardMaterial3D
-@onready var left_waving_lasers_material := ($Level/LeftWavingLasers/laser1/Bar7 as MeshInstance3D).material_override as StandardMaterial3D
-@onready var right_waving_lasers_material := ($Level/RightWavingLasers/laser1/Bar7 as MeshInstance3D).material_override as StandardMaterial3D
+@onready var diagonal_lasers_material := ($Level/DiagonalLasers/laser1/Bar7 as MeshInstance3D).material_override as ShaderMaterial
+@onready var square_lasers_material := ($Level/SquareLasers/Bar7 as MeshInstance3D).material_override as ShaderMaterial
+@onready var left_waving_lasers_material := ($Level/LeftWavingLasers/laser1/Bar7 as MeshInstance3D).material_override as ShaderMaterial
+@onready var right_waving_lasers_material := ($Level/RightWavingLasers/laser1/Bar7 as MeshInstance3D).material_override as ShaderMaterial
 @onready var track_lights_material := ($Level/TrackLights/Bar1 as MeshInstance3D).material_override as StandardMaterial3D
 @onready var floor_mesh := ($Level/floor as MeshInstance3D).mesh as PlaneMesh
 @onready var floor_material := ($Level/floor as MeshInstance3D).material_override as StandardMaterial3D
@@ -241,16 +241,16 @@ func turn_light_off(type: int) -> void:
 	match type:
 		EventInfo.TYPE_DIAGONAL_LASERS:
 			diagonal_lasers_holder.visible = false
-			diagonal_lasers_material.albedo_color = Color.BLACK
+			diagonal_lasers_material.set_shader_parameter(&"light_color", Color.BLACK)
 		EventInfo.TYPE_SQUARE_LASERS:
 			square_lasers_holder.visible = false
-			square_lasers_material.albedo_color = Color.BLACK
+			square_lasers_material.set_shader_parameter(&"light_color", Color.BLACK)
 		EventInfo.TYPE_LEFT_WAVING_LASERS:
 			left_waving_lasers_holder.visible = false
-			left_waving_lasers_material.albedo_color = Color.BLACK
+			left_waving_lasers_material.set_shader_parameter(&"light_color", Color.BLACK)
 		EventInfo.TYPE_RIGHT_WAVING_LASERS:
 			right_waving_lasers_holder.visible = false
-			right_waving_lasers_material.albedo_color = Color.BLACK
+			right_waving_lasers_material.set_shader_parameter(&"light_color", Color.BLACK)
 		EventInfo.TYPE_FLOOR_LIGHTS:
 			track_lights_holder.visible = false
 			track_lights_material.albedo_color = Color.BLACK
@@ -263,16 +263,16 @@ func turn_light_on(type: int, color: Color) -> void:
 	match type:
 		EventInfo.TYPE_DIAGONAL_LASERS:
 			diagonal_lasers_holder.visible = true
-			diagonal_lasers_material.albedo_color = color
+			diagonal_lasers_material.set_shader_parameter(&"light_color", color)
 		EventInfo.TYPE_SQUARE_LASERS:
 			square_lasers_holder.visible = true
-			square_lasers_material.albedo_color = color
+			square_lasers_material.set_shader_parameter(&"light_color", color)
 		EventInfo.TYPE_LEFT_WAVING_LASERS:
 			left_waving_lasers_holder.visible = true
-			left_waving_lasers_material.albedo_color = color
+			left_waving_lasers_material.set_shader_parameter(&"light_color", color)
 		EventInfo.TYPE_RIGHT_WAVING_LASERS:
 			right_waving_lasers_holder.visible = true
-			right_waving_lasers_material.albedo_color = color
+			right_waving_lasers_material.set_shader_parameter(&"light_color", color)
 		EventInfo.TYPE_FLOOR_LIGHTS:
 			track_lights_holder.visible = true
 			track_lights_material.albedo_color = color
@@ -290,13 +290,13 @@ func fade_light_from_current(type: int, to_color: Color) -> void:
 	var current_color: Color
 	match type:
 		EventInfo.TYPE_DIAGONAL_LASERS:
-			current_color = diagonal_lasers_material.albedo_color
+			current_color = diagonal_lasers_material.get_shader_parameter(&"light_color")
 		EventInfo.TYPE_SQUARE_LASERS:
-			current_color = square_lasers_material.albedo_color
+			current_color = square_lasers_material.get_shader_parameter(&"light_color")
 		EventInfo.TYPE_LEFT_WAVING_LASERS:
-			current_color = left_waving_lasers_material.albedo_color
+			current_color = left_waving_lasers_material.get_shader_parameter(&"light_color")
 		EventInfo.TYPE_RIGHT_WAVING_LASERS:
-			current_color = right_waving_lasers_material.albedo_color
+			current_color = right_waving_lasers_material.get_shader_parameter(&"light_color")
 		EventInfo.TYPE_FLOOR_LIGHTS:
 			current_color = floor_material.albedo_color
 	fade_light(type, current_color, to_color, false, Tween.TRANS_LINEAR, Tween.EASE_IN)
@@ -305,7 +305,7 @@ func fade_light(type: int, from: Color, to: Color, turn_off_after_fade: bool, tr
 	stop_prev_tween(type)
 	
 	var group: Node3D
-	var material: Array[StandardMaterial3D] = []
+	var material: Array[Material] = []
 	match type:
 		EventInfo.TYPE_DIAGONAL_LASERS:
 			group = diagonal_lasers_holder
@@ -330,7 +330,7 @@ func fade_light(type: int, from: Color, to: Color, turn_off_after_fade: bool, tr
 	tween.set_parallel().set_trans(trans_type).set_ease(ease_type)
 	for m in material:
 		@warning_ignore("return_value_discarded")
-		tween.tween_property(m, ^"albedo_color", to, 1).from(from)
+		tween.tween_property(m, ^"shader_parameter/light_color" if m is ShaderMaterial else ^"albedo_color", to, 1).from(from)
 	@warning_ignore("return_value_discarded")
 	tween.tween_method(_on_Tween_tween_step.bind(type), from, to, 1)
 	tween.play()
