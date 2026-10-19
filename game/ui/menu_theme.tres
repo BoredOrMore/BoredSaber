@@ -198,6 +198,7 @@ ItemList/styles/selected = SubResource("list_selected")
 ItemList/styles/selected_focus = SubResource("list_selected")
 Label/colors/font_color = Color(0.894, 0.902, 0.922, 1)
 OptionButton/colors/font_color = Color(0.894, 0.902, 0.922, 1)
+OptionButton/constants/arrow_margin = 20
 OptionButton/styles/focus = SubResource("empty")
 OptionButton/styles/hover = SubResource("surface_hover")
 OptionButton/styles/normal = SubResource("surface")
