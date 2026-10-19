@@ -147,9 +147,9 @@ static func flow_level(percent: float) -> int:
 			level = i
 	return level
 
-## The saved swing flow filter entry [id, label, most allowed FLOW_LEVELS index].
-static func flow_filter() -> Array:
-	return Constants.FLOW_FILTERS[clampi(Settings.song_filter_flow, 0, Constants.FLOW_FILTERS.size() - 1)]
+## True when a difficulty's swings are too tangled to list it (Constants.FLOW_HIDDEN_PERCENT).
+static func is_unplayable(stats: Dictionary) -> bool:
+	return float(stats.get("flow", 0.0)) >= Constants.FLOW_HIDDEN_PERCENT
 
 ## Same-hand notes closer than this are one swing (a stack or a window), not two. From
 ## doc/research/reaction-time-and-swing-gap.md, like the median below.
@@ -203,17 +203,21 @@ static func reaction_level_of(info: MapInfo, difficulty: DifficultyInfo) -> int:
 	return reaction_level(reaction_seconds(info, difficulty))
 
 ## Overall level of one difficulty (an index in Constants.REACTION_LEVELS): the harder of its reaction time
-## level and its swing pace level, at the current Speed modifier. A map can read slowly but make the hands
-## swing fast, and reaction time alone ranked those as easy. Without counted stats only reaction time counts.
+## level and its swing pace level, at the current Speed modifier, one level up when its swings are Tangled.
+## A map can read slowly but make the hands swing fast or twist, and reaction time alone ranked those as
+## easy. Without counted stats only reaction time counts.
 static func level_of(info: MapInfo, difficulty: DifficultyInfo, stats: Dictionary) -> int:
 	var level := reaction_level_of(info, difficulty)
 	var gap := float(stats.get("gap", 0.0)) / _speed()
 	if gap > 0.0:
 		level = maxi(level, swing_pace_level(gap))
+	var flow := flow_level(float(stats.get("flow", 0.0)))
+	if flow == Constants.FLOW_LEVELS.size() - 1:
+		level += 1
 	# the easiest level also needs every swing to flow
-	if level == 0 and flow_level(float(stats.get("flow", 0.0))) > 0:
+	elif level == 0 and flow > 0:
 		level = 1
-	return level
+	return mini(level, Constants.REACTION_LEVELS.size() - 1)
 
 ## The saved NPS filter entry [id, label, min, max] from Constants.NPS_FILTERS.
 static func nps_filter() -> Array:

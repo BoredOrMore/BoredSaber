@@ -98,17 +98,8 @@ fit_to_longest_item = false
 layout_mode = 0
 offset_left = 400.0
 offset_top = 100.0
-offset_right = 572.0
-offset_bottom = 160.0
-fit_to_longest_item = false
-
-[node name="FlowFilter" type="OptionButton" parent="."]
-layout_mode = 0
-offset_left = 588.0
-offset_top = 100.0
 offset_right = 760.0
 offset_bottom = 160.0
-fit_to_longest_item = false
 
 [node name="SongsMenu" type="ItemList" parent="." unique_id=1448329630]
 layout_mode = 0
@@ -460,7 +451,6 @@ list_path = NodePath("../SongsMenu")
 [connection signal="item_selected" from="PlaylistSelector" to="." method="_on_PlaylistSelector_item_selected"]
 [connection signal="item_selected" from="ReactionFilter" to="." method="_on_reaction_filter_item_selected"]
 [connection signal="item_selected" from="LengthFilter" to="." method="_on_length_filter_item_selected"]
-[connection signal="item_selected" from="FlowFilter" to="." method="_on_flow_filter_item_selected"]
 [connection signal="pressed" from="MorePanel/LoadPlaylists_Button" to="." method="_on_LoadPlaylists_Button_pressed"]
 [connection signal="timeout" from="song_prev/stop_prev" to="." method="_on_stop_prev_timeout"]
 [connection signal="pressed" from="Favorite_Button" to="." method="_on_favorite_button_pressed"]

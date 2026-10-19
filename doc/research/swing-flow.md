@@ -39,7 +39,8 @@ the player confirmed both feel confusing to swing.
 | Twisty | 4–10 % | |
 | Tangled | 10 % and up | about 13 % |
 
-The song list hides Tangled difficulties by default. The easiest overall level (Gentle) also needs a
+Tangled difficulties count one overall level harder; only those at 25 % or more (the worst 5 % of the
+sample, hardly playable) are left out of the song list. The easiest overall level (Gentle) also needs a
 Smooth difficulty. The 1 s window and the band edges are a data-based starting point; confirm with
 headset playtests.
 

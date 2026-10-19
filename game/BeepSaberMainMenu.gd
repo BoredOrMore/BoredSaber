@@ -23,7 +23,6 @@ const FAVORITE_MASK := 0x4000000000000000
 @onready var reaction_filter := $ReactionFilter as OptionButton
 @onready var favorites_filter := $FavoritesFilter as Button
 @onready var length_filter := $LengthFilter as OptionButton
-@onready var flow_filter := $FlowFilter as OptionButton
 @onready var _bg_img_loader := preload("res://game/scripts/BackgroundImgLoader.gd").new()
 
 @onready var cover := $cover as TextureRect
@@ -254,26 +253,18 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 		if current_selected == -1:
 			songs_menu.deselect_all()
 
-## True if no song filter is set.
-func _song_filter_is_off() -> bool:
-	return Settings.song_filter_reaction == 0 and Settings.song_filter_length == 0 \
-		and int(MapStats.flow_filter()[2]) >= Constants.FLOW_LEVELS.size() - 1
-
-## False for non-favorites when only favorites are shown. Otherwise true if any difficulty of the map is at the picked level (MapStats.level_of), inside the length filter and
-## no less smooth than the swing flow filter allows. Maps that haven't been
+## False for non-favorites when only favorites are shown. Otherwise true if any difficulty of the map is playable (MapStats.is_unplayable), at the picked level
+## (MapStats.level_of) and inside the length filter. Maps that haven't been
 ## counted yet pass, so the list never hides songs it knows nothing about.
 func _passes_song_filter(map: MapInfo) -> bool:
 	if Settings.song_filter_favorites and not PlayCount.is_favorite(map):
 		return false
-	if _song_filter_is_off():
-		return true
 	var length_range := MapStats.length_filter()
-	var most_awkward := int(MapStats.flow_filter()[2])
 	for diff in map.difficulty_beatmaps:
 		var stats := MapStats.get_cached(map, diff)
-		if (Settings.song_filter_reaction == 0 or MapStats.level_of(map, diff, stats) == Settings.song_filter_reaction - 1) \
-				and (stats.is_empty() or MapStats.in_filter(float(stats.seconds), length_range)) \
-				and (stats.is_empty() or MapStats.flow_level(float(stats.flow)) <= most_awkward):
+		if not MapStats.is_unplayable(stats) \
+				and (Settings.song_filter_reaction == 0 or MapStats.level_of(map, diff, stats) == Settings.song_filter_reaction - 1) \
+				and (stats.is_empty() or MapStats.in_filter(float(stats.seconds), length_range)):
 			return true
 	return false
 
@@ -286,8 +277,8 @@ func _refilter() -> void:
 
 ## Called when the background count of song stats finishes.
 func _on_map_stats_counted() -> void:
-	if not _song_filter_is_off():
-		_refilter()
+	# unplayable difficulties are left out whatever the filters
+	_refilter()
 
 ## Stores the picked reaction time filter; on_settings_changed rebuilds the list.
 func _on_reaction_filter_item_selected(index: int) -> void:
@@ -300,10 +291,6 @@ func _on_favorites_filter_toggled(on: bool) -> void:
 ## Stores the picked length filter; on_settings_changed rebuilds the list.
 func _on_length_filter_item_selected(index: int) -> void:
 	Settings.song_filter_length = Constants.LENGTH_FILTERS[index][0]
-
-## Stores the picked swing flow filter; on_settings_changed rebuilds the list.
-func _on_flow_filter_item_selected(index: int) -> void:
-	Settings.song_filter_flow = Constants.FLOW_FILTERS[index][0]
 
 var default_song_icon := preload("res://game/data/beepsaber_logo.png")
 
@@ -515,7 +502,6 @@ func _ready() -> void:
 	playlist_selector.add_item("Most Played")
 	_drop_down(reaction_filter, MapStats.reaction_filters(), Settings.song_filter_reaction, 0)
 	_drop_down(length_filter, Constants.LENGTH_FILTERS, Settings.song_filter_length, 0)
-	_drop_down(flow_filter, Constants.FLOW_FILTERS, Settings.song_filter_flow, 0)
 	favorites_filter.set_pressed_no_signal(Settings.song_filter_favorites)
 	
 	_load_playlists()
@@ -559,11 +545,6 @@ func on_settings_changed(key: StringName) -> void:
 			# the BeatSaver panel shares these filters, so follow changes made there too
 			reaction_filter.select(clampi(Settings.song_filter_reaction, 0, Constants.REACTION_LEVELS.size()))
 			length_filter.select(MapStats.length_filter()[0])
-			_refilter()
-		&"song_filter_flow":
-			# a settings file from before this filter sets its default before the dropdown is filled
-			if flow_filter.item_count > 0:
-				flow_filter.select(MapStats.flow_filter()[0])
 			_refilter()
 		&"song_filter_favorites":
 			favorites_filter.set_pressed_no_signal(Settings.song_filter_favorites)
