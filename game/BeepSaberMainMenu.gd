@@ -26,7 +26,9 @@ const FAVORITE_MASK := 0x4000000000000000
 
 @onready var cover := $cover as TextureRect
 @onready var songs_menu := $SongsMenu as ItemList
-@onready var diff_menu := $DifficultyMenu as ItemList
+@onready var characteristic_row := $DifficultyPicker/CharacteristicRow as HBoxContainer
+@onready var level_row := $DifficultyPicker/LevelRow as HBoxContainer
+@onready var level_stats := $DifficultyPicker/LevelStats as Label
 @onready var delete_button := $MorePanel/Delete_Button as Button
 @onready var fail_row := $FailRow as HBoxContainer
 @onready var damage_row := $DamageRow as HBoxContainer
@@ -338,12 +340,6 @@ func _select_song(id: int) -> void:
 	if Settings.audio_music_preview > 0 and map.have_song:
 		play_preview(Utils.read_binary_file(map.filepath, map.song_filename), map.preview_start_time, map.preview_duration)
 	
-	diff_menu.clear()
-	for diff in map.difficulty_beatmaps:
-		var diff_index := diff_menu.add_item("%s   %s" % [diff.get_display_name(), MapStats.describe(MapStats.get_stats(map, diff))])
-		diff_menu.set_item_tooltip(diff_index, diff.difficulty + " / " + diff.get_display_name())
-		diff_menu.set_item_custom_fg_color(diff_index, Constants.DIFFICULTY_COLORS.get(diff.difficulty, Constants.UI_TEXT))
-	
 	var d := PlayCount.get_last_difficulty(map)
 	_select_difficulty(0 if d < 0 else (d & Constants.DIFFICULTY_MASK))
 
@@ -359,7 +355,6 @@ var _map_difficulty := 0
 
 func _select_difficulty(id: int) -> void:
 	_map_difficulty = id
-	diff_menu.select(id)
 	
 	# notify listeners that difficulty has changed
 	update_view()
@@ -442,6 +437,7 @@ func _ready() -> void:
 	Settings.changed.connect(on_settings_changed)
 	
 	_build_difficulty_rows()
+	_build_difficulty_picker()
 	_update_mod_controls()
 	favorite_button.hide()
 	
@@ -644,6 +640,7 @@ func update_view() -> void:
 		difficulty_changed.emit(_currently_selected_songlist_ref[current_selected], difficulty.difficulty_rank)
 	else:	
 		difficulty_changed.emit(null, -1)
+	_sync_difficulty_picker()
 	_set_reset_icon()
 
 ## Fills the fail and damage rows with one toggle button per option, so they're a single press away.
@@ -655,6 +652,95 @@ func _build_difficulty_rows() -> void:
 	for i in Constants.DAMAGE_SCALES.size():
 		damage_row.add_child(_make_row_button(Constants.DAMAGE_SCALES[i][1], damage_group, _on_damage_option_pressed.bind(i)))
 	_sync_difficulty_rows()
+
+## Difficulty levels in button order: [difficulty name in the map, button label].
+const LEVELS := [["Easy", "Easy"], ["Normal", "Normal"], ["Hard", "Hard"], ["Expert", "Expert"], ["ExpertPlus", "Expert+"]]
+## Most characteristic tabs a map can show; BeatSaver has 8 characteristics.
+const MAX_CHARACTERISTICS := 8
+## Shorter tab labels for characteristics whose names don't fit.
+const CHARACTERISTIC_LABELS := {"OneSaber": "1 Saber", "NoArrows": "No Arrows", "360Degree": "360°", "90Degree": "90°"}
+
+## Characteristic of each tab in characteristic_row, in tab order, for the selected map.
+var _characteristics: Array[String] = []
+
+## Fills the difficulty picker with one button per level and a pool of characteristic tabs, so nothing scrolls.
+func _build_difficulty_picker() -> void:
+	var tab_group := ButtonGroup.new()
+	for i in MAX_CHARACTERISTICS:
+		var tab := _make_row_button("", tab_group, _on_characteristic_pressed.bind(i))
+		tab.add_theme_font_size_override(&"font_size", 16)
+		tab.clip_text = true
+		characteristic_row.add_child(tab)
+	var level_group := ButtonGroup.new()
+	for i in LEVELS.size():
+		var button := _make_row_button(LEVELS[i][1], level_group, _on_level_pressed.bind(i))
+		button.add_theme_font_size_override(&"font_size", 18)
+		var color: Color = Constants.DIFFICULTY_COLORS.get(LEVELS[i][0], Constants.UI_TEXT)
+		for state: StringName in [&"font_color", &"font_hover_color", &"font_pressed_color", &"font_hover_pressed_color", &"font_focus_color"]:
+			button.add_theme_color_override(state, color)
+		level_row.add_child(button)
+	_sync_difficulty_picker()
+
+## The characteristic a difficulty belongs to; maps without one are Standard.
+func _characteristic_of(diff: DifficultyInfo) -> String:
+	return diff.characteristic if diff.characteristic != "" else "Standard"
+
+## Index in difficulty_beatmaps of the given characteristic and level, or -1 when the map lacks it.
+func _find_difficulty(map: MapInfo, characteristic: String, level: int) -> int:
+	for i in map.difficulty_beatmaps.size():
+		var diff := map.difficulty_beatmaps[i]
+		if _characteristic_of(diff) == characteristic and diff.difficulty == LEVELS[level][0]:
+			return i
+	return -1
+
+## Shows the selected map's characteristics (tabs only when there is more than one), its levels and the picked one's stats.
+func _sync_difficulty_picker() -> void:
+	if level_row.get_child_count() == 0:
+		return
+	var map: MapInfo = null
+	if current_selected >= 0 and current_selected < _currently_selected_songlist_ref.size():
+		map = _currently_selected_songlist_ref[current_selected]
+	var picked: DifficultyInfo = null
+	if map and _map_difficulty >= 0 and _map_difficulty < map.difficulty_beatmaps.size():
+		picked = map.difficulty_beatmaps[_map_difficulty]
+	_characteristics.clear()
+	if map:
+		for diff in map.difficulty_beatmaps:
+			var characteristic := _characteristic_of(diff)
+			if not characteristic in _characteristics and _characteristics.size() < MAX_CHARACTERISTICS:
+				_characteristics.append(characteristic)
+	for i in MAX_CHARACTERISTICS:
+		var tab := characteristic_row.get_child(i) as Button
+		tab.visible = i < _characteristics.size() and _characteristics.size() > 1
+		if tab.visible:
+			tab.text = CHARACTERISTIC_LABELS.get(_characteristics[i], _characteristics[i])
+			tab.set_pressed_no_signal(picked != null and _characteristic_of(picked) == _characteristics[i])
+	for i in LEVELS.size():
+		var button := level_row.get_child(i) as Button
+		button.disabled = not picked or _find_difficulty(map, _characteristic_of(picked), i) < 0
+		button.set_pressed_no_signal(picked != null and picked.difficulty == LEVELS[i][0])
+	if picked:
+		level_stats.text = "%s   %s" % [picked.get_display_name(), MapStats.describe(MapStats.get_stats(map, picked))]
+		level_stats.add_theme_color_override(&"font_color", Constants.DIFFICULTY_COLORS.get(picked.difficulty, Constants.UI_TEXT))
+	else:
+		level_stats.text = ""
+
+## Picks the pressed level within the shown characteristic.
+func _on_level_pressed(level: int) -> void:
+	var map := _currently_selected_songlist_ref[current_selected]
+	_select_difficulty(_find_difficulty(map, _characteristic_of(map.difficulty_beatmaps[_map_difficulty]), level))
+
+## Switches characteristic, keeping the closest level the new one has.
+func _on_characteristic_pressed(tab: int) -> void:
+	var map := _currently_selected_songlist_ref[current_selected]
+	var current := LEVELS.map(func(level: Array) -> String: return level[0]).find(map.difficulty_beatmaps[_map_difficulty].difficulty)
+	var best := -1
+	for level in LEVELS.size():
+		var index := _find_difficulty(map, _characteristics[tab], level)
+		if index >= 0 and (best < 0 or absi(level - current) < absi(best - current)):
+			best = level
+	if best >= 0:
+		_select_difficulty(_find_difficulty(map, _characteristics[tab], best))
 
 ## One option of a button row.
 func _make_row_button(text: String, group: ButtonGroup, on_pressed: Callable) -> Button:

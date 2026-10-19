@@ -126,13 +126,30 @@ theme_override_styles/hover_pressed = SubResource("StyleBoxEmpty_3ptxp")
 theme_override_styles/focus = SubResource("StyleBoxEmpty_3ptxp")
 text = "X"
 
-[node name="DifficultyMenu" type="ItemList" parent="." unique_id=1422990200]
+[node name="DifficultyPicker" type="VBoxContainer" parent="." unique_id=1422990200]
 layout_mode = 0
 offset_left = 784.0
 offset_top = 240.0
 offset_right = 1256.0
 offset_bottom = 400.0
-theme_override_constants/h_separation = 40
+theme_override_constants/separation = 6
+alignment = 1
+
+[node name="CharacteristicRow" type="HBoxContainer" parent="DifficultyPicker" unique_id=1422990201]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="LevelRow" type="HBoxContainer" parent="DifficultyPicker" unique_id=1422990202]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="LevelStats" type="Label" parent="DifficultyPicker" unique_id=1422990203]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+horizontal_alignment = 1
+text_overrun_behavior = 3
 
 [node name="FailRow" type="HBoxContainer" parent="." unique_id=1730492217]
 layout_mode = 0
@@ -381,9 +398,6 @@ one_shot = true
 scroll_node_path = NodePath("../SongsMenu")
 scroll_without_pointer = true
 
-[node name="diff_vr_slider" parent="." unique_id=803757760 instance=ExtResource("6")]
-scroll_node_path = NodePath("../DifficultyMenu")
-
 [node name="title_marquee" type="Node" parent="."]
 script = ExtResource("marquee")
 list_path = NodePath("../SongsMenu")
@@ -408,7 +422,6 @@ list_path = NodePath("../SongsMenu")
 [connection signal="item_selected" from="PlaylistSelector" to="." method="_on_PlaylistSelector_item_selected"]
 [connection signal="item_selected" from="NpsFilter" to="." method="_on_nps_filter_item_selected"]
 [connection signal="item_selected" from="LengthFilter" to="." method="_on_length_filter_item_selected"]
-[connection signal="item_selected" from="DifficultyMenu" to="." method="_select_difficulty"]
 [connection signal="pressed" from="MorePanel/LoadPlaylists_Button" to="." method="_on_LoadPlaylists_Button_pressed"]
 [connection signal="timeout" from="song_prev/stop_prev" to="." method="_on_stop_prev_timeout"]
 [connection signal="pressed" from="Favorite_Button" to="." method="_on_favorite_button_pressed"]
