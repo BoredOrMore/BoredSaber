@@ -251,7 +251,7 @@ func _passes_song_filter(map: MapInfo) -> bool:
 ## Rebuilds the shown song list with the current search text and filters.
 func _refilter() -> void:
 	if keyboard.is_node_ready():
-		_text_input_changed()
+		_apply_search(($Search_Button/Label as Label).text)
 	else:
 		refresh_playlist()
 
@@ -629,7 +629,10 @@ func _text_input_cancel() -> void:
 func _text_input_changed() -> void:
 	if _keyboard_for != KEYBOARD_SEARCH:
 		return
-	var text := keyboard._text_edit.text
+	_apply_search(keyboard._text_edit.text)
+
+## Shows the songs most similar to the search text first, or the playlist when the text is empty.
+func _apply_search(text: String) -> void:
 	($Search_Button/Label as Label).text = text
 	if text == "":
 		_clean_search()
