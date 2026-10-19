@@ -1,9 +1,15 @@
 name: Build Pico 4 APK
 
+# Push only: a branch's push build also shows as the check on its pull request, so a pull_request
+# trigger only built every commit twice.
 on:
   push:
-  pull_request:
   workflow_dispatch:
+
+# A newer push to the same branch replaces a build still running or queued.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   # 4.6.3 crashes on Pico 4 at startup (eye-tracked foveation with Vulkan), 4.6.2 does not.
@@ -13,6 +19,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    # a normal build takes a few minutes; one once hung in the project import for 6 hours
+    timeout-minutes: 20
     permissions:
       contents: write
     steps:
