@@ -75,6 +75,7 @@ offset_left = 24.0
 offset_top = 100.0
 offset_right = 384.0
 offset_bottom = 160.0
+fit_to_longest_item = false
 
 [node name="LengthFilter" type="OptionButton" parent="." unique_id=1730492216]
 layout_mode = 0
