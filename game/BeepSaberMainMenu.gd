@@ -722,14 +722,28 @@ func update_view() -> void:
 	_sync_difficulty_picker()
 	_set_reset_icon()
 
-## Fills the fail and damage rows with one toggle button per option, so they're a single press away.
+## The damage dropdown in the damage row.
+var damage_select: OptionButton
+
+## Fills the fail row with one toggle button per option, so they're a single press away, and the
+## damage row with a "Damage" label and a dropdown.
 func _build_difficulty_rows() -> void:
 	var fail_group := ButtonGroup.new()
 	for i in Constants.FAIL_OPTIONS.size():
 		fail_row.add_child(_make_row_button(Constants.FAIL_OPTIONS[i][2], fail_group, _on_fail_option_pressed.bind(i)))
-	var damage_group := ButtonGroup.new()
-	for i in Constants.DAMAGE_SCALES.size():
-		damage_row.add_child(_make_row_button(Constants.DAMAGE_SCALES[i][1], damage_group, _on_damage_option_pressed.bind(i)))
+	var damage_label := Label.new()
+	damage_label.text = "Damage"
+	damage_label.add_theme_font_size_override(&"font_size", 20)
+	damage_label.custom_minimum_size.x = 110
+	damage_row.add_child(damage_label)
+	damage_select = OptionButton.new()
+	damage_select.fit_to_longest_item = false
+	damage_select.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	damage_select.add_theme_font_size_override(&"font_size", 20)
+	for option: Array in Constants.DAMAGE_SCALES:
+		damage_select.add_item(option[1])
+	damage_select.item_selected.connect(_on_damage_option_pressed)
+	damage_row.add_child(damage_select)
 	_sync_difficulty_rows()
 
 ## Difficulty levels in button order: [difficulty name in the map, button label].
@@ -842,9 +856,9 @@ func _sync_difficulty_rows() -> void:
 		(fail_row.get_child(i) as Button).set_pressed_no_signal(option[0] == Settings.health_mode and (not Settings.health_mode or option[1] == Settings.fail_mode))
 	var damage_counts := Settings.health_mode and Settings.fail_mode == Constants.FAIL_MODE_BAR
 	for i in Constants.DAMAGE_SCALES.size():
-		var button := damage_row.get_child(i) as Button
-		button.set_pressed_no_signal(is_equal_approx(Constants.DAMAGE_SCALES[i][0], Settings.damage_scale))
-		button.disabled = not damage_counts
+		if is_equal_approx(Constants.DAMAGE_SCALES[i][0], Settings.damage_scale):
+			damage_select.select(i)
+	damage_select.disabled = not damage_counts
 
 ## Stores the picked fail option: No Fail turns health mode off, the others pick how to fail.
 func _on_fail_option_pressed(index: int) -> void:
