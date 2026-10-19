@@ -116,6 +116,8 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 	
 	var tw: Tween
 	if percent >= 0:
+		# the game shows this panel right after calling show_score, so wait for that before counting
+		await get_tree().process_frame
 		# the score counts up with the ring, ticking like a counter, and dings when it lands
 		create_tween().tween_property(details_material,^"albedo_color",Constants.UI_TEXT,0.5).from(Color.TRANSPARENT)
 		tw = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -123,7 +125,7 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 		tw.play()
 		var shown_score := -1
 		var last_tick := -TICK_MIN_INTERVAL
-		while tw.is_running() and visible:
+		while tw.is_running() and is_visible_in_tree():
 			var progress := animated_percent / percent if percent > 0.0 else 1.0
 			percent_indicator.update_percent(animated_percent)
 			var counted := int(score * progress)
@@ -139,7 +141,7 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 		
 		percent_indicator.update_percent(animated_percent)
 		details_mesh.text = "Score\n%d\n\nRecord\n%d" % [score, record]
-		if visible:
+		if is_visible_in_tree():
 			_ding_player.play()
 			if is_new_record or is_full_combo:
 				await get_tree().create_timer(DING_HIGH_DELAY).timeout
