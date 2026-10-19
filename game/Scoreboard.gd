@@ -2,6 +2,12 @@ extends Node
 
 signal score_changed()
 signal points_awarded(position: Vector3, rotation: float, amount: String)
+## a hit that kept the combo going (combo and multiplier already updated)
+signal combo_hit()
+## the multiplier went up to x2, x4 or x8
+signal multiplier_raised(multiplier: int)
+## a miss, bad cut, bomb or wall broke the combo or lowered the multiplier; lost_combo is the combo it ended
+signal combo_broken(lost_combo: int)
 
 var points: int
 var combo: int
@@ -33,6 +39,8 @@ func restart() -> void:
 
 func reset_combo(_wrong_note) -> void:
 	var changed = false
+	var broken := combo != 0 or multiplier != 1
+	var lost_combo := combo
 	_multiplier_progress = 0
 	if multiplier != 1:
 		@warning_ignore("integer_division")
@@ -46,7 +54,13 @@ func reset_combo(_wrong_note) -> void:
 		changed = true
 	if changed:
 		score_changed.emit()
-	
+	if broken:
+		combo_broken.emit(lost_combo)
+
+## How far the hits since the last multiplier change are toward the next one, 0..1 (1 at x8).
+func multiplier_progress() -> float:
+	return 1.0 if multiplier >= 8 else float(_multiplier_progress) / (2 * multiplier)
+
 func enter_wall() -> void:
 	var beat : float
 	var time := GlobalReferences.main_game_scene.get_current_time()
@@ -85,17 +99,23 @@ func add_points(position: Vector3, _rotation: float, amount: int, comment: Strin
 	if amount > 0:
 		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_HIT)
 	
+	var raised := false
 	if not in_wall:
 		combo += 1
 		_multiplier_progress += 1
 		if multiplier < 8 and _multiplier_progress >= 2 * multiplier:
 			multiplier *= 2
 			_multiplier_progress = 0
+			raised = true
 	points += amount * multiplier
 	
 	points_awarded.emit(position, _rotation, str(amount)+(comment if Settings.explain else ""))
 	_count_note(best if best > 0.0 else note_best_score())
 	score_changed.emit()
+	if not in_wall:
+		combo_hit.emit()
+	if raised:
+		multiplier_raised.emit(multiplier)
 	
 ## A chain head has no follow-through part, so its best score is lower.
 func add_swing_score(position: Vector3, _rotation: float, accuracy: float, preswing: float, followthrough: float, chain_head := false) -> void:

@@ -449,9 +449,6 @@ func _display_points() -> void:
 	var display = "Score %6d\n%02d:%02d" % [Scoreboard.points,seconds_left / 60,seconds_left % 60]
 	if (point_label.mesh as TextMesh).text != display:
 		(point_label.mesh as TextMesh).text = display
-	display = "x %d\nCombo %d" % [Scoreboard.multiplier, Scoreboard.combo]
-	if (multiplier_label.mesh as TextMesh).text != display:
-		(multiplier_label.mesh as TextMesh).text = display
 	percent_indicator.update_percent(Scoreboard.accuracy())
 
 ## Whole seconds left in the current map, for the clock under the score.

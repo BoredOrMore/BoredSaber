@@ -38,6 +38,7 @@
 [ext_resource type="PackedScene" uid="uid://iglrdadxsqw4" path="res://game/Wall/Wall.tscn" id="36_wallp"]
 [ext_resource type="PackedScene" uid="uid://cl1dig23jiq45" path="res://game/Arc/Arc.tscn" id="37_arcp"]
 [ext_resource type="Script" path="res://game/HealthRails.gd" id="38_rails"]
+[ext_resource type="Script" path="res://game/ComboHud.gd" id="39_combo"]
 
 [sub_resource type="Environment" id="1"]
 background_mode = 2
@@ -72,8 +73,8 @@ shader_parameter/left_color = Color(1, 0, 0, 1)
 shader_parameter/right_color = Color(0, 0, 1, 1)
 
 [sub_resource type="TextMesh" id="TextMesh_cx1im"]
-text = "x 0
-Combo 1"
+text = "Combo
+0"
 font_size = 10
 vertical_alignment = 0
 depth = 0.0
@@ -202,10 +203,11 @@ beepsaber_game = NodePath("../..")
 song_uploader_ref = NodePath("../../SongUploader")
 
 [node name="Multiplier_Label" type="MeshInstance3D" parent="." unique_id=1751030463]
-transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, -1.9, 1.375, -2.5)
+transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, -1.9, 1.54, -2.5)
 material_override = ExtResource("13_3xkki")
 mesh = SubResource("TextMesh_cx1im")
 skeleton = NodePath("")
+script = ExtResource("39_combo")
 
 [node name="Text_Background" type="MeshInstance3D" parent="Multiplier_Label" unique_id=1141689755]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.16, -0.01)

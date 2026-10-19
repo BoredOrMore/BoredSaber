@@ -1,0 +1,132 @@
+extends MeshInstance3D
+class_name ComboHud
+## The combo count and multiplier on the left of the HUD (the Multiplier_Label node), with feedback that makes a
+## combo feel like something: the count pops on each hit, the ring around the multiplier fills hit by hit as in
+## Beat Saber and flashes when the multiplier goes up, and a broken combo shakes and turns MISS_COLOR for a moment.
+## Kept moderate on purpose: too much feedback makes a game feel and play worse, not better (Kao 2020, "The effects
+## of juiciness in an action RPG"), and big flashes are tiring in a headset.
+
+## how much the combo count grows on a hit, and how long it takes to settle back (untuned)
+const HIT_POP := 0.12
+const HIT_POP_SECONDS := 0.12
+## how much the multiplier grows when it goes up, and how long it and the ring's flash take to settle (untuned)
+const RAISE_POP := 0.35
+const RAISE_SECONDS := 0.35
+## how far (in this node's units) and how long a broken combo shakes, and how long its tint takes to fade (untuned)
+const BREAK_SHAKE := 0.04
+const BREAK_SHAKE_SECONDS := 0.3
+const BREAK_SHAKE_SPEED := 60.0
+const BREAK_TINT_SECONDS := 0.5
+## segments the ring fills in or drains per second
+const RING_FILL_SPEED := 12.0
+## the ring sits under the combo count as the accuracy ring sits under the score
+const RING_OFFSET := Vector3(0, -0.4933, 0)
+const RING_SIZE := 0.5
+
+var _base_position: Vector3
+var _text_size: float
+var _text_material: BaseMaterial3D
+var _text_color: Color
+var _ring_material: ShaderMaterial
+var _multiplier_mesh: TextMesh
+var _multiplier_material: BaseMaterial3D
+var _multiplier_size: float
+var _shown_multiplier := 1
+var _segments := 2.0
+var _filled := 0.0
+var _filled_target := 0.0
+var _shake_left := 0.0
+var _pop_tween: Tween
+var _raise_tween: Tween
+var _tint_tween: Tween
+
+func _ready() -> void:
+	_base_position = position
+	_text_size = (mesh as TextMesh).pixel_size
+	# own copies, so tinting this text leaves the score's alone
+	_text_material = material_override.duplicate() as BaseMaterial3D
+	material_override = _text_material
+	_text_color = _text_material.albedo_color
+
+	var ring := MeshInstance3D.new()
+	var quad := QuadMesh.new()
+	quad.size = Vector2(RING_SIZE, RING_SIZE)
+	ring.mesh = quad
+	_ring_material = ShaderMaterial.new()
+	_ring_material.shader = preload("res://game/MultiplierRing.gdshader")
+	_ring_material.set_shader_parameter(&"fill_color", Constants.COMBO_RING_COLOR)
+	_ring_material.set_shader_parameter(&"empty_color", Constants.COMBO_RING_EMPTY_COLOR)
+	# tweens need every parameter they animate to be set first
+	_ring_material.set_shader_parameter(&"segments", _segments)
+	_ring_material.set_shader_parameter(&"filled", 0.0)
+	_ring_material.set_shader_parameter(&"flash", 0.0)
+	ring.material_override = _ring_material
+	ring.position = RING_OFFSET
+	ring.layers = layers
+	add_child(ring)
+
+	var multiplier_label := MeshInstance3D.new()
+	_multiplier_mesh = TextMesh.new()
+	_multiplier_mesh.font = preload("res://OQ_Toolkit/OQ_UI2D/theme/Roboto-Medium.ttf")
+	_multiplier_mesh.font_size = 100
+	_multiplier_mesh.pixel_size = 0.001
+	_multiplier_mesh.depth = 0.0
+	_multiplier_size = _multiplier_mesh.pixel_size
+	multiplier_label.mesh = _multiplier_mesh
+	_multiplier_material = _text_material.duplicate() as BaseMaterial3D
+	multiplier_label.material_override = _multiplier_material
+	multiplier_label.position = Vector3(0, 0, 0.02)
+	multiplier_label.layers = layers
+	ring.add_child(multiplier_label)
+
+	Scoreboard.score_changed.connect(refresh)
+	Scoreboard.combo_hit.connect(_on_combo_hit)
+	Scoreboard.multiplier_raised.connect(_on_multiplier_raised)
+	Scoreboard.combo_broken.connect(_on_combo_broken)
+	refresh()
+
+## Shows the current combo and multiplier; the ring moves to them over the next frames.
+func refresh() -> void:
+	var text := "Combo\n%d" % Scoreboard.combo
+	if (mesh as TextMesh).text != text:
+		(mesh as TextMesh).text = text
+	_multiplier_mesh.text = "x%d" % Scoreboard.multiplier
+	if Scoreboard.multiplier != _shown_multiplier:
+		_segments = 1.0 if Scoreboard.multiplier >= 8 else 2.0 * Scoreboard.multiplier
+		_ring_material.set_shader_parameter(&"segments", _segments)
+		# going up starts the new ring empty; going down drains it from full
+		_filled = 0.0 if Scoreboard.multiplier > _shown_multiplier else _segments
+		_shown_multiplier = Scoreboard.multiplier
+	_filled_target = Scoreboard.multiplier_progress() * _segments
+
+func _process(delta: float) -> void:
+	if _filled != _filled_target:
+		_filled = move_toward(_filled, _filled_target, RING_FILL_SPEED * delta)
+		_ring_material.set_shader_parameter(&"filled", _filled)
+	if _shake_left > 0.0:
+		_shake_left = maxf(_shake_left - delta, 0.0)
+		var amount := BREAK_SHAKE * _shake_left / BREAK_SHAKE_SECONDS
+		position = _base_position + Vector3(sin(_shake_left * BREAK_SHAKE_SPEED) * amount, 0, 0)
+
+func _on_combo_hit() -> void:
+	if _pop_tween:
+		_pop_tween.kill()
+	_pop_tween = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_pop_tween.tween_property(mesh, ^"pixel_size", _text_size, HIT_POP_SECONDS).from(_text_size * (1.0 + HIT_POP))
+
+func _on_multiplier_raised(_multiplier: int) -> void:
+	if _raise_tween:
+		_raise_tween.kill()
+	_raise_tween = create_tween().set_parallel().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_raise_tween.tween_property(_multiplier_mesh, ^"pixel_size", _multiplier_size, RAISE_SECONDS).from(_multiplier_size * (1.0 + RAISE_POP))
+	_raise_tween.tween_property(_ring_material, ^"shader_parameter/flash", 0.0, RAISE_SECONDS).from(1.0)
+
+func _on_combo_broken(_lost_combo: int) -> void:
+	_shake_left = BREAK_SHAKE_SECONDS
+	if _tint_tween:
+		_tint_tween.kill()
+	_tint_tween = create_tween().set_parallel().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	_tint_tween.tween_property(_text_material, ^"albedo_color", _text_color, BREAK_TINT_SECONDS).from(Constants.MISS_COLOR)
+	_tint_tween.tween_property(_multiplier_material, ^"albedo_color", _text_color, BREAK_TINT_SECONDS).from(Constants.MISS_COLOR)
+	_tint_tween.tween_property(_ring_material, ^"shader_parameter/fill_color", Constants.COMBO_RING_COLOR, BREAK_TINT_SECONDS).from(Constants.MISS_COLOR)
+	_tint_tween.tween_property(_ring_material, ^"shader_parameter/empty_color", Constants.COMBO_RING_EMPTY_COLOR, BREAK_TINT_SECONDS).from(Constants.MISS_COLOR.darkened(0.5))

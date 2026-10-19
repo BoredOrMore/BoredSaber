@@ -128,6 +128,9 @@ const UI_TEXT_MUTED := Color(0.6, 0.63, 0.67)
 const HEALTH_FULL_COLOR := Color(0.74, 0.86, 0.93)
 # The X shown for a missed note: a softer red than pure red
 const MISS_COLOR := Color("ff4d5e")
+# The combo HUD's multiplier ring (ComboHud.gd): lit and unlit segments. A broken combo tints it MISS_COLOR for a moment.
+const COMBO_RING_COLOR := UI_TEXT
+const COMBO_RING_EMPTY_COLOR := Color(0.26, 0.28, 0.32)
 
 # Shadow toning for the scenery: black becomes SHADOW_TINT, fading out toward mid-tones (game/env/shadow_tone.gdshaderinc).
 const SHADOW_TINT := Color(0.0, 0.0, 0.102)
