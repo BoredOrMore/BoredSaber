@@ -17,11 +17,16 @@ const SKY_TEXTURES := {
 		"sharp_masks": "res://game/env/neon_grid_sky_sharp.png",
 		"soft_masks": "res://game/env/neon_grid_sky_soft.png",
 	},
+	"night_city": {
+		"sharp_masks": "res://game/env/night_city_sky_sharp.png",
+		"soft_masks": "res://game/env/night_city_sky_soft.png",
+	},
 }
 ## the sky shader of each environment other than Classic, which keeps the one in the scene
 const SKY_SHADERS := {
 	"neon_grid": preload("res://game/env/NeonGridSky.gdshader"),
 	"pulse_void": preload("res://game/env/PulseVoidSky.gdshader"),
+	"night_city": preload("res://game/env/NightCitySky.gdshader"),
 }
 
 var ring_rot_speed := 0.0

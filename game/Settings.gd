@@ -33,7 +33,7 @@ const NOTE_STYLES := [ ["solid", "Solid"], ["neon", "Neon"] ]
 const NOTE_DARK_VALUE := 0.7
 ## the scenery around the track, picked beside the song; "auto" follows the environment each map was made for
 ## (EventDriver.pick_environment)
-const ENVIRONMENTS := [ ["auto", "Follow map"], ["classic", "Classic"], ["neon_grid", "Neon Grid"], ["pulse_void", "Pulse Void"] ]
+const ENVIRONMENTS := [ ["auto", "Follow map"], ["classic", "Classic"], ["neon_grid", "Neon Grid"], ["pulse_void", "Pulse Void"], ["night_city", "Night City"] ]
 const BACKGROUND_MODES := [ ["dynamic", "*Dynamic"],
 		["simple", "Simple"],
 		["static", "Static"] ]
