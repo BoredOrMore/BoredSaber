@@ -265,11 +265,17 @@ func _on_name_edit_requested() -> void:
 	highscore_keyboard._text_edit.set_caret_column(saved_name.length())
 	highscore_keyboard._on_TextEdit_text_changed()
 	highscore_keyboard._show()
+	_on_name_typed()
 	endscore.set_buttons_disabled(true)
 
 ## Cancel keeps the record under the name it has.
 func _on_name_edit_cancelled() -> void:
 	highscore_keyboard._hide()
+
+## Echoes the name being typed on the name card: the keyboard's own text box opens behind the score panel.
+func _on_name_typed() -> void:
+	if _editing_name:
+		endscore.show_name_card("Your name: %s_" % highscore_keyboard._text_edit.text)
 
 ## However the keyboard closed (enter, cancel, or the menu closing it on focus loss), the score screen gets its buttons
 ## back and the keyboard goes back to where the menus expect it.
@@ -279,6 +285,9 @@ func _on_keyboard_visibility_changed() -> void:
 		highscore_keyboard.transform = _keyboard_home
 		highscore_keyboard._keyboard.set_cancelable(highscore_keyboard.cancelable)
 		endscore.set_buttons_disabled(false)
+		# closed without a new name: put the card back from the typing echo
+		if gamestate == gamestate_newhighscore:
+			_show_name_card()
 
 ## The card under the score: this run's place on the map's board with a button to name it, or the map's best when
 ## this run didn't make the board.
@@ -398,6 +407,7 @@ func _ready() -> void:
 	highscore_keyboard.visibility_changed.connect(_on_keyboard_visibility_changed)
 	endscore.name_edit_requested.connect(_on_name_edit_requested)
 	highscore_keyboard.text_input_cancel.connect(_on_name_edit_cancelled)
+	highscore_keyboard._text_edit.text_changed.connect(_on_name_typed)
 	UI_AudioEngine.attach_children(online_search_keyboard)
 	
 	_transition_game_state(gamestate_mapselection)
