@@ -90,7 +90,7 @@ const SWING_PACE_LEVELS := [
 	["Frantic", 0.0],
 ]
 ## Reaction time filter choices: 0 shows every song, n songs with a difficulty at REACTION_LEVELS[n - 1].
-const ANY_REACTION_LABEL := "Any reaction time"
+const ANY_REACTION_LABEL := "Any"
 const LENGTH_FILTERS := [ [0, "Any length", 0.0, 0.0], [1, "Under 2 min", 0.0, 120.0], [2, "2-4 min", 120.0, 240.0], [3, "Over 4 min", 240.0, 0.0] ]
 const DIFFICULTY_FLIP_SHIFT := 20
 const DIFFICULTY_FLIP_HORIZONTAL := 0x100000

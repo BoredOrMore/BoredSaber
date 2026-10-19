@@ -164,7 +164,7 @@ static func describe(info: MapInfo, difficulty: DifficultyInfo, stats: Dictionar
 static func reaction_filters() -> Array:
 	var filters := [[0, Constants.ANY_REACTION_LABEL]]
 	for i in Constants.REACTION_LEVELS.size():
-		filters.append([i + 1, "Reaction: %s" % Constants.REACTION_LEVELS[i][0]])
+		filters.append([i + 1, Constants.REACTION_LEVELS[i][0]])
 	return filters
 
 ## Cache key of one difficulty.

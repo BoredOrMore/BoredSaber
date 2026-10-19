@@ -16,24 +16,33 @@ theme = ExtResource("menu_theme")
 theme_override_styles/panel = SubResource("root")
 script = ExtResource("2")
 
-[node name="ReactionFilter" type="OptionButton" parent="."]
+[node name="ReactionLabel" type="Label" parent="."]
 layout_mode = 0
 offset_left = 16.0
 offset_top = 96.0
-offset_right = 336.0
+offset_right = 136.0
+offset_bottom = 160.0
+text = "Reaction"
+vertical_alignment = 1
+
+[node name="ReactionFilter" type="OptionButton" parent="."]
+layout_mode = 0
+offset_left = 136.0
+offset_top = 96.0
+offset_right = 380.0
 offset_bottom = 160.0
 fit_to_longest_item = false
 
 [node name="NpsFilter" type="OptionButton" parent="."]
 layout_mode = 0
-offset_left = 348.0
+offset_left = 392.0
 offset_top = 96.0
-offset_right = 668.0
+offset_right = 692.0
 offset_bottom = 160.0
 
 [node name="LengthFilter" type="OptionButton" parent="."]
 layout_mode = 0
-offset_left = 680.0
+offset_left = 704.0
 offset_top = 96.0
 offset_right = 1000.0
 offset_bottom = 160.0
