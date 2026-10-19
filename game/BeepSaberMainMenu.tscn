@@ -1,5 +1,6 @@
 [gd_scene format=3 uid="uid://glii0poslcve"]
 
+[ext_resource type="Texture2D" path="res://game/ui/edit.svg" id="edit_icon"]
 [ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="1"]
 [ext_resource type="Script" uid="uid://cbe53qn50sjl7" path="res://game/BeepSaberMainMenu.gd" id="3"]
 [ext_resource type="Texture2D" uid="uid://cviyxvrpvyr0g" path="res://u/assets/game/data/beepsaber_logo.png" id="3_wpmn0"]
@@ -189,15 +190,33 @@ theme_override_styles/pressed = SubResource("play_hover")
 theme_override_styles/hover = SubResource("play_hover")
 text = "Play"
 
-[node name="PlayerName_Button" type="Button" parent="."]
+[node name="PlayerLabel" type="Label" parent="."]
 layout_mode = 0
 offset_left = 24.0
 offset_top = 616.0
-offset_right = 760.0
+offset_right = 152.0
 offset_bottom = 696.0
-text = "Player: Player"
+text = "Player"
+vertical_alignment = 1
+
+[node name="PlayerName_Button" type="Button" parent="."]
+layout_mode = 0
+offset_left = 156.0
+offset_top = 616.0
+offset_right = 664.0
+offset_bottom = 696.0
+text = "Player"
 text_overrun_behavior = 3
 alignment = 0
+
+[node name="PlayerEdit_Button" type="Button" parent="."]
+layout_mode = 0
+offset_left = 680.0
+offset_top = 616.0
+offset_right = 760.0
+offset_bottom = 696.0
+icon = ExtResource("edit_icon")
+icon_alignment = 1
 
 [node name="Tabs" type="HBoxContainer" parent="."]
 layout_mode = 0
@@ -415,6 +434,7 @@ list_path = NodePath("../SongsMenu")
 [connection signal="pressed" from="MorePanel/Licenses" to="." method="_on_licenses_pressed"]
 [connection signal="button_up" from="Search_Button" to="." method="_on_Search_Button_button_up"]
 [connection signal="pressed" from="PlayerName_Button" to="." method="_on_PlayerName_Button_pressed"]
+[connection signal="pressed" from="PlayerEdit_Button" to="." method="_on_PlayerName_Button_pressed"]
 [connection signal="item_selected" from="SongsMenu" to="." method="_select_song"]
 [connection signal="item_selected" from="PlaylistSelector" to="." method="_on_PlaylistSelector_item_selected"]
 [connection signal="item_selected" from="ReactionFilter" to="." method="_on_reaction_filter_item_selected"]

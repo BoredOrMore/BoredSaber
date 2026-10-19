@@ -644,7 +644,7 @@ func _on_PlayerName_Button_pressed() -> void:
 
 ## Shows the name new records are saved under.
 func _show_player_name() -> void:
-	player_name_button.text = "Player: %s" % BeepSaber_Game._default_player_name()
+	player_name_button.text = BeepSaber_Game._default_player_name()
 
 func _text_input_enter(text:String = "") -> void:
 	if _keyboard_for == KEYBOARD_NAME and not text.strip_edges().is_empty():
