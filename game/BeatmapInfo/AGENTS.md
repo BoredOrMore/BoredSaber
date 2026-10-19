@@ -46,6 +46,9 @@ static loader in `game/Map.gd` that fills them. Format reference: https://bsmg.w
   4 beats, halved while the jump distance exceeds 18 m, plus `note_jump_start_beat_offset`, min 0.25.
   NJS <= 0 keeps `Constants.BEAT_DISTANCE` (4.0) and 4 beats. Consumers: `BeepCube.gd:50,63`, `Wall.gd`,
   `Bomb.gd`, `Arc.gd`, `ChainLink.gd`, lead-in `BeepSaber_Game.gd:138`, spawn look-ahead `Playing.gd:65`.
+- Reaction time (`half_jump_beats * 60 / BPM`) and same-hand swing gap are the measures for player-facing
+  difficulty labels. Band edges and their evidence (BeatSaver data, BeatLeader stars) are in
+  `doc/research/reaction-time-and-swing-gap.md`; take thresholds from there, don't invent new ones.
 - `one_saber = characteristic == "OneSaber"` (`Map.gd:546,604`); either saber cuts any note
   (`BeepCube.gd:147`, `ChainLink.gd:128`).
 - `set_colors_from_custom_data` (`Map.gd:74`): unless `Settings.disable_map_color`, checks info then difficulty
