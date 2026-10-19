@@ -169,6 +169,10 @@ right_saber={
 "type": "vec3",
 "value": Vector3(0.5, 0, 0)
 }
+env_haze={
+"type": "color",
+"value": Color(0, 0, 0, 1)
+}
 
 [xr]
 

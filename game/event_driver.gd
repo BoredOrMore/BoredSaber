@@ -5,6 +5,9 @@ class_name EventDriver
 const FLASH_BOOST := 1.6
 # sphere shader parameter per light type, so tween steps don't format a name every frame
 const INTENSITY_PARAMS: Array[StringName] = [&"bg_0_intensity", &"bg_1_intensity", &"bg_2_intensity", &"bg_3_intensity", &"bg_4_intensity"]
+## Air colour with every light off, and how much each lit group tints the haze (sky, distant scenery). Untuned.
+const HAZE_BASE := Color(0.01, 0.01, 0.02)
+const HAZE_LIGHT_WEIGHT := 0.08
 
 var ring_rot_speed := 0.0
 var ring_rot_inv_dir := false
@@ -141,6 +144,7 @@ func set_background() -> void:
 			turn_light_on(EventInfo.TYPE_FLOOR_LIGHTS, Color.WHITE)
 
 func _process(delta: float) -> void:
+	_update_haze()
 	# update the level animations
 	#procces ring rotations
 	if ring_rot_speed > 0:
@@ -149,6 +153,16 @@ func _process(delta: float) -> void:
 				var rot := ring_rot_speed
 				if ring_rot_inv_dir: rot *= -1
 				(ring as Node3D).rotate_z((rot * delta) * (float(ring.get_index()+1)/5))
+
+## Tints the shared haze with the light groups that are on, so a flash lights up the air around the track.
+func _update_haze() -> void:
+	var haze := HAZE_BASE
+	for m: ShaderMaterial in [diagonal_lasers_material, square_lasers_material, left_waving_lasers_material, right_waving_lasers_material]:
+		haze += (m.get_shader_parameter(&"light_color") as Color) * HAZE_LIGHT_WEIGHT
+	if track_lights_holder.visible:
+		haze += floor_material.albedo_color * HAZE_LIGHT_WEIGHT
+	haze.a = 1.0
+	RenderingServer.global_shader_parameter_set(&"env_haze", haze)
 
 func update_left_color(color: Color) -> void:
 	left_color = color

@@ -1,5 +1,6 @@
-[gd_scene load_steps=37 format=3 uid="uid://qjvg3reomvyk"]
+[gd_scene load_steps=38 format=3 uid="uid://qjvg3reomvyk"]
 
+[ext_resource type="Shader" path="res://game/env/EnvSolid.gdshader" id="env_solid"]
 [ext_resource type="Shader" path="res://game/env/NeonRibbon.gdshader" id="neon_ribbon"]
 [ext_resource type="Script" uid="uid://4mismrno10gr" path="res://game/event_driver.gd" id="2"]
 [ext_resource type="ArrayMesh" uid="uid://cy814avk383k" path="res://game/data/ring.obj" id="3"]
@@ -27,6 +28,10 @@ uniform lowp float bg_2_intensity = 0.0;
 uniform lowp float bg_3_intensity = 0.0;
 uniform lowp float bg_4_intensity = 0.0;
 uniform lowp float contrast = 1.0;
+global uniform vec4 env_haze;
+// how much of the haze colour fills the whole sky, and how fast the brighter band at the horizon thins out (untuned)
+const float SKY_HAZE = 0.25;
+const float HORIZON_SHARPNESS = 10.0;
 uniform lowp vec4 bg_0_tint;
 uniform lowp vec4 bg_1_tint;
 uniform lowp vec4 bg_2_tint;
@@ -54,6 +59,7 @@ void fragment(){
 	if (bg_3_intensity>0.0){ALBEDO = get_from_map(bg_3, xinv_uv, (bg_3_intensity*bg_3_intensity_mult), ALBEDO, bg_3_tint);}
 	if (bg_4_intensity>0.0){ALBEDO = get_from_map(bg_4, xinv_uv, (bg_4_intensity*bg_4_intensity_mult), ALBEDO, bg_4_tint);}
 	ALBEDO.rgb = vec3(pow(ALBEDO.r, contrast), pow(ALBEDO.g, contrast), pow(ALBEDO.b, contrast));
+	ALBEDO += env_haze.rgb * (SKY_HAZE + exp(-abs(UV.y - 0.5) * HORIZON_SHARPNESS));
 }"
 
 [sub_resource type="ShaderMaterial" id="5"]
@@ -267,9 +273,9 @@ albedo_texture = SubResource("17")
 
 [sub_resource type="PlaneMesh" id="19"]
 
-[sub_resource type="StandardMaterial3D" id="20"]
-shading_mode = 0
-albedo_color = Color(0.0941176, 0.0941176, 0.0941176, 1)
+[sub_resource type="ShaderMaterial" id="20"]
+render_priority = 0
+shader = ExtResource("env_solid")
 
 [sub_resource type="Animation" id="21"]
 length = 2.0
