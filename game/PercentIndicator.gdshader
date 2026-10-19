@@ -2,6 +2,10 @@ shader_type spatial;
 render_mode unshaded, cull_back;
 uniform vec3 color;
 uniform float how_full;
+// a bright spot running around the ring (the score screen's top rank); 0 = off
+uniform float sparkle = 0.0;
+const float SPARKLE_SPEED = 0.6;
+const float SPARKLE_SHARPNESS = 12.0;
 
 void fragment() {
 	if (how_full < 0.005) {
@@ -13,8 +17,10 @@ void fragment() {
 	if (dist_from_center_squared <= 0.125 || dist_from_center_squared > 0.25) {
 		discard;
 	}
-	if (how_full < 0.995 && atan(x,y) + PI > how_full * TAU) {
+	float angle = atan(x,y) + PI;
+	if (how_full < 0.995 && angle > how_full * TAU) {
 		discard;
 	}
-	ALBEDO = color; // vec3(1.0);
+	float behind = mod(TIME * SPARKLE_SPEED * TAU - angle, TAU);
+	ALBEDO = color + vec3(sparkle * exp(-behind * SPARKLE_SHARPNESS));
 }

@@ -138,6 +138,18 @@ const SHADOW_TINT_LUT_SIZE := 32
 const DANGER_COLORS := [Color("ffb020"), Color("ff3b30"), Color("ffe14d")]
 const DANGER_MIN_HUE_GAP := 30.0 / 360.0
 
+# Rank colours on the score screen (the rank letter and the result ring), agreed with the user 2026-10-19.
+# F is a muted red-grey, not the danger colour, which means "dodge".
+const RANK_COLORS := {
+	"SS": Color("ffeaa8"),
+	"S": Color("ffd24d"),
+	"A": Color("5ec7f0"),
+	"B": Color("4de0a0"),
+	"C": Color("f0e04d"),
+	"D": Color("ff9f43"),
+	"F": Color("8a5a5e"),
+}
+
 # Difficulty colours as players know them from Beat Saber, keyed by the map's difficulty name.
 const DIFFICULTY_COLORS := {
 	"Easy": Color(0.24, 0.7, 0.44),
