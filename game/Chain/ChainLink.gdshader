@@ -1,5 +1,10 @@
 shader_type spatial;
-render_mode cull_disabled,diffuse_burley,specular_schlick_ggx;
+render_mode unshaded, cull_disabled;
+
+// Same fake light from above and in front as BeepCube.gdshader, since the scene has no lights.
+const vec3 LIGHT_DIR = vec3(-0.3, 0.8, 0.5);
+const float SHADE_FLOOR = 0.45;
+const float RIM_STRENGTH = 0.35;
 
 const float sub_emission_energy = 0.18;
 const float cut_white_margin = 0.04;
@@ -39,25 +44,26 @@ void fragment() {
 		discard;
 	}
 
-	ALBEDO = color.rgb;
-	METALLIC = 0.3;
-	ROUGHNESS = 0.2;
 	if (FRONT_FACING) {
 		float x_centered = UV.x - 0.25;
 		float y_centered = UV.y - 0.25;
 		float dist_from_center_squared = x_centered * x_centered + y_centered * y_centered;
 		if (dist_from_center_squared <= 0.001) {
-			EMISSION = vec3(1.0);
+			ALBEDO = vec3(1.0);
 		} else {
-			EMISSION = color.rgb * sub_emission_energy;
+			vec3 world_normal = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
+			float shade = mix(SHADE_FLOOR, 1.0, clamp(dot(world_normal, normalize(LIGHT_DIR)), 0.0, 1.0));
+			float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0) * RIM_STRENGTH;
+			vec3 base = color.rgb * (shade + sub_emission_energy + rim);
 			if (cutted){
 				// soft white margin
-				EMISSION += vec3(smoothstep(cut_white_margin+0.01,cut_white_margin,cut_interp));
+				base += vec3(smoothstep(cut_white_margin+0.01,cut_white_margin,cut_interp));
 				// hard white margin
-				//EMISSION += vec3( float(cut_white_margin < cut_interp) );
+				//base += vec3( float(cut_white_margin < cut_interp) );
 			}
+			ALBEDO = base;
 		}
 	} else {
-		EMISSION = vec3(1.0);
+		ALBEDO = vec3(1.0);
 	}
 }
