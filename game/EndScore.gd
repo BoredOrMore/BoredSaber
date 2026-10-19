@@ -21,6 +21,10 @@ const GRADES := [[0.9, "SS"], [0.8, "S"], [0.65, "A"], [0.5, "B"], [0.35, "C"], 
 # While the score counts up, the ring turns from grey toward the colour of the rank reached so far; each new
 # rank pops its letter in with a blip. At the end the ring glows and pulses once, and the top rank gets a
 # light running around it. All values untuned.
+## where the target icon sits on this screen: inside the ring, under the %, smaller than the HUD's.
+## Set in code because an override of the ring scene's child in EndScore.tscn didn't reach the exported game.
+const ICON_POSITION := Vector3(0, -0.11, 0.1)
+const ICON_PIXEL_SIZE := 0.00047
 const RING_COLOR_SPEED := 6.0
 const RANK_POP_SCALE := 1.35
 const RANK_POP_SECONDS := 0.25
@@ -45,6 +49,9 @@ func _ready() -> void:
 	panel.set_shader_parameter(&"fill_color", Constants.UI_PANEL)
 	panel.set_shader_parameter(&"border_color", Constants.UI_BORDER)
 	(($PercentIndicator as PercentIndicator).material_override as ShaderMaterial).set_shader_parameter(&"color", Constants.UI_ACCENT)
+	var icon := $PercentIndicator/Icon as Sprite3D
+	icon.position = ICON_POSITION
+	icon.pixel_size = ICON_PIXEL_SIZE
 	set_buttons_disabled(true)
 	_tick_player.stream = preload("res://game/data/click_002.ogg")
 	_tick_player.bus = &"UI"

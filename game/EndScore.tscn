@@ -111,10 +111,6 @@ script = ExtResource("1_jacne")
 [node name="PercentIndicator" parent="." instance=ExtResource("2_dpn16")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0.01)
 
-[node name="Icon" parent="PercentIndicator" index="1"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0.1)
-pixel_size = 0.00047
-
 [node name="RankHalo" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0.005)
 mesh = SubResource("QuadMesh_halo")
