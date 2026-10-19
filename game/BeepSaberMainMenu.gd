@@ -358,7 +358,7 @@ func _select_song(id: int, with_preview: bool = true) -> void:
 	
 	var map := _currently_selected_songlist_ref[id]
 	_shown_map = map
-	($SongInfo_Label as Label).text = "%s\n%s\n\nMapped by %s\nPlayed %d times" % [
+	($SongInfo_Label as Label).text = "%s\n%s\nMapped by %s\nPlayed %d times" % [
 		map.song_name,
 		map.song_author_name,
 		map.level_author_name,
