@@ -8,7 +8,11 @@ const INTENSITY_PARAMS: Array[StringName] = [&"bg_0_intensity", &"bg_1_intensity
 ## Air colour with every light off, and how much each lit group tints the haze (sky, distant scenery). Untuned.
 const HAZE_BASE := Color(0.01, 0.01, 0.02)
 const HAZE_LIGHT_WEIGHT := 0.08
-const NEON_GRID_SKY := preload("res://game/env/NeonGridSky.gdshader")
+## the sky shader of each environment other than Classic, which keeps the one in the scene
+const SKY_SHADERS := {
+	"neon_grid": preload("res://game/env/NeonGridSky.gdshader"),
+	"pulse_void": preload("res://game/env/PulseVoidSky.gdshader"),
+}
 
 var ring_rot_speed := 0.0
 var ring_rot_inv_dir := false
@@ -19,9 +23,9 @@ var right_color: Color
 
 ## The scenery around the track, one of the ids in Settings.ENVIRONMENTS other than "auto".
 var environment := "classic"
-## Neon Grid opens the view to the horizon, so it has no tunnel rings.
+## Only Classic has the tunnel rings; the others open the view.
 var rings_enabled := true
-var _neon_grid_sky_material: ShaderMaterial
+var _sky_materials := {}
 
 @onready var ring_holder := $Level/rings as Node3D
 @onready var diagonal_lasers_holder := $Level/DiagonalLasers as Node3D
@@ -45,6 +49,9 @@ var _neon_grid_sky_material: ShaderMaterial
 @onready var sphere_material := ($Level/Sphere as MeshInstance3D).material_override as ShaderMaterial
 @onready var classic_sky_material := sphere_material
 @onready var neon_grid := $Level/NeonGrid as Node3D
+@onready var pulse_void := $Level/PulseVoid as Node3D
+## materials that follow the sky's light parameters besides the sky itself
+@onready var _light_followers: Array[ShaderMaterial] = [pulse_void.ring_material]
 @onready var diagonal_lasers_material := ($Level/DiagonalLasers/laser1/Bar7 as MeshInstance3D).material_override as ShaderMaterial
 @onready var square_lasers_material := ($Level/SquareLasers/Bar7 as MeshInstance3D).material_override as ShaderMaterial
 @onready var left_waving_lasers_material := ($Level/LeftWavingLasers/laser1/Bar7 as MeshInstance3D).material_override as ShaderMaterial
@@ -104,11 +111,11 @@ func set_environment(id: String) -> void:
 	if id == environment:
 		return
 	environment = id
-	var neon := id == "neon_grid"
-	if neon and not _neon_grid_sky_material:
-		_neon_grid_sky_material = ShaderMaterial.new()
-		_neon_grid_sky_material.shader = NEON_GRID_SKY
-	var sky := _neon_grid_sky_material if neon else classic_sky_material
+	if SKY_SHADERS.has(id) and not _sky_materials.has(id):
+		var material := ShaderMaterial.new()
+		material.shader = SKY_SHADERS[id]
+		_sky_materials[id] = material
+	var sky: ShaderMaterial = _sky_materials.get(id, classic_sky_material)
 	for type in 5:
 		for param: StringName in [StringName("bg_%d_tint" % type), INTENSITY_PARAMS[type]]:
 			var value: Variant = sphere_material.get_shader_parameter(param)
@@ -116,8 +123,9 @@ func set_environment(id: String) -> void:
 				sky.set_shader_parameter(param, value)
 	sphere_material = sky
 	($Level/Sphere as MeshInstance3D).material_override = sky
-	neon_grid.visible = neon
-	rings_enabled = not neon
+	neon_grid.visible = id == "neon_grid"
+	pulse_void.visible = id == "pulse_void"
+	rings_enabled = id == "classic"
 	set_background()
 
 func set_background() -> void:
@@ -310,7 +318,7 @@ func turn_light_off(type: int) -> void:
 			floor_material.albedo_color = Color.BLACK
 	
 func turn_light_on(type: int, color: Color) -> void:
-	sphere_material.set_shader_parameter("bg_%d_tint"%type, color)
+	_set_light_param(StringName("bg_%d_tint" % type), color)
 	stop_prev_tween(type)
 	_on_Tween_tween_step(color, type)
 	match type:
@@ -332,11 +340,11 @@ func turn_light_on(type: int, color: Color) -> void:
 			floor_material.albedo_color = color
 
 func flash_light_on(type: int, color: Color) -> void:
-	sphere_material.set_shader_parameter("bg_%d_tint"%type, color)
+	_set_light_param(StringName("bg_%d_tint" % type), color)
 	fade_light(type, color * FLASH_BOOST, color, false, Tween.TRANS_LINEAR, Tween.EASE_OUT)
 
 func flash_light_then_fade_off(type: int, color: Color) -> void:
-	sphere_material.set_shader_parameter("bg_%d_tint"%type, color)
+	_set_light_param(StringName("bg_%d_tint" % type), color)
 	fade_light(type, color * FLASH_BOOST, Color.BLACK, true, Tween.TRANS_QUAD, Tween.EASE_IN)
 
 func fade_light_from_current(type: int, to_color: Color) -> void:
@@ -395,4 +403,10 @@ func fade_light(type: int, from: Color, to: Color, turn_off_after_fade: bool, tr
 		_on_Tween_tween_step(Color.BLACK, type)
 
 func _on_Tween_tween_step(value: Color, id: int) -> void:
-	sphere_material.set_shader_parameter(INTENSITY_PARAMS[id],value.v)
+	_set_light_param(INTENSITY_PARAMS[id], value.v)
+
+## Sets one of the sky's light parameters, on the sky and on everything that follows it.
+func _set_light_param(param: StringName, value: Variant) -> void:
+	sphere_material.set_shader_parameter(param, value)
+	for material in _light_followers:
+		material.set_shader_parameter(param, value)

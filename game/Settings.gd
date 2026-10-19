@@ -32,7 +32,7 @@ const NOTE_STYLES := [ ["solid", "Solid"], ["neon", "Neon"] ]
 ## with Darker Notes on, note bodies are no brighter than this HSV value; hue and saturation stay
 const NOTE_DARK_VALUE := 0.7
 ## the scenery around the track; "auto" follows the environment each map was made for (EventDriver.pick_environment)
-const ENVIRONMENTS := [ ["auto", "Auto (from map)"], ["classic", "Classic"], ["neon_grid", "Neon Grid"] ]
+const ENVIRONMENTS := [ ["auto", "Auto (from map)"], ["classic", "Classic"], ["neon_grid", "Neon Grid"], ["pulse_void", "Pulse Void"] ]
 const BACKGROUND_MODES := [ ["dynamic", "*Dynamic"],
 		["simple", "Simple"],
 		["static", "Static"] ]
