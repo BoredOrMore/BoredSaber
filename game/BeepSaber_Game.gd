@@ -204,6 +204,9 @@ func _fail_song() -> void:
 # the provided 'next_state'.
 func _transition_game_state(next_state: GameState) -> void:
 	gamestate = next_state
+	# the scene only lights up for the combo while a map is on
+	if gamestate != gamestate_playing and gamestate != gamestate_paused:
+		event_driver.set_combo_multiplier(1)
 	gamestate._ready(self)
 
 ## Shows the FPS label and the log window under the settings panel only when debug info is on.
@@ -455,6 +458,8 @@ func _on_combo_milestone(_combo: int) -> void:
 		controller.simple_rumble(MILESTONE_RUMBLE, MILESTONE_RUMBLE_SECONDS)
 
 func _display_points() -> void:
+	if gamestate == gamestate_playing:
+		event_driver.set_combo_multiplier(Scoreboard.multiplier)
 	var seconds_left := _seconds_left()
 	@warning_ignore("integer_division")
 	var display = "Score %6d\n%02d:%02d" % [Scoreboard.points,seconds_left / 60,seconds_left % 60]

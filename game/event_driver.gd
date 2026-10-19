@@ -12,6 +12,13 @@ const HAZE_LIGHT_WEIGHT := 0.08
 ## out over COMBO_PULSE_SECONDS. Below the map's own flashes (FLASH_BOOST), so it reads as a bonus, not an event. Untuned.
 const COMBO_PULSE := 0.8
 const COMBO_PULSE_SECONDS := 0.6
+## The higher the combo multiplier, the brighter the air and the laser bars, up to these parts more at x8; a
+## broken combo dims them again. Rises slowly, falls faster. Kept small and never flashing, for comfort. Untuned.
+const COMBO_HAZE_BOOST := 0.3
+const COMBO_LASER_BOOST := 0.2
+const COMBO_PULSE_LASER := 0.3
+const COMBO_RISE_SECONDS := 1.0
+const COMBO_FALL_SECONDS := 0.3
 ## The sky draws after every other solid thing, so the GPU skips the parts of it hidden behind the floor,
 ## the track and the scenery instead of shading the whole sphere first (Godot draws higher priority later).
 const SKY_RENDER_PRIORITY := Material.RENDER_PRIORITY_MAX
@@ -47,6 +54,9 @@ var rings_enabled := true
 var _sky_materials := {}
 ## 1 right after a combo milestone, falling to 0
 var _combo_pulse := 0.0
+## 0 at x1 to 1 at x8, and where it is heading
+var _combo_level := 0.0
+var _combo_target := 0.0
 
 @onready var ring_holder := $Level/rings as Node3D
 @onready var diagonal_lasers_holder := $Level/DiagonalLasers as Node3D
@@ -221,6 +231,8 @@ func set_background() -> void:
 
 func _process(delta: float) -> void:
 	_combo_pulse = maxf(_combo_pulse - delta / COMBO_PULSE_SECONDS, 0.0)
+	_combo_level = move_toward(_combo_level, _combo_target,
+			delta / (COMBO_RISE_SECONDS if _combo_target > _combo_level else COMBO_FALL_SECONDS))
 	_update_haze()
 	# update the level animations
 	#procces ring rotations
@@ -238,9 +250,15 @@ func _update_haze() -> void:
 		haze += (m.get_shader_parameter(&"light_color") as Color) * HAZE_LIGHT_WEIGHT
 	if track_lights_holder.visible:
 		haze += floor_material.albedo_color * HAZE_LIGHT_WEIGHT
-	haze *= 1.0 + COMBO_PULSE * _combo_pulse * _combo_pulse
+	var pulse := _combo_pulse * _combo_pulse
+	haze *= 1.0 + COMBO_HAZE_BOOST * _combo_level + COMBO_PULSE * pulse
 	haze.a = 1.0
 	RenderingServer.global_shader_parameter_set(&"env_haze", haze)
+	RenderingServer.global_shader_parameter_set(&"combo_glow", COMBO_LASER_BOOST * _combo_level + COMBO_PULSE_LASER * pulse)
+
+## Sets how lit up the scene is for the combo multiplier (1, 2, 4 or 8).
+func set_combo_multiplier(multiplier: int) -> void:
+	_combo_target = log(maxf(multiplier, 1)) / log(8.0)
 
 ## Brightens the air for a moment, for a combo milestone.
 func combo_pulse() -> void:

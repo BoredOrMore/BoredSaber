@@ -20,6 +20,8 @@ uniform float brightness = 3.5;
 const float BEAM = 0.12;
 const float BEAM_WAVE = 0.6;
 
+// how much brighter the bars are for the player's combo (EventDriver.set_combo_multiplier, combo_pulse)
+global uniform float combo_glow;
 // DebugView.LASERS leaves the bars out (no width, so nothing is drawn)
 global uniform int debug_view;
 
@@ -55,5 +57,5 @@ void fragment() {
 	float smoke = 1.0 - BEAM_WAVE * (0.5 + 0.5 * sin(dot(world_pos, vec3(0.9, 1.3, 0.7)) + TIME * 0.6)
 		* sin(dot(world_pos, vec3(-0.5, 0.8, 1.7)) * 0.7 - TIME * 0.4));
 	float beam = exp(-d * d * 1.5) * BEAM * smoke;
-	ALBEDO = light_color.rgb * (core + halo + beam) * (1.0 - d) * tips * fade * brightness;
+	ALBEDO = light_color.rgb * (core + halo + beam) * (1.0 - d) * tips * fade * brightness * (1.0 + combo_glow);
 }
