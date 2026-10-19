@@ -18,19 +18,21 @@ const float FADE_DISTANCE = 60.0;
 const float HORIZON_HAZE = 1.25;
 
 varying vec3 world;
+// worked out per vertex (the plane is subdivided for it), since it changes slowly across the plane
+varying float fade;
 
 void vertex() {
 	world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	fade = exp(-length(world.xz - CAMERA_POSITION_WORLD.xz) / FADE_DISTANCE);
 }
 
 void fragment() {
 	// metres to the nearest line along each axis
-	vec2 to_line = abs(fract(world.xz / SPACING + 0.5) - 0.5) * SPACING;
+	mediump vec2 to_line = abs(fract(world.xz / SPACING + 0.5) - 0.5) * SPACING;
 	vec2 px = fwidth(world.xz);
 	vec2 half_width = max(vec2(LINE_WIDTH * 0.5), px * MIN_LINE_PIXELS * 0.5);
 	vec2 lines = (1.0 - smoothstep(half_width - px, half_width + px, to_line)) * (LINE_WIDTH * 0.5 / half_width);
 	float line = max(lines.x, lines.y);
-	float fade = exp(-length(world.xz - CAMERA_POSITION_WORLD.xz) / FADE_DISTANCE);
 	vec3 near = mix(env_haze.rgb * GROUND_SHADE, env_haze.rgb * LINE_GAIN, line);
 	ALBEDO = mix(env_haze.rgb * HORIZON_HAZE, near, fade);
 }

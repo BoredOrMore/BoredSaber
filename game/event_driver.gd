@@ -8,6 +8,16 @@ const INTENSITY_PARAMS: Array[StringName] = [&"bg_0_intensity", &"bg_1_intensity
 ## Air colour with every light off, and how much each lit group tints the haze (sky, distant scenery). Untuned.
 const HAZE_BASE := Color(0.01, 0.01, 0.02)
 const HAZE_LIGHT_WEIGHT := 0.08
+## The sky draws after every other solid thing, so the GPU skips the parts of it hidden behind the floor,
+## the track and the scenery instead of shading the whole sphere first (Godot draws higher priority later).
+const SKY_RENDER_PRIORITY := Material.RENDER_PRIORITY_MAX
+## mask textures of the skies that use them, by shader parameter
+const SKY_TEXTURES := {
+	"neon_grid": {
+		"sharp_masks": "res://game/env/neon_grid_sky_sharp.png",
+		"soft_masks": "res://game/env/neon_grid_sky_soft.png",
+	},
+}
 ## the sky shader of each environment other than Classic, which keeps the one in the scene
 const SKY_SHADERS := {
 	"neon_grid": preload("res://game/env/NeonGridSky.gdshader"),
@@ -70,6 +80,7 @@ var _sky_materials := {}
 @export var disabled := false
 
 func _ready() -> void:
+	classic_sky_material.render_priority = SKY_RENDER_PRIORITY
 	track_lights_holder.hide()
 	
 	set_background_texture()
@@ -114,6 +125,9 @@ func set_environment(id: String) -> void:
 	if SKY_SHADERS.has(id) and not _sky_materials.has(id):
 		var material := ShaderMaterial.new()
 		material.shader = SKY_SHADERS[id]
+		material.render_priority = SKY_RENDER_PRIORITY
+		for texture: String in SKY_TEXTURES.get(id, {}):
+			material.set_shader_parameter(texture, load(SKY_TEXTURES[id][texture]))
 		_sky_materials[id] = material
 	var sky: ShaderMaterial = _sky_materials.get(id, classic_sky_material)
 	for type in 5:
