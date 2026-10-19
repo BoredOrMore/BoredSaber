@@ -1,6 +1,7 @@
 extends Node3D
-## Smoke around the stage, as in Beat Saber: two thin drifting layers just above the floor and big soft puffs beside
-## and behind the track, all lit by the scene lights. Kept below knee height or away from the note lanes, and faded out
+## Smoke around the stage, as in Beat Saber: a thin drifting layer just above the floor and big soft puffs beside
+## and behind the track, all lit by the scene lights. On the Pico 4 the smoke cost about 1.7 ms of GPU a frame with two
+## floor layers and ten puffs, so it is down to one layer and the six puffs that take the least of the screen. Kept below knee height or away from the note lanes, and faded out
 ## close to the player. Drawn before the other see-through things, so lights and walls show on top. All values untuned.
 
 const FLOOR_SMOKE := preload("res://game/env/FloorSmoke.gdshader")
@@ -9,18 +10,19 @@ const RENDER_PRIORITY := -4
 const NOISE_SIZE := 256
 const FLOOR_SIZE := Vector2(14.0, 30.0)
 const FLOOR_CENTER_Z := -12.0
-## height, opacity, and drift of each noise copy in metres per second, for each floor layer
+## one vertex every metre or so, as the floor smoke works out its fades per vertex
+const FLOOR_SUBDIVIDE := Vector2i(13, 29)
+## height, opacity, and drift of each noise copy in metres per second, for each floor layer; one layer about as thick
+## as the two there were
 const FLOOR_LAYERS := [
-	[0.05, 0.35, Vector2(0.05, 0.12), Vector2(-0.08, 0.05)],
-	[0.3, 0.2, Vector2(-0.07, 0.09), Vector2(0.06, 0.04)],
+	[0.12, 0.45, Vector2(0.05, 0.12), Vector2(-0.08, 0.05)],
 ]
-## x, y, z and size of each puff, beside and behind the track
+## x, y, z and size of each puff, beside the track further ahead (the ones close to the player filled most of the
+## screen when looking sideways)
 const BANKS: Array[Vector4] = [
-	Vector4(-4.2, 0.8, -4.0, 3.5), Vector4(4.4, 0.9, -5.0, 3.5),
 	Vector4(-5.0, 1.2, -11.0, 4.5), Vector4(5.2, 1.0, -12.0, 4.5),
 	Vector4(-4.8, 1.6, -19.0, 5.0), Vector4(5.0, 1.4, -20.0, 5.0),
 	Vector4(-4.5, 2.4, -28.0, 6.0), Vector4(4.8, 2.6, -29.0, 6.0),
-	Vector4(-7.0, 0.7, -1.0, 3.0), Vector4(7.0, 0.7, -2.0, 3.0),
 ]
 const BANK_OPACITY := 0.25
 
@@ -36,6 +38,8 @@ func _ready() -> void:
 
 	var plane := PlaneMesh.new()
 	plane.size = FLOOR_SIZE
+	plane.subdivide_width = FLOOR_SUBDIVIDE.x
+	plane.subdivide_depth = FLOOR_SUBDIVIDE.y
 	for layer: Array in FLOOR_LAYERS:
 		var material := ShaderMaterial.new()
 		material.shader = FLOOR_SMOKE

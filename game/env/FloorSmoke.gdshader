@@ -3,7 +3,8 @@ shader_type spatial;
 // tiling noise texture drift in different directions and their average sets how thick the smoke is; it is lit by the
 // scene lights through the shared haze colour, so a flash lights up the smoke. It fades out at the layer's edges, close
 // to the player (see-through layers right in front of the eyes strain them in VR), far away (the haze takes over) and
-// where it is seen almost edge-on, so it never shows as a flat plate. No depth texture, no extra pass. All values untuned.
+// where it is seen almost edge-on, so it never shows as a flat plate; these fades are worked out per vertex, so each
+// pixel only blends two noise samples. No depth texture, no extra pass. All values untuned.
 render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 
 global uniform vec4 env_haze;
@@ -29,24 +30,26 @@ const vec3 SMOKE_BASE = vec3(0.05, 0.05, 0.08);
 // env_haze carries about 8% of each light that is on; this brings it back up to a visible glow
 const float LIGHT_GAIN = 6.0;
 
-varying vec3 world;
+varying vec2 uv_a;
+varying vec2 uv_b;
+varying float fade;
 
 void vertex() {
-	world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	vec3 world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	uv_a = world.xz * SCALE_A + TIME * drift_a * SCALE_A;
+	uv_b = world.xz * SCALE_B + TIME * drift_b * SCALE_B;
+	vec2 e = min(UV, 1.0 - UV);
+	float edge = smoothstep(0.0, EDGE_FADE, min(e.x, e.y));
+	vec3 to_vertex = world - CAMERA_POSITION_WORLD;
+	float dist = length(to_vertex);
+	float near = smoothstep(NEAR_START, NEAR_FULL, dist);
+	float far = 1.0 - smoothstep(FAR_START, FAR_END, dist);
+	float edge_on = smoothstep(0.03, 0.2, abs(to_vertex.y) / dist);
+	fade = edge * near * far * edge_on * opacity;
 }
 
 void fragment() {
-	vec2 p = world.xz;
-	float n = 0.5 * (texture(noise, p * SCALE_A + TIME * drift_a * SCALE_A).r
-		+ texture(noise, p * SCALE_B + TIME * drift_b * SCALE_B).r);
-	float density = smoothstep(DENSITY_FROM, DENSITY_TO, n);
-	vec2 e = min(UV, 1.0 - UV);
-	float edge = smoothstep(0.0, EDGE_FADE, min(e.x, e.y));
-	vec3 to_frag = world - CAMERA_POSITION_WORLD;
-	float dist = length(to_frag);
-	float near = smoothstep(NEAR_START, NEAR_FULL, dist);
-	float far = 1.0 - smoothstep(FAR_START, FAR_END, dist);
-	float edge_on = smoothstep(0.03, 0.2, abs(to_frag.y) / dist);
+	float n = 0.5 * (texture(noise, uv_a).r + texture(noise, uv_b).r);
 	ALBEDO = SMOKE_BASE + env_haze.rgb * LIGHT_GAIN;
-	ALPHA = density * opacity * edge * near * far * edge_on;
+	ALPHA = smoothstep(DENSITY_FROM, DENSITY_TO, n) * fade;
 }
