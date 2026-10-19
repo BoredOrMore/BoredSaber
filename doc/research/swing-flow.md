@@ -40,8 +40,7 @@ the player confirmed both feel confusing to swing.
 | Tangled | 10 % and up | about 13 % |
 
 Tangled difficulties count one overall level harder; only those at 25 % or more (the worst 5 % of the
-sample, hardly playable) are left out of the song list. The easiest overall level (Gentle) also needs a
-Smooth difficulty. The 1 s window and the band edges are a data-based starting point; confirm with
+sample, hardly playable) are left out of the song list. The 1 s window and the band edges are a data-based starting point; confirm with
 headset playtests.
 
 ## Sources
