@@ -142,7 +142,7 @@ func add_chain_head_score(position: Vector3, lane_rotation: float, accuracy: flo
 	var time = Time.get_ticks_msec()
 	var pointing := get_pointing()
 	var preswing := get_preswing_angle(time, pointing)
-	Scoreboard.add_swing_score(position, lane_rotation, accuracy, preswing, 0.)
+	Scoreboard.add_swing_score(position, lane_rotation, accuracy, preswing, 0., true)
 	
 func get_preswing_angle(time: int, pointing: Vector3) -> float:
 	if history[history_tail].size() == 0:

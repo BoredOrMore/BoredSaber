@@ -128,7 +128,7 @@ func cut(saber: LightSaber, _cut_speed: Vector3, cut_plane: Plane, _controller: 
 	if saber.type == which_saber or Map.one_saber or Settings.handedness != 0:
 		Scoreboard.chain_link_cut(transform.origin, lane_rotation)
 	else:
-		Scoreboard.bad_cut(transform.origin, lane_rotation, "wrong saber")
+		Scoreboard.bad_cut(transform.origin, lane_rotation, "wrong saber", Scoreboard.chain_link_best_score())
 	
 	hide_cube()
 	if Settings.cube_cuts_falloff:
@@ -138,7 +138,7 @@ func cut(saber: LightSaber, _cut_speed: Vector3, cut_plane: Plane, _controller: 
 		release()# release now instead of waiting for cut pieces to die off
 
 func on_miss() -> void:
-	Scoreboard.bad_cut(transform.origin, lane_rotation, "miss")
+	Scoreboard.bad_cut(transform.origin, lane_rotation, "miss", Scoreboard.chain_link_best_score())
 	hide_cube()
 	release()
 

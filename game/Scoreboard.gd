@@ -5,10 +5,16 @@ signal points_awarded(position: Vector3, rotation: float, amount: String)
 
 var points: int
 var combo: int
+## Beat Saber's combo multiplier: x1, x2, x4, x8. It doubles after 2 x multiplier hits in a row
+## and halves on a miss, a bad cut, a bomb or a wall (bsmg.wiki/ranking-guide.html).
 var multiplier: int
+## hits since the multiplier last changed
+var _multiplier_progress: int
 var in_wall: bool
-var right_notes: float
-var wrong_notes: float
+## The most points the notes so far could have given: each at its best score, with an unbroken combo.
+## Accuracy is points over this, as in Beat Saber (bsmg.wiki/ranking-guide.html).
+var max_points: int
+var _notes_scored: int
 var full_combo: bool
 var paused: bool
 var last_in_wall_time: float
@@ -17,23 +23,23 @@ func restart() -> void:
 	last_in_wall_time = -1000.
 	points = 0
 	multiplier = 1
+	_multiplier_progress = 0
 	combo = 0
-	right_notes = 0.0
-	wrong_notes = 0.0
+	max_points = 0
+	_notes_scored = 0
 	full_combo = true
 	in_wall = false
 	score_changed.emit()
 
-func reset_combo(wrong_note) -> void:
+func reset_combo(_wrong_note) -> void:
 	var changed = false
+	_multiplier_progress = 0
 	if multiplier != 1:
-		multiplier = 1
+		@warning_ignore("integer_division")
+		multiplier = multiplier / 2
 		changed = true
 	if combo != 0:
 		combo = 0
-		changed = true
-	if wrong_note:
-		wrong_notes += 1.0
 		changed = true
 	if full_combo:
 		full_combo = false
@@ -57,36 +63,55 @@ func exit_wall() -> void:
 	in_wall = false
 	last_in_wall_time = -1000.
 
-## Adds a cut's points. good is the score that counts as a 100% hit (0 uses the default).
-func add_points(position: Vector3, _rotation: float, amount: int, comment: String = "", good: float = 0.0) -> void:
+## Points over the most the notes so far could have given (1 before any note).
+func accuracy() -> float:
+	return clampf(float(points) / max_points, 0.0, 1.0) if max_points > 0 else 1.0
+
+## The best score one note can get in the current scoring mode.
+func note_best_score() -> float:
+	if Settings.swing_scoring:
+		return Constants.SWING_ACCURACY_SCORE + Constants.SWING_PRESWING_SCORE + Constants.SWING_FOLLOWTHROUGH_SCORE
+	return Constants.OPENSABER_BEAT_ACCURACY_SCORE + Constants.OPENSABER_ANGLE_ACCURACY_SCORE + Constants.OPENSABER_DISTANCE_ACCURACY_SCORE
+
+## Counts one more note toward max_points, at the multiplier a perfect combo would have by now:
+## x1 for the first note, x2 for notes 2-5, x4 for notes 6-13, then x8.
+func _count_note(best: float) -> void:
+	_notes_scored += 1
+	var perfect_multiplier := 1 if _notes_scored == 1 else 2 if _notes_scored <= 5 else 4 if _notes_scored <= 13 else 8
+	max_points += int(best) * perfect_multiplier
+
+## Adds a cut's points. best is the most this note could have given (0 uses a normal note's best).
+func add_points(position: Vector3, _rotation: float, amount: int, comment: String = "", best: float = 0.0) -> void:
 	if amount > 0:
 		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_HIT)
 	
 	if not in_wall:
 		combo += 1
-		@warning_ignore("integer_division")
-		multiplier = 1 + mini(combo / 10, 7)
+		_multiplier_progress += 1
+		if multiplier < 8 and _multiplier_progress >= 2 * multiplier:
+			multiplier *= 2
+			_multiplier_progress = 0
 	points += amount * multiplier
 	
 	points_awarded.emit(position, _rotation, str(amount)+(comment if Settings.explain else ""))
-	# track accuracy percent from this cut's score, not the running total
-	if good <= 0.0:
-		good = Constants.SWING_GOOD_SCORE if Settings.swing_scoring else Constants.OPENSABER_GOOD_SCORE
-	var normalized_points := clampf(float(amount)/good, 0.0, 1.0)
-	right_notes += normalized_points
-	wrong_notes += 1.0-normalized_points
+	_count_note(best if best > 0.0 else note_best_score())
 	score_changed.emit()
 	
-func add_swing_score(position: Vector3, _rotation: float, accuracy: float, preswing: float, followthrough: float) -> void:
+## A chain head has no follow-through part, so its best score is lower.
+func add_swing_score(position: Vector3, _rotation: float, accuracy: float, preswing: float, followthrough: float, chain_head := false) -> void:
 	var score := int(roundf(accuracy + 
 					clampf(preswing/Constants.TARGET_PRESWING_ANGLE,0,1.)*Constants.SWING_PRESWING_SCORE + 
 					clampf(followthrough/Constants.TARGET_FOLLOWTHROUGH_ANGLE,0.,1.)*Constants.SWING_FOLLOWTHROUGH_SCORE))
-	add_points(position, _rotation, score, "  (%d %d %d)" % [int(roundf(accuracy)),int(roundf(preswing)),int(roundf(followthrough))])
+	add_points(position, _rotation, score, "  (%d %d %d)" % [int(roundf(accuracy)),int(roundf(preswing)),int(roundf(followthrough))],
+			note_best_score() - Constants.SWING_FOLLOWTHROUGH_SCORE if chain_head else 0.0)
 
 func chain_link_cut(position: Vector3, _rotation: float) -> void:
-	var link_score := Constants.SWING_CHAIN_LINK_SCORE if Settings.swing_scoring else Constants.OPENSABER_CHAIN_LINK_SCORE
-	# a cut chain link is always a full hit for the accuracy percent
+	var link_score := int(chain_link_best_score())
 	add_points(position, _rotation, link_score, "", link_score)
+
+## The most a chain link can give, for a missed link.
+func chain_link_best_score() -> float:
+	return Constants.SWING_CHAIN_LINK_SCORE if Settings.swing_scoring else Constants.OPENSABER_CHAIN_LINK_SCORE
 
 func note_cut(saber: LightSaber, position: Vector3, _rotation: float, beat_accuracy: float, cut_angle_accuracy: float, cut_distance_accuracy: float, 
 		travel_distance_factor: float, arc_head: bool, arc_tail: bool, chain_head: bool) -> void:
@@ -109,7 +134,11 @@ func note_cut(saber: LightSaber, position: Vector3, _rotation: float, beat_accur
 	else:
 		bad_cut(position, _rotation, "bad angle")
 
-func bad_cut(position: Vector3, _rotation: float, description: String) -> void:
+## A note lost to a miss or a bad cut still counts toward max_points; best is what it could have given
+## (0 uses a normal note's best). Bombs are not notes.
+func bad_cut(position: Vector3, _rotation: float, description: String, best: float = 0.0) -> void:
+	if description != "bomb":
+		_count_note(best if best > 0.0 else note_best_score())
 	if description == "bomb":
 		reset_combo(false)
 		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_BOMB, true)

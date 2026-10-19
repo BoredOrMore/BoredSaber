@@ -480,12 +480,6 @@ func _clear_track() -> void:
 			c.queue_free()
 
 func _display_points() -> void:
-	var hit_rate: float
-	if Scoreboard.right_notes+Scoreboard.wrong_notes > 0:
-		hit_rate = Scoreboard.right_notes/(Scoreboard.right_notes+Scoreboard.wrong_notes)
-	else:
-		hit_rate = 1.0
-	
 	var seconds_left := _seconds_left()
 	@warning_ignore("integer_division")
 	var display = "Score %6d\n%02d:%02d" % [Scoreboard.points,seconds_left / 60,seconds_left % 60]
@@ -494,7 +488,7 @@ func _display_points() -> void:
 	display = "x %d\nCombo %d" % [Scoreboard.multiplier, Scoreboard.combo]
 	if (multiplier_label.mesh as TextMesh).text != display:
 		(multiplier_label.mesh as TextMesh).text = display
-	percent_indicator.update_percent(hit_rate)
+	percent_indicator.update_percent(Scoreboard.accuracy())
 
 ## Whole seconds left in the current map, for the clock under the score.
 func _seconds_left() -> int:
@@ -545,7 +539,7 @@ func _on_song_ended() -> void:
 	if Settings.health_mode and current_health <= 0:
 		current_percent = -1
 	else:
-		current_percent = Scoreboard.right_notes/(Scoreboard.right_notes+Scoreboard.wrong_notes) 
+		current_percent = Scoreboard.accuracy()
 	endscore.show_score(
 		Scoreboard.points,
 		highscore,
