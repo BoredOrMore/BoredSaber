@@ -1,14 +1,16 @@
 extends Node3D
 ## Smoke around the stage, as in Beat Saber: two thin drifting layers just above the floor and big soft puffs beside
-## and behind the track, all lit by the scene lights. Kept below knee height or away from the note lanes, and faded out
+## and behind the track, reaching all around the player so turning to either side still shows smoke, all lit by the scene lights. Kept below knee height or away from the note lanes, and faded out
 ## close to the player. Drawn before the other see-through things, so lights and walls show on top. All values untuned.
 
 const FLOOR_SMOKE := preload("res://game/env/FloorSmoke.gdshader")
 const SMOKE_BANK := preload("res://game/env/SmokeBank.gdshader")
 const RENDER_PRIORITY := -4
 const NOISE_SIZE := 256
-const FLOOR_SIZE := Vector2(14.0, 30.0)
-const FLOOR_CENTER_Z := -12.0
+## the floor layers reach 12 m to each side and behind the player, so smoke still shows when they turn; the GPU only
+## draws the parts on screen, so looking ahead costs no more than before
+const FLOOR_SIZE := Vector2(24.0, 40.0)
+const FLOOR_CENTER_Z := -8.0
 ## height, opacity, and drift of each noise copy in metres per second, for each floor layer
 const FLOOR_LAYERS := [
 	[0.05, 0.35, Vector2(0.05, 0.12), Vector2(-0.08, 0.05)],
@@ -21,6 +23,9 @@ const BANKS: Array[Vector4] = [
 	Vector4(-4.8, 1.6, -19.0, 5.0), Vector4(5.0, 1.4, -20.0, 5.0),
 	Vector4(-4.5, 2.4, -28.0, 6.0), Vector4(4.8, 2.6, -29.0, 6.0),
 	Vector4(-7.0, 0.7, -1.0, 3.0), Vector4(7.0, 0.7, -2.0, 3.0),
+	Vector4(-10.0, 2.0, -6.0, 5.0), Vector4(10.0, 2.2, -7.0, 5.0),
+	Vector4(-8.5, 1.3, 4.0, 4.0), Vector4(8.5, 1.2, 5.0, 4.0),
+	Vector4(-3.5, 1.0, 8.0, 4.5), Vector4(3.5, 1.1, 9.0, 4.5),
 ]
 const BANK_OPACITY := 0.25
 
@@ -68,5 +73,5 @@ func _ready() -> void:
 	banks.material_override = bank_material
 	banks.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# the puffs turn to face the player, so they can reach outside the squares' own bounds
-	banks.custom_aabb = AABB(Vector3(-12.0, -2.0, -40.0), Vector3(24.0, 10.0, 44.0))
+	banks.custom_aabb = AABB(Vector3(-14.0, -2.0, -40.0), Vector3(28.0, 10.0, 54.0))
 	add_child(banks)
