@@ -34,8 +34,6 @@ corner_radius_top_right = 14
 corner_radius_bottom_right = 14
 corner_radius_bottom_left = 14
 
-[sub_resource type="StyleBoxEmpty" id="StyleBoxEmpty_3ptxp"]
-
 [sub_resource type="Theme" id="panel_text"]
 default_font_size = 24
 
@@ -69,6 +67,15 @@ offset_left = 500.0
 offset_top = 24.0
 offset_right = 760.0
 offset_bottom = 84.0
+
+[node name="FavoritesFilter" type="Button" parent="."]
+layout_mode = 0
+offset_left = 196.0
+offset_top = 24.0
+offset_right = 488.0
+offset_bottom = 84.0
+toggle_mode = true
+text = "★ Favorites"
 
 [node name="ReactionLabel" type="Label" parent="."]
 layout_mode = 0
@@ -117,7 +124,7 @@ layout_mode = 0
 offset_left = 1000.0
 offset_top = 88.0
 offset_right = 1256.0
-offset_bottom = 288.0
+offset_bottom = 284.0
 theme_override_font_sizes/font_size = 24
 autowrap_mode = 3
 clip_text = true
@@ -125,17 +132,13 @@ text_overrun_behavior = 3
 
 [node name="Favorite_Button" type="Button" parent="." unique_id=1448413959]
 layout_mode = 0
-offset_left = 924.0
-offset_top = 228.0
-offset_right = 984.0
-offset_bottom = 288.0
-theme_override_font_sizes/font_size = 48
-theme_override_styles/normal = SubResource("StyleBoxEmpty_3ptxp")
-theme_override_styles/pressed = SubResource("StyleBoxEmpty_3ptxp")
-theme_override_styles/hover = SubResource("StyleBoxEmpty_3ptxp")
-theme_override_styles/hover_pressed = SubResource("StyleBoxEmpty_3ptxp")
-theme_override_styles/focus = SubResource("StyleBoxEmpty_3ptxp")
-text = "X"
+offset_left = 1000.0
+offset_top = 288.0
+offset_right = 1256.0
+offset_bottom = 344.0
+theme_override_font_sizes/font_size = 22
+toggle_mode = true
+text = "☆ Add to favorites"
 
 [node name="DifficultyPicker" type="VBoxContainer" parent="." unique_id=1422990200]
 layout_mode = 0
@@ -442,4 +445,5 @@ list_path = NodePath("../SongsMenu")
 [connection signal="pressed" from="MorePanel/LoadPlaylists_Button" to="." method="_on_LoadPlaylists_Button_pressed"]
 [connection signal="timeout" from="song_prev/stop_prev" to="." method="_on_stop_prev_timeout"]
 [connection signal="pressed" from="Favorite_Button" to="." method="_on_favorite_button_pressed"]
+[connection signal="toggled" from="FavoritesFilter" to="." method="_on_favorites_filter_toggled"]
 [connection signal="pressed" from="ModifiersPanel/Margin/Rows/Header/Reset_Button" to="." method="_on_reset_button_pressed"]

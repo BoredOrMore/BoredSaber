@@ -21,6 +21,7 @@ const FAVORITE_MASK := 0x4000000000000000
 
 @onready var playlist_selector := $PlaylistSelector as OptionButton
 @onready var reaction_filter := $ReactionFilter as OptionButton
+@onready var favorites_filter := $FavoritesFilter as Button
 @onready var length_filter := $LengthFilter as OptionButton
 @onready var _bg_img_loader := preload("res://game/scripts/BackgroundImgLoader.gd").new()
 
@@ -49,6 +50,8 @@ var song_preview_transition_time := 1.0
 var licenses_showing := false
 
 var current_selected := -1
+## The song in the details panel. It stays there after a favorites-only list drops it, so the star can be undone.
+var _shown_map: MapInfo
 
 enum PlaylistOptions {
 	AllSongs,
@@ -231,8 +234,9 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 	var map_index := 0
 	for map in songs:
 		@warning_ignore("return_value_discarded")
-		songs_menu.add_item("%s - %s%s" % [map.song_author_name, map.song_name, "" if map.have_song else " [silent]"], default_song_icon)
-		songs_menu.set_item_custom_fg_color(map_index, Color.YELLOW if PlayCount.is_favorite(map) else Color.WHITE)
+		var favorite := PlayCount.is_favorite(map)
+		songs_menu.add_item("%s%s - %s%s" % ["\u2605 " if favorite else "", map.song_author_name, map.song_name, "" if map.have_song else " [silent]"], default_song_icon)
+		songs_menu.set_item_custom_fg_color(map_index, Color.YELLOW if favorite else Color.WHITE)
 		_bg_img_loader.load_texture(map.filepath, map.cover_image_filename, _on_cover_loaded, false, map_index)
 		map_index += 1
 		
@@ -244,15 +248,17 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 				# same song as before: keep whatever preview is playing (maybe a BeatSaver one)
 				_select_song(i, false)
 		if current_selected == -1:
-			songs_menu.select(-1)
+			songs_menu.deselect_all()
 
 ## True if no song filter is set.
 func _song_filter_is_off() -> bool:
 	return Settings.song_filter_reaction == 0 and Settings.song_filter_length == 0
 
-## True if any difficulty of the map is at the picked reaction time and inside the length filter. Maps that haven't been
+## False for non-favorites when only favorites are shown. Otherwise true if any difficulty of the map is at the picked reaction time and inside the length filter. Maps that haven't been
 ## counted yet pass, so the list never hides songs it knows nothing about.
 func _passes_song_filter(map: MapInfo) -> bool:
+	if Settings.song_filter_favorites and not PlayCount.is_favorite(map):
+		return false
 	if _song_filter_is_off():
 		return true
 	var length_range := MapStats.length_filter()
@@ -278,6 +284,10 @@ func _on_map_stats_counted() -> void:
 ## Stores the picked reaction time filter; on_settings_changed rebuilds the list.
 func _on_reaction_filter_item_selected(index: int) -> void:
 	Settings.song_filter_reaction = index
+
+## Stores whether only favorite songs are listed; on_settings_changed rebuilds the list.
+func _on_favorites_filter_toggled(on: bool) -> void:
+	Settings.song_filter_favorites = on
 
 ## Stores the picked length filter; on_settings_changed rebuilds the list.
 func _on_length_filter_item_selected(index: int) -> void:
@@ -347,6 +357,7 @@ func _select_song(id: int, with_preview: bool = true) -> void:
 	favorite_button.show()
 	
 	var map := _currently_selected_songlist_ref[id]
+	_shown_map = map
 	($SongInfo_Label as Label).text = "%s\n%s\n\nMapped by %s\nPlayed %d times" % [
 		map.song_name,
 		map.song_author_name,
@@ -482,6 +493,7 @@ func _ready() -> void:
 	playlist_selector.add_item("Most Played")
 	_drop_down(reaction_filter, MapStats.reaction_filters(), Settings.song_filter_reaction, 0)
 	_drop_down(length_filter, Constants.LENGTH_FILTERS, Settings.song_filter_length, 0)
+	favorites_filter.set_pressed_no_signal(Settings.song_filter_favorites)
 	
 	_load_playlists()
 	
@@ -522,6 +534,9 @@ func on_settings_changed(key: StringName) -> void:
 			# the BeatSaver panel shares these filters, so follow changes made there too
 			reaction_filter.select(clampi(Settings.song_filter_reaction, 0, Constants.REACTION_LEVELS.size()))
 			length_filter.select(MapStats.length_filter()[0])
+			_refilter()
+		&"song_filter_favorites":
+			favorites_filter.set_pressed_no_signal(Settings.song_filter_favorites)
 			_refilter()
 
 func difficulty_modifier_changed() -> void:
@@ -897,7 +912,8 @@ func _set_reset_icon() -> void:
 		reset_button.show()
 
 func _set_favorite_icon(value: bool) -> void:
-	favorite_button.text = "\u2605" if value else "\u2606"
+	favorite_button.set_pressed_no_signal(value)
+	favorite_button.text = "\u2605 Favorite" if value else "\u2606 Add to favorites"
 	var color := Color.YELLOW if value else Color.WHITE
 	favorite_button.add_theme_color_override("font_color", color)
 	favorite_button.add_theme_color_override("font_disabled_color", color)
@@ -907,10 +923,13 @@ func _set_favorite_icon(value: bool) -> void:
 	favorite_button.add_theme_color_override("font_pressed_color", color)
 
 func _on_favorite_button_pressed() -> void:
-	var map := _currently_selected_songlist_ref[current_selected]
+	if _shown_map == null:
+		return
+	var map := _shown_map
 	var favorite := not PlayCount.is_favorite(map)
 	PlayCount.set_favorite(map, favorite)
 	_set_favorite_icon(favorite)
+	_reselect_path = map.filepath
 	_sort_songs()
 	update_view()
 	
