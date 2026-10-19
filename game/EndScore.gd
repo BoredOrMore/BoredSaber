@@ -16,6 +16,8 @@ const DING_HIGH_HZ := 1318.5
 const DING_HIGH_DELAY := 0.15
 const DING_SECONDS := 0.4
 const DING_MIX_RATE := 22050
+## lowest accuracy for each rank, best first; anything lower is F
+const GRADES := [[0.9, "SS"], [0.8, "S"], [0.65, "A"], [0.5, "B"], [0.35, "C"], [0.2, "D"]]
 
 var animated_percent: float = 0.0
 var _tick_player := AudioStreamPlayer.new()
@@ -97,22 +99,7 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 	repeat_button.text = "Retry" if percent < 0 else "Repeat"
 	repeat_button.set_primary(percent < 0)
 	
-	if percent >= 0.98:
-		grade_label.text = "[center][rainbow freq=0.5 sat=0.7 val=2]A+"
-	elif percent >= 0.90:
-		grade_label.text = "[center]A"
-	elif percent >= 0.80:
-		grade_label.text = "[center]B"
-	elif percent >= 0.70:
-		grade_label.text = "[center]C"
-	elif percent >= 0.60:
-		grade_label.text = "[center]D"
-	elif percent >= 0.50:
-		grade_label.text = "[center]E"
-	elif percent >= 0.00:
-		grade_label.text = "[center]F"
-	else:
-		grade_label.text = "[center]F-"
+	grade_label.text = "[center]%s" % _grade(percent)
 	
 	var tw: Tween
 	if percent >= 0:
@@ -154,6 +141,14 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 	tw.tween_property(fc_label,^"modulate",Color.WHITE,2).from(Color.TRANSPARENT)
 	tw.tween_property(nr_label,^"modulate",Color.WHITE,2).from(Color.TRANSPARENT)
 	tw.play()
+
+## The rank for an accuracy, with Beat Saber's thresholds (SS 90%, S 80%, A 65%, B 50%, C 35%, D 20%); below that,
+## or after a fail, F. The top rank shimmers.
+func _grade(percent: float) -> String:
+	for rank: Array in GRADES:
+		if percent >= rank[0]:
+			return "[rainbow freq=0.5 sat=0.7 val=2]%s" % rank[1] if rank == GRADES[0] else rank[1]
+	return "F"
 
 func set_buttons_disabled(disabled: bool) -> void:
 	($Repeat/Collision as CollisionShape3D).disabled = disabled
