@@ -87,12 +87,20 @@ class MapInfoWithSort:
 func compare(a: MapInfoWithSort, b: MapInfoWithSort) -> bool:
 	return a.num > b.num
 	
+## Song to keep selected when the song list is reloaded, such as after a download.
+var _reselect_path := ""
+## Difficulty to keep selected with _reselect_path.
+var _reselect_difficulty := -1
+## True once the song list has been loaded; only the first load plays the selected song's preview.
+var _songs_loaded := false
+
 func _sort_songs() -> void:
-	var do_map : MapInfo = null
-	var do_difficulty := -1
+	var do_path := _reselect_path
+	var do_difficulty := _reselect_difficulty
+	_reselect_path = ""
 	
 	if _currently_selected_songlist_ref != null and current_selected >= 0:
-		do_map = _currently_selected_songlist_ref[current_selected]
+		do_path = _currently_selected_songlist_ref[current_selected].filepath
 		do_difficulty = _map_difficulty
 			
 	var songs_with_modify_times: Array[MapInfoWithSort] = []
@@ -128,22 +136,28 @@ func _sort_songs() -> void:
 		_all_songs.append(song)
 		
 	refresh_playlist()
-	if do_map != null:
+	# reselecting the same song keeps whatever preview is playing (maybe a BeatSaver one fading out)
+	if not do_path.is_empty():
 		for i in range(_currently_selected_songlist_ref.size()):
-			if _currently_selected_songlist_ref[i] == do_map:
-				#songs_menu.select(i)
-				_select_song(i)
+			if _currently_selected_songlist_ref[i].filepath == do_path:
+				songs_menu.select(i)
+				_select_song(i, false)
 				_select_difficulty(do_difficulty)
+				break
 
 	if current_selected < 0:
 		for i in range(_currently_selected_songlist_ref.size()):
 			if _currently_selected_songlist_ref[i].filepath == Settings.last_map:
 				songs_menu.select(i)
-				_select_song(i)
+				_select_song(i, not _songs_loaded)
 				break
+	_songs_loaded = true
 	
 func _load_playlists() -> void:
 	#copy sample songs to main playlist folder on first run
+	if _currently_selected_songlist_ref != null and current_selected >= 0:
+		_reselect_path = _currently_selected_songlist_ref[current_selected].filepath
+		_reselect_difficulty = _map_difficulty
 	current_selected = -1
 	if not Settings.preloaded_songs:
 		@warning_ignore("return_value_discarded")
