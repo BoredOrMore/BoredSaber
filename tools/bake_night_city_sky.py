@@ -15,10 +15,10 @@ import numpy as np
 from PIL import Image
 
 OUT = Path(__file__).resolve().parent.parent / "game" / "env"
-SHARP_SIZE = (4096, 768)
-SOFT_SIZE = (1024, 192)
-# same UV band as the Neon Grid sky: 50 degrees above the horizon to 5 below
-V_TOP = 0.5 - 50.0 / 180.0
+SHARP_SIZE = (4096, 1024)
+SOFT_SIZE = (1024, 256)
+# 75 degrees above the horizon to 5 below: the tallest towers reach far overhead
+V_TOP = 0.5 - 75.0 / 180.0
 V_BOTTOM = 0.5 + 5.0 / 180.0
 HAZE_SCALE = 1.5
 RIM_SCALE = 1.0
@@ -28,9 +28,15 @@ SEED = 7
 
 SKY_HAZE = 0.25  # same as the other skies, so all share one air colour
 HORIZON_SHARPNESS = 10.0
-# towers: angular width range (radians) and height range (sine of elevation) for each row
-NEAR_ROW = dict(width=(0.05, 0.14), height=(0.10, 0.32), shade=0.12, gap=(0.0, 0.03))
-FAR_ROW = dict(width=(0.03, 0.08), height=(0.05, 0.16), shade=0.45, gap=(0.0, 0.01))
+# towers: angular width range (radians) and height range (sine of elevation) for each row. The near towers rise up
+# to 45 degrees and a few giants far higher, so the player stands at the foot of the city looking up
+NEAR_ROW = dict(width=(0.08, 0.22), height=(0.30, 0.70), shade=0.10, gap=(0.0, 0.04))
+FAR_ROW = dict(width=(0.04, 0.10), height=(0.12, 0.40), shade=0.40, gap=(0.0, 0.01))
+GIANT_SHARE = 0.15
+GIANT_HEIGHT = (0.80, 0.93)
+# the lower part of each tower fades into the haze, as tall buildings do in thick air
+BASE_HAZE = 0.25
+BASE_HAZE_HEIGHT = 0.08
 # towers straight ahead are this much lower, so the track's end stays in view
 FRONT_HEIGHT = 0.35
 FRONT_WIDTH = 0.6  # radians either side of straight ahead where they are lowered
@@ -41,6 +47,10 @@ WINDOW_FILL = (0.5, 0.55)  # fraction of a cell the window covers, across and up
 WINDOW_SHARE = 0.55
 FAR_WINDOW_DIM = 0.5
 RIM_STRENGTH = 0.5
+# long neon strips up the edges of some near towers, lit with the roof rims
+STRIP_SHARE = 0.35
+STRIP_STRENGTH = 0.8
+STRIP_WIDTH = 0.0025
 RIM_WIDTH = 0.004
 STREET_GLOW = 0.6  # light rising from the streets between the towers
 STREET_SHARPNESS = 25.0
@@ -63,6 +73,8 @@ def skyline(rng, row):
     while az < np.pi:
         w = rng.uniform(*row["width"])
         h = rng.uniform(*row["height"])
+        if row is NEAR_ROW and rng.random() < GIANT_SHARE:
+            h = rng.uniform(*GIANT_HEIGHT)
         towers.append((az, az + w, h))
         az += w + rng.uniform(*row["gap"])
     return towers
@@ -122,11 +134,19 @@ def masks(width, height):
     far_win, far_rand = windows(rng, far, far_i, az, y, far_top, px)
 
     haze_sky = SKY_HAZE + np.exp(-np.abs(y) * HORIZON_SHARPNESS)
-    haze = haze_sky * open_sky + NEAR_ROW["shade"] * in_near + FAR_ROW["shade"] * in_far
+    base_haze = BASE_HAZE * np.exp(-np.maximum(y, 0.0) / BASE_HAZE_HEIGHT)
+    haze = haze_sky * open_sky + (NEAR_ROW["shade"] + base_haze) * in_near + (FAR_ROW["shade"] + base_haze) * in_far
     lit = near_win * in_near + far_win * in_far * FAR_WINDOW_DIM
     rand = np.where(in_near > 0.5, near_rand, far_rand)
     rim = RIM_STRENGTH * (np.exp(-np.maximum(near_top - y, 0.0) / RIM_WIDTH) * in_near
                           + 0.5 * np.exp(-np.maximum(far_top - y, 0.0) / RIM_WIDTH) * in_far)
+    starts = np.array([t[0] for t in near])
+    ends = np.array([t[1] for t in near])
+    has_strip = np.random.default_rng(SEED + 1).random(len(near)) < STRIP_SHARE
+    i = np.maximum(near_i, 0)
+    to_edge = np.minimum(az - starts[i], ends[i] - az)
+    strip = (1.0 - smoothstep(STRIP_WIDTH - px, STRIP_WIDTH + px, to_edge)) * has_strip[i] * (near_i >= 0) * smoothstep(0.0, 0.03, y)
+    rim += STRIP_STRENGTH * strip * in_near
     rim += STREET_GLOW * np.exp(-np.maximum(y, 0.0) * STREET_SHARPNESS) * open_sky
     band = BAND_STRENGTH * np.exp(-np.abs(y - BAND_ELEVATION) * BAND_SHARPNESS) * open_sky
     glow = CENTRE_GLOW * np.exp(-np.abs(az) / CENTRE_WIDTH) * np.exp(-np.maximum(y, 0.0) * 6.0) * open_sky

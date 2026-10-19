@@ -24,7 +24,7 @@ uniform lowp float bg_3_intensity = 0.0;
 uniform lowp float bg_4_intensity = 0.0;
 
 // must match tools/bake_night_city_sky.py
-const float V_TOP = 0.5 - 50.0 / 180.0;
+const float V_TOP = 0.5 - 75.0 / 180.0;
 const float V_BOTTOM = 0.5 + 5.0 / 180.0;
 const float HAZE_SCALE = 1.5;
 const float RIM_SCALE = 1.0;
