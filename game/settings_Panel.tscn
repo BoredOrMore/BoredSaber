@@ -619,7 +619,7 @@ text = "Show Collision Shapes:"
 
 [node name="show_debug" type="CheckButton" parent="Tabs/Advanced/VBox"]
 layout_mode = 2
-text = "Show Debug Info:"
+text = "Show Debug Info (FPS + Log):"
 
 [node name="spectator_view" type="CheckButton" parent="Tabs/Advanced/VBox"]
 layout_mode = 2

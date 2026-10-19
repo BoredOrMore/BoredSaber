@@ -25,6 +25,7 @@ var current_health := Constants.HEALTH_START
 @onready var right_ui_raycast := $XROrigin3D/RightController/RightLightSaber/UIRaycast as UIRaycast
 @onready var goggles_shader := ($XROrigin3D/XRCamera3D/VRGoggles as MeshInstance3D).material_override as ShaderMaterial
 @onready var debug_info_label := $XROrigin3D/XRCamera3D/PlayerHead/DebugInfoLabel as MeshInstance3D
+@onready var log_window := $Settings_canvas/OQ_UI2DLogWindow as Node3D
 
 @onready var main_menu := $MainMenu_OQ_UI2DCanvas as OQ_UI2DCanvas
 @onready var pause_menu := $PauseMenu_canvas as OQ_UI2DCanvas
@@ -198,6 +199,16 @@ func _transition_game_state(next_state: GameState) -> void:
 	gamestate = next_state
 	gamestate._ready(self)
 
+## Shows the FPS label and the log window under the settings panel only when debug info is on.
+func _show_debug_info() -> void:
+	debug_info_label.visible = Settings.show_debug_info
+	var log_canvas := log_window.get_node(^"OQ_UI2DCanvas") as OQ_UI2DCanvas
+	if Settings.show_debug_info:
+		log_canvas._show()
+	else:
+		log_canvas._hide()
+	log_window.set_process(Settings.show_debug_info)
+
 func show_MapSourceDialogs(showing: bool = true) -> void:
 	map_source_dialogs.visible = showing
 	for c in map_source_dialogs.get_children():
@@ -299,7 +310,7 @@ func _ready() -> void:
 		vr.xr_interface.connect(&"session_visible", _pause_if_playing)
 		vr.xr_interface.connect(&"session_stopping", _pause_if_playing)
 
-	debug_info_label.visible = Settings.show_debug_info
+	_show_debug_info()
 	set_colors_from_settings()
 	($WorldEnvironment as WorldEnvironment).environment.glow_enabled = Settings.glare
 	($WorldEnvironment as WorldEnvironment).environment.adjustment_color_correction = _make_shadow_tint_lut()
@@ -385,7 +396,7 @@ func on_settings_changed(key: StringName) -> void:
 			set_background_texture()
 			event_driver.set_background_texture()
 		&"show_debug_info":
-			debug_info_label.visible = Settings.show_debug_info
+			_show_debug_info()
 		&"glare":
 			($WorldEnvironment as WorldEnvironment).environment.glow_enabled = Settings.glare
 		&"player_height_offset":
