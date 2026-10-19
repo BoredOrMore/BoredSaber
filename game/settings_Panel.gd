@@ -66,6 +66,7 @@ func _ready() -> void:
 		if Settings.background == Settings.BACKGROUND_MODES[i][0]:
 			background_mode_control.selected = i
 	background_mode_control.connect("item_selected", _on_background_mode_selected)
+	_add_debug_view_switches()
 
 	for i in len(Settings.NOTE_STYLES):
 		note_style_control.add_item(Settings.NOTE_STYLES[i][1])
@@ -225,6 +226,28 @@ func _on_saber_item_selected(index: int) -> void:
 
 func _on_show_debug_toggled(button_pressed: bool) -> void:
 	Settings.show_debug_info = button_pressed
+	_show_debug_view_switches()
+
+var _debug_view_switches: Array[CheckButton] = []
+
+## The DebugView switches go right under Show Debug Info and only show while it is on.
+func _add_debug_view_switches() -> void:
+	var index := show_debug_control.get_index()
+	for entry: Array in DebugView.SWITCHES:
+		var bit: int = entry[1]
+		var switch := CheckButton.new()
+		switch.text = "  %s:" % entry[0]
+		switch.button_pressed = DebugView.flags & bit != 0
+		switch.toggled.connect(func(on: bool) -> void: DebugView.set_flag(bit, on))
+		index += 1
+		show_debug_control.get_parent().add_child(switch)
+		show_debug_control.get_parent().move_child(switch, index)
+		_debug_view_switches.append(switch)
+	_show_debug_view_switches()
+
+func _show_debug_view_switches() -> void:
+	for switch in _debug_view_switches:
+		switch.visible = Settings.show_debug_info
 
 func _on_mixed_reality_toggled(button_pressed: bool) -> void:
 	Settings.mixed_reality = button_pressed

@@ -9,6 +9,8 @@ render_mode unshaded, fog_disabled, shadows_disabled;
 // a high band, 1 ring lights -> the horizon line and the mountain rims, 2/3 left/right lasers -> glow on that
 // side, 4 centre lights -> the sun.
 global uniform vec4 env_haze;
+// DebugView.SKY draws the sky plain black
+global uniform int debug_view;
 // r haze, g sun, b ring lights (horizon line and rims)
 uniform sampler2D sharp_masks : filter_linear, repeat_disable;
 // r band of the back lasers, g side glow
@@ -34,6 +36,10 @@ const float BAND_SCALE = 0.25;
 const float SIDE_SCALE = 0.25;
 
 void fragment() {
+	if ((debug_view & 16) != 0) {
+		ALBEDO = vec3(0.0);
+		return;
+	}
 	// UV.x 0.5 is straight down the track, above 0.5 is the player's left
 	mediump vec2 band_uv = vec2(UV.x, (UV.y - V_TOP) / (V_BOTTOM - V_TOP));
 	mediump vec3 sharp = texture(sharp_masks, band_uv).rgb;

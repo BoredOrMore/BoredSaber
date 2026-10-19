@@ -8,6 +8,8 @@ render_mode unshaded, fog_disabled, shadows_disabled;
 // 1 ring lights -> roof rims and street glow, 2/3 left/right lasers -> half the windows each, 4 centre lights ->
 // the glow over the city.
 global uniform vec4 env_haze;
+// DebugView.SKY draws the sky plain black
+global uniform int debug_view;
 // r haze, g window, b the window's random number, a roof rims and street glow
 uniform sampler2D sharp_masks : filter_linear, repeat_disable;
 // r band of the back lasers, g glow over the city
@@ -38,6 +40,10 @@ const float WINDOWS_ON = 0.7;
 const float WINDOW_PERIOD = 6.0;
 
 void fragment() {
+	if ((debug_view & 16) != 0) {
+		ALBEDO = vec3(0.0);
+		return;
+	}
 	mediump vec2 band_uv = vec2(UV.x, (UV.y - V_TOP) / (V_BOTTOM - V_TOP));
 	mediump vec4 sharp = texture(sharp_masks, band_uv);
 	mediump vec2 soft = texture(soft_masks, band_uv).rg;

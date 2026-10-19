@@ -19,6 +19,8 @@ const float RIM_STRENGTH = 0.35;
 global uniform int note_style;
 // Darker Notes: the body colour's HSV value is capped here, so hue and saturation stay (1.0 = off)
 global uniform float note_max_value;
+// DebugView.PLAIN_NOTES draws notes in their flat colour
+global uniform int debug_view;
 // Neon glows this much more on its own than Solid
 const float NEON_GLOW = 0.12;
 const float BEVEL_START = 0.19;
@@ -90,7 +92,9 @@ void fragment() {
 		discard;
 	}
 
-	if (FRONT_FACING) {
+	if ((debug_view & 2) != 0) {
+		ALBEDO = color.rgb;
+	} else if (FRONT_FACING) {
 		vec3 body = color.rgb * min(1.0, note_max_value / max(max(color.r, color.g), max(color.b, 1e-4)));
 		vec3 world_normal = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
 		float lit = clamp(dot(world_normal, normalize(LIGHT_DIR)), 0.0, 1.0);

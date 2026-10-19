@@ -5,6 +5,8 @@ shader_type spatial;
 render_mode unshaded, fog_disabled, shadows_disabled;
 
 global uniform vec4 env_haze;
+// DebugView.RINGS leaves these out (no area, so nothing is drawn)
+global uniform int debug_view;
 uniform vec4 albedo : source_color = vec4(0.094, 0.094, 0.094, 1.0);
 // per metre (untuned)
 uniform float fog_density = 0.03;
@@ -14,6 +16,9 @@ uniform float floor_haze_falloff = 0.35;
 varying float fog;
 
 void vertex() {
+	if ((debug_view & 8) != 0) {
+		VERTEX = vec3(0.0);
+	}
 	vec3 world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	float dist = length(world - CAMERA_POSITION_WORLD);
 	float distance_fog = 1.0 - exp(-fog_density * dist);

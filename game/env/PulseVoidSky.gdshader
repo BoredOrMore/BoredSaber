@@ -7,6 +7,8 @@ render_mode unshaded, fog_disabled, shadows_disabled;
 // track end, 1 ring lights -> a faint band around the player, 2/3 left/right lasers -> glow on that side,
 // 4 centre lights -> the core at the track end. All values untuned.
 global uniform vec4 env_haze;
+// DebugView.SKY draws the sky plain black
+global uniform int debug_view;
 uniform lowp vec4 bg_0_tint;
 uniform lowp vec4 bg_1_tint;
 uniform lowp vec4 bg_2_tint;
@@ -36,6 +38,10 @@ void vertex() {
 }
 
 void fragment() {
+	if ((debug_view & 16) != 0) {
+		ALBEDO = vec3(0.0);
+		return;
+	}
 	vec3 d = normalize(dir);
 	// 0 looking straight down the track, 2 looking straight back
 	float off_axis = 1.0 - dot(d, TRACK_DIR);

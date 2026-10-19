@@ -20,6 +20,9 @@ uniform float brightness = 3.5;
 const float BEAM = 0.12;
 const float BEAM_WAVE = 0.6;
 
+// DebugView.LASERS leaves the bars out (no width, so nothing is drawn)
+global uniform int debug_view;
+
 varying float across;
 varying float along;
 varying float fade;
@@ -34,13 +37,13 @@ void vertex() {
 	side = side_len > 1e-4 ? side / side_len : vec3(1.0, 0.0, 0.0);
 	float dist = length(to_cam);
 	float pixel = 2.0 * dist / (PROJECTION_MATRIX[1][1] * VIEWPORT_SIZE.y);
-	float w = max(width, min_pixels * pixel * 4.0);
+	float w = (debug_view & 4) != 0 ? 0.0 : max(width, min_pixels * pixel * 4.0);
 	vec3 world = center + side * VERTEX.x * w;
 	world_pos = world;
 	across = VERTEX.x * 2.0;
 	along = VERTEX.z / 16.0;
 	// sqrt: dimming by the full lost width made far bars look fainter than the old hard lines
-	fade = sqrt(width / w) * exp(-fog_density * dist);
+	fade = sqrt(width / max(w, 1e-6)) * exp(-fog_density * dist);
 	POSITION = PROJECTION_MATRIX * (VIEW_MATRIX * vec4(world, 1.0));
 }
 

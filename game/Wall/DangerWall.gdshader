@@ -19,10 +19,16 @@ const float MIN_FRAME_PIXELS = 1.5;
 uniform float glow_width = 0.2;
 uniform float glow_alpha = 0.6;
 
+// DebugView.WALLS leaves walls out (no area, so nothing is drawn)
+global uniform int debug_view;
+
 varying vec3 pos;
 varying vec3 half_size;
 
 void vertex() {
+	if ((debug_view & 1) != 0) {
+		VERTEX = vec3(0.0);
+	}
 	pos = VERTEX;
 	// a BoxMesh without subdivisions only has corner vertices, so this is the
 	// same for every vertex: half the wall's size, whatever size it spawned at

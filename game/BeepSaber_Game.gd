@@ -102,6 +102,8 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 		return
 		
 	event_driver.set_environment(EventDriver.pick_environment(info.environment_name))
+	# for reading GPU timings on the headset by environment
+	print("Song starts in environment ", event_driver.environment)
 	event_driver.set_background_texture()
 	
 	update_left_color(Map.color_left)
