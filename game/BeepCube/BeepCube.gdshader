@@ -17,6 +17,8 @@ const float RIM_STRENGTH = 0.35;
 // texture: a few math operations per pixel. All values untuned.
 // the flat faces end and the rounded bevels begin this far from the centre (the mesh is 0.5 wide)
 global uniform int note_style;
+// Darker Notes: the body colour's HSV value is capped here, so hue and saturation stay (1.0 = off)
+global uniform float note_max_value;
 // Neon glows this much more on its own than Solid
 const float NEON_GLOW = 0.12;
 const float BEVEL_START = 0.19;
@@ -89,22 +91,23 @@ void fragment() {
 	}
 
 	if (FRONT_FACING) {
+		vec3 body = color.rgb * min(1.0, note_max_value / max(max(color.r, color.g), max(color.b, 1e-4)));
 		vec3 world_normal = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
 		float lit = clamp(dot(world_normal, normalize(LIGHT_DIR)), 0.0, 1.0);
 		float shade = mix(SHADE_FLOOR, 1.0, lit);
 		float n_dot_v = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
 		float rim = pow(1.0 - n_dot_v, 3.0) * RIM_STRENGTH;
-		vec3 base = color.rgb * (shade + sub_emission_energy + rim);
+		vec3 base = body * (shade + sub_emission_energy + rim);
 		bool neon = note_style == 1;
 		if (neon) {
 			vec3 view_world = normalize((INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz);
 			vec3 r = reflect(-view_world, world_normal);
-			vec3 reflection = mix(color.rgb, vec3(1.0), REFLECT_WHITE) * (studio(r) * REFLECT + env_haze.rgb * HAZE_REFLECT);
+			vec3 reflection = mix(body, vec3(1.0), REFLECT_WHITE) * (studio(r) * REFLECT + env_haze.rgb * HAZE_REFLECT);
 			float spec = pow(clamp(dot(world_normal, normalize(normalize(LIGHT_DIR) + view_world)), 0.0, 1.0), SPEC_POWER) * SPEC_STRENGTH;
 			// on a bevel at least two of the three coordinates are near the edge of the cube
 			float bevel = smoothstep(BEVEL_START, BEVEL_FULL, middle(abs(local_pos)));
-			base += color.rgb * NEON_GLOW
-				+ mix(color.rgb, vec3(1.0), BEVEL_WHITE) * bevel * BEVEL_STRENGTH * shade
+			base += body * NEON_GLOW
+				+ mix(body, vec3(1.0), BEVEL_WHITE) * bevel * BEVEL_STRENGTH * shade
 				+ reflection + vec3(spec);
 		}
 		vec2 dot_uv = vec2(UV.x+0.5, UV.y);

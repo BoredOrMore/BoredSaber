@@ -400,15 +400,16 @@ func on_settings_changed(key: StringName) -> void:
 			_show_debug_info()
 		&"glare":
 			($WorldEnvironment as WorldEnvironment).environment.glow_enabled = Settings.glare
-		&"note_style":
+		&"note_style", &"darker_notes":
 			_apply_note_style()
 		&"player_height_offset":
 			xr_origin.transform.origin.y = Settings.player_height_offset
 
-## Tells the note shaders which look the player picked.
+## Tells the note shaders which look the player picked, and how bright their colours may be.
 func _apply_note_style() -> void:
 	var style := maxi(Settings.NOTE_STYLES.map(func(s: Array) -> String: return s[0]).find(Settings.note_style), 0)
 	RenderingServer.global_shader_parameter_set(&"note_style", style)
+	RenderingServer.global_shader_parameter_set(&"note_max_value", Settings.NOTE_DARK_VALUE if Settings.darker_notes else 1.0)
 
 func set_colors_from_settings() -> void:
 	update_left_color(Settings.color_left)

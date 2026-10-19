@@ -161,6 +161,10 @@ quality/depth/hdr=false
 
 [shader_globals]
 
+note_max_value={
+"type": "float",
+"value": 1.0
+}
 note_style={
 "type": "int",
 "value": 0

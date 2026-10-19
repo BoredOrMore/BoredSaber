@@ -29,6 +29,8 @@ const COLOR_PRESETS := [
 
 ## how notes are drawn: index into this list is the note_style shader global
 const NOTE_STYLES := [ ["solid", "Solid"], ["neon", "Neon"] ]
+## with Darker Notes on, note bodies are no brighter than this HSV value; hue and saturation stay
+const NOTE_DARK_VALUE := 0.7
 const BACKGROUND_MODES := [ ["dynamic", "*Dynamic"],
 		["simple", "Simple"],
 		["static", "Static"] ]
@@ -198,6 +200,10 @@ var note_style: String:
 	set(value):
 		note_style = value
 		set_and_emit(&"note_style", value)
+var darker_notes: bool:
+	set(value):
+		darker_notes = value
+		set_and_emit(&"darker_notes", value)
 var background_texture: String:
 	set(value):
 		background_texture = value
@@ -306,6 +312,7 @@ var default_values = {
 	spectator_hud = true,
 	background = "dynamic",
 	note_style = "solid",
+	darker_notes = false,
 	background_texture = "res://game/data/background/nightsky.jpg",
 	health_mode = true,
 	fail_mode = 0,

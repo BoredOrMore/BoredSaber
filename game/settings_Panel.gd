@@ -43,6 +43,9 @@ signal apply()
 @onready var background_mode_control := $Tabs/Visuals/VBox/background_mode_grid/background_mode as OptionButton
 @onready var background_texture_control := $Tabs/Visuals/VBox/background_texture_grid/background_texture as OptionButton
 @onready var note_style_control := $Tabs/Visuals/VBox/note_style_grid/note_style as OptionButton
+@onready var darker_notes_control := $Tabs/Visuals/VBox/darker_notes as CheckButton
+
+const SWATCH_SIZE := 24
 
 var _play_ui_sound_demo := false
 var left_saber_col_state := false
@@ -73,7 +76,7 @@ func _ready() -> void:
 
 	color_preset_control.add_item("Custom")
 	for preset: Array in Settings.COLOR_PRESETS:
-		color_preset_control.add_item(preset[0])
+		color_preset_control.add_icon_item(_preset_swatch(preset[1], preset[2]), preset[0])
 	color_preset_control.item_selected.connect(_on_color_preset_selected)
 
 	set_controls_from_settings()
@@ -128,6 +131,7 @@ func set_controls_from_settings() -> void:
 	_update_color_preset_selection()
 	saber_tail_control.button_pressed = Settings.saber_tail
 	glare_control.button_pressed = Settings.glare
+	darker_notes_control.button_pressed = Settings.darker_notes
 	saber_control.select(Settings.saber_visual)
 	show_debug_control.button_pressed = Settings.show_debug_info
 	mixed_reality_control.button_pressed = Settings.mixed_reality
@@ -185,6 +189,16 @@ func _on_color_preset_selected(index: int) -> void:
 	Settings.color_right = preset[2]
 	left_saber_col.color = preset[1]
 	right_saber_col.color = preset[2]
+
+## A small left/right colour chip, so each preset shows its colours in the list.
+func _preset_swatch(left: Color, right: Color) -> ImageTexture:
+	var image := Image.create(SWATCH_SIZE * 2, SWATCH_SIZE, false, Image.FORMAT_RGBA8)
+	image.fill_rect(Rect2i(0, 0, SWATCH_SIZE, SWATCH_SIZE), left)
+	image.fill_rect(Rect2i(SWATCH_SIZE, 0, SWATCH_SIZE, SWATCH_SIZE), right)
+	return ImageTexture.create_from_image(image)
+
+func _on_darker_notes_toggled(button_pressed: bool) -> void:
+	Settings.darker_notes = button_pressed
 
 ## Selects the preset matching the current saber colours, or "Custom" when none matches.
 func _update_color_preset_selection() -> void:

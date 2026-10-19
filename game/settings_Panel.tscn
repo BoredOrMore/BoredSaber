@@ -308,6 +308,22 @@ flat = true
 color = Color(1, 0.101961, 0.101961, 1)
 edit_alpha = false
 
+[node name="note_style_grid" type="GridContainer" parent="Tabs/Visuals/VBox"]
+layout_mode = 2
+columns = 2
+
+[node name="Label" type="Label" parent="Tabs/Visuals/VBox/note_style_grid"]
+layout_mode = 2
+text = "Note Style:"
+
+[node name="note_style" type="OptionButton" parent="Tabs/Visuals/VBox/note_style_grid"]
+layout_mode = 2
+
+[node name="darker_notes" type="CheckButton" parent="Tabs/Visuals/VBox"]
+layout_mode = 2
+tooltip_text = "Notes in deeper shades of the same colours"
+text = "Darker Notes: "
+
 [node name="SaberTypeRow" type="HBoxContainer" parent="Tabs/Visuals/VBox"]
 layout_mode = 2
 
@@ -350,17 +366,6 @@ text = "*Saber Tail: "
 layout_mode = 2
 tooltip_text = "High Performance impact*"
 text = "*Cut Blocks: "
-
-[node name="note_style_grid" type="GridContainer" parent="Tabs/Visuals/VBox"]
-layout_mode = 2
-columns = 2
-
-[node name="Label" type="Label" parent="Tabs/Visuals/VBox/note_style_grid"]
-layout_mode = 2
-text = "Note Style:"
-
-[node name="note_style" type="OptionButton" parent="Tabs/Visuals/VBox/note_style_grid"]
-layout_mode = 2
 
 [node name="background_mode_grid" type="GridContainer" parent="Tabs/Visuals/VBox"]
 layout_mode = 2
@@ -677,6 +682,7 @@ scroll_node_path = NodePath("../Tabs/Advanced")
 [connection signal="button_up" from="Tabs/Gameplay/VBox/recenter" to="." method="_on_recenter_button_up"]
 [connection signal="toggled" from="Tabs/Visuals/VBox/cut_blocks" to="." method="_on_cut_blocks_toggled"]
 [connection signal="toggled" from="Tabs/Visuals/VBox/glare" to="." method="_on_glare_toggled"]
+[connection signal="toggled" from="Tabs/Visuals/VBox/darker_notes" to="." method="_on_darker_notes_toggled"]
 [connection signal="toggled" from="Tabs/Visuals/VBox/saber_tail" to="." method="_on_saber_tail_toggled"]
 [connection signal="toggled" from="Tabs/Visuals/VBox/mixed_reality" to="." method="_on_mixed_reality_toggled"]
 [connection signal="toggled" from="Tabs/Gameplay/VBox/explain" to="." method="_on_explain_toggled"]

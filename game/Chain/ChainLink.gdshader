@@ -14,6 +14,8 @@ const float HAZE_REFLECT = 1.0;
 
 global uniform vec4 env_haze;
 global uniform int note_style;
+// Darker Notes: the body colour's HSV value is capped here, so hue and saturation stay (1.0 = off)
+global uniform float note_max_value;
 const float NEON_GLOW = 0.12;
 
 float studio(vec3 r) {
@@ -61,6 +63,7 @@ void fragment() {
 	}
 
 	if (FRONT_FACING) {
+		vec3 body = color.rgb * min(1.0, note_max_value / max(max(color.r, color.g), max(color.b, 1e-4)));
 		float x_centered = UV.x - 0.25;
 		float y_centered = UV.y - 0.25;
 		float dist_from_center_squared = x_centered * x_centered + y_centered * y_centered;
@@ -71,13 +74,13 @@ void fragment() {
 			float shade = mix(SHADE_FLOOR, 1.0, clamp(dot(world_normal, normalize(LIGHT_DIR)), 0.0, 1.0));
 			float n_dot_v = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
 			float rim = pow(1.0 - n_dot_v, 3.0) * RIM_STRENGTH;
-			vec3 base = color.rgb * (shade + sub_emission_energy + rim);
+			vec3 base = body * (shade + sub_emission_energy + rim);
 			if (note_style == 1) {
 				vec3 view_world = normalize((INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz);
 				vec3 r = reflect(-view_world, world_normal);
-				vec3 reflection = mix(color.rgb, vec3(1.0), REFLECT_WHITE) * (studio(r) * REFLECT + env_haze.rgb * HAZE_REFLECT);
+				vec3 reflection = mix(body, vec3(1.0), REFLECT_WHITE) * (studio(r) * REFLECT + env_haze.rgb * HAZE_REFLECT);
 				float spec = pow(clamp(dot(world_normal, normalize(normalize(LIGHT_DIR) + view_world)), 0.0, 1.0), SPEC_POWER) * SPEC_STRENGTH;
-				base += color.rgb * NEON_GLOW + reflection + vec3(spec);
+				base += body * NEON_GLOW + reflection + vec3(spec);
 			}
 			if (cutted){
 				// soft white margin
