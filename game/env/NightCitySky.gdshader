@@ -8,6 +8,7 @@ render_mode unshaded, fog_disabled, shadows_disabled;
 // 1 ring lights -> roof rims and street glow, 2/3 left/right lasers -> half the windows each, 4 centre lights ->
 // the glow over the city.
 global uniform vec4 env_haze;
+#include "res://game/env/shadow_tone.gdshaderinc"
 // DebugView.SKY draws the sky plain black
 global uniform int debug_view;
 // r haze, g window, b the window's random number, a roof rims and street glow
@@ -55,5 +56,6 @@ void fragment() {
 				+ bg_1_tint.rgb * (bg_1_intensity * sharp.a * RIM_SCALE)
 				+ bg_0_tint.rgb * (bg_0_intensity * soft.r * BAND_SCALE)
 				+ bg_4_tint.rgb * (bg_4_intensity * soft.g * GLOW_SCALE);
+		ALBEDO = shadow_tone(ALBEDO);
 	}
 }

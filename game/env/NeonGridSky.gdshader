@@ -9,6 +9,7 @@ render_mode unshaded, fog_disabled, shadows_disabled;
 // a high band, 1 ring lights -> the horizon line and the mountain rims, 2/3 left/right lasers -> glow on that
 // side, 4 centre lights -> the sun.
 global uniform vec4 env_haze;
+#include "res://game/env/shadow_tone.gdshaderinc"
 // DebugView.SKY draws the sky plain black
 global uniform int debug_view;
 // r haze, g sun, b ring lights (horizon line and rims)
@@ -49,5 +50,6 @@ void fragment() {
 				+ bg_1_tint.rgb * (bg_1_intensity * sharp.b * RING_SCALE)
 				+ bg_0_tint.rgb * (bg_0_intensity * soft.r * BAND_SCALE)
 				+ side_light * (soft.g * SIDE_SCALE);
+		ALBEDO = shadow_tone(ALBEDO);
 	}
 }

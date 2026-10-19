@@ -32,6 +32,7 @@ uniform lowp float bg_3_intensity = 0.0;
 uniform lowp float bg_4_intensity = 0.0;
 uniform lowp float contrast = 1.0;
 global uniform vec4 env_haze;
+#include \"res://game/env/shadow_tone.gdshaderinc\"
 // DebugView.SKY draws the sky plain black, without its textures
 global uniform int debug_view;
 // how much of the haze colour fills the whole sky, and how fast the brighter band at the horizon thins out (untuned)
@@ -68,6 +69,7 @@ void fragment(){
 	if (bg_4_intensity>0.0){ALBEDO = get_from_map(bg_4, xinv_uv, (bg_4_intensity*bg_4_intensity_mult), ALBEDO, bg_4_tint);}
 	ALBEDO.rgb = vec3(pow(ALBEDO.r, contrast), pow(ALBEDO.g, contrast), pow(ALBEDO.b, contrast));
 	ALBEDO += env_haze.rgb * (SKY_HAZE + exp(-abs(UV.y - 0.5) * HORIZON_SHARPNESS));
+	ALBEDO = shadow_tone(ALBEDO);
 	}
 }"
 

@@ -181,6 +181,10 @@ env_haze={
 "type": "color",
 "value": Color(0, 0, 0, 1)
 }
+shadow_tint={
+"type": "color",
+"value": Color(0, 0, 0, 1)
+}
 debug_view={
 "type": "int",
 "value": 0

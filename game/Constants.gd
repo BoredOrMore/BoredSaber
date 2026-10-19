@@ -129,10 +129,8 @@ const HEALTH_FULL_COLOR := Color(0.74, 0.86, 0.93)
 # The X shown for a missed note: a softer red than pure red
 const MISS_COLOR := Color("ff4d5e")
 
-# Shadow toning for the whole scene: black becomes SHADOW_TINT, fading out by SHADOW_TINT_FADE_LUMA (sRGB luma).
+# Shadow toning for the scenery: black becomes SHADOW_TINT, fading out toward mid-tones (game/env/shadow_tone.gdshaderinc).
 const SHADOW_TINT := Color(0.0, 0.0, 0.102)
-const SHADOW_TINT_FADE_LUMA := 0.45
-const SHADOW_TINT_LUT_SIZE := 32
 # Walls and bombs use one danger colour: Beat Saber's default wall red (agreed with the user 2026-10-19), unless the
 # map sets its own wall colour.
 const DANGER_COLOR := Color("ff3030")

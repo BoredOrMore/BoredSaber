@@ -5,6 +5,7 @@ shader_type spatial;
 render_mode unshaded, fog_disabled, shadows_disabled;
 
 global uniform vec4 env_haze;
+#include "res://game/env/shadow_tone.gdshaderinc"
 // DebugView.RINGS leaves these out (no area, so nothing is drawn)
 global uniform int debug_view;
 uniform vec4 albedo : source_color = vec4(0.094, 0.094, 0.094, 1.0);
@@ -27,5 +28,5 @@ void vertex() {
 }
 
 void fragment() {
-	ALBEDO = mix(albedo.rgb, env_haze.rgb, fog);
+	ALBEDO = shadow_tone(mix(albedo.rgb, env_haze.rgb, fog));
 }

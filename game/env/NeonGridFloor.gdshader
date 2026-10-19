@@ -7,6 +7,7 @@ render_mode unshaded, fog_disabled, shadows_disabled;
 // 2015, doi:10.3389/fpsyg.2015.00472). Lines never get thinner than MIN_LINE_PIXELS and dim instead (as
 // NeonRibbon.gdshader does), and the floor fades into the horizon haze far away. All values untuned.
 global uniform vec4 env_haze;
+#include "res://game/env/shadow_tone.gdshaderinc"
 // metres between lines
 const float SPACING = 2.0;
 const float LINE_WIDTH = 0.04;
@@ -35,4 +36,5 @@ void fragment() {
 	float line = max(lines.x, lines.y);
 	vec3 near = mix(env_haze.rgb * GROUND_SHADE, env_haze.rgb * LINE_GAIN, line);
 	ALBEDO = mix(env_haze.rgb * HORIZON_HAZE, near, fade);
+	ALBEDO = shadow_tone(ALBEDO);
 }
