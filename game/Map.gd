@@ -20,6 +20,8 @@ static var chain_stack: Array[ChainInfo]
 static var event_stack: Array[EventInfo]
 
 static var _color_left: Color
+## The danger colour of walls and bombs: the map's wall colour, or Constants.DANGER_COLOR
+static var color_obstacle := Constants.DANGER_COLOR
 static var _color_right: Color
 static var color_left: Color :
 	get():
@@ -75,6 +77,7 @@ static func set_colors_from_custom_data() -> void:
 	if Settings.disable_map_color:
 		Map.color_left = Settings.color_left
 		Map.color_right = Settings.color_right
+		Map.color_obstacle = Constants.DANGER_COLOR
 		return
 	
 	var set_colors := func(data: Dictionary, color_name: String) -> bool:
@@ -118,6 +121,17 @@ static func set_colors_from_custom_data() -> void:
 	if not custom_colors_found:
 		Map.color_left = Settings.color_left
 		Map.color_right = Settings.color_right
+	Map.color_obstacle = Constants.DANGER_COLOR
+	for data: Dictionary in [info_data, diff_data]:
+		for key: String in ["_obstacleColor", "obstacleColor"]:
+			if data.get(key) is Dictionary:
+				@warning_ignore("unsafe_cast")
+				var color := data[key] as Dictionary
+				Map.color_obstacle = Color(
+					Utils.get_float(color, "r", Constants.DANGER_COLOR.r),
+					Utils.get_float(color, "g", Constants.DANGER_COLOR.g),
+					Utils.get_float(color, "b", Constants.DANGER_COLOR.b)
+				)
 
 static func load_map_info(load_path: String) -> MapInfo:
 	var info_dict := {}

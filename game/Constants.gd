@@ -133,10 +133,9 @@ const MISS_COLOR := Color("ff4d5e")
 const SHADOW_TINT := Color(0.0, 0.0, 0.102)
 const SHADOW_TINT_FADE_LUMA := 0.45
 const SHADOW_TINT_LUT_SIZE := 32
-# Walls and bombs use one danger colour: warning amber, unless a note colour's hue is within
-# DANGER_MIN_HUE_GAP (0-1 around the colour wheel) of it; then whichever candidate is farthest from both.
-const DANGER_COLORS := [Color("ffb020"), Color("ff3b30"), Color("ffe14d")]
-const DANGER_MIN_HUE_GAP := 30.0 / 360.0
+# Walls and bombs use one danger colour: Beat Saber's default wall red (agreed with the user 2026-10-19), unless the
+# map sets its own wall colour.
+const DANGER_COLOR := Color("ff3030")
 
 # Rank colours on the score screen (the rank letter and the result ring), agreed with the user 2026-10-19.
 # F is a muted red-grey, not the danger colour, which means "dodge".

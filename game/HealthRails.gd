@@ -61,7 +61,7 @@ func _ready() -> void:
 ## Picks bar or pip display for the coming map, starting from how_full.
 func start_map(lives: bool, how_full: float) -> void:
 	_lives = lives
-	_danger = BeepSaber_Game.pick_danger_color(Map.color_left, Map.color_right)
+	_danger = Map.color_obstacle
 	var lost := _danger * LOST_BRIGHTNESS
 	lost.a = 1.0
 	_lost_material.set_shader_parameter(&"color", lost)

@@ -80,14 +80,14 @@ motion), and HUD placement.
 ## Colour rules
 
 Every colour in the game has one job, so players can read the scene at a glance. Colours live in
-one place: `game/Constants.gd` (UI palette `UI_*`, `MISS_COLOR`, `SHADOW_TINT`, `DANGER_COLORS`,
+one place: `game/Constants.gd` (UI palette `UI_*`, `MISS_COLOR`, `SHADOW_TINT`, `DANGER_COLOR`,
 `DIFFICULTY_COLORS`, `RANK_COLORS`) and `COLOR_PRESETS` in `game/Settings.gd`; `game/ui/menu_theme.tres` must stay in
 step with the `UI_*` values. Don't hard-code a new `Color(...)` in a scene or script; add a named
 constant with its role, or reuse one.
 
 - Note colours (left/right, from the preset or the map) mean "cut this": notes, chains, arcs,
   sabers, and the lights that follow them. Nothing else uses them.
-- Danger colour (`DANGER_COLORS`, picked per song to stay clear of both note colours) means "dodge or
+- Danger colour (`DANGER_COLOR`, Beat Saber's wall red, or the map's wall colour) means "dodge or
   you'll lose": walls, bombs, wall-hit feedback, low health. Never use it for decoration or menus.
 - `MISS_COLOR` is only for misses and mistakes.
 - `UI_ACCENT` (cyan) means "selected, active or the main action": the active tab or option, the

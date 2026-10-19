@@ -9,7 +9,7 @@ render_mode unshaded, cull_disabled, blend_mix;
 // the frame never gets thinner than MIN_FRAME_PIXELS and dims instead, so it doesn't break up in the
 // distance (as NeonRibbon.gdshader does), and the stripes fade to their average once they get too fine
 // to draw, so they don't shimmer. All values untuned.
-uniform vec4 danger_color : source_color = vec4(1.0, 0.69, 0.125, 1.0);
+uniform vec4 danger_color : source_color = vec4(1.0, 0.188, 0.188, 1.0);
 // brightness of the dark stripes as a fraction of the danger colour; 0.35 keeps the
 // contrast near 50%, under the 70-87% where stripes start to cause pattern glare
 // (Monger, Wilkins & Allen 2015, doi:10.3389/fpsyg.2015.01651)

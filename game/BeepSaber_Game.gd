@@ -106,7 +106,7 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	
 	update_left_color(Map.color_left)
 	update_right_color(Map.color_right)
-	_update_danger_color(Map.color_left, Map.color_right)
+	_update_danger_color(Map.color_obstacle)
 	event_driver.set_background()
 	
 	if Map.event_stack.is_empty():
@@ -424,30 +424,10 @@ func set_colors_from_settings() -> void:
 	update_right_color(Settings.color_right)
 	event_driver.set_background()
 
-## Colours walls and bombs with the danger colour that stands apart from both note colours.
-static func _update_danger_color(left: Color, right: Color) -> void:
-	var danger := pick_danger_color(left, right)
+## Colours walls and bombs with the song's danger colour.
+static func _update_danger_color(danger: Color) -> void:
 	(DANGER_WALL_MATERIAL as ShaderMaterial).set_shader_parameter(&"danger_color", danger)
 	(BOMB_GLOW_MATERIAL as ShaderMaterial).set_shader_parameter(&"danger_color", danger)
-
-## The first of Constants.DANGER_COLORS if its hue is far enough from both note colours,
-## otherwise the candidate whose hue is farthest from the nearer of the two.
-static func pick_danger_color(left: Color, right: Color) -> Color:
-	var best: Color = Constants.DANGER_COLORS[0]
-	var best_gap := -1.0
-	for candidate: Color in Constants.DANGER_COLORS:
-		var gap := minf(_hue_gap(candidate, left), _hue_gap(candidate, right))
-		if candidate == Constants.DANGER_COLORS[0] and gap >= Constants.DANGER_MIN_HUE_GAP:
-			return candidate
-		if gap > best_gap:
-			best_gap = gap
-			best = candidate
-	return best
-
-## Distance between two hues around the colour wheel, 0 to 0.5.
-static func _hue_gap(a: Color, b: Color) -> float:
-	var gap := absf(a.h - b.h)
-	return minf(gap, 1.0 - gap)
 
 func update_left_color(color: Color) -> void:
 	if !left_saber:
