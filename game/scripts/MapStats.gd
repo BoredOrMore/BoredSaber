@@ -1,19 +1,19 @@
 extends RefCounted
 class_name MapStats
 
-# Note count, length, notes per second (NPS) and swing gap of each map difficulty, so the menu can
+# Note count, length, notes per second (NPS), swing gap and swing flow of each map difficulty, so the menu can
 # show them and filter by them. Counting parses the whole difficulty file, so results are cached in memory
 # and in a file, and the song list is counted on a background thread.
 
 static var CACHE_FILEPATH := Constants.CONFIG_ROOT_PATH + "map_stats.json"
 
-# "<map path>|<difficulty file>" -> {notes, seconds, nps, gap}
+# "<map path>|<difficulty file>" -> {notes, seconds, nps, gap, flow}
 static var _cache := {}
 static var _cache_mutex := Mutex.new()
 static var _loaded := false
 static var _thread: Thread
 
-## Returns {notes, seconds, nps, gap} for one difficulty, counting it now if it isn't cached yet.
+## Returns {notes, seconds, nps, gap, flow} for one difficulty, counting it now if it isn't cached yet.
 static func get_stats(info: MapInfo, difficulty: DifficultyInfo) -> Dictionary:
 	var stats := get_cached(info, difficulty)
 	if stats.is_empty():
@@ -27,8 +27,8 @@ static func get_cached(info: MapInfo, difficulty: DifficultyInfo) -> Dictionary:
 	_cache_mutex.lock()
 	var stats: Dictionary = _cache.get(_key(info, difficulty), {})
 	_cache_mutex.unlock()
-	# entries saved before the swing gap existed are counted again
-	return stats if stats.has("gap") else {}
+	# entries saved before the swing flow existed are counted again
+	return stats if stats.has("flow") else {}
 
 ## Counts every uncounted difficulty of the songs on a background thread, then saves the cache
 ## and calls on_done on the main thread. Does nothing while a previous pass is still running.
@@ -60,13 +60,17 @@ static func _count(info: MapInfo, difficulty: DifficultyInfo) -> Dictionary:
 	var last_beat := 0.0
 	# beats of each hand's notes, left then right
 	var hand_beats: Array[PackedFloat32Array] = [PackedFloat32Array(), PackedFloat32Array()]
+	# [beat, cut direction, column] of each hand's notes, left then right
+	var hand_notes: Array[Array] = [[], []]
 	if map_data != null and map_data.has("_notes"):
 		for note: Variant in Utils.get_array(map_data, "_notes", []):
 			var type := int((note as Dictionary).get("_type", 0)) if note is Dictionary else 3
 			if type == 0 or type == 1:
+				var n := note as Dictionary
 				notes += 1
-				last_beat = maxf(last_beat, float((note as Dictionary).get("_time", 0.0)))
-				hand_beats[type].append(float((note as Dictionary).get("_time", 0.0)))
+				last_beat = maxf(last_beat, float(n.get("_time", 0.0)))
+				hand_beats[type].append(float(n.get("_time", 0.0)))
+				hand_notes[type].append([float(n.get("_time", 0.0)), int(n.get("_cutDirection", 8)), int(n.get("_lineIndex", 1))])
 	elif map_data != null:
 		# v4 keeps the colour in colorNotesData, indexed by "i"
 		var note_data := Utils.get_array(map_data, "colorNotesData", [])
@@ -77,14 +81,75 @@ static func _count(info: MapInfo, difficulty: DifficultyInfo) -> Dictionary:
 				last_beat = maxf(last_beat, float(n.get("b", 0.0)))
 				var color := int(n.get("c", -1))
 				var index := int(n.get("i", -1))
+				# v3 keeps direction and column on the note, v4 in colorNotesData
+				var data := n
 				if 0 <= index and index < note_data.size() and note_data[index] is Dictionary:
-					color = int((note_data[index] as Dictionary).get("c", color))
+					data = note_data[index] as Dictionary
+					color = int(data.get("c", color))
 				if color == 0 or color == 1:
 					hand_beats[color].append(float(n.get("b", 0.0)))
+					hand_notes[color].append([float(n.get("b", 0.0)), int(data.get("d", 8)), int(data.get("x", 1))])
 	var seconds_per_beat := 60.0 / info.beats_per_minute if info.beats_per_minute > 0.0 else 0.0
 	var seconds := last_beat * seconds_per_beat
 	return {"notes": notes, "seconds": seconds, "nps": notes / seconds if seconds > 0.0 else 0.0,
-		"gap": _swing_gap(hand_beats, seconds_per_beat)}
+		"gap": _swing_gap(hand_beats, seconds_per_beat), "flow": _awkward_percent(hand_notes, seconds_per_beat)}
+
+## Swings further apart than this leave time to reposition, so they are never awkward (untuned).
+const AWKWARD_WITHIN_SECONDS := 1.0
+## Unit vector of each cut direction (0 up, 1 down, 2 left, 3 right, 4 up-left, 5 up-right, 6 down-left,
+## 7 down-right); 8 (any direction, a dot) has none.
+const CUT_VECTORS: Array[Vector2] = [Vector2(0, 1), Vector2(0, -1), Vector2(-1, 0), Vector2(1, 0),
+	Vector2(-0.7071, 0.7071), Vector2(0.7071, 0.7071), Vector2(-0.7071, -0.7071), Vector2(0.7071, -0.7071)]
+
+## Percent of swings that don't flow, from doc/research/swing-flow.md: within AWKWARD_WITHIN_SECONDS of the
+## same hand's last swing, a swing that turns 90 degrees from the natural follow-through (the reverse of the
+## last swing) counts 1, one that turns further (a reset: down then down again) counts 2, and reaching the far
+## column of the other hand's side (left hand in column 3, right hand in column 0) counts 1.
+static func _awkward_percent(hand_notes: Array[Array], seconds_per_beat: float) -> float:
+	var swings := 0
+	var awkward := 0
+	for hand in hand_notes.size():
+		var hand_list := hand_notes[hand]
+		hand_list.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
+		var last_time := -INF
+		var last_vector := Vector2.ZERO
+		var i := 0
+		while i < hand_list.size():
+			# notes this close together are one swing (a stack or a window); its first arrow sets the direction
+			var time: float = hand_list[i][0] * seconds_per_beat
+			var vector := Vector2.ZERO
+			var crosses := false
+			while i < hand_list.size() and hand_list[i][0] * seconds_per_beat - time < SAME_SWING_SECONDS:
+				var direction: int = hand_list[i][1]
+				if vector == Vector2.ZERO and direction >= 0 and direction < CUT_VECTORS.size():
+					vector = CUT_VECTORS[direction]
+				crosses = crosses or hand_list[i][2] == (3 if hand == 0 else 0)
+				i += 1
+			swings += 1
+			if crosses:
+				awkward += 1
+			if time - last_time < AWKWARD_WITHIN_SECONDS and vector != Vector2.ZERO and last_vector != Vector2.ZERO:
+				var turn := rad_to_deg(vector.angle_to(-last_vector))
+				if absf(turn) > 112.5:
+					awkward += 2
+				elif absf(turn) > 67.5:
+					awkward += 1
+			# a dot is cut along the natural follow-through
+			last_vector = vector if vector != Vector2.ZERO else -last_vector
+			last_time = time
+	return 100.0 * awkward / swings if swings > 0 else 0.0
+
+## Index in Constants.FLOW_LEVELS for a percent of awkward swings.
+static func flow_level(percent: float) -> int:
+	var level := 0
+	for i in Constants.FLOW_LEVELS.size():
+		if percent >= float(Constants.FLOW_LEVELS[i][1]):
+			level = i
+	return level
+
+## The saved swing flow filter entry [id, label, most allowed FLOW_LEVELS index].
+static func flow_filter() -> Array:
+	return Constants.FLOW_FILTERS[clampi(Settings.song_filter_flow, 0, Constants.FLOW_FILTERS.size() - 1)]
 
 ## Same-hand notes closer than this are one swing (a stack or a window), not two. From
 ## doc/research/reaction-time-and-swing-gap.md, like the median below.
@@ -145,6 +210,9 @@ static func level_of(info: MapInfo, difficulty: DifficultyInfo, stats: Dictionar
 	var gap := float(stats.get("gap", 0.0)) / _speed()
 	if gap > 0.0:
 		level = maxi(level, swing_pace_level(gap))
+	# the easiest level also needs every swing to flow
+	if level == 0 and flow_level(float(stats.get("flow", 0.0))) > 0:
+		level = 1
 	return level
 
 ## The saved NPS filter entry [id, label, min, max] from Constants.NPS_FILTERS.
@@ -167,7 +235,8 @@ static func describe(info: MapInfo, difficulty: DifficultyInfo, stats: Dictionar
 		Constants.REACTION_LEVELS[reaction_level(reaction)][0], reaction]
 	var gap := float(stats.get("gap", 0.0)) / _speed()
 	if gap > 0.0:
-		text += "\nSwing pace: %s · Level: %s" % [Constants.SWING_PACE_LEVELS[swing_pace_level(gap)][0],
+		text += "\nSwing pace: %s · Flow: %s · Level: %s" % [Constants.SWING_PACE_LEVELS[swing_pace_level(gap)][0],
+			Constants.FLOW_LEVELS[flow_level(float(stats.get("flow", 0.0)))][0],
 			Constants.REACTION_LEVELS[level_of(info, difficulty, stats)][0]]
 	return text
 

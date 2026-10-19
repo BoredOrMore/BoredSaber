@@ -93,6 +93,12 @@ const SWING_PACE_LEVELS := [
 	["Rapid", 0.33],
 	["Frantic", 0.0],
 ]
+## Swing flow levels from smoothest: [name, least percent of awkward swings (MapStats._awkward_percent)].
+## Edges from doc/research/swing-flow.md (BeatSaver map data: about 70% of difficulties are under 4%,
+## about 13% at 10% or more); not yet confirmed by headset playtests.
+const FLOW_LEVELS := [ ["Smooth", 0.0], ["Twisty", 4.0], ["Tangled", 10.0] ]
+## Swing flow filter choices: [id, label, most awkward FLOW_LEVELS index shown].
+const FLOW_FILTERS := [ [0, "Any flow", 2], [1, "Smooth only", 0], [2, "Hide tangled", 1] ]
 ## Reaction time filter choices: 0 shows every song, n songs with a difficulty at REACTION_LEVELS[n - 1].
 const ANY_REACTION_LABEL := "Any"
 const LENGTH_FILTERS := [ [0, "Any length", 0.0, 0.0], [1, "Under 2 min", 0.0, 120.0], [2, "2-4 min", 120.0, 240.0], [3, "Over 4 min", 240.0, 0.0] ]
