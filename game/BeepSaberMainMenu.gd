@@ -256,7 +256,7 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 func _song_filter_is_off() -> bool:
 	return Settings.song_filter_reaction == 0 and Settings.song_filter_length == 0
 
-## False for non-favorites when only favorites are shown. Otherwise true if any difficulty of the map is at the picked reaction time and inside the length filter. Maps that haven't been
+## False for non-favorites when only favorites are shown. Otherwise true if any difficulty of the map is at the picked level (MapStats.level_of) and inside the length filter. Maps that haven't been
 ## counted yet pass, so the list never hides songs it knows nothing about.
 func _passes_song_filter(map: MapInfo) -> bool:
 	if Settings.song_filter_favorites and not PlayCount.is_favorite(map):
@@ -266,7 +266,7 @@ func _passes_song_filter(map: MapInfo) -> bool:
 	var length_range := MapStats.length_filter()
 	for diff in map.difficulty_beatmaps:
 		var stats := MapStats.get_cached(map, diff)
-		if (Settings.song_filter_reaction == 0 or MapStats.reaction_level_of(map, diff) == Settings.song_filter_reaction - 1) \
+		if (Settings.song_filter_reaction == 0 or MapStats.level_of(map, diff, stats) == Settings.song_filter_reaction - 1) \
 				and (stats.is_empty() or MapStats.in_filter(float(stats.seconds), length_range)):
 			return true
 	return false
@@ -872,7 +872,7 @@ func _sync_difficulty_picker() -> void:
 	if picked:
 		var stats := MapStats.get_stats(map, picked)
 		level_stats.text = "%s · %s" % [picked.get_display_name(), MapStats.describe(map, picked, stats)]
-		level_stats.add_theme_color_override(&"font_color", Constants.REACTION_LEVELS[MapStats.reaction_level_of(map, picked)][1])
+		level_stats.add_theme_color_override(&"font_color", Constants.REACTION_LEVELS[MapStats.level_of(map, picked, stats)][1])
 	else:
 		level_stats.text = ""
 

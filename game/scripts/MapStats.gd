@@ -137,6 +137,16 @@ static func swing_pace_level(gap: float) -> int:
 static func reaction_level_of(info: MapInfo, difficulty: DifficultyInfo) -> int:
 	return reaction_level(reaction_seconds(info, difficulty))
 
+## Overall level of one difficulty (an index in Constants.REACTION_LEVELS): the harder of its reaction time
+## level and its swing pace level, at the current Speed modifier. A map can read slowly but make the hands
+## swing fast, and reaction time alone ranked those as easy. Without counted stats only reaction time counts.
+static func level_of(info: MapInfo, difficulty: DifficultyInfo, stats: Dictionary) -> int:
+	var level := reaction_level_of(info, difficulty)
+	var gap := float(stats.get("gap", 0.0)) / _speed()
+	if gap > 0.0:
+		level = maxi(level, swing_pace_level(gap))
+	return level
+
 ## The saved NPS filter entry [id, label, min, max] from Constants.NPS_FILTERS.
 static func nps_filter() -> Array:
 	return Constants.NPS_FILTERS[clampi(Settings.song_filter_nps, 0, Constants.NPS_FILTERS.size() - 1)]
@@ -149,7 +159,7 @@ static func length_filter() -> Array:
 static func in_filter(value: float, filter: Array) -> bool:
 	return value >= float(filter[2]) and (float(filter[3]) <= 0.0 or value < float(filter[3]))
 
-## Formats a difficulty as "3:24 · Reaction time: Quick (0.72 s)" over "Swing pace: Brisk".
+## Formats a difficulty as "3:24 · Reaction time: Quick (0.72 s)" over "Swing pace: Brisk · Level: Quick".
 static func describe(info: MapInfo, difficulty: DifficultyInfo, stats: Dictionary) -> String:
 	var seconds := int(stats.get("seconds", 0.0))
 	var reaction := reaction_seconds(info, difficulty)
@@ -157,7 +167,8 @@ static func describe(info: MapInfo, difficulty: DifficultyInfo, stats: Dictionar
 		Constants.REACTION_LEVELS[reaction_level(reaction)][0], reaction]
 	var gap := float(stats.get("gap", 0.0)) / _speed()
 	if gap > 0.0:
-		text += "\nSwing pace: %s" % Constants.SWING_PACE_LEVELS[swing_pace_level(gap)][0]
+		text += "\nSwing pace: %s · Level: %s" % [Constants.SWING_PACE_LEVELS[swing_pace_level(gap)][0],
+			Constants.REACTION_LEVELS[level_of(info, difficulty, stats)][0]]
 	return text
 
 ## The reaction time filter choices for a dropdown: [id, label], id 0 being any reaction time.

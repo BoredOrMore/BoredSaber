@@ -83,7 +83,7 @@ offset_left = 24.0
 offset_top = 100.0
 offset_right = 152.0
 offset_bottom = 160.0
-text = "Reaction"
+text = "Level"
 vertical_alignment = 1
 
 [node name="ReactionFilter" type="OptionButton" parent="." unique_id=1730492215]
