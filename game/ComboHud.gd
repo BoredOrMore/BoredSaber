@@ -33,6 +33,10 @@ const MILESTONE_START := Vector3(0, 0.12, 0)
 const MILESTONE_RISE := 0.15
 const MILESTONE_SECONDS := 1.2
 const MILESTONE_POP := 0.3
+## the multiplier chime climbs a major chord, x2 x4 x8 (tools/make_combo_sounds.py makes the sounds)
+const UP_PITCHES := {2: 1.0, 4: 1.26, 8: 1.5}
+## a break only sounds when it ends a combo at least this long, so early misses stay quiet
+const BREAK_SOUND_MIN_COMBO := 10
 
 var _base_position: Vector3
 var _text_size: float
@@ -55,6 +59,9 @@ var _milestone_mesh: TextMesh
 var _milestone_material: BaseMaterial3D
 var _milestone_size: float
 var _milestone_tween: Tween
+var _up_sound: AudioStreamPlayer
+var _milestone_sound: AudioStreamPlayer
+var _break_sound: AudioStreamPlayer
 
 func _ready() -> void:
 	_base_position = position
@@ -108,11 +115,22 @@ func _ready() -> void:
 	_milestone_label.visible = false
 	add_child(_milestone_label)
 
+	_up_sound = _add_sound(preload("res://game/data/combo_up.wav"))
+	_milestone_sound = _add_sound(preload("res://game/data/combo_milestone.wav"))
+	_break_sound = _add_sound(preload("res://game/data/combo_break.wav"))
+
 	Scoreboard.score_changed.connect(refresh)
 	Scoreboard.combo_hit.connect(_on_combo_hit)
 	Scoreboard.multiplier_raised.connect(_on_multiplier_raised)
 	Scoreboard.combo_broken.connect(_on_combo_broken)
 	refresh()
+
+func _add_sound(stream: AudioStream) -> AudioStreamPlayer:
+	var player := AudioStreamPlayer.new()
+	player.stream = stream
+	player.bus = &"SFX"
+	add_child(player)
+	return player
 
 ## Shows the current combo and multiplier; the ring moves to them over the next frames.
 func refresh() -> void:
@@ -144,6 +162,7 @@ static func is_milestone(combo: int) -> bool:
 func _on_combo_hit() -> void:
 	if is_milestone(Scoreboard.combo):
 		_show_milestone(Scoreboard.combo)
+		_milestone_sound.play()
 		milestone_reached.emit(Scoreboard.combo)
 	if _pop_tween:
 		_pop_tween.kill()
@@ -163,14 +182,18 @@ func _show_milestone(combo: int) -> void:
 	_milestone_tween.tween_property(_milestone_material, ^"albedo_color", faded, MILESTONE_SECONDS * 0.5).from(Constants.UI_ACCENT).set_delay(MILESTONE_SECONDS * 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	_milestone_tween.chain().tween_callback(_milestone_label.hide)
 
-func _on_multiplier_raised(_multiplier: int) -> void:
+func _on_multiplier_raised(multiplier: int) -> void:
+	_up_sound.pitch_scale = UP_PITCHES.get(multiplier, 1.0)
+	_up_sound.play()
 	if _raise_tween:
 		_raise_tween.kill()
 	_raise_tween = create_tween().set_parallel().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	_raise_tween.tween_property(_multiplier_mesh, ^"pixel_size", _multiplier_size, RAISE_SECONDS).from(_multiplier_size * (1.0 + RAISE_POP))
 	_raise_tween.tween_property(_ring_material, ^"shader_parameter/flash", 0.0, RAISE_SECONDS).from(1.0)
 
-func _on_combo_broken(_lost_combo: int) -> void:
+func _on_combo_broken(lost_combo: int) -> void:
+	if lost_combo >= BREAK_SOUND_MIN_COMBO:
+		_break_sound.play()
 	_shake_left = BREAK_SHAKE_SECONDS
 	if _tint_tween:
 		_tint_tween.kill()
