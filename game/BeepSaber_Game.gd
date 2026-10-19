@@ -13,6 +13,11 @@ var gamestate_newhighscore := GameStateNewHighScore.new()
 var gamestate_paused := GameStatePaused.new()
 var gamestate_playing := GameStatePlaying.new()
 var gamestate_settings := GameStateSettings.new()
+
+## Where the record table stands in the song menu: far left, clear of the menu panel.
+const HIGHSCORES_MENU_TRANSFORM := Transform3D(
+	Basis(Vector3(1, 0, -1.73205), Vector3(0, 2, 0), Vector3(1.73205, 0, 1)),
+	Vector3(-2.29734, 1.42321, -0.236991))
 var gamestate: GameState = gamestate_bootup
 var current_health := Constants.HEALTH_START
 
@@ -34,6 +39,8 @@ var current_health := Constants.HEALTH_START
 @onready var settings_panel := settings_canvas.ui_control as SettingsPanel
 @onready var highscore_canvas := $Highscores_Canvas as OQ_UI2DCanvas
 @onready var highscore_panel := highscore_canvas.ui_control as HighscorePanel
+## Where the record table stands on the score screen: next to the score panel (its place in the scene).
+@onready var highscores_score_transform := highscore_canvas.transform
 @onready var highscore_keyboard := $Keyboard_highscore as OQ_UI2DKeyboard
 @onready var endscore := $EndScore as EndScore
 
@@ -666,6 +673,7 @@ func _on_BeepSaberMainMenu_difficulty_changed(map_info: MapInfo, diff_rank: int)
 	if not highscore_canvas:
 		await self.ready
 	
+	highscore_canvas.transform = HIGHSCORES_MENU_TRANSFORM
 	highscore_canvas._show()
 	highscore_panel.load_highscores(map_info,diff_rank)
 
