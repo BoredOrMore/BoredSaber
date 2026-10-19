@@ -920,7 +920,7 @@ surface_material_override/0 = SubResource("StandardMaterial3D_yn705")
 surface_material_override/1 = SubResource("1")
 
 [node name="floor" type="MeshInstance3D" parent="Level"]
-transform = Transform3D(-3.9101e-06, 0, 3, 0, 1, 0, -24, 0, -4.88762e-07, 0, 0, -24)
+transform = Transform3D(-3.9101e-06, 0, 3, 0, 1, 0, -23.75, 0, -4.88762e-07, 0, 0, -24.25)
 layers = 3
 material_override = SubResource("18")
 mesh = SubResource("19")
@@ -966,13 +966,13 @@ script = ExtResource("stage_smoke")
 [node name="TrackLights" type="Node3D" parent="Level"]
 
 [node name="Bar1" type="MeshInstance3D" parent="Level/TrackLights"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1.49852, 3, 0, -23.8955)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1.48029, 3, 0, -24.1866)
 layers = 3
 material_override = SubResource("1")
 mesh = SubResource("10")
 
 [node name="Bar2" type="MeshInstance3D" parent="Level/TrackLights"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1.49852, -3, 0, -23.8955)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1.48029, -3, 0, -24.1866)
 layers = 3
 material_override = SubResource("1")
 mesh = SubResource("10")
