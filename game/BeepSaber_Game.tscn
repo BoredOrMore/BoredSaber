@@ -301,7 +301,7 @@ visible = false
 [node name="Points_label_driver" parent="." unique_id=1605321739 instance=ExtResource("22")]
 
 [node name="Highscores_Canvas" parent="." unique_id=1636266647 instance=ExtResource("3")]
-transform = Transform3D(1, 0, 1.73205, 0, 2, 0, -1.73205, 0, 1, -2.29734, 1.42321, -0.236991)
+transform = Transform3D(1.6383, 0, 1.14715, 0, 2, 0, -1.14715, 0, 1.6383, -1.68, 1.5, -0.3)
 
 [node name="HighscorePanel" parent="Highscores_Canvas" unique_id=1748596360 instance=ExtResource("23")]
 offset_right = 752.0
