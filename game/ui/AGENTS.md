@@ -2,6 +2,10 @@
 
 2D Godot `Control` panels rendered into VR, plus the few 3D menu pieces. Read the root `AGENTS.md` first.
 
+All text here is player-facing: follow "Player-facing wording and UX" in the root `AGENTS.md` (no
+developer terms like NJS/NPS/RT in labels, named choices with a default, ask or propose options when
+the plain wording isn't obvious).
+
 ## File map
 
 - `menu_theme.tres`: the one shared `Theme` (Roboto-Medium 28 px, dark surfaces, accent borders, `toggle_on/off.svg`

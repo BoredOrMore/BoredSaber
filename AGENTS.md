@@ -47,6 +47,22 @@ Read the one for the folder you are changing before editing.
   to make it pass; fix the cause.
 - One logical change per commit. Push only when the user asks.
 
+## Player-facing wording and UX
+
+Everything a player sees (menus, buttons, labels, tooltips, score screen, errors) is for players,
+not developers. Follow "Don't make me think": a player should understand every choice at a glance.
+
+- No developer or modding terms in the UI: not `NJS`, `HJD`, `RT`, `NPS`, `BPM`, `JSON`, `null`,
+  `index`, `request failed (code 0)`. Say what it means for the player instead, e.g. "Reaction time:
+  Quick (0.7 s)", "Notes per second", "Couldn't download the song. Check your Wi-Fi and try again."
+- Prefer a few named choices over raw numbers or free input (e.g. Gentle / Normal / Hard, not a
+  0.5–1.5 slider), with a sensible default already selected so the player can just press Play.
+- Show the current state plainly: which tab or menu is active, what is selected, what a button will
+  do. Never leave the player stuck on a screen that needs input to continue; always offer a default.
+- Keep labels short, consistent and in the same words everywhere (one term per concept).
+- When a request needs a new player-facing term, choice or flow and the plain wording isn't obvious,
+  ask the user or propose two or three player-friendly options instead of shipping developer wording.
+
 ## Pico 4 constraints
 
 Found from headset logs on Pico OS 5.12 (OpenXR runtime 2.1.12); don't undo them without testing on the headset.
