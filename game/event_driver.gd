@@ -8,6 +8,7 @@ const INTENSITY_PARAMS: Array[StringName] = [&"bg_0_intensity", &"bg_1_intensity
 ## Air colour with every light off, and how much each lit group tints the haze (sky, distant scenery). Untuned.
 const HAZE_BASE := Color(0.01, 0.01, 0.02)
 const HAZE_LIGHT_WEIGHT := 0.08
+const NEON_GRID_SKY := preload("res://game/env/NeonGridSky.gdshader")
 
 var ring_rot_speed := 0.0
 var ring_rot_inv_dir := false
@@ -15,6 +16,12 @@ var rings_in := false
 
 var left_color: Color
 var right_color: Color
+
+## The scenery around the track, one of the ids in Settings.ENVIRONMENTS other than "auto".
+var environment := "classic"
+## Neon Grid opens the view to the horizon, so it has no tunnel rings.
+var rings_enabled := true
+var _neon_grid_sky_material: ShaderMaterial
 
 @onready var ring_holder := $Level/rings as Node3D
 @onready var diagonal_lasers_holder := $Level/DiagonalLasers as Node3D
@@ -36,6 +43,8 @@ var right_color: Color
 @onready var track_lights_holder := $Level/TrackLights as Node3D
 
 @onready var sphere_material := ($Level/Sphere as MeshInstance3D).material_override as ShaderMaterial
+@onready var classic_sky_material := sphere_material
+@onready var neon_grid := $Level/NeonGrid as Node3D
 @onready var diagonal_lasers_material := ($Level/DiagonalLasers/laser1/Bar7 as MeshInstance3D).material_override as ShaderMaterial
 @onready var square_lasers_material := ($Level/SquareLasers/Bar7 as MeshInstance3D).material_override as ShaderMaterial
 @onready var left_waving_lasers_material := ($Level/LeftWavingLasers/laser1/Bar7 as MeshInstance3D).material_override as ShaderMaterial
@@ -76,12 +85,40 @@ func set_background_texture() -> void:
 		var img := Image.new()
 		if OK == img.load(Constants.APPDATA_PATH + "Backgrounds/" + Settings.background_texture):
 			img.flip_x()
-			sphere_material.set_shader_parameter("bg_base", ImageTexture.create_from_image(img))
+			classic_sky_material.set_shader_parameter("bg_base", ImageTexture.create_from_image(img))
 			return
 		Settings.background_texture = Settings.default_values["background_texture"]
 	var texture : Resource = null
 	texture = load(Settings.background_texture)
-	sphere_material.set_shader_parameter("bg_base", texture)	
+	classic_sky_material.set_shader_parameter("bg_base", texture)
+
+## The environment a map plays in: the player's pick, or with "auto" the one that matches the
+## environment the map was made for (Constants.MAP_ENVIRONMENTS), else Classic.
+static func pick_environment(map_environment: String) -> String:
+	if Settings.environment != "auto":
+		return Settings.environment
+	return Constants.MAP_ENVIRONMENTS.get(map_environment.trim_suffix("Environment"), "classic")
+
+## Swaps the scenery around the track; the lights carry over as they are.
+func set_environment(id: String) -> void:
+	if id == environment:
+		return
+	environment = id
+	var neon := id == "neon_grid"
+	if neon and not _neon_grid_sky_material:
+		_neon_grid_sky_material = ShaderMaterial.new()
+		_neon_grid_sky_material.shader = NEON_GRID_SKY
+	var sky := _neon_grid_sky_material if neon else classic_sky_material
+	for type in 5:
+		for param: StringName in [StringName("bg_%d_tint" % type), INTENSITY_PARAMS[type]]:
+			var value: Variant = sphere_material.get_shader_parameter(param)
+			if value != null:
+				sky.set_shader_parameter(param, value)
+	sphere_material = sky
+	($Level/Sphere as MeshInstance3D).material_override = sky
+	neon_grid.visible = neon
+	rings_enabled = not neon
+	set_background()
 
 func set_background() -> void:
 	var width_scale := 2 * Settings.LANE_DISTANCE_X / 3.
@@ -120,7 +157,7 @@ func set_background() -> void:
 		turn_light_on(EventInfo.TYPE_FLOOR_LIGHTS, Color.WHITE)
 		disabled = true
 	else:
-		ring_holder.show()
+		ring_holder.visible = rings_enabled
 		($Level/StageSmoke).show()
 		diagonal_lasers_holder.show()
 		square_lasers_holder.show()
@@ -190,7 +227,7 @@ func set_all_on(left: Color, right: Color) -> void:
 	if !disabled:
 		update_left_color(left)
 		update_right_color(right)
-		ring_holder.visible = true
+		ring_holder.visible = rings_enabled
 
 func process_event(data: EventInfo) -> void:
 	if disabled: return

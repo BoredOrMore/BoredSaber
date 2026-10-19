@@ -31,6 +31,8 @@ const COLOR_PRESETS := [
 const NOTE_STYLES := [ ["solid", "Solid"], ["neon", "Neon"] ]
 ## with Darker Notes on, note bodies are no brighter than this HSV value; hue and saturation stay
 const NOTE_DARK_VALUE := 0.7
+## the scenery around the track; "auto" follows the environment each map was made for (EventDriver.pick_environment)
+const ENVIRONMENTS := [ ["auto", "Auto (from map)"], ["classic", "Classic"], ["neon_grid", "Neon Grid"] ]
 const BACKGROUND_MODES := [ ["dynamic", "*Dynamic"],
 		["simple", "Simple"],
 		["static", "Static"] ]
@@ -196,6 +198,10 @@ var background: String:
 	set(value):
 		background = value
 		set_and_emit(&"background", value)
+var environment: String:
+	set(value):
+		environment = value
+		set_and_emit(&"environment", value)
 var note_style: String:
 	set(value):
 		note_style = value
@@ -311,6 +317,7 @@ var default_values = {
 	spectator_view = false,
 	spectator_hud = true,
 	background = "dynamic",
+	environment = "auto",
 	note_style = "solid",
 	darker_notes = false,
 	background_texture = "res://game/data/background/nightsky.jpg",

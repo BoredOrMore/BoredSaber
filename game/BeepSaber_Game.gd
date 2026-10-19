@@ -101,6 +101,7 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 		menu.show_play_error()
 		return
 		
+	event_driver.set_environment(EventDriver.pick_environment(info.environment_name))
 	event_driver.set_background_texture()
 	
 	update_left_color(Map.color_left)
@@ -314,6 +315,7 @@ func _ready() -> void:
 	set_colors_from_settings()
 	($WorldEnvironment as WorldEnvironment).environment.glow_enabled = Settings.glare
 	_apply_note_style()
+	_apply_environment()
 	($WorldEnvironment as WorldEnvironment).environment.adjustment_color_correction = _make_shadow_tint_lut()
 	
 	if not vr.inVR:
@@ -402,6 +404,8 @@ func on_settings_changed(key: StringName) -> void:
 			($WorldEnvironment as WorldEnvironment).environment.glow_enabled = Settings.glare
 		&"note_style", &"darker_notes":
 			_apply_note_style()
+		&"environment":
+			_apply_environment()
 		&"player_height_offset":
 			xr_origin.transform.origin.y = Settings.player_height_offset
 
@@ -410,6 +414,10 @@ func _apply_note_style() -> void:
 	var style := maxi(Settings.NOTE_STYLES.map(func(s: Array) -> String: return s[0]).find(Settings.note_style), 0)
 	RenderingServer.global_shader_parameter_set(&"note_style", style)
 	RenderingServer.global_shader_parameter_set(&"note_max_value", Settings.NOTE_DARK_VALUE if Settings.darker_notes else 1.0)
+
+## Shows the environment the player picked, or on "Auto" the one for the last map played.
+func _apply_environment() -> void:
+	event_driver.set_environment(EventDriver.pick_environment(Map.current_info.environment_name if Map.current_info else ""))
 
 func set_colors_from_settings() -> void:
 	update_left_color(Settings.color_left)

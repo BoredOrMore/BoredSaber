@@ -150,6 +150,15 @@ const RANK_COLORS := {
 	"F": Color("8a5a5e"),
 }
 
+# Which of our environments a map gets on "Auto", keyed by the Beat Saber environment it names, without the
+# "Environment" suffix (maps write both forms). Anything else plays in Classic.
+const MAP_ENVIRONMENTS := {
+	"Triangle": "neon_grid",
+	"Weave": "neon_grid",
+	"EDM": "neon_grid",
+	"Lattice": "neon_grid",
+}
+
 # Difficulty colours as players know them from Beat Saber, keyed by the map's difficulty name.
 const DIFFICULTY_COLORS := {
 	"Easy": Color(0.24, 0.7, 0.44),
