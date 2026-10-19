@@ -1,11 +1,16 @@
 extends Node3D
 class_name HealthRails
 
-## Health shown as two glowing strips on the floor along the track edges, seen from the corner of the eye.
+## Health shown as two glowing strips just outside the track, leaning toward the player, seen from the corner of the eye.
 ## The health bar mode shortens the strips toward the player; 4 Lives mode splits them into one pip per life.
 
-## Distance of each strip from the track centre.
-const RAIL_X := 1.3
+## Gap between the outer edge of the outer lane and a strip, so the track's lights don't cover it;
+## 1.75 m from the centre on the default track width.
+const RAIL_MARGIN := 0.55
+## Height of a strip's centre above the floor, so the floor doesn't flicker through it.
+const RAIL_LIFT := 0.04
+## How far each strip leans toward the player, so it reads as a band rather than a thin line.
+const RAIL_TILT_DEGREES := 30.0
 ## Where the strips start, in front of the player.
 const RAIL_NEAR_Z := -1.0
 ## Length of a full strip.
@@ -39,6 +44,9 @@ func _ready() -> void:
 ## Picks bar or pip display for the coming map, starting from how_full.
 func start_map(lives: bool, how_full: float) -> void:
 	_lives = lives
+	# the Width modifier moves the outer lanes, so follow them
+	for strip: MeshInstance3D in _bars + _pips:
+		strip.position.x = signf(strip.position.x) * _rail_x()
 	for bar in _bars:
 		bar.visible = not lives
 	for pip in _pips:
@@ -76,9 +84,14 @@ func _strip(side: float, length: float, z: float, material: StandardMaterial3D) 
 	strip.mesh = mesh
 	strip.material_override = material
 	strip.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	strip.position = Vector3(side * RAIL_X, RAIL_HEIGHT / 2, z)
+	strip.position = Vector3(side * _rail_x(), RAIL_LIFT, z)
+	strip.rotation.z = side * deg_to_rad(RAIL_TILT_DEGREES)
 	add_child(strip)
 	return strip
+
+## Distance of each strip from the track centre: past the outer lane's edge by RAIL_MARGIN.
+static func _rail_x() -> float:
+	return absf(Settings.LANE_ZERO_X) + Settings.LANE_DISTANCE_X / 2 + RAIL_MARGIN
 
 static func _unshaded(color: Color) -> StandardMaterial3D:
 	var material := StandardMaterial3D.new()
