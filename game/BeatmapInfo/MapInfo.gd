@@ -91,6 +91,8 @@ static func new_v4(info_dict: Dictionary, load_path: String) -> MapInfo:
 		diffs.append(DifficultyInfo.load_v4(beatmap as Dictionary))
 		
 	var song_dict := Utils.get_dict(info_dict, "song", {})
+	# every environment the difficulties use; the first is the main one
+	var environment_names := Utils.get_array(info_dict, "environmentNames", [])
 	var audio_dict := Utils.get_dict(info_dict, "audio", {})
 	
 	return MapInfo.new(
@@ -104,7 +106,7 @@ static func new_v4(info_dict: Dictionary, load_path: String) -> MapInfo:
 		Utils.get_float(audio_dict, "previewDuration", 0.0),
 		Utils.get_str(audio_dict, "songFilename", ""),
 		Utils.get_str(info_dict, "coverImageFilename", ""),
-		"", # TODO: environmentNames
+		str(environment_names.front()) if not environment_names.is_empty() else "",
 		0.0, # song time offset not supported in v4
 		Utils.get_dict(info_dict, "customData", {}), # TODO: should this be there?
 		load_path,
