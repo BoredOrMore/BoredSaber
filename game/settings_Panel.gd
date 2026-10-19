@@ -40,7 +40,6 @@ signal apply()
 @onready var audio_sfx_control := $Tabs/Audio/VBox/audio/sfx/sfx_slider as HSlider
 @onready var spectator_view_control := $Tabs/Advanced/VBox/spectator_view as CheckButton
 @onready var spectator_hud_control := $Tabs/Advanced/VBox/spectator_hud as CheckButton
-@onready var environment_control := $Tabs/Visuals/VBox/environment_grid/environment as OptionButton
 @onready var background_mode_control := $Tabs/Visuals/VBox/background_mode_grid/background_mode as OptionButton
 @onready var background_texture_control := $Tabs/Visuals/VBox/background_texture_grid/background_texture as OptionButton
 @onready var note_style_control := $Tabs/Visuals/VBox/note_style_grid/note_style as OptionButton
@@ -60,12 +59,6 @@ func _ready() -> void:
 	if OS.get_name() in ["Android", "Web"]:
 		spectator_hud_control.hide()
 		spectator_view_control.hide()
-
-	for i in len(Settings.ENVIRONMENTS):
-		environment_control.add_item(Settings.ENVIRONMENTS[i][1])
-		if Settings.environment == Settings.ENVIRONMENTS[i][0]:
-			environment_control.selected = i
-	environment_control.item_selected.connect(_on_environment_selected)
 
 	for i in len(Settings.BACKGROUND_MODES):
 		background_mode_control.add_item(Settings.BACKGROUND_MODES[i][1])
@@ -379,9 +372,6 @@ func _on_background_texture_selected(item: int) -> void:
 
 func _on_background_mode_selected(item: int) -> void:
 	Settings.background = Settings.BACKGROUND_MODES[item][0]
-
-func _on_environment_selected(item: int) -> void:
-	Settings.environment = Settings.ENVIRONMENTS[item][0]
 
 func _on_note_style_selected(item: int) -> void:
 	Settings.note_style = Settings.NOTE_STYLES[item][0]

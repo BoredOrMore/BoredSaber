@@ -112,10 +112,14 @@ func set_background_texture() -> void:
 
 ## The environment a map plays in: the player's pick, or with "auto" the one that matches the
 ## environment the map was made for (Constants.MAP_ENVIRONMENTS), else Classic.
-static func pick_environment(map_environment: String) -> String:
+static func pick_environment(map_name: String) -> String:
 	if Settings.environment != "auto":
 		return Settings.environment
-	return Constants.MAP_ENVIRONMENTS.get(map_environment.trim_suffix("Environment"), "classic")
+	return map_environment(map_name)
+
+## Our environment for the one a map was made for: Constants.MAP_ENVIRONMENTS, else Classic.
+static func map_environment(map_name: String) -> String:
+	return Constants.MAP_ENVIRONMENTS.get(map_name.trim_suffix("Environment"), "classic")
 
 ## Swaps the scenery around the track; the lights carry over as they are.
 func set_environment(id: String) -> void:
