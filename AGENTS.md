@@ -77,6 +77,31 @@ motion), and HUD placement.
   clearly as untuned in code and in the reply.
 - Changes to feel need a playtest on the headset before they are called done.
 
+## Colour rules
+
+Every colour in the game has one job, so players can read the scene at a glance. Colours live in
+one place: `game/Constants.gd` (UI palette `UI_*`, `MISS_COLOR`, `SHADOW_TINT`, `DANGER_COLORS`,
+`DIFFICULTY_COLORS`) and `COLOR_PRESETS` in `game/Settings.gd`; `game/ui/menu_theme.tres` must stay in
+step with the `UI_*` values. Don't hard-code a new `Color(...)` in a scene or script; add a named
+constant with its role, or reuse one.
+
+- Note colours (left/right, from the preset or the map) mean "cut this": notes, chains, arcs,
+  sabers, and the lights that follow them. Nothing else uses them.
+- Danger colour (`DANGER_COLORS`, picked per song to stay clear of both note colours) means "dodge or
+  you'll lose": walls, bombs, wall-hit feedback, low health. Never use it for decoration or menus.
+- `MISS_COLOR` is only for misses and mistakes.
+- `UI_ACCENT` (cyan) means "selected, active or the main action": the active tab or option, the
+  selected song, the Play button. Don't use it for plain decoration or for warnings.
+- Neutrals (`UI_PANEL`, `UI_SURFACE*`, `UI_BORDER`, `UI_TEXT`, `UI_TEXT_MUTED`) for everything else.
+- `DIFFICULTY_COLORS` only label difficulties and reaction-time levels.
+- The environment stays dark navy (`SHADOW_TINT` in the shadows) and takes its light colours from the
+  note colours, so the scene never competes with notes or danger.
+- Never rely on hue alone (colour-blind players): pair a colour with a shape, pattern or word
+  (hazard stripes on walls, the ✕ for a miss, text on difficulty buttons).
+- Comfort: no large areas of saturated or pure-white colour, keep flashes short and moderate, and
+  keep body text at a 4.5:1 contrast or better against its panel.
+- A new colour role needs the user's agreement first; propose it with where it is used.
+
 ## Pico 4 constraints
 
 Found from headset logs on Pico OS 5.12 (OpenXR runtime 2.1.12); don't undo them without testing on the headset.
