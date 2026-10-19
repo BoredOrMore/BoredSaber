@@ -63,6 +63,20 @@ not developers. Follow "Don't make me think": a player should understand every c
 - When a request needs a new player-facing term, choice or flow and the plain wording isn't obvious,
   ask the user or propose two or three player-friendly options instead of shipping developer wording.
 
+## Research before changing game feel
+
+Anything that changes how the game feels to play must be researched before it is implemented or tuned:
+note speed and reaction time, spawn distance, swing and cut scoring, health and fail rules, difficulty
+bands and thresholds, haptics, hit and miss feedback, sound timing, comfort (brightness, flashing,
+motion), and HUD placement.
+
+- Base values on evidence, not guesses: Beat Saber and community standards (map data from BeatSaver,
+  BeatLeader/ScoreSaber conventions, tools like JDFixer), VR comfort guidelines, or measured data
+  from real maps. Record the sources and the numbers in the commit message or the folder `AGENTS.md`.
+- If no research exists yet for a value, do it first (or ask the user), and mark any placeholder
+  clearly as untuned in code and in the reply.
+- Changes to feel need a playtest on the headset before they are called done.
+
 ## Pico 4 constraints
 
 Found from headset logs on Pico OS 5.12 (OpenXR runtime 2.1.12); don't undo them without testing on the headset.
