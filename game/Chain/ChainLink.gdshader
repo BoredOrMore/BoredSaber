@@ -1,10 +1,23 @@
 shader_type spatial;
 render_mode unshaded, cull_disabled;
 
-// Same fake light from above and in front as BeepCube.gdshader, since the scene has no lights.
+// Same fake light and polished-metal look as BeepCube.gdshader, since the scene has no lights; see there.
 const vec3 LIGHT_DIR = vec3(-0.3, 0.8, 0.5);
 const float SHADE_FLOOR = 0.45;
 const float RIM_STRENGTH = 0.35;
+const float BODY = 0.6;
+const float REFLECT = 0.9;
+const float SPEC_POWER = 48.0;
+const float SPEC_STRENGTH = 0.6;
+const float HAZE_REFLECT = 1.5;
+
+global uniform vec4 env_haze;
+
+float studio(vec3 r) {
+	float band = smoothstep(0.0, 0.2, r.y) * (1.0 - smoothstep(0.3, 0.55, r.y));
+	float top = pow(clamp(r.y, 0.0, 1.0), 6.0);
+	return 0.08 + band * 0.9 + top * 0.7;
+}
 
 const float sub_emission_energy = 0.18;
 const float cut_white_margin = 0.04;
@@ -53,8 +66,14 @@ void fragment() {
 		} else {
 			vec3 world_normal = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
 			float shade = mix(SHADE_FLOOR, 1.0, clamp(dot(world_normal, normalize(LIGHT_DIR)), 0.0, 1.0));
-			float rim = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0) * RIM_STRENGTH;
-			vec3 base = color.rgb * (shade + sub_emission_energy + rim);
+			float n_dot_v = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
+			float rim = pow(1.0 - n_dot_v, 3.0) * RIM_STRENGTH;
+			vec3 view_world = normalize((INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz);
+			vec3 r = reflect(-view_world, world_normal);
+			vec3 tint = mix(color.rgb, vec3(1.0), pow(1.0 - n_dot_v, 5.0));
+			vec3 reflection = tint * (studio(r) * REFLECT + env_haze.rgb * HAZE_REFLECT);
+			float spec = pow(clamp(dot(world_normal, normalize(normalize(LIGHT_DIR) + view_world)), 0.0, 1.0), SPEC_POWER) * SPEC_STRENGTH;
+			vec3 base = color.rgb * (shade * BODY + sub_emission_energy + rim) + reflection + vec3(spec);
 			if (cutted){
 				// soft white margin
 				base += vec3(smoothstep(cut_white_margin+0.01,cut_white_margin,cut_interp));
