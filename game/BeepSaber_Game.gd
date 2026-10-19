@@ -34,7 +34,6 @@ var current_health := Constants.HEALTH_START
 @onready var settings_panel := settings_canvas.ui_control as SettingsPanel
 @onready var highscore_canvas := $Highscores_Canvas as OQ_UI2DCanvas
 @onready var highscore_panel := highscore_canvas.ui_control as HighscorePanel
-@onready var name_selector_canvas := $NameSelector_Canvas as OQ_UI2DCanvas
 @onready var highscore_keyboard := $Keyboard_highscore as OQ_UI2DKeyboard
 @onready var endscore := $EndScore as EndScore
 
@@ -85,6 +84,14 @@ var lead_in := 0.0
 const FAIL_SECONDS := 1.5
 # the high score saved at the end of the last song, so the player can rename it
 var _new_record := {}
+## Where the name keyboard opens on the score screen: chest high in front of the score panel, tilted up to face the eye
+## (the menus open the same keyboard at its scene position, below the song list). Scale 2.4, tilted 35 degrees.
+const NAME_KEYBOARD_TRANSFORM := Transform3D(Vector3(2.4, 0, 0), Vector3(0, 1.96597, -1.37659), Vector3(0, 1.37659, 1.96597),
+	Vector3(0, 0.95, -0.55))
+## The shared keyboard's scene transform, put back when the score screen closes it.
+var _keyboard_home: Transform3D
+## The keyboard is open from the score screen's name card.
+var _editing_name := false
 const DANGER_WALL_MATERIAL := preload("res://game/Wall/danger_wall.tres")
 const BOMB_GLOW_MATERIAL := preload("res://game/Bomb/bomb_glow.tres")
 # how long a rumble that was on when the song failed takes to fade out
@@ -236,7 +243,55 @@ func _submit_highscore(player_name: String) -> void:
 	if gamestate == gamestate_newhighscore and not player_name.is_empty():
 		Highscores.rename_record(_new_record, player_name)
 		Settings.player_name = player_name
+		endscore.show_name_card("Saved as %s" % player_name)
+		endscore.glow_name_card()
 		_transition_game_state(gamestate_mapcomplete)
+
+## Opens the keyboard on the saved name, with a cancel key; the score screen's buttons wait until it closes.
+func _on_name_edit_requested() -> void:
+	var saved_name := Settings.player_name.strip_edges()
+	_editing_name = true
+	highscore_keyboard.transform = NAME_KEYBOARD_TRANSFORM
+	highscore_keyboard._keyboard.set_cancelable(true)
+	highscore_keyboard._text_edit.placeholder_text = "Type your name"
+	highscore_keyboard._text_edit.text = saved_name
+	highscore_keyboard._text_edit.set_caret_column(saved_name.length())
+	highscore_keyboard._on_TextEdit_text_changed()
+	highscore_keyboard._show()
+	endscore.set_buttons_disabled(true)
+
+## Cancel keeps the record under the name it has.
+func _on_name_edit_cancelled() -> void:
+	highscore_keyboard._hide()
+
+## However the keyboard closed (enter, cancel, or the menu closing it on focus loss), the score screen gets its buttons
+## back and the keyboard goes back to where the menus expect it.
+func _on_keyboard_visibility_changed() -> void:
+	if _editing_name and not highscore_keyboard.visible:
+		_editing_name = false
+		highscore_keyboard.transform = _keyboard_home
+		highscore_keyboard._keyboard.set_cancelable(highscore_keyboard.cancelable)
+		endscore.set_buttons_disabled(false)
+
+## The card under the score: this run's place on the map's board with a button to name it, or the map's best when
+## this run didn't make the board.
+func _show_name_card() -> void:
+	var records := Highscores.get_records(Map.current_info,
+		HighscoreTable.get_rank_key(Map.current_difficulty.difficulty_rank))
+	if not _new_record.is_empty():
+		var place := 1
+		for record: Dictionary in records:
+			if is_same(record, _new_record):
+				break
+			place += 1
+		if Settings.player_name.strip_edges().is_empty():
+			endscore.show_name_card("#%d on this map! Put your name on the board?" % place, "Type name", true)
+		else:
+			endscore.show_name_card("#%d on this map, as %s" % [place, _new_record.player_name], "Change name")
+	elif not records.is_empty():
+		endscore.show_name_card("Best on this map: %d by %s" % [records[0].score, records[0].player_name])
+	else:
+		endscore.hide_name_card()
 
 func _check_and_update_saber(controller: BeepSaberController, saber: LightSaber) -> void:
 	# to allow extending/sheething the saber while not playing a song
@@ -332,6 +387,10 @@ func _ready() -> void:
 		xr_origin.add_child(preload("res://OQ_Toolkit/OQ_ARVROrigin/Feature_VRSimulator.tscn").instantiate())
 	
 	UI_AudioEngine.attach_children(highscore_keyboard)
+	_keyboard_home = highscore_keyboard.transform
+	highscore_keyboard.visibility_changed.connect(_on_keyboard_visibility_changed)
+	endscore.name_edit_requested.connect(_on_name_edit_requested)
+	highscore_keyboard.text_input_cancel.connect(_on_name_edit_cancelled)
 	UI_AudioEngine.attach_children(online_search_keyboard)
 	
 	_transition_game_state(gamestate_mapselection)
@@ -473,10 +532,6 @@ func _seconds_left() -> int:
 		return 0
 	return maxi(0, int(Map.current_info.get_length_seconds() - get_current_time()))
 
-# accessor method for the player name selector UI element
-func _name_selector() -> NameSelector:
-	return name_selector_canvas.ui_control
-
 func _on_PlayerHead_area_entered(area: Area3D) -> void:
 	if area.is_in_group(&"wall"):
 		song_player.volume_db = -15.0
@@ -500,6 +555,7 @@ func get_current_time() -> float:
 # the high score
 func _on_song_ended() -> void:
 	song_player.stop()
+	_new_record = {}
 	PlayCount.increment_play_count(Map.current_info,Map.current_difficulty.difficulty_rank)
 	
 	var new_record := false
@@ -538,8 +594,10 @@ func _on_song_ended() -> void:
 			Map.current_difficulty.difficulty_rank,
 			_default_player_name(),
 			Scoreboard.points)
+		_show_name_card()
 		_transition_game_state(gamestate_newhighscore)
 	else:
+		_show_name_card()
 		_transition_game_state(gamestate_mapcomplete)
 
 ## The saved player name, or "Player" if it was left empty.

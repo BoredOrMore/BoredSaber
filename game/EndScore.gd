@@ -3,6 +3,8 @@ class_name EndScore
 
 signal mainmenu
 signal repeat
+## the name card's button: type a name for the record just saved
+signal name_edit_requested
 
 ## Fewest seconds between two ticks while the score counts up (about 18 a second at most).
 const TICK_MIN_INTERVAL := 0.055
@@ -34,6 +36,9 @@ const HALO_REST := 0.6
 const PULSE_SCALE := 1.06
 const PULSE_SECONDS := 0.35
 const TOP_RANK_SPARKLE := 0.8
+## The name card under the score (where this run stands on the map's board, and the button to name it) lights its
+## border once when the count lands, so the eye goes to it after the score (untuned).
+const CARD_GLOW_SECONDS := 0.8
 
 var animated_percent: float = 0.0
 var _tick_player := AudioStreamPlayer.new()
@@ -42,6 +47,10 @@ var _ding_high_player := AudioStreamPlayer.new()
 var _rank_up_player := AudioStreamPlayer.new()
 @onready var raycast_area := $RaycastArea as Area3D
 @onready var collision := $RaycastArea/CollisionShape3D as CollisionShape3D
+@onready var _name_card := $NameCard as MeshInstance3D
+@onready var _name_label := ($NameCard/Label as MeshInstance3D).mesh as TextMesh
+@onready var _name_button := $NameCard/Button as UIRaycastButton
+var _card_material: ShaderMaterial
 
 ## Paints the panel and the percent ring in the menu colours and starts with the buttons off.
 func _ready() -> void:
@@ -52,6 +61,12 @@ func _ready() -> void:
 	var icon := $PercentIndicator/Icon as Sprite3D
 	icon.position = ICON_POSITION
 	icon.pixel_size = ICON_PIXEL_SIZE
+	_card_material = (_name_card.mesh as QuadMesh).material as ShaderMaterial
+	_card_material.set_shader_parameter(&"fill_color", Constants.UI_SURFACE)
+	_card_material.set_shader_parameter(&"border_color", Constants.UI_BORDER)
+	_card_material.set_shader_parameter(&"hover_color", Constants.UI_SURFACE)
+	_card_material.set_shader_parameter(&"hover_border_color", Constants.UI_ACCENT)
+	(($NameCard/Label as MeshInstance3D).material_override as StandardMaterial3D).albedo_color = Constants.UI_TEXT
 	set_buttons_disabled(true)
 	_tick_player.stream = preload("res://game/data/click_002.ogg")
 	_tick_player.bus = &"UI"
@@ -87,6 +102,7 @@ func _show() -> void:
 	collision.disabled = false
 	($Repeat as UIRaycastButton).collision_layer = CollisionLayerConstants.Ui_mask
 	($MainMenu as UIRaycastButton).collision_layer = CollisionLayerConstants.Ui_mask
+	_name_button.collision_layer = CollisionLayerConstants.Ui_mask
 	show()
 
 func _hide() -> void:
@@ -94,6 +110,7 @@ func _hide() -> void:
 	collision.disabled = true
 	($Repeat as UIRaycastButton).collision_layer = 0
 	($MainMenu as UIRaycastButton).collision_layer = 0
+	_name_button.collision_layer = 0
 	_tick_player.stop()
 	_ding_player.stop()
 	_ding_high_player.stop()
@@ -184,12 +201,14 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 			ring_material.set_shader_parameter(&"sparkle", TOP_RANK_SPARKLE)
 		if is_visible_in_tree():
 			_ding_player.play()
+			glow_name_card()
 			if is_new_record or is_full_combo:
 				await get_tree().create_timer(DING_HIGH_DELAY).timeout
 				_ding_high_player.play()
 	else:
 		create_tween().tween_property(details_material,^"albedo_color",Constants.UI_TEXT,2).from(Color.TRANSPARENT)
 		_set_rank_text(grade_label, "F")
+		glow_name_card()
 
 	tw = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT).set_parallel()
 	if grade_label.modulate.a < 0.5:
@@ -221,6 +240,30 @@ func _show_rank(label: RichTextLabel, rank: String) -> void:
 func set_buttons_disabled(disabled: bool) -> void:
 	($Repeat/Collision as CollisionShape3D).disabled = disabled
 	($MainMenu/Collision as CollisionShape3D).disabled = disabled
+	($NameCard/Button/Collision as CollisionShape3D).disabled = disabled or not _name_button.visible
+
+## Shows a line on the name card, with a button when button_text is set (primary makes it the main action).
+func show_name_card(text: String, button_text := "", primary := false) -> void:
+	_name_card.visible = true
+	_name_label.text = text
+	_name_button.visible = not button_text.is_empty()
+	($NameCard/Button/Collision as CollisionShape3D).disabled = not _name_button.visible
+	if _name_button.visible:
+		_name_button.text = button_text
+		_name_button.set_primary(primary)
+
+func hide_name_card() -> void:
+	_name_card.visible = false
+	($NameCard/Button/Collision as CollisionShape3D).disabled = true
+
+## Lights the name card's border once.
+func glow_name_card() -> void:
+	if _name_card.visible:
+		create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN) \
+			.tween_property(_card_material, ^"shader_parameter/highlight", 0.0, CARD_GLOW_SECONDS).from(1.0)
+
+func _on_NameButton_button_up() -> void:
+	name_edit_requested.emit()
 
 func _on_Repeat_button_up() -> void:
 	repeat.emit()

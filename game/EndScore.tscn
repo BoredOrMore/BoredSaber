@@ -11,12 +11,36 @@
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_igkn4"]
 render_priority = 0
 shader = ExtResource("1_cfcnp")
-shader_parameter/size = Vector2(2, 1)
+shader_parameter/size = Vector2(2, 1.16)
 shader_parameter/highlight = 0.0
 
 [sub_resource type="QuadMesh" id="QuadMesh_le4ok"]
 material = SubResource("ShaderMaterial_igkn4")
-size = Vector2(2, 1)
+size = Vector2(2, 1.16)
+center_offset = Vector3(0, -0.08, 0)
+
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_card"]
+resource_local_to_scene = true
+render_priority = 0
+shader = ExtResource("1_cfcnp")
+shader_parameter/size = Vector2(1.6, 0.12)
+shader_parameter/highlight = 0.0
+
+[sub_resource type="QuadMesh" id="QuadMesh_card"]
+material = SubResource("ShaderMaterial_card")
+size = Vector2(1.6, 0.12)
+
+[sub_resource type="TextMesh" id="TextMesh_card"]
+text = "Put your name on the board?"
+font = ExtResource("7_font")
+pixel_size = 0.001
+font_size = 40
+horizontal_alignment = 0
+depth = 0.0
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_card"]
+shading_mode = 0
+disable_receive_shadows = true
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_cwpr4"]
 resource_local_to_scene = true
@@ -102,7 +126,7 @@ material = SubResource("ShaderMaterial_halo")
 size = Vector2(0.7, 0.7)
 
 [sub_resource type="BoxShape3D" id="BoxShape3D_iqqq6"]
-size = Vector3(2, 1, 0.001)
+size = Vector3(2, 1.16, 0.001)
 
 [node name="EndScore" type="MeshInstance3D"]
 mesh = SubResource("QuadMesh_le4ok")
@@ -116,14 +140,29 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.02, 0.005)
 mesh = SubResource("QuadMesh_halo")
 
 [node name="Repeat" parent="." instance=ExtResource("4_n4s7s")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3, -0.36, 0.01)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.3, -0.52, 0.01)
 size = Vector2(0.5, 0.12)
 text = "Repeat"
 
 [node name="MainMenu" parent="." instance=ExtResource("4_n4s7s")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, -0.36, 0.01)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, -0.52, 0.01)
 size = Vector2(0.5, 0.12)
 text = "Main Menu"
+
+[node name="NameCard" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.36, 0.005)
+visible = false
+mesh = SubResource("QuadMesh_card")
+
+[node name="Label" type="MeshInstance3D" parent="NameCard"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.76, 0, 0.005)
+material_override = SubResource("StandardMaterial3D_card")
+mesh = SubResource("TextMesh_card")
+
+[node name="Button" parent="NameCard" instance=ExtResource("4_n4s7s")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.58, 0, 0.005)
+size = Vector2(0.38, 0.09)
+text = "Type name"
 
 [node name="Details" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.62, 0.2, 0.01)
@@ -193,7 +232,9 @@ autowrap_mode = 0
 script = ExtResource("6_25iqa")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="RaycastArea"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.08, 0)
 shape = SubResource("BoxShape3D_iqqq6")
 
 [connection signal="released" from="Repeat" to="." method="_on_Repeat_button_up"]
 [connection signal="released" from="MainMenu" to="." method="_on_MainMenu_button_up"]
+[connection signal="released" from="NameCard/Button" to="." method="_on_NameButton_button_up"]

@@ -9,7 +9,6 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.pause_menu._show()
 	game.pause_countdown.visible = false
 	game.highscore_canvas._hide()
-	game.name_selector_canvas._hide()
 	game.multiplier_label.visible = true
 	game.point_label.visible = true
 	game.percent_indicator.visible = true

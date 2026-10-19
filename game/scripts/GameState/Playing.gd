@@ -8,7 +8,6 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.endscore._hide()
 	game.pause_menu._hide()
 	game.highscore_canvas._hide()
-	game.name_selector_canvas._hide()
 	game.show_sabers_for_map()
 	game.multiplier_label.visible = true
 	game.point_label.visible = true
