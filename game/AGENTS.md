@@ -56,7 +56,7 @@ constraints apply here unchanged.
 - `settings_Panel.gd/.tscn` — settings UI (`SettingsPanel`, `apply` signal saves config).
 - `BeepSaberMainMenu.gd/.tscn` — song list, playlists, filters, modifiers; emits `start_map`.
 - `EndScore`, `HighscorePanel`, `Pause_Panel` — end, highscore and pause panels.
-- `PercentIndicator` — accuracy or health ring; `Points_label_driver` + `points_label` — pool of 8
+- `PercentIndicator` — accuracy ring; `HealthRails` — health strips on the floor along the track edges (bar or 4 life pips); `Points_label_driver` + `points_label` — pool of 8
   floating score/miss labels (miss "X" uses `MissMark.gdshader`).
 - `event_driver.gd/.tscn` — lighting events and background; `floor.gd/.tscn` — floor and burn marks.
 - `SpectatorWindow` — desktop spectator camera/HUD; `vr_slider` — joystick scrolling for UI lists.

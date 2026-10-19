@@ -25,6 +25,7 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.multiplier_label.visible = false
 	game.point_label.visible = false
 	game.percent_indicator.visible = false
+	game.health_rails.visible = false
 	game.track.visible = false
 	game.left_ui_raycast.visible = true
 	game.right_ui_raycast.visible = true

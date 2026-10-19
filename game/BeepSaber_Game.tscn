@@ -37,6 +37,7 @@
 [ext_resource type="PackedScene" uid="uid://6du64wi28yi6" path="res://game/Bomb/Bomb.tscn" id="35_bombp"]
 [ext_resource type="PackedScene" uid="uid://iglrdadxsqw4" path="res://game/Wall/Wall.tscn" id="36_wallp"]
 [ext_resource type="PackedScene" uid="uid://cl1dig23jiq45" path="res://game/Arc/Arc.tscn" id="37_arcp"]
+[ext_resource type="Script" path="res://game/HealthRails.gd" id="38_rails"]
 
 [sub_resource type="Environment" id="1"]
 background_mode = 2
@@ -107,7 +108,7 @@ orientation = 2
 resource_local_to_scene = true
 render_priority = 0
 shader = ExtResource("14_155do")
-shader_parameter/color = Vector3(0, 0, 0)
+shader_parameter/color = Vector3(1, 1, 1)
 shader_parameter/how_full = 0.75
 
 [sub_resource type="QuadMesh" id="QuadMesh_02xdc"]
@@ -228,9 +229,13 @@ mesh = SubResource("PlaneMesh_4xldb")
 skeleton = NodePath("")
 
 [node name="Percent_Indicator" parent="." unique_id=1987737042 instance=ExtResource("16")]
-transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 1.9, 1, -2.5)
+transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 1.9, 0.8, -2.5)
 material_override = SubResource("ShaderMaterial_rsu5u")
 mesh = SubResource("QuadMesh_02xdc")
+
+[node name="HealthRails" type="Node3D" parent="."]
+visible = false
+script = ExtResource("38_rails")
 
 [node name="EndScore" parent="." unique_id=675269165 instance=ExtResource("20_fgfws")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.60386, -0.777581)

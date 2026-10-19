@@ -43,6 +43,7 @@ var current_health := Constants.HEALTH_START
 @onready var multiplier_label := $Multiplier_Label as MeshInstance3D
 @onready var point_label := $Point_Label as MeshInstance3D
 @onready var percent_indicator := $Percent_Indicator as PercentIndicator
+@onready var health_rails := $HealthRails as HealthRails
 
 @onready var map_source_dialogs := $MapSourceDialogs as Node3D
 @onready var online_search_keyboard := $Keyboard_online_search as OQ_UI2DKeyboard
@@ -143,10 +144,9 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	
 	_display_points()
 	percent_indicator.start_map()
-	percent_indicator.set_health_mode(Settings.health_mode)
 	if Settings.health_mode:
 		current_health = Constants.HEALTH_START if Settings.fail_mode == Constants.FAIL_MODE_BAR else Constants.HEALTH_MAX
-		percent_indicator.update_percent(current_health / Constants.HEALTH_MAX)
+		health_rails.start_map(Settings.fail_mode == Constants.FAIL_MODE_LIVES, current_health / Constants.HEALTH_MAX)
 	
 	_clear_track()
 	_transition_game_state(gamestate_playing)
@@ -166,7 +166,7 @@ func update_health(delta: float, mistake: bool = false) -> void:
 				current_health += delta * Settings.damage_scale if delta < 0.0 else delta
 		if current_health > Constants.HEALTH_MAX:
 			current_health = Constants.HEALTH_MAX
-		percent_indicator.update_percent(current_health / Constants.HEALTH_MAX)
+		health_rails.update_health(current_health / Constants.HEALTH_MAX)
 		if current_health <= 0 and gamestate == gamestate_playing and not failing:
 			_fail_song()
 
@@ -466,8 +466,7 @@ func _display_points() -> void:
 	display = "x %d\nCombo %d" % [Scoreboard.multiplier, Scoreboard.combo]
 	if (multiplier_label.mesh as TextMesh).text != display:
 		(multiplier_label.mesh as TextMesh).text = display
-	if not Settings.health_mode:
-		percent_indicator.update_percent(hit_rate)
+	percent_indicator.update_percent(hit_rate)
 
 ## Whole seconds left in the current map, for the clock under the score.
 func _seconds_left() -> int:
