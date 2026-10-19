@@ -227,7 +227,8 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 		for i in range(songs.size()):
 			if songs[i] == current_map:
 				songs_menu.select(i)
-				_select_song(i)
+				# same song as before: keep whatever preview is playing (maybe a BeatSaver one)
+				_select_song(i, false)
 		if current_selected == -1:
 			songs_menu.select(-1)
 
@@ -284,7 +285,12 @@ func _load_cover(cover_path: String, filename: String) -> ImageTexture:
 	# parse buffer into an ImageTexture
 	return ImageTexture.create_from_image(Image.load_from_file(cover_path+filename))
 
+## Bumped by every preview request, so only the newest one plays after the fade-out awaits.
+var _preview_generation := 0
+
 func play_preview(buffer: PackedByteArray, start_time: float = 0.0, duration: float = -1.0, buffer_data_type_hint: String = 'ogg') -> void:
+	_preview_generation += 1
+	var generation := _preview_generation
 	var stream: AudioStream
 	# take song preview data from buffer as-is. trust passed type hint
 	if buffer_data_type_hint == 'ogg':
@@ -303,6 +309,8 @@ func play_preview(buffer: PackedByteArray, start_time: float = 0.0, duration: fl
 	# fade out preview if ones already running
 	if song_preview.playing:
 		await _on_stop_prev_timeout()
+	if generation != _preview_generation:
+		return
 	
 	# start the requested preview, if still on song select
 	if not main_song_player_ref.playing:
@@ -316,7 +324,7 @@ func play_preview(buffer: PackedByteArray, start_time: float = 0.0, duration: fl
 		song_preview.pitch_scale = Settings.music_speed / 100.
 		($song_prev/stop_prev as Timer).start(duration)
 
-func _select_song(id: int) -> void:
+func _select_song(id: int, with_preview: bool = true) -> void:
 	current_selected = id 
 	if id < 0:
 		return
@@ -338,19 +346,27 @@ func _select_song(id: int) -> void:
 	_bg_img_loader.load_texture(map.filepath, map.cover_image_filename, _on_cover_loaded, true, -1)
 	
 	# preview song
-	if Settings.audio_music_preview > 0 and map.have_song:
+	if with_preview and Settings.audio_music_preview > 0 and map.have_song:
 		play_preview(Utils.read_binary_file(map.filepath, map.song_filename), map.preview_start_time, map.preview_duration)
 	
 	var d := PlayCount.get_last_difficulty(map)
 	_select_difficulty(0 if d < 0 else (d & Constants.DIFFICULTY_MASK))
 
+## Fades out the playing preview and drops any preview still waiting to start.
+func stop_preview() -> void:
+	_preview_generation += 1
+	await _on_stop_prev_timeout()
+
 func _on_stop_prev_timeout() -> void:
+	var generation := _preview_generation
 	var song_prev_Tween := song_preview.create_tween().set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_IN_OUT)
 	@warning_ignore("return_value_discarded")
 	song_prev_Tween.tween_property(song_preview, "volume_db", -50, song_preview_transition_time)
 	song_prev_Tween.play()
 	await get_tree().create_timer(song_preview_transition_time).timeout
-	song_preview.stop()
+	# a newer preview has started meanwhile; leave it playing
+	if generation == _preview_generation:
+		song_preview.stop()
 
 var _map_difficulty := 0
 

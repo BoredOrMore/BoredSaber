@@ -36,6 +36,12 @@ var list_modes: Array[String] = ["plays"]
 var search_word := ""
 var item_selected := -1
 var downloading := []#[["name","version_info"]]
+## Most previews kept in memory, so clicking a map again plays at once.
+const MAX_CACHED_PREVIEWS := 10
+## Preview mp3 bytes by preview URL, oldest first.
+var _preview_cache := {}
+## URL of the preview being downloaded.
+var _preview_url := ""
 
 @onready var item_list := $ItemList as ItemList
 @onready var mode_button := $mode as Button
@@ -293,7 +299,14 @@ Difficulties:%s
 	($TextureRect as TextureRect).texture = item_list.get_item_icon(index)
 
 	if Settings.audio_master > 0 and Settings.audio_music_preview > 0:
-		httppreviewdownload.request(version['previewURL'])
+		# the click means the player wants this map's preview: quiet the local song now
+		main_menu_ref.stop_preview()
+		httppreviewdownload.cancel_request()
+		_preview_url = version['previewURL']
+		if _preview_cache.has(_preview_url):
+			_play_preview(_preview_cache[_preview_url])
+		elif httppreviewdownload.request(_preview_url) != OK:
+			vr.log_warning("Preview request failed: %s" % _preview_url)
 
 func _on_download_button_up() -> void:
 	OS.request_permissions()
@@ -372,12 +385,18 @@ func _on_HTTPRequest_download_completed(result: int, response_code: int, headers
 
 func _on_preview_download_completed(result: int, _response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	if result == 0:
-		# request preview to be played by the main menu node
-		main_menu_ref.play_preview(
-			body, # song data buffer
-			0,    # start previous at time 0
-			-1,   # play preview song for entire duration
-			'mp3')# bsaver has all it's previews in mp3 format for now
+		_preview_cache[_preview_url] = body
+		if _preview_cache.size() > MAX_CACHED_PREVIEWS:
+			_preview_cache.erase(_preview_cache.keys()[0])
+		_play_preview(body)
+
+## Asks the main menu to play a BeatSaver preview.
+func _play_preview(body: PackedByteArray) -> void:
+	main_menu_ref.play_preview(
+		body, # song data buffer
+		0,    # start previous at time 0
+		-1,   # play preview song for entire duration
+		'mp3')# bsaver has all it's previews in mp3 format for now
 
 func _on_search_button_up() -> void:
 	keyboard._show()
