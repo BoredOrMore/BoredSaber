@@ -41,6 +41,7 @@ const FAVORITE_MASK := 0x4000000000000000
 @onready var width_control := $ModifiersPanel/Margin/Rows/Width as OptionButton
 @onready var speed_control := $ModifiersPanel/Margin/Rows/Speed as OptionButton
 @onready var favorite_button := $Favorite_Button as Button
+@onready var player_name_button := $PlayerName_Button as Button
 @onready var reset_button := $ModifiersPanel/Margin/Rows/Header/Reset_Button as Button
 
 @onready var song_preview := $song_prev as AudioStreamPlayer
@@ -438,6 +439,7 @@ func _ready() -> void:
 	
 	_build_difficulty_rows()
 	_build_difficulty_picker()
+	_show_player_name()
 	_update_mod_controls()
 	favorite_button.hide()
 	
@@ -478,6 +480,8 @@ func _ready() -> void:
 		
 func on_settings_changed(key: StringName) -> void:
 	match key:
+		&"player_name":
+			_show_player_name()
 		&"music_speed":
 			song_preview.pitch_scale = Settings.music_speed / 100.
 		&"song_filter_nps", &"song_filter_length":
@@ -573,19 +577,49 @@ func _on_LoadPlaylists_Button_pressed() -> void:
 	_load_playlists()
 
 
+## The shared keyboard is typing a song search.
+const KEYBOARD_SEARCH := &"search"
+## The shared keyboard is typing the player name.
+const KEYBOARD_NAME := &"name"
+## What the shared keyboard is open for here; empty when it was opened elsewhere (the new-record name).
+var _keyboard_for := &""
+
 func _on_Search_Button_button_up() -> void:
+	_keyboard_for = KEYBOARD_SEARCH
 	keyboard._text_edit.placeholder_text = "Search songs"
 	keyboard.visible=true
 	keyboard._text_edit.grab_focus()
 
-func _text_input_enter(_text:String = "") -> void:
+## Opens the keyboard with the current player name, which new records are saved under.
+func _on_PlayerName_Button_pressed() -> void:
+	_keyboard_for = KEYBOARD_NAME
+	keyboard._text_edit.placeholder_text = "Type your name"
+	keyboard._text_edit.text = Settings.player_name
+	keyboard._text_edit.set_caret_column(Settings.player_name.length())
+	keyboard._on_TextEdit_text_changed()
+	keyboard.visible=true
+	keyboard._text_edit.grab_focus()
+
+## Shows the name new records are saved under.
+func _show_player_name() -> void:
+	player_name_button.text = "Player: %s" % BeepSaber_Game._default_player_name()
+
+func _text_input_enter(text:String = "") -> void:
+	if _keyboard_for == KEYBOARD_NAME and not text.strip_edges().is_empty():
+		Settings.player_name = text.strip_edges()
+	_keyboard_for = &""
 	keyboard.visible=false
 
 func _text_input_cancel() -> void:
+	var was_searching := _keyboard_for == KEYBOARD_SEARCH
+	_keyboard_for = &""
 	keyboard.visible=false
-	_clean_search()
+	if was_searching:
+		_clean_search()
 
 func _text_input_changed() -> void:
+	if _keyboard_for != KEYBOARD_SEARCH:
+		return
 	var text := keyboard._text_edit.text
 	($Search_Button/Label as Label).text = text
 	if text == "":

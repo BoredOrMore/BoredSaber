@@ -88,7 +88,7 @@ layout_mode = 0
 offset_left = 24.0
 offset_top = 176.0
 offset_right = 760.0
-offset_bottom = 696.0
+offset_bottom = 604.0
 fixed_icon_size = Vector2i(72, 72)
 
 [node name="cover" type="TextureRect" parent="." unique_id=925358881]
@@ -178,6 +178,16 @@ theme_override_styles/normal = SubResource("play")
 theme_override_styles/pressed = SubResource("play_hover")
 theme_override_styles/hover = SubResource("play_hover")
 text = "Play"
+
+[node name="PlayerName_Button" type="Button" parent="."]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 616.0
+offset_right = 760.0
+offset_bottom = 696.0
+text = "Player: Player"
+text_overrun_behavior = 3
+alignment = 0
 
 [node name="Modifiers_Button" type="Button" parent="."]
 layout_mode = 0
@@ -418,6 +428,7 @@ list_path = NodePath("../SongsMenu")
 [connection signal="pressed" from="More_Button" to="." method="_on_more_button_pressed"]
 [connection signal="pressed" from="MorePanel/Licenses" to="." method="_on_licenses_pressed"]
 [connection signal="button_up" from="Search_Button" to="." method="_on_Search_Button_button_up"]
+[connection signal="pressed" from="PlayerName_Button" to="." method="_on_PlayerName_Button_pressed"]
 [connection signal="item_selected" from="SongsMenu" to="." method="_select_song"]
 [connection signal="item_selected" from="PlaylistSelector" to="." method="_on_PlaylistSelector_item_selected"]
 [connection signal="item_selected" from="NpsFilter" to="." method="_on_nps_filter_item_selected"]
