@@ -19,7 +19,8 @@ func _ready() -> void:
 	_exit_button.visible = show_close_button
 	_song_info_panel.visible = show_song_info
 	
-func load_highscores(map_info: MapInfo, diff_rank: int) -> void:
+## highlight: a record (as add_highscore() returned it) whose row stands out, such as the run just played.
+func load_highscores(map_info: MapInfo, diff_rank: int, highlight := {}) -> void:
 	
 	# clear the high score list
 	_clear_list()
@@ -43,7 +44,10 @@ func load_highscores(map_info: MapInfo, diff_rank: int) -> void:
 		var new_row = _base_row.duplicate()
 		new_row.get_child(0).text = "%d." % idx
 		new_row.get_child(1).text = record.player_name
-		new_row.get_child(2).text = str(record.score)
+		new_row.get_child(2).text = "%d" % record.score
+		if is_same(record, highlight):
+			for label: Label in new_row.get_children():
+				label.add_theme_color_override(&"font_color", Constants.UI_ACCENT)
 		
 		_highscore_list.add_child(new_row)
 		idx += 1
