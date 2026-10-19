@@ -500,7 +500,7 @@ func _ready() -> void:
 	playlist_selector.add_item("All Songs")
 	playlist_selector.add_item("Recently Added")
 	playlist_selector.add_item("Most Played")
-	_drop_down(reaction_filter, MapStats.reaction_filters(), Settings.song_filter_reaction, 0)
+	_drop_down(reaction_filter, MapStats.difficulty_filters(), Settings.song_filter_reaction, 0)
 	_drop_down(length_filter, Constants.LENGTH_FILTERS, Settings.song_filter_length, 0)
 	favorites_filter.set_pressed_no_signal(Settings.song_filter_favorites)
 	
@@ -543,7 +543,7 @@ func on_settings_changed(key: StringName) -> void:
 			_show_environment()
 		&"song_filter_reaction", &"song_filter_length":
 			# the BeatSaver panel shares these filters, so follow changes made there too
-			reaction_filter.select(clampi(Settings.song_filter_reaction, 0, Constants.REACTION_LEVELS.size()))
+			reaction_filter.select(clampi(Settings.song_filter_reaction, 0, Constants.DIFFICULTY_LEVELS.size()))
 			length_filter.select(MapStats.length_filter()[0])
 			_refilter()
 		&"song_filter_favorites":
@@ -870,14 +870,27 @@ func _sync_difficulty_picker() -> void:
 		if tab.visible:
 			tab.text = CHARACTERISTIC_LABELS.get(_characteristics[i], _characteristics[i])
 			tab.set_pressed_no_signal(picked != null and _characteristic_of(picked) == _characteristics[i])
+	# each of the map's difficulties keeps the mapper's slot but shows the difficulty it plays at
+	# (MapStats.level_of); slots the map lacks are hidden so no name shows twice
 	for i in LEVELS.size():
 		var button := level_row.get_child(i) as Button
-		button.disabled = not picked or _find_difficulty(map, _characteristic_of(picked), i) < 0
+		var index := _find_difficulty(map, _characteristic_of(picked), i) if picked else -1
+		button.text = LEVELS[i][1]
+		button.remove_theme_color_override(&"font_color")
+		button.remove_theme_color_override(&"font_pressed_color")
+		if index >= 0:
+			var diff := map.difficulty_beatmaps[index]
+			var level: Array = Constants.DIFFICULTY_LEVELS[MapStats.level_of(map, diff, MapStats.get_stats(map, diff))]
+			button.text = level[0]
+			button.add_theme_color_override(&"font_color", level[1])
+			button.add_theme_color_override(&"font_pressed_color", level[1])
+		button.visible = index >= 0 or not picked
+		button.disabled = index < 0
 		button.set_pressed_no_signal(picked != null and picked.difficulty == LEVELS[i][0])
 	if picked:
 		var stats := MapStats.get_stats(map, picked)
-		level_stats.text = "%s · %s" % [picked.get_display_name(), MapStats.describe(map, picked, stats)]
-		level_stats.add_theme_color_override(&"font_color", Constants.REACTION_LEVELS[MapStats.level_of(map, picked, stats)][1])
+		level_stats.text = MapStats.describe(map, picked, stats)
+		level_stats.add_theme_color_override(&"font_color", Constants.DIFFICULTY_LEVELS[MapStats.level_of(map, picked, stats)][1])
 	else:
 		level_stats.text = ""
 

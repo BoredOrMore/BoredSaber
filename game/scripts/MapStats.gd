@@ -184,40 +184,36 @@ static func reaction_seconds_for(bpm: float, njs: float, offset: float) -> float
 static func _speed() -> float:
 	return maxf(Settings.music_speed / 100.0, 0.01)
 
-## Index in Constants.REACTION_LEVELS for a reaction time in seconds.
+## Index in Constants.DIFFICULTY_LEVELS that a reaction time in seconds reads like.
 static func reaction_level(seconds: float) -> int:
-	for i in Constants.REACTION_LEVELS.size():
-		if seconds >= float(Constants.REACTION_LEVELS[i][2]):
+	for i in Constants.DIFFICULTY_LEVELS.size():
+		if seconds >= float(Constants.DIFFICULTY_LEVELS[i][2]):
 			return i
-	return Constants.REACTION_LEVELS.size() - 1
+	return Constants.DIFFICULTY_LEVELS.size() - 1
 
-## Index in Constants.SWING_PACE_LEVELS for a median swing gap in seconds.
+## Index in Constants.DIFFICULTY_LEVELS that a median swing gap in seconds swings like.
 static func swing_pace_level(gap: float) -> int:
-	for i in Constants.SWING_PACE_LEVELS.size():
-		if gap >= float(Constants.SWING_PACE_LEVELS[i][1]):
+	for i in Constants.DIFFICULTY_LEVELS.size():
+		if gap >= float(Constants.DIFFICULTY_LEVELS[i][3]):
 			return i
-	return Constants.SWING_PACE_LEVELS.size() - 1
+	return Constants.DIFFICULTY_LEVELS.size() - 1
 
 ## Reaction time level of one difficulty, at the current Speed modifier.
 static func reaction_level_of(info: MapInfo, difficulty: DifficultyInfo) -> int:
 	return reaction_level(reaction_seconds(info, difficulty))
 
-## Overall level of one difficulty (an index in Constants.REACTION_LEVELS): the harder of its reaction time
-## level and its swing pace level, at the current Speed modifier, one level up when its swings are Tangled.
-## A map can read slowly but make the hands swing fast or twist, and reaction time alone ranked those as
-## easy. Without counted stats only reaction time counts.
+## Difficulty of one map difficulty as the song list shows it (an index in Constants.DIFFICULTY_LEVELS): the
+## harder of its reaction time level and its swing pace level, at the current Speed modifier, one level up
+## when its swings are Tangled. Mappers' own labels and reaction time alone ranked maps that swing fast or
+## twist as easy. Without counted stats only reaction time counts.
 static func level_of(info: MapInfo, difficulty: DifficultyInfo, stats: Dictionary) -> int:
 	var level := reaction_level_of(info, difficulty)
 	var gap := float(stats.get("gap", 0.0)) / _speed()
 	if gap > 0.0:
 		level = maxi(level, swing_pace_level(gap))
-	var flow := flow_level(float(stats.get("flow", 0.0)))
-	if flow == Constants.FLOW_LEVELS.size() - 1:
+	if flow_level(float(stats.get("flow", 0.0))) == Constants.FLOW_LEVELS.size() - 1:
 		level += 1
-	# the easiest level also needs every swing to flow
-	elif level == 0 and flow > 0:
-		level = 1
-	return mini(level, Constants.REACTION_LEVELS.size() - 1)
+	return mini(level, Constants.DIFFICULTY_LEVELS.size() - 1)
 
 ## The saved NPS filter entry [id, label, min, max] from Constants.NPS_FILTERS.
 static func nps_filter() -> Array:
@@ -231,24 +227,24 @@ static func length_filter() -> Array:
 static func in_filter(value: float, filter: Array) -> bool:
 	return value >= float(filter[2]) and (float(filter[3]) <= 0.0 or value < float(filter[3]))
 
-## Formats a difficulty as "3:24 · Reaction time: Quick (0.72 s)" over "Swing pace: Brisk · Level: Quick".
+## Formats a difficulty in plain words: "3:24 · Notes 0.72 s ahead · Swings every 0.45 s" (per hand) over
+## "Swing flow: Twisty · Map's label: Hard".
 static func describe(info: MapInfo, difficulty: DifficultyInfo, stats: Dictionary) -> String:
 	var seconds := int(stats.get("seconds", 0.0))
-	var reaction := reaction_seconds(info, difficulty)
-	var text := "%d:%02d · Reaction time: %s (%.2f s)" % [seconds / 60, seconds % 60,
-		Constants.REACTION_LEVELS[reaction_level(reaction)][0], reaction]
+	var text := "%d:%02d · Notes %.2f s ahead" % [seconds / 60, seconds % 60, reaction_seconds(info, difficulty)]
 	var gap := float(stats.get("gap", 0.0)) / _speed()
 	if gap > 0.0:
-		text += "\nSwing pace: %s · Flow: %s · Level: %s" % [Constants.SWING_PACE_LEVELS[swing_pace_level(gap)][0],
-			Constants.FLOW_LEVELS[flow_level(float(stats.get("flow", 0.0)))][0],
-			Constants.REACTION_LEVELS[level_of(info, difficulty, stats)][0]]
-	return text
+		text += " · Swings every %.2f s" % gap
+	text += "\n"
+	if stats.has("flow"):
+		text += "Swing flow: %s · " % Constants.FLOW_LEVELS[flow_level(float(stats.flow))][0]
+	return text + "Map's label: %s" % difficulty.get_display_name()
 
-## The reaction time filter choices for a dropdown: [id, label], id 0 being any reaction time.
-static func reaction_filters() -> Array:
-	var filters := [[0, Constants.ANY_REACTION_LABEL]]
-	for i in Constants.REACTION_LEVELS.size():
-		filters.append([i + 1, Constants.REACTION_LEVELS[i][0]])
+## The difficulty filter choices for a dropdown: [id, label], id 0 being any difficulty.
+static func difficulty_filters() -> Array:
+	var filters := [[0, Constants.ANY_DIFFICULTY_LABEL]]
+	for i in Constants.DIFFICULTY_LEVELS.size():
+		filters.append([i + 1, Constants.DIFFICULTY_LEVELS[i][0]])
 	return filters
 
 ## Cache key of one difficulty.

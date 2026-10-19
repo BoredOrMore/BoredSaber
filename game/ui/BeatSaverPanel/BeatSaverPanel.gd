@@ -28,8 +28,8 @@ class BeatSaverSongInfo extends RefCounted:
 	func reaction_seconds(diff: Dictionary) -> float:
 		return MapStats.reaction_seconds_for(bpm, Utils.get_float(diff, "njs", 0.0), Utils.get_float(diff, "offset", 0.0))
 
-	## True if the reaction time filter is off or any difficulty of the newest version is at the picked
-	## reaction time.
+	## True if the difficulty filter is off or any difficulty of the newest version reads like the picked
+	## difficulty. BeatSaver has no swing data, so only reaction time counts until the map is downloaded.
 	func passes_reaction_filter() -> bool:
 		if Settings.song_filter_reaction == 0:
 			return true
@@ -118,7 +118,7 @@ func _ready() -> void:
 
 	main_menu_ref.song_list_changed.connect(on_song_list_changed)
 	
-	for filter: Array in MapStats.reaction_filters():
+	for filter: Array in MapStats.difficulty_filters():
 		reaction_filter.add_item(filter[1])
 	for filter: Array in Constants.NPS_FILTERS:
 		nps_filter.add_item(filter[1])
@@ -129,7 +129,7 @@ func _ready() -> void:
 
 ## Shows the saved song filters in the dropdowns.
 func _sync_filter_controls() -> void:
-	reaction_filter.select(clampi(Settings.song_filter_reaction, 0, Constants.REACTION_LEVELS.size()))
+	reaction_filter.select(clampi(Settings.song_filter_reaction, 0, Constants.DIFFICULTY_LEVELS.size()))
 	nps_filter.select(MapStats.nps_filter()[0])
 	length_filter.select(MapStats.length_filter()[0])
 
@@ -323,7 +323,7 @@ func _on_ItemList_item_selected(index: int) -> void:
 		var diff_color: Color = Constants.DIFFICULTY_COLORS.get(diff_name, Constants.UI_TEXT)
 		if diff is Dictionary and selected_data.bpm > 0.0:
 			var reaction := selected_data.reaction_seconds(diff as Dictionary)
-			diff_name += " · Reaction time: %s (%.2f s)" % [Constants.REACTION_LEVELS[MapStats.reaction_level(reaction)][0], reaction]
+			diff_name += " · Notes appear %.2f s ahead" % reaction
 		difficulties += "\n[color=#%s]%s[/color]" % [diff_color.to_html(false), diff_name]
 	var text := """[center]%s By %s[/center]
 
