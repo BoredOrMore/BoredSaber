@@ -20,7 +20,7 @@ const FAVORITE_MASK := 0x4000000000000000
 @export var song_uploader_ref: SongUploader
 
 @onready var playlist_selector := $PlaylistSelector as OptionButton
-@onready var nps_filter := $NpsFilter as OptionButton
+@onready var reaction_filter := $ReactionFilter as OptionButton
 @onready var length_filter := $LengthFilter as OptionButton
 @onready var _bg_img_loader := preload("res://game/scripts/BackgroundImgLoader.gd").new()
 
@@ -248,18 +248,18 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 
 ## True if no song filter is set.
 func _song_filter_is_off() -> bool:
-	return Settings.song_filter_nps == 0 and Settings.song_filter_length == 0
+	return Settings.song_filter_reaction == 0 and Settings.song_filter_length == 0
 
-## True if any difficulty of the map is inside the NPS and length filters. Maps that haven't been
+## True if any difficulty of the map is at the picked reaction time and inside the length filter. Maps that haven't been
 ## counted yet pass, so the list never hides songs it knows nothing about.
 func _passes_song_filter(map: MapInfo) -> bool:
 	if _song_filter_is_off():
 		return true
-	var nps_range := MapStats.nps_filter()
 	var length_range := MapStats.length_filter()
 	for diff in map.difficulty_beatmaps:
 		var stats := MapStats.get_cached(map, diff)
-		if stats.is_empty() or (MapStats.in_filter(float(stats.nps), nps_range) and MapStats.in_filter(float(stats.seconds), length_range)):
+		if (Settings.song_filter_reaction == 0 or MapStats.reaction_level_of(map, diff) == Settings.song_filter_reaction - 1) \
+				and (stats.is_empty() or MapStats.in_filter(float(stats.seconds), length_range)):
 			return true
 	return false
 
@@ -275,9 +275,9 @@ func _on_map_stats_counted() -> void:
 	if not _song_filter_is_off():
 		_refilter()
 
-## Stores the picked NPS filter; on_settings_changed rebuilds the list.
-func _on_nps_filter_item_selected(index: int) -> void:
-	Settings.song_filter_nps = Constants.NPS_FILTERS[index][0]
+## Stores the picked reaction time filter; on_settings_changed rebuilds the list.
+func _on_reaction_filter_item_selected(index: int) -> void:
+	Settings.song_filter_reaction = index
 
 ## Stores the picked length filter; on_settings_changed rebuilds the list.
 func _on_length_filter_item_selected(index: int) -> void:
@@ -480,7 +480,7 @@ func _ready() -> void:
 	playlist_selector.add_item("All Songs")
 	playlist_selector.add_item("Recently Added")
 	playlist_selector.add_item("Most Played")
-	_drop_down(nps_filter, Constants.NPS_FILTERS, Settings.song_filter_nps, 0)
+	_drop_down(reaction_filter, MapStats.reaction_filters(), Settings.song_filter_reaction, 0)
 	_drop_down(length_filter, Constants.LENGTH_FILTERS, Settings.song_filter_length, 0)
 	
 	_load_playlists()
@@ -515,9 +515,12 @@ func on_settings_changed(key: StringName) -> void:
 			_show_player_name()
 		&"music_speed":
 			song_preview.pitch_scale = Settings.music_speed / 100.
-		&"song_filter_nps", &"song_filter_length":
+			# reaction times depend on the Speed modifier
+			if Settings.song_filter_reaction != 0:
+				_refilter()
+		&"song_filter_reaction", &"song_filter_length":
 			# the BeatSaver panel shares these filters, so follow changes made there too
-			nps_filter.select(MapStats.nps_filter()[0])
+			reaction_filter.select(clampi(Settings.song_filter_reaction, 0, Constants.REACTION_LEVELS.size()))
 			length_filter.select(MapStats.length_filter()[0])
 			_refilter()
 
@@ -796,8 +799,9 @@ func _sync_difficulty_picker() -> void:
 		button.disabled = not picked or _find_difficulty(map, _characteristic_of(picked), i) < 0
 		button.set_pressed_no_signal(picked != null and picked.difficulty == LEVELS[i][0])
 	if picked:
-		level_stats.text = "%s   %s" % [picked.get_display_name(), MapStats.describe(MapStats.get_stats(map, picked))]
-		level_stats.add_theme_color_override(&"font_color", Constants.DIFFICULTY_COLORS.get(picked.difficulty, Constants.UI_TEXT))
+		var stats := MapStats.get_stats(map, picked)
+		level_stats.text = "%s · %s" % [picked.get_display_name(), MapStats.describe(map, picked, stats)]
+		level_stats.add_theme_color_override(&"font_color", Constants.REACTION_LEVELS[MapStats.reaction_level_of(map, picked)][1])
 	else:
 		level_stats.text = ""
 

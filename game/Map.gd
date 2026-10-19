@@ -452,12 +452,19 @@ static func set_note_jump(info: MapInfo, difficulty: DifficultyInfo) -> void:
 		beat_distance = Constants.BEAT_DISTANCE
 		half_jump_beats = 4.0
 		return
-	var seconds_per_beat := 60.0 / info.beats_per_minute
+	half_jump_beats = half_jump_beats_for(info.beats_per_minute, njs, difficulty.note_jump_start_beat_offset)
+	beat_distance = njs * 60.0 / info.beats_per_minute
+
+## Beats between a note appearing and reaching the player: 4, halved while the half jump would be
+## longer than 18 m, plus the map's offset. Maps without an NJS use 4.
+static func half_jump_beats_for(bpm: float, njs: float, offset: float) -> float:
+	if njs <= 0.0 or bpm <= 0.0:
+		return 4.0
+	var seconds_per_beat := 60.0 / bpm
 	var hjd := 4.0
 	while njs * seconds_per_beat * hjd > 17.999:
 		hjd /= 2.0
-	half_jump_beats = maxf(hjd + difficulty.note_jump_start_beat_offset, 0.25)
-	beat_distance = njs * seconds_per_beat
+	return maxf(hjd + offset, 0.25)
 
 ## Beats that pass per real second: the map's BPM sped up by the Speed modifier.
 ## The song's playback position stays in song seconds, which use the plain BPM.

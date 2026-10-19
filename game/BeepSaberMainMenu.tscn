@@ -69,7 +69,7 @@ offset_top = 24.0
 offset_right = 760.0
 offset_bottom = 84.0
 
-[node name="NpsFilter" type="OptionButton" parent="." unique_id=1730492215]
+[node name="ReactionFilter" type="OptionButton" parent="." unique_id=1730492215]
 layout_mode = 0
 offset_left = 24.0
 offset_top = 100.0
@@ -147,7 +147,7 @@ theme_override_constants/separation = 4
 
 [node name="LevelStats" type="Label" parent="DifficultyPicker" unique_id=1422990203]
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 20
 horizontal_alignment = 1
 text_overrun_behavior = 3
 
@@ -407,7 +407,7 @@ list_path = NodePath("../SongsMenu")
 [connection signal="pressed" from="PlayerName_Button" to="." method="_on_PlayerName_Button_pressed"]
 [connection signal="item_selected" from="SongsMenu" to="." method="_select_song"]
 [connection signal="item_selected" from="PlaylistSelector" to="." method="_on_PlaylistSelector_item_selected"]
-[connection signal="item_selected" from="NpsFilter" to="." method="_on_nps_filter_item_selected"]
+[connection signal="item_selected" from="ReactionFilter" to="." method="_on_reaction_filter_item_selected"]
 [connection signal="item_selected" from="LengthFilter" to="." method="_on_length_filter_item_selected"]
 [connection signal="pressed" from="MorePanel/LoadPlaylists_Button" to="." method="_on_LoadPlaylists_Button_pressed"]
 [connection signal="timeout" from="song_prev/stop_prev" to="." method="_on_stop_prev_timeout"]
