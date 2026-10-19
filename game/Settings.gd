@@ -27,6 +27,8 @@ const COLOR_PRESETS := [
 		["Galaxy", Color("5b6cff"), Color("ff5be1")],
 		["Lime & Grape", Color("b0f03d"), Color("8e3dff")] ]
 
+## how notes are drawn: index into this list is the note_style shader global
+const NOTE_STYLES := [ ["solid", "Solid"], ["neon", "Neon"] ]
 const BACKGROUND_MODES := [ ["dynamic", "*Dynamic"],
 		["simple", "Simple"],
 		["static", "Static"] ]
@@ -192,6 +194,10 @@ var background: String:
 	set(value):
 		background = value
 		set_and_emit(&"background", value)
+var note_style: String:
+	set(value):
+		note_style = value
+		set_and_emit(&"note_style", value)
 var background_texture: String:
 	set(value):
 		background_texture = value
@@ -299,6 +305,7 @@ var default_values = {
 	spectator_view = false,
 	spectator_hud = true,
 	background = "dynamic",
+	note_style = "solid",
 	background_texture = "res://game/data/background/nightsky.jpg",
 	health_mode = true,
 	fail_mode = 0,

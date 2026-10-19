@@ -42,6 +42,7 @@ signal apply()
 @onready var spectator_hud_control := $Tabs/Advanced/VBox/spectator_hud as CheckButton
 @onready var background_mode_control := $Tabs/Visuals/VBox/background_mode_grid/background_mode as OptionButton
 @onready var background_texture_control := $Tabs/Visuals/VBox/background_texture_grid/background_texture as OptionButton
+@onready var note_style_control := $Tabs/Visuals/VBox/note_style_grid/note_style as OptionButton
 
 var _play_ui_sound_demo := false
 var left_saber_col_state := false
@@ -61,6 +62,12 @@ func _ready() -> void:
 		if Settings.background == Settings.BACKGROUND_MODES[i][0]:
 			background_mode_control.selected = i
 	background_mode_control.connect("item_selected", _on_background_mode_selected)
+
+	for i in len(Settings.NOTE_STYLES):
+		note_style_control.add_item(Settings.NOTE_STYLES[i][1])
+		if Settings.note_style == Settings.NOTE_STYLES[i][0]:
+			note_style_control.selected = i
+	note_style_control.item_selected.connect(_on_note_style_selected)
 	
 	_update_backgrounds()
 
@@ -351,6 +358,9 @@ func _on_background_texture_selected(item: int) -> void:
 
 func _on_background_mode_selected(item: int) -> void:
 	Settings.background = Settings.BACKGROUND_MODES[item][0]
+
+func _on_note_style_selected(item: int) -> void:
+	Settings.note_style = Settings.NOTE_STYLES[item][0]
 
 func _on_left_handed_toggled(value: bool) -> void:
 	Settings.left_handed = value

@@ -9,12 +9,16 @@ const vec3 LIGHT_DIR = vec3(-0.3, 0.8, 0.5);
 // brightness of a face turned fully away from the light
 const float SHADE_FLOOR = 0.45;
 const float RIM_STRENGTH = 0.35;
-// Self-lit coloured plastic, as in Beat Saber: its note shaders are "Lit Glow" kinds, a full-colour body that
+// The player picks one of two looks in the settings (note_style): 0 "Solid" is only the fake light and rim above;
+// 1 "Neon" is self-lit coloured plastic, as in Beat Saber: its note shaders are "Lit Glow" kinds, a full-colour body that
 // glows on its own (BSMG Custom Notes Guide, bsmg.wiki/models/notes-guide.html). On top: bright bevels, a faint
 // soft reflection of a made-up studio (a band near the horizon and a soft light overhead) and a broad soft
 // highlight (Blinn 1977). Reflections were strong before and the cubes read as tin cans. No reflection probe or
 // texture: a few math operations per pixel. All values untuned.
 // the flat faces end and the rounded bevels begin this far from the centre (the mesh is 0.5 wide)
+global uniform int note_style;
+// Neon glows this much more on its own than Solid
+const float NEON_GLOW = 0.12;
 const float BEVEL_START = 0.19;
 const float BEVEL_FULL = 0.225;
 const float BEVEL_STRENGTH = 0.55;
@@ -90,19 +94,25 @@ void fragment() {
 		float shade = mix(SHADE_FLOOR, 1.0, lit);
 		float n_dot_v = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
 		float rim = pow(1.0 - n_dot_v, 3.0) * RIM_STRENGTH;
-		vec3 view_world = normalize((INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz);
-		vec3 r = reflect(-view_world, world_normal);
-		vec3 reflection = mix(color.rgb, vec3(1.0), REFLECT_WHITE) * (studio(r) * REFLECT + env_haze.rgb * HAZE_REFLECT);
-		float spec = pow(clamp(dot(world_normal, normalize(normalize(LIGHT_DIR) + view_world)), 0.0, 1.0), SPEC_POWER) * SPEC_STRENGTH;
-		// on a bevel at least two of the three coordinates are near the edge of the cube
-		float bevel = smoothstep(BEVEL_START, BEVEL_FULL, middle(abs(local_pos)));
-		vec3 base = color.rgb * (shade + sub_emission_energy + rim)
-			+ mix(color.rgb, vec3(1.0), BEVEL_WHITE) * bevel * BEVEL_STRENGTH * shade
-			+ reflection + vec3(spec);
+		vec3 base = color.rgb * (shade + sub_emission_energy + rim);
+		bool neon = note_style == 1;
+		if (neon) {
+			vec3 view_world = normalize((INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz);
+			vec3 r = reflect(-view_world, world_normal);
+			vec3 reflection = mix(color.rgb, vec3(1.0), REFLECT_WHITE) * (studio(r) * REFLECT + env_haze.rgb * HAZE_REFLECT);
+			float spec = pow(clamp(dot(world_normal, normalize(normalize(LIGHT_DIR) + view_world)), 0.0, 1.0), SPEC_POWER) * SPEC_STRENGTH;
+			// on a bevel at least two of the three coordinates are near the edge of the cube
+			float bevel = smoothstep(BEVEL_START, BEVEL_FULL, middle(abs(local_pos)));
+			base += color.rgb * NEON_GLOW
+				+ mix(color.rgb, vec3(1.0), BEVEL_WHITE) * bevel * BEVEL_STRENGTH * shade
+				+ reflection + vec3(spec);
+		}
 		vec2 dot_uv = vec2(UV.x+0.5, UV.y);
 		if (is_dot || arrows_enabled) {
 			vec2 mark_uv = is_dot ? dot_uv : UV;
-			base += texture(texture_emission, mark_uv).rgb + texture(texture_emission, mark_uv, ARROW_HALO_BLUR).rgb * ARROW_HALO;
+			base += texture(texture_emission, mark_uv).rgb;
+			if (neon)
+				base += texture(texture_emission, mark_uv, ARROW_HALO_BLUR).rgb * ARROW_HALO;
 		}
 
 		if (is_chain_head) {

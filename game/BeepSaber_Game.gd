@@ -313,6 +313,7 @@ func _ready() -> void:
 	_show_debug_info()
 	set_colors_from_settings()
 	($WorldEnvironment as WorldEnvironment).environment.glow_enabled = Settings.glare
+	_apply_note_style()
 	($WorldEnvironment as WorldEnvironment).environment.adjustment_color_correction = _make_shadow_tint_lut()
 	
 	if not vr.inVR:
@@ -399,8 +400,15 @@ func on_settings_changed(key: StringName) -> void:
 			_show_debug_info()
 		&"glare":
 			($WorldEnvironment as WorldEnvironment).environment.glow_enabled = Settings.glare
+		&"note_style":
+			_apply_note_style()
 		&"player_height_offset":
 			xr_origin.transform.origin.y = Settings.player_height_offset
+
+## Tells the note shaders which look the player picked.
+func _apply_note_style() -> void:
+	var style := maxi(Settings.NOTE_STYLES.map(func(s: Array) -> String: return s[0]).find(Settings.note_style), 0)
+	RenderingServer.global_shader_parameter_set(&"note_style", style)
 
 func set_colors_from_settings() -> void:
 	update_left_color(Settings.color_left)

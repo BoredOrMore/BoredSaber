@@ -161,6 +161,10 @@ quality/depth/hdr=false
 
 [shader_globals]
 
+note_style={
+"type": "int",
+"value": 0
+}
 left_saber={
 "type": "vec3",
 "value": Vector3(-0.5, 0, 0)
