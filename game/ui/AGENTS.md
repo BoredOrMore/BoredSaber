@@ -10,7 +10,7 @@
 - `BeatSaverPanel/`: browse/search/download maps from beatsaver.com (class `BeatSaverPanel`).
 - `BeatSageUI/` (+ `BeatSageRequest/`): generate a map from a YouTube URL via beatsage.com (class `BeatSagePanel`).
 - `MapDownloadPanel/`: picker between BeatSaver and BeatSage; `MapSourceButton` is its image+text button.
-- `NameSelector/`: row of recent-name buttons plus "Type name..." for new highscores.
+- `NameSelector/`: "Saved as <name>" plus an "Edit name" button that opens the keyboard, for new highscores.
 - `UI_AudioEngine/`: autoload; `attach_children(node)` wires hover/click sounds to every `Button` below `node`.
 - `YouTubeUI/` (+ `YouTubeAPI/`): YouTube search used by BeatSage.
 - In `game/`: `BeepSaberMainMenu.gd/.tscn` (class `MainMenu`: song list, difficulty, modifiers/more side panels),
