@@ -189,7 +189,7 @@ func set_background() -> void:
 		disabled = true
 	else:
 		ring_holder.visible = rings_enabled
-		($Level/StageSmoke).show()
+		($Level/StageSmoke).visible = Settings.smoke
 		diagonal_lasers_holder.show()
 		square_lasers_holder.show()
 		left_waving_lasers_holder.show()

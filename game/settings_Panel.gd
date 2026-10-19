@@ -7,6 +7,7 @@ signal apply()
 @onready var saber_control := $Tabs/Visuals/VBox/SaberTypeRow/saber as OptionButton
 @onready var color_preset_control := $Tabs/Visuals/VBox/ColorPresetRow/color_preset as OptionButton
 @onready var glare_control := $Tabs/Visuals/VBox/glare as CheckButton
+@onready var smoke_control := $Tabs/Visuals/VBox/smoke as CheckButton
 @onready var saber_tail_control := $Tabs/Visuals/VBox/saber_tail as CheckButton
 @onready var saber_thickness := $Tabs/Visuals/VBox/SaberThicknessRow/saber_thickness as HSlider
 @onready var cut_blocks := $Tabs/Visuals/VBox/cut_blocks as CheckButton
@@ -131,6 +132,7 @@ func set_controls_from_settings() -> void:
 	_update_color_preset_selection()
 	saber_tail_control.button_pressed = Settings.saber_tail
 	glare_control.button_pressed = Settings.glare
+	smoke_control.button_pressed = Settings.smoke
 	darker_notes_control.button_pressed = Settings.darker_notes
 	saber_control.select(Settings.saber_visual)
 	show_debug_control.button_pressed = Settings.show_debug_info
@@ -214,6 +216,9 @@ func _on_saber_tail_toggled(button_pressed: bool) -> void:
 
 func _on_glare_toggled(button_pressed: bool) -> void:
 	Settings.glare = button_pressed
+
+func _on_smoke_toggled(button_pressed: bool) -> void:
+	Settings.smoke = button_pressed
 
 func _on_saber_item_selected(index: int) -> void:
 	Settings.saber_visual = index
