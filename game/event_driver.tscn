@@ -1,7 +1,8 @@
-[gd_scene load_steps=38 format=3 uid="uid://qjvg3reomvyk"]
+[gd_scene load_steps=39 format=3 uid="uid://qjvg3reomvyk"]
 
 [ext_resource type="Shader" path="res://game/env/EnvSolid.gdshader" id="env_solid"]
 [ext_resource type="Shader" path="res://game/env/NeonRibbon.gdshader" id="neon_ribbon"]
+[ext_resource type="Script" path="res://game/env/StageSmoke.gd" id="stage_smoke"]
 [ext_resource type="Script" uid="uid://4mismrno10gr" path="res://game/event_driver.gd" id="2"]
 [ext_resource type="ArrayMesh" uid="uid://cy814avk383k" path="res://game/data/ring.obj" id="3"]
 [ext_resource type="Texture2D" uid="uid://cpifpmidb4s0c" path="res://game/data/background/bg_base.jpg" id="5"]
@@ -958,6 +959,9 @@ layers = 3
 material_override = SubResource("20")
 mesh = SubResource("19")
 skeleton = NodePath("../..")
+
+[node name="StageSmoke" type="Node3D" parent="Level"]
+script = ExtResource("stage_smoke")
 
 [node name="TrackLights" type="Node3D" parent="Level"]
 

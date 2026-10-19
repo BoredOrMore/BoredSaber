@@ -115,11 +115,13 @@ func set_background() -> void:
 		($Level/DiagonalLasers/laser9).hide()
 		($Level/DiagonalLasers/laser10).hide()
 		track_lights_holder.hide()
+		($Level/StageSmoke).hide()
 		set_all_off()
 		turn_light_on(EventInfo.TYPE_FLOOR_LIGHTS, Color.WHITE)
 		disabled = true
 	else:
 		ring_holder.show()
+		($Level/StageSmoke).show()
 		diagonal_lasers_holder.show()
 		square_lasers_holder.show()
 		left_waving_lasers_holder.show()
