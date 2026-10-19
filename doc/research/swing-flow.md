@@ -48,3 +48,5 @@ headset playtests.
 - BeatSaver API and map downloads: https://api.beatsaver.com
 - BSMG wiki, mapping basics (parity, flow, resets): https://bsmg.wiki/mapping/basic-mapping.html
 - BeatLeader star rating with separate Pass, Acc and Tech ratings: https://beatleader.xyz
+- Script: `doc/research/flow_research.py` (run with `python3 -I flow_research.py <zip_dir> <out.json>` on the
+  map zips cached by `rt_research.py`; also fetches BeatLeader ratings per map hash).
