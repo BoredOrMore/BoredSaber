@@ -69,7 +69,7 @@ const DIFFICULTY_SPEED_BIT2 := 0x80000
 const DIFFICULTY_SPEED_MASK := 0x20000 | 0x40000 | 0x80000
 const SPEEDS := [ [85, "Speed 85%", 1<<DIFFICULTY_SPEED_SHIFT], [100, "Speed 100%", 0], [125, "Speed 125%", 2<<DIFFICULTY_SPEED_SHIFT], [150, "Speed 150%", 3<<DIFFICULTY_SPEED_SHIFT], [175, "Speed 175%", 4<<DIFFICULTY_SPEED_SHIFT]]
 # Song list filters: [id, label, min, max], where max <= 0 means no upper limit. Length is in seconds.
-const NPS_FILTERS := [ [0, "Any NPS", 0.0, 0.0], [1, "Under 3 NPS", 0.0, 3.0], [2, "3-5 NPS", 3.0, 5.0], [3, "5-7 NPS", 5.0, 7.0], [4, "7+ NPS", 7.0, 0.0] ]
+const NPS_FILTERS := [ [0, "Any note count", 0.0, 0.0], [1, "Few: under 3 a sec", 0.0, 3.0], [2, "Some: 3-5 a sec", 3.0, 5.0], [3, "Many: 5-7 a sec", 5.0, 7.0], [4, "Packed: 7+ a sec", 7.0, 0.0] ]
 ## Reaction time levels from easiest: [name, colour, least seconds a note is visible before reaching
 ## the player]. Band edges from doc/research/reaction-time-and-swing-gap.md (BeatSaver map data,
 ## midpoints between the median of neighbouring difficulties); not yet confirmed by headset playtests.

@@ -8,6 +8,7 @@ class BeatSaverSongInfo extends RefCounted:
 	var song_author_name: String
 	var level_author_name: String
 	var duration: float
+	var bpm: float
 	var versions: Array
 	var uploader_id: int
 
@@ -21,6 +22,23 @@ class BeatSaverSongInfo extends RefCounted:
 		song_author_name = Utils.get_str(metadata, "songAuthorName", "")
 		level_author_name = Utils.get_str(metadata, "levelAuthorName", "")
 		duration = Utils.get_float(metadata, "duration", 0.0)
+		bpm = Utils.get_float(metadata, "bpm", 0.0)
+
+	## Seconds a note of one difficulty (from versions[0].diffs) is visible before reaching the player.
+	func reaction_seconds(diff: Dictionary) -> float:
+		return MapStats.reaction_seconds_for(bpm, Utils.get_float(diff, "njs", 0.0), Utils.get_float(diff, "offset", 0.0))
+
+	## True if the reaction time filter is off or any difficulty of the newest version is at the picked
+	## reaction time.
+	func passes_reaction_filter() -> bool:
+		if Settings.song_filter_reaction == 0:
+			return true
+		if versions.is_empty():
+			return false
+		for diff: Variant in Utils.get_array(versions[0] as Dictionary, "diffs", []):
+			if diff is Dictionary and MapStats.reaction_level(reaction_seconds(diff as Dictionary)) == Settings.song_filter_reaction - 1:
+				return true
+		return false
 
 var song_data: Array[BeatSaverSongInfo] = []
 var current_list := 0
@@ -52,6 +70,7 @@ var _preview_url := ""
 @onready var httppreviewdownload := $PreviewDownload as HTTPRequest
 @onready var placeholder_cover := preload("res://game/data/beepsaber_logo.png")
 @onready var goto_maps_by := $gotoMapsBy as Button
+@onready var reaction_filter := $ReactionFilter as OptionButton
 @onready var nps_filter := $NpsFilter as OptionButton
 @onready var length_filter := $LengthFilter as OptionButton
 @onready var v_scroll := item_list.get_v_scroll_bar()
@@ -99,6 +118,8 @@ func _ready() -> void:
 
 	main_menu_ref.song_list_changed.connect(on_song_list_changed)
 	
+	for filter: Array in MapStats.reaction_filters():
+		reaction_filter.add_item(filter[1])
 	for filter: Array in Constants.NPS_FILTERS:
 		nps_filter.add_item(filter[1])
 	for filter: Array in Constants.LENGTH_FILTERS:
@@ -108,6 +129,7 @@ func _ready() -> void:
 
 ## Shows the saved song filters in the dropdowns.
 func _sync_filter_controls() -> void:
+	reaction_filter.select(clampi(Settings.song_filter_reaction, 0, Constants.REACTION_LEVELS.size()))
 	nps_filter.select(MapStats.nps_filter()[0])
 	length_filter.select(MapStats.length_filter()[0])
 
@@ -128,12 +150,16 @@ static func _filter_query() -> String:
 
 ## Follows filter changes (made here or in the song menu) and reloads the current list with them.
 func _on_settings_changed(key: StringName) -> void:
-	if key != &"song_filter_nps" and key != &"song_filter_length":
+	if key != &"song_filter_reaction" and key != &"song_filter_nps" and key != &"song_filter_length":
 		return
 	_sync_filter_controls()
 	if prev_request != null and prev_request.type != "uploader":
 		prev_request.page = 0
 		update_list(prev_request)
+
+## Stores the picked reaction time filter.
+func _on_reaction_filter_item_selected(index: int) -> void:
+	Settings.song_filter_reaction = index
 
 ## Stores the picked NPS filter.
 func _on_nps_filter_item_selected(index: int) -> void:
@@ -228,10 +254,13 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 				var docs: Variant = json_dict["docs"]
 				if docs is Array:
 					var docs_array := docs as Array
-					_current_cover_to_download = song_data.size()
+					# resume covers a newer page interrupted, rather than skipping them
+					_current_cover_to_download = mini(_current_cover_to_download, song_data.size())
 					for i: Variant in docs_array:
 						if not i is Dictionary: continue
 						var parsed_song := BeatSaverSongInfo.new(i as Dictionary)
+						if parsed_song.versions.is_empty() or (prev_request.type != "uploader" and not parsed_song.passes_reaction_filter()):
+							continue
 						var index := item_list.add_item(parsed_song.name)
 						item_list.set_item_icon(index, placeholder_cover)
 						var tooltip := "Map author: %s" % parsed_song.level_author_name
@@ -250,6 +279,23 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 	if canvas is OQ_UI2DCanvas: (canvas as OQ_UI2DCanvas)._input_update()
 	
 	_update_all_covers()
+	_fill_reaction_filtered_list()
+
+## Most items the list fetches pages for on its own while the reaction time filter hides songs.
+const REACTION_FILL_ITEMS := 20
+## Most pages fetched on their own in a row, so a rare reaction time can't keep requesting forever.
+const REACTION_FILL_PAGES := 10
+
+## BeatSaver can't filter by reaction time, so it is applied to each page after it arrives and a page
+## can show few or no songs; fetch the next pages until the list has enough songs to scroll.
+func _fill_reaction_filtered_list() -> void:
+	if Settings.song_filter_reaction == 0 or prev_request == null or prev_request.type == "uploader":
+		return
+	if next_page_available == -1 or item_list.item_count >= REACTION_FILL_ITEMS or prev_request.page >= REACTION_FILL_PAGES:
+		return
+	prev_request.page += 1
+	update_list(prev_request)
+	_scroll_page_request_pending = true
 
 
 func _on_mode_button_up() -> void:
@@ -275,9 +321,9 @@ func _on_ItemList_item_selected(index: int) -> void:
 	for diff in version['diffs']:
 		var diff_name := str(diff.get('difficulty', ""))
 		var diff_color: Color = Constants.DIFFICULTY_COLORS.get(diff_name, Constants.UI_TEXT)
-		var nps := Utils.get_float(diff, "nps", -1.0)
-		if nps >= 0.0:
-			diff_name += " %.1f NPS" % nps
+		if diff is Dictionary and selected_data.bpm > 0.0:
+			var reaction := selected_data.reaction_seconds(diff as Dictionary)
+			diff_name += " · Reaction time: %s (%.2f s)" % [Constants.REACTION_LEVELS[MapStats.reaction_level(reaction)][0], reaction]
 		difficulties += "\n[color=#%s]%s[/color]" % [diff_color.to_html(false), diff_name]
 	var text := """[center]%s By %s[/center]
 
