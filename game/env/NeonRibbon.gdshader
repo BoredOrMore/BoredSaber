@@ -11,10 +11,10 @@ uniform vec4 light_color : source_color = vec4(1.0);
 // whole ribbon width in metres, halo included (untuned)
 uniform float width = 0.4;
 uniform float min_pixels = 2.0;
-// per metre; at 50 m about two thirds of the light is left (untuned)
-uniform float fog_density = 0.008;
+// per metre; at 50 m about 80% of the light is left (untuned)
+uniform float fog_density = 0.005;
 // makes up for the full-screen glow these bars used to get (untuned)
-uniform float brightness = 2.0;
+uniform float brightness = 3.5;
 
 varying float across;
 varying float along;
@@ -40,8 +40,8 @@ void vertex() {
 
 void fragment() {
 	float d = abs(across);
-	float core = exp(-d * d * 24.0);
-	float halo = exp(-d * d * 5.0) * 0.35;
+	float core = exp(-d * d * 18.0);
+	float halo = exp(-d * d * 4.0) * 0.6;
 	float tips = 1.0 - smoothstep(0.85, 1.0, abs(along));
 	ALBEDO = light_color.rgb * (core + halo) * (1.0 - d) * tips * fade * brightness;
 }
