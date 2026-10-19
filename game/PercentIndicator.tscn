@@ -3,6 +3,7 @@
 [ext_resource type="Shader" path="res://game/PercentIndicator.gdshader" id="1_b23qh"]
 [ext_resource type="Material" uid="uid://dqox51k4cngtf" path="res://game/Text.material" id="3_wm8ff"]
 [ext_resource type="Script" path="res://game/PercentIndicator.gd" id="4"]
+[ext_resource type="Texture2D" path="res://game/ui/target.svg" id="target_icon"]
 [ext_resource type="FontFile" uid="uid://cdsnr8tscm8y6" path="res://OQ_Toolkit/OQ_UI2D/theme/Roboto-Medium.ttf" id="5_font"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_seqot"]
@@ -32,3 +33,9 @@ script = ExtResource("4")
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.1)
 material_override = ExtResource("3_wm8ff")
 mesh = SubResource("TextMesh_bcnkh")
+
+[node name="Icon" type="Sprite3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.35, 0)
+pixel_size = 0.0009
+texture_filter = 3
+texture = ExtResource("target_icon")

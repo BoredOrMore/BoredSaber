@@ -19,6 +19,10 @@ const RAIL_LENGTH := 5.0
 const RAIL_WIDTH := 0.05
 ## Must match edge_pad in HealthRail.gdshader.
 const EDGE_PAD := 0.01
+## Heart icon at the near end of the left strip, saying what the strips show: its size and how far it floats above
+## the strip's start.
+const ICON_SIZE := 0.1
+const ICON_LIFT := 0.1
 ## Gap between two life pips.
 const PIP_GAP := 0.25
 ## How much of the danger colour a lost life keeps, so it reads as an empty slot.
@@ -34,6 +38,7 @@ var _pips: Array[MeshInstance3D] = []
 const RAIL_SHADER := preload("res://game/HealthRail.gdshader")
 
 var _danger := Color.RED
+var _icon := Sprite3D.new()
 var _bar_material := _rail_material(Constants.HEALTH_FULL_COLOR)
 var _lit_material := _rail_material(Constants.HEALTH_FULL_COLOR)
 var _lost_material := _rail_material(Color.BLACK)
@@ -44,6 +49,12 @@ func _ready() -> void:
 		_bars.append(_strip(side, RAIL_LENGTH, RAIL_NEAR_Z - RAIL_LENGTH / 2, _bar_material))
 		for i in Constants.FAIL_LIVES:
 			_pips.append(_strip(side, pip_length, RAIL_NEAR_Z - pip_length / 2 - i * (pip_length + PIP_GAP), _lost_material))
+	_icon.texture = preload("res://game/ui/heart.svg")
+	_icon.pixel_size = ICON_SIZE / _icon.texture.get_width()
+	_icon.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_icon.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	_icon.position = Vector3(-_rail_x(), RAIL_LIFT + ICON_LIFT, RAIL_NEAR_Z)
+	add_child(_icon)
 	visibility_changed.connect(func() -> void: set_process(visible))
 	set_process(visible)
 
@@ -57,6 +68,7 @@ func start_map(lives: bool, how_full: float) -> void:
 	# the Width modifier moves the outer lanes, so follow them
 	for strip: MeshInstance3D in _bars + _pips:
 		strip.position.x = signf(strip.position.x) * _rail_x()
+	_icon.position.x = -_rail_x()
 	for bar in _bars:
 		bar.visible = not lives
 	for pip in _pips:
@@ -70,6 +82,7 @@ func update_health(how_full: float) -> void:
 	if _lives:
 		var lives_left := roundi(_how_full * Constants.FAIL_LIVES)
 		_lit_material.set_shader_parameter(&"color", _health_color(_how_full))
+		_icon.modulate = _health_color(_how_full)
 		for i in _pips.size():
 			_pips[i].material_override = _lit_material if i % Constants.FAIL_LIVES < lives_left else _lost_material
 
@@ -82,6 +95,7 @@ func _process(delta: float) -> void:
 		bar.scale.z = length / RAIL_LENGTH
 		bar.position.z = RAIL_NEAR_Z - length / 2
 	_bar_material.set_shader_parameter(&"color", _health_color(_how_full_display))
+	_icon.modulate = _health_color(_how_full_display)
 
 ## The full colour while health is high, turning into the song's danger colour as it runs out.
 func _health_color(how_full: float) -> Color:

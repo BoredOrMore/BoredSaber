@@ -11,6 +11,10 @@ func _ready() -> void:
 	var label_instance = $PercentLabel as MeshInstance3D
 	label = label_instance.mesh as TextMesh
 	label_instance.layers = layers
+	# a target under the ring says what the number is without words
+	var icon := $Icon as Sprite3D
+	icon.modulate = Constants.UI_TEXT_MUTED
+	icon.layers = layers
 
 func _process(delta: float) -> void:
 	how_full_display = lerpf(how_full_display, how_full, delta*8)
