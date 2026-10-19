@@ -72,7 +72,13 @@ Swing pace (median same-hand gap, "how often each hand swings"):
 | Rapid | 330–420 ms | Expert/Expert+ |
 | Frantic | < 330 ms | hard Expert+ |
 
-Band edges sit near the midpoints between neighbouring medians. They are a data-based starting
+Band edges sit near the midpoints between neighbouring medians. A sixth, easiest band was added on
+2026-10-19 after headset play found Relaxed still too hard: **Gentle / Leisurely** (RT ≥ 1100 ms, gap
+≥ 1000 ms), i.e. as easy as the median Easy map (1125 ms, 1008 ms) or easier.
+
+The song list's filter uses an **overall level**: the harder of the reaction time band and the swing
+pace band (same index in both tables). Reaction time alone ranked slow-reading but fast-swinging maps
+as easy; RT and swing gap together predict BeatLeader stars better (R² 0.75 vs 0.64, above). They are a data-based starting
 point; confirm them with headset playtests and adjust if a band feels wrong.
 
 ## Sources

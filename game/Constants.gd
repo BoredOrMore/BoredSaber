@@ -72,8 +72,11 @@ const SPEEDS := [ [85, "Speed 85%", 1<<DIFFICULTY_SPEED_SHIFT], [100, "Speed 100
 const NPS_FILTERS := [ [0, "Any note count", 0.0, 0.0], [1, "Few: under 3 a sec", 0.0, 3.0], [2, "Some: 3-5 a sec", 3.0, 5.0], [3, "Many: 5-7 a sec", 5.0, 7.0], [4, "Packed: 7+ a sec", 7.0, 0.0] ]
 ## Reaction time levels from easiest: [name, colour, least seconds a note is visible before reaching
 ## the player]. Band edges from doc/research/reaction-time-and-swing-gap.md (BeatSaver map data,
-## midpoints between the median of neighbouring difficulties); not yet confirmed by headset playtests.
+## midpoints between the median of neighbouring difficulties; Gentle is the median Easy map or easier);
+## not yet confirmed by headset playtests. The names double as the song list's overall levels
+## (MapStats.level_of), which pair each entry with the SWING_PACE_LEVELS entry at the same index.
 const REACTION_LEVELS := [
+	["Gentle", Color(0.55, 0.85, 0.7), 1.1],
 	["Relaxed", Color(0.24, 0.7, 0.44), 1.0],
 	["Comfortable", Color(0.35, 0.69, 0.96), 0.8],
 	["Quick", Color(1.0, 0.62, 0.26), 0.65],
@@ -83,6 +86,7 @@ const REACTION_LEVELS := [
 ## Swing pace levels from easiest: [name, least median seconds between two swings of one hand]. Same
 ## source and status as REACTION_LEVELS.
 const SWING_PACE_LEVELS := [
+	["Leisurely", 1.0],
 	["Calm", 0.8],
 	["Steady", 0.55],
 	["Brisk", 0.42],
