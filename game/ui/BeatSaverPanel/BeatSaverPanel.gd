@@ -106,7 +106,7 @@ var song_data: Array[BeatSaverSongInfo] = []
 var prev_page_available := -1
 var next_page_available := -1
 ## Style chips and genres: [label, BeatSaver tag], "" meaning any.
-const STYLES := [["Any", ""], ["Dance", "dance-style"], ["Workout", "fitness"], ["Accuracy", "accuracy"],
+const STYLES := [["Any", ""], ["Dance", "dance-style"], ["Fitness", "fitness"], ["Accuracy", "accuracy"],
 	["Tech", "tech"], ["Speed", "speed"], ["Challenge", "challenge"]]
 const GENRES := [["Any genre", ""], ["Pop", "pop"], ["J-Pop", "j-pop"], ["K-Pop", "k-pop"], ["Anime", "anime"],
 	["Electronic", "electronic"], ["Rock", "rock"], ["Game music", "video-game-soundtrack"], ["Metal", "metal"],

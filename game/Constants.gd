@@ -63,7 +63,7 @@ const DIFFICULTY_WIDTH_BIT0 := 0x1000 # 1<<12
 const DIFFICULTY_WIDTH_BIT1 := 0x2000
 const DIFFICULTY_WIDTH_BIT2 := 0x40000
 const DIFFICULTY_WIDTH_MASK := 0x1000 | 0x2000 | 0x4000
-const WIDTHS := [ [100, "No Stretch", 0], [125, "Stretch 125%", 1<<DIFFICULTY_WIDTH_SHIFT], [150, "Stretch 150%", 2<<DIFFICULTY_WIDTH_SHIFT], [175, "Stretch 175%", 3<<DIFFICULTY_WIDTH_SHIFT], [200, "Stretch 200%", 4<<12] ]
+const WIDTHS := [ [100, "Normal Width", 0], [125, "Wide 125%", 1<<DIFFICULTY_WIDTH_SHIFT], [150, "Wide 150%", 2<<DIFFICULTY_WIDTH_SHIFT], [175, "Wide 175%", 3<<DIFFICULTY_WIDTH_SHIFT], [200, "Wide 200%", 4<<12] ]
 #const DIFFICULTY_RESERVED := 0x8000
 const DIFFICULTY_SPEED_SHIFT := 17
 const DIFFICULTY_SPEED_BIT0 := 0x20000
@@ -105,22 +105,22 @@ const DIFFICULTY_FLIP_VERTICAL := 0x200000
 const DIFFICULTY_FLIP_MASK := 0x100000 | 0x200000
 const DIFFICULTY_HANDEDNESS_FORCE_LEFT := 0x400000
 const DIFFICULTY_HANDEDNESS_FORCE_RIGHT := 0x800000
-## Both bits: it once shared Right Only's bit, so those records read as Right Only.
+## Both bits: it once shared Right Saber Only's bit, so those records read as Right Saber Only.
 const DIFFICULTY_HANDEDNESS_IGNORE := 0x400000 | 0x800000
 const DIFFICULTY_HANDEDNESS_MASK := 0x400000 | 0x800000
 const FLIP_MASK := 3
 const FLIP_HORIZONTAL := 1
 const FLIP_VERTICAL := 2
-const FLIPS := [ [0, "No Flip" ], [FLIP_HORIZONTAL,"Flip Horiz"], [FLIP_VERTICAL,"Flip Vert"], [FLIP_HORIZONTAL|FLIP_VERTICAL,"Flip HV"] ]
+const FLIPS := [ [0, "No Mirror" ], [FLIP_HORIZONTAL,"Mirror Left-Right"], [FLIP_VERTICAL,"Mirror Up-Down"], [FLIP_HORIZONTAL|FLIP_VERTICAL,"Mirror Both Ways"] ]
 const HANDEDNESS_NORMAL := 0
 const HANDEDNESS_IGNORE := 1
 const HANDEDNESS_FORCE_LEFT := 2
 const HANDEDNESS_FORCE_RIGHT := 3
-const HANDEDNESSES := [ [0, "Normal Hands"], [HANDEDNESS_IGNORE, "Ignore Side"], [HANDEDNESS_FORCE_LEFT, "Left Only"], [HANDEDNESS_FORCE_RIGHT, "Right Only"] ]
+const HANDEDNESSES := [ [0, "Normal Sabers"], [HANDEDNESS_IGNORE, "Any Saber, Any Color"], [HANDEDNESS_FORCE_LEFT, "Left Saber Only"], [HANDEDNESS_FORCE_RIGHT, "Right Saber Only"] ]
 ## Modifier labels without an option table; the Modifiers tab and the record table both use them.
 const NO_BOMBS_LABEL := "No Bombs"
 const NO_ARROWS_LABEL := "No Arrows"
-const CLAWS_LABEL := "Short Sword"
+const CLAWS_LABEL := "Short Sabers"
 const SIZES := [ [50, "Small Blocks"], [100, "Normal Blocks"], [150, "Big Blocks"], [225, "Giant Blocks"]]
 const DIFFICULTY_BLOCK_SIZE_MASK := 0x1000000 | 0x2000000
 const DIFFICULTY_BLOCK_SIZE_SMALL := 0x1000000
