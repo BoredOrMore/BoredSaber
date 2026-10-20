@@ -224,6 +224,7 @@ func set_environment(id: String) -> void:
 	($Level/Sphere as MeshInstance3D).material_override = sky
 	rings_enabled = id == "classic"
 	_apply_rig(id)
+	_set_reverb(id)
 	show_scenery_for_mixed_reality()
 	set_background()
 
@@ -274,6 +275,37 @@ static func _aim(laser: Node3D, from: Vector3, direction: Vector3) -> void:
 	var length := laser.global_transform.basis.z.length()
 	var aim := Basis.looking_at(direction.normalized(), Vector3.UP if absf(direction.normalized().y) < 0.99 else Vector3.FORWARD)
 	laser.global_transform = Transform3D(Basis(aim.x, aim.y, aim.z * length), from)
+
+## Each environment sounds like its space: a reverb on the cut sounds' SFX bus and, lightly, on the Music bus, as
+## [room size, damping, pre-delay in ms, SFX wet, Music wet]. Classic a concert hall; Neon Grid open ground, nearly
+## dry; Night City the street's echo off the buildings 19 m away (pre-delay: there and back at 343 m/s); Pulse Void
+## a vast, bright void. The dry sound stays at full level, so cuts keep their timing. Untuned.
+const REVERB := {
+	"classic": [0.8, 0.5, 40.0, 0.25, 0.08],
+	"neon_grid": [0.4, 0.7, 80.0, 0.12, 0.04],
+	"night_city": [0.6, 0.6, 110.0, 0.2, 0.06],
+	"pulse_void": [0.95, 0.2, 20.0, 0.3, 0.1],
+}
+## the lowest part of the spectrum (0 to 1) left out of the reverb, so the bass stays clean
+const REVERB_HIPASS := 0.2
+
+static func _set_reverb(id: String) -> void:
+	var preset: Array = REVERB.get(id, REVERB["classic"])
+	for target: Array in [[&"SFX", 3], [&"Music", 4]]:
+		var bus := AudioServer.get_bus_index(target[0])
+		var reverb: AudioEffectReverb = null
+		for i in AudioServer.get_bus_effect_count(bus):
+			if AudioServer.get_bus_effect(bus, i) is AudioEffectReverb:
+				reverb = AudioServer.get_bus_effect(bus, i) as AudioEffectReverb
+		if not reverb:
+			reverb = AudioEffectReverb.new()
+			AudioServer.add_bus_effect(bus, reverb)
+		reverb.room_size = preset[0]
+		reverb.damping = preset[1]
+		reverb.predelay_msec = preset[2]
+		reverb.hipass = REVERB_HIPASS
+		reverb.dry = 1.0
+		reverb.wet = preset[target[1]]
 
 ## Aims a laser fixture at `from` toward `to` and sets its beam to end there.
 static func _span(laser: Node3D, from: Vector3, to: Vector3) -> void:
