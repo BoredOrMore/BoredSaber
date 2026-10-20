@@ -105,11 +105,11 @@ then multiplied by the node `transform` scale.
   for UI). Pair colour with a word or shape.
 - No large bright or saturated areas, short moderate flashes only.
 - Text stays still while hovered and part of a screen (title, tabs) stays fixed when its content
-  changes; never swap the whole view [Apple WWDC25 "Design hover interactions"]. The song title
-  marquee is a deliberate exception the user asked for; don't add more moving text.
+  changes; never swap the whole view [Apple WWDC25 "Design hover interactions"]. No scrolling or
+  marquee text: a long title ends in "…" and the details panel shows it whole.
 - Motion only with a purpose. No sustained oscillation near 0.2 Hz (people are very sensitive to it)
   and no busy motion at the edges of view [Apple motion, immersive experiences]: keep pulses,
-  glows and marquees small and short.
+  and glows small and short.
 - No repeating pattern or texture filling the view: the eyes can lock onto it at the wrong depth
   [Apple eyes].
 - UI must not cost frame time during play: no per-frame viewport redraws of hidden canvases, no new

@@ -13,7 +13,6 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
 
 - `menu_theme.tres`: the one shared `Theme` (Roboto-Medium 28 px, dark surfaces, accent borders, `toggle_on/off.svg`
   pills for `CheckButton`). Every panel `.tscn` sets `theme = ExtResource(...)` on its root.
-- `item_list_marquee.gd`: loops the hovered/selected `ItemList` title when it overflows (main menu `SongsMenu`).
 - `BeatSaverPanel/`: browse/search/download maps from beatsaver.com (class `BeatSaverPanel`).
 - `BeatSageUI/` (+ `BeatSageRequest/`): generate a map from a YouTube URL via beatsage.com (class `BeatSagePanel`).
 - `MapDownloadPanel/`: picker between BeatSaver and BeatSage; `MapSourceButton` is its image+text button.
@@ -39,7 +38,7 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   textures a quad with it; size is `control.size * vr.UI_PIXELS_TO_METER`, so scale with the node `transform`.
 - Canvases default to `update_only_on_input = true`: the viewport only redraws after pointer/key input. Code that
   changes visuals without input must ask for a redraw: `canvas._input_update()` (`BeatSaverPanel.gd:243-244`, 368-370,
-  428-429) or set `UPDATE_ONCE` (`item_list_marquee.gd:80-83`).
+  428-429).
 - Game states show/hide canvases with `_show()`/`_hide()` (`game/scripts/GameState/*.gd`); those toggle SubViewport
   updates. The panel-level `_show/_hide` in `BeatSaverPanel.gd:141-163`, `MapDownloadPanel.gd:30-51`,
   `BeatSageUI.gd:56-79`, `YouTubeUI.gd:26-47` call the canvas's plain `show()/hide()` instead, so the viewport keeps

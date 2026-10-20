@@ -2,7 +2,6 @@
 
 [ext_resource type="Script" path="res://game/ui/BeatSaverPanel/BeatSaverPanel.gd" id="2"]
 [ext_resource type="PackedScene" uid="uid://dtipmx5ep1dkk" path="res://game/vr_slider.tscn" id="3"]
-[ext_resource type="Script" path="res://game/ui/item_list_marquee.gd" id="marquee"]
 [ext_resource type="Texture2D" uid="uid://cviyxvrpvyr0g" path="res://game/data/beepsaber_logo.png" id="5"]
 [ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="menu_theme"]
 
@@ -199,10 +198,6 @@ text = "Close"
 
 [node name="list_slider" parent="." instance=ExtResource("3")]
 scroll_node_path = NodePath("../ItemList")
-
-[node name="title_marquee" type="Node" parent="."]
-script = ExtResource("marquee")
-list_path = NodePath("../ItemList")
 
 [node name="HTTPReq" type="HTTPRequest" parent="."]
 

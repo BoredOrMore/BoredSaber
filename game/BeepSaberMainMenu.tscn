@@ -5,7 +5,6 @@
 [ext_resource type="Script" uid="uid://cbe53qn50sjl7" path="res://game/BeepSaberMainMenu.gd" id="3"]
 [ext_resource type="Texture2D" uid="uid://cviyxvrpvyr0g" path="res://u/assets/game/data/beepsaber_logo.png" id="3_wpmn0"]
 [ext_resource type="PackedScene" uid="uid://dtipmx5ep1dkk" path="res://game/vr_slider.tscn" id="6"]
-[ext_resource type="Script" path="res://game/ui/item_list_marquee.gd" id="marquee"]
 
 [sub_resource type="StyleBoxFlat" id="1"]
 bg_color = Color(0.086, 0.094, 0.114, 1)
@@ -436,10 +435,6 @@ one_shot = true
 [node name="song_vr_slider" parent="." unique_id=485485119 instance=ExtResource("6")]
 scroll_node_path = NodePath("../SongsMenu")
 scroll_without_pointer = true
-
-[node name="title_marquee" type="Node" parent="."]
-script = ExtResource("marquee")
-list_path = NodePath("../SongsMenu")
 
 [connection signal="toggled" from="ModifiersPanel/Margin/Rows/Toggles/Bombs" to="." method="_on_bombs_toggled"]
 [connection signal="toggled" from="ModifiersPanel/Margin/Rows/Toggles/Arrows" to="." method="_on_arrows_toggled"]

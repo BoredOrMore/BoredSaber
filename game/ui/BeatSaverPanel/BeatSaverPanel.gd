@@ -159,7 +159,7 @@ func on_song_list_changed() -> void:
 func _in_library(song: BeatSaverSongInfo) -> bool:
 	return main_menu_ref.all_song_hashes.has(song.get_hash())
 
-## A title cut to fit one line of a card, ending in "…" (the marquee scrolls the whole title).
+## A title cut to fit one line of a card, ending in "…"; the details panel shows it whole.
 func _one_line(title: String) -> String:
 	var font := item_list.get_theme_font("font")
 	var font_size := item_list.get_theme_font_size("font_size")
@@ -383,7 +383,6 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 						item_list.set_item_icon(index, placeholder_cover)
 						item_list.set_item_tooltip_enabled(index, false)
 						song_data.append(parsed_song)
-						item_list.set_item_metadata(index, {"title": parsed_song.name})
 
 	else:
 		vr.log_error("request error "+str(result))
