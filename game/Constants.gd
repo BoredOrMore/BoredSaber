@@ -105,7 +105,8 @@ const DIFFICULTY_FLIP_VERTICAL := 0x200000
 const DIFFICULTY_FLIP_MASK := 0x100000 | 0x200000
 const DIFFICULTY_HANDEDNESS_FORCE_LEFT := 0x400000
 const DIFFICULTY_HANDEDNESS_FORCE_RIGHT := 0x800000
-const DIFFICULTY_HANDEDNESS_IGNORE := 0x800000
+## Both bits: it once shared Right Only's bit, so those records read as Right Only.
+const DIFFICULTY_HANDEDNESS_IGNORE := 0x400000 | 0x800000
 const DIFFICULTY_HANDEDNESS_MASK := 0x400000 | 0x800000
 const FLIP_MASK := 3
 const FLIP_HORIZONTAL := 1
@@ -116,6 +117,10 @@ const HANDEDNESS_IGNORE := 1
 const HANDEDNESS_FORCE_LEFT := 2
 const HANDEDNESS_FORCE_RIGHT := 3
 const HANDEDNESSES := [ [0, "Normal Hands"], [HANDEDNESS_IGNORE, "Ignore Side"], [HANDEDNESS_FORCE_LEFT, "Left Only"], [HANDEDNESS_FORCE_RIGHT, "Right Only"] ]
+## Modifier labels without an option table; the Modifiers tab and the record table both use them.
+const NO_BOMBS_LABEL := "No Bombs"
+const NO_ARROWS_LABEL := "No Arrows"
+const CLAWS_LABEL := "Short Sword"
 const SIZES := [ [50, "Small Blocks"], [100, "Normal Blocks"], [150, "Big Blocks"], [225, "Giant Blocks"]]
 const DIFFICULTY_BLOCK_SIZE_MASK := 0x1000000 | 0x2000000
 const DIFFICULTY_BLOCK_SIZE_SMALL := 0x1000000

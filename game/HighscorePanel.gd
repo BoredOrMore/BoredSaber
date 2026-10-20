@@ -55,23 +55,41 @@ func _clear_list():
 	for c in _highscore_list.get_children():
 		c.queue_free()
 	
+## Joins a level name and the run's modifiers, e.g. "Hard · No Fail · Speed 85%".
+const RUN_PARTS_SEPARATOR := " · "
+
+## The level and the modifiers a run was played with, all read from its rank (HighscoreTable.get_rank_key), with
+## the same names the Modifiers tab uses. Defaults (health on, bombs, arrows, normal size...) are left out.
 func _get_difficulty_name(map_info: MapInfo, diff_rank: int) -> String:
-	var difficulty := diff_rank & Constants.DIFFICULTY_MASK
-	var width := HighscoreTable.get_width_from_rank(diff_rank)
-	var speed := HighscoreTable.get_speed_from_rank(diff_rank)
-	var game_type := ( ("Health" if (diff_rank & Constants.DIFFICULTY_HEALTH) != 0 else "No Health") +
-					 ("" if (diff_rank & Constants.DIFFICULTY_BOMBS) != 0 else ", No Bombs") + 
-					 ("" if (diff_rank & Constants.DIFFICULTY_ARROWS) != 0 else ", No Arrows") +
-					 (", Small" if ((diff_rank & Constants.DIFFICULTY_BLOCK_SIZE_MASK) == Constants.DIFFICULTY_BLOCK_SIZE_SMALL) else "") + 
-					 (", Big" if ((diff_rank & Constants.DIFFICULTY_BLOCK_SIZE_MASK) == Constants.DIFFICULTY_BLOCK_SIZE_BIG) else "") + 
-					 (", Giant" if ((diff_rank & Constants.DIFFICULTY_BLOCK_SIZE_MASK) == Constants.DIFFICULTY_BLOCK_SIZE_GIANT) else "") + 
-					 (", Short Sword" if (diff_rank & Constants.DIFFICULTY_CLAWS) != 0 else "") +
-					 ((", Stretch %d%% " % width) if (width != 100) else "") +
-					 ((", Speed %d%% " % speed) if (speed != 100) else "") +
-					 ((", %s " % Constants.FLIPS[Settings.flip][1] if Settings.flip != 0 else "")) +
-					 ((", %s " % Constants.FLIPS[Settings.handedness][1] if Settings.handedness != 0 else ""))
-					 )
+	var parts := PackedStringArray(['Rank %d' % (diff_rank & Constants.DIFFICULTY_MASK)])
 	for beat_map in map_info.difficulty_beatmaps:
 		if beat_map.difficulty_rank == (diff_rank & Constants.DIFFICULTY_MASK):
-			return MapStats.level_name(map_info, beat_map) + ", " + game_type
-	return ('Rank %d' % (diff_rank & Constants.DIFFICULTY_MASK)) + " " + game_type
+			parts[0] = MapStats.level_name(map_info, beat_map)
+	if diff_rank & Constants.DIFFICULTY_HEALTH == 0:
+		parts.append(Constants.FAIL_OPTIONS[0][2])
+	if diff_rank & Constants.DIFFICULTY_BOMBS == 0:
+		parts.append(Constants.NO_BOMBS_LABEL)
+	if diff_rank & Constants.DIFFICULTY_ARROWS == 0:
+		parts.append(Constants.NO_ARROWS_LABEL)
+	match diff_rank & Constants.DIFFICULTY_BLOCK_SIZE_MASK:
+		Constants.DIFFICULTY_BLOCK_SIZE_SMALL: parts.append(Constants.SIZES[0][1])
+		Constants.DIFFICULTY_BLOCK_SIZE_BIG: parts.append(Constants.SIZES[2][1])
+		Constants.DIFFICULTY_BLOCK_SIZE_GIANT: parts.append(Constants.SIZES[3][1])
+	if diff_rank & Constants.DIFFICULTY_CLAWS != 0:
+		parts.append(Constants.CLAWS_LABEL)
+	_append_label(parts, Constants.WIDTHS, HighscoreTable.get_width_from_rank(diff_rank), 100)
+	_append_label(parts, Constants.SPEEDS, HighscoreTable.get_speed_from_rank(diff_rank), 100)
+	_append_label(parts, Constants.FLIPS, (diff_rank & Constants.DIFFICULTY_FLIP_MASK) >> Constants.DIFFICULTY_FLIP_SHIFT, 0)
+	match diff_rank & Constants.DIFFICULTY_HANDEDNESS_MASK:
+		Constants.DIFFICULTY_HANDEDNESS_IGNORE: _append_label(parts, Constants.HANDEDNESSES, Constants.HANDEDNESS_IGNORE, 0)
+		Constants.DIFFICULTY_HANDEDNESS_FORCE_LEFT: _append_label(parts, Constants.HANDEDNESSES, Constants.HANDEDNESS_FORCE_LEFT, 0)
+		Constants.DIFFICULTY_HANDEDNESS_FORCE_RIGHT: _append_label(parts, Constants.HANDEDNESSES, Constants.HANDEDNESS_FORCE_RIGHT, 0)
+	return RUN_PARTS_SEPARATOR.join(parts)
+
+## Adds the label of value from a [value, label, ...] option table, unless it is the default.
+func _append_label(parts: PackedStringArray, options: Array, value: int, default: int) -> void:
+	if value == default:
+		return
+	for option: Array in options:
+		if option[0] == value:
+			parts.append(option[1])
