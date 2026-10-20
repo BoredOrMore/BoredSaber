@@ -1103,6 +1103,7 @@ func _on_reset_button_pressed() -> void:
 	Settings.fail_mode = Constants.FAIL_MODE_BAR
 	Settings.damage_scale = 1.0
 	Settings.bombs_enabled = true
+	Settings.arrows_enabled = true
 	Settings.claws = false
 	Settings.block_size = 100
 	Settings.width = 100 
