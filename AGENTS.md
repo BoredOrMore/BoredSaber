@@ -153,6 +153,42 @@ constant with its role, or reuse one.
   keep body text at a 4.5:1 contrast or better against its panel.
 - A new colour role needs the user's agreement first; propose it with where it is used.
 
+## Light
+
+The scene is lit like a concert stage, not a toy: dark, with small bright sources whose colour shows in
+their glow and the haze. Read this before changing lights, environments, walls, bombs, haze or the sky,
+and measure every change on the headset (`.github/AGENTS.md`). The game renders without HDR (0-1 per
+channel), so brightness comes from contrast and the size of bright areas, not from values above 1.
+
+1. Value before hue: most of the frame is dark; light lives in small, bright sources. Keep a clear
+   brightness order: notes and sabers > walls and bombs > light fixtures > beams in haze > scenery > sky.
+2. Hot core, coloured falloff: a bright emitter burns toward white at its centre and shows its colour in
+   the glow around it (overexposure desaturates). Brighten by mixing toward white or widening the
+   bright part, never by multiplying a saturated colour past 1 (it clips to a flat, fully saturated
+   colour). Walls already do this (`game/Wall/DangerWall.gdshader`: white-hot frame, red halo).
+3. Saturation lives in small areas: full note colour only on fixtures, beams and their halos; large
+   surfaces (floor, sky, haze, walls' glass) stay dark and low in saturation.
+4. Limited palette: the two note colours, the danger colour, and neutrals (cool or warm grey, white).
+   No extra hues; the menus use a near-neutral house light (`EventDriver.HOUSE_COLOR`).
+5. Light has a source and a path: every beam starts at a fixture and turns around it (`game/AGENTS.md`),
+   shows only through haze, and fades with distance and along its length; far things lose contrast
+   toward the haze colour (aerial perspective).
+6. Haze reveals, it doesn't paint: the air stays mostly neutral and is tinted only a little by nearby
+   lights (`EventDriver.HAZE_LIGHT_WEIGHT`).
+7. Fixtures move like machines: pan and tilt around the fixture with ease in and out at plausible
+   speeds; colour changes fade, except deliberate flashes.
+8. Flashes are short and rare: fewer than 3 a second, never large saturated red flashes, moderate
+   peaks (`EventDriver.FLASH_BOOST`) (WCAG 2.3.1 Three Flashes; Harding flash test).
+9. Dynamics tell the story: dim and slow before the show (menus), the map's light show during it,
+   a blackout between; contrast between moments beats constant brightness.
+10. Fake it cheaply: no post-processing or screen reads on the Pico (a screen read copies the frame per
+    eye); glow, distortion and shadows are drawn in the object's own shader.
+
+Sources: James Gurney, "Color and Light" (luminance and saturation, limited palettes); Richard
+Pilbrow, "Stage Lighting Design" (direction, source and movement of stage light); W3C WCAG 2.2
+success criterion 2.3.1 (https://www.w3.org/WAI/WCAG22/Understanding/three-flashes-or-below-threshold);
+inverse-square falloff and atmospheric extinction as used in physically based rendering.
+
 ## Pico 4 constraints
 
 Found from headset logs on Pico OS 5.12 (OpenXR runtime 2.1.12); don't undo them without testing on the headset.
