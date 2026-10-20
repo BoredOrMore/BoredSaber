@@ -29,7 +29,7 @@ const BANKS: Array[Vector4] = [
 const BANK_OPACITY := 0.5
 ## Seconds the smoke takes to clear once a song starts (then it is freed and costs nothing while playing), and to
 ## fill the stage again in the menus. Untuned.
-const CLEAR_SECONDS := 15.0
+const CLEAR_SECONDS := 3.0
 const FILL_SECONDS := 4.0
 
 var _noise: NoiseTexture2D
