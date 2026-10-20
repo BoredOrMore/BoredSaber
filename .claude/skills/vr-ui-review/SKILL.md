@@ -30,6 +30,12 @@ Check:
 - [ ] Typed text, selections and saved results are visible where the player looks.
 - [ ] Wording follows the root `AGENTS.md` (no NJS/NPS/RT/JSON; one term per concept; short).
 - [ ] No hidden modes, no duplicate filters, current state shown plainly.
+- [ ] Test every state, not only the happy path: nothing selected, empty list, every filter on, no
+      network (request fails), slow network, cancel at each step, error on load, first launch with
+      default settings, mixed reality on, left-handed. Each one shows a message and a way on.
+- [ ] Destructive actions name what is lost and confirm (or can be undone); filters show what is on,
+      how many results remain and how to clear them.
+- [ ] Mixed reality on: nothing opaque covers the room beyond what play needs.
 
 ## 3. Check placement in 3D (numbers, not guesses)
 
@@ -101,7 +107,14 @@ Follow `.github/AGENTS.md` to install the build. Then:
 5. Ask the user to try the flow and say what to look for; the change isn't done until they've
    played it ("Changes to feel need a playtest" in the root `AGENTS.md`).
 
-## 6. Report
+## 6. Fix the class, not the case
+
+- [ ] For each problem found, search the whole game for the same pattern (other screens, other
+      keyboards, other lists, other filters) and fix every instance in the same change.
+- [ ] Add a line to this checklist or to the root `AGENTS.md` ("Player-facing wording and UX") so the
+      same kind of problem is caught next time.
+
+## 7. Report
 
 - Problems found, each with cause and fix, worst first.
 - What you checked and how (numbers for placement, states walked, headset or not).
