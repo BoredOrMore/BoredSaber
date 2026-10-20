@@ -113,6 +113,9 @@ var item_selected := -1
 var downloading := []#[["name","version_info"]]
 ## Most previews kept in memory, so clicking a map again plays at once.
 const MAX_CACHED_PREVIEWS := 10
+## Icons of the big button: download, or play once the song is in the library.
+const DOWNLOAD_ICON := preload("res://game/ui/icons/download.svg")
+const PLAY_ICON := preload("res://game/ui/icons/play.svg")
 ## Preview mp3 bytes by preview URL, oldest first.
 var _preview_cache := {}
 ## URL of the preview being downloaded.
@@ -530,8 +533,9 @@ func _update_download_button() -> void:
 	if song == null:
 		return
 	var hash := song.get_hash()
+	download_button.icon = PLAY_ICON if _in_library(song) else DOWNLOAD_ICON
 	if _in_library(song):
-		download_button.text = "✓ In library · Play now"
+		download_button.text = "In library · Play now"
 	elif not downloading.is_empty() and Utils.get_str(downloading[0][1] as Dictionary, "hash", "") == hash:
 		var total := httpdownload.get_body_size()
 		var done := httpdownload.get_downloaded_bytes()

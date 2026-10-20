@@ -5,6 +5,15 @@
 [ext_resource type="Script" uid="uid://cbe53qn50sjl7" path="res://game/BeepSaberMainMenu.gd" id="3"]
 [ext_resource type="Texture2D" uid="uid://cviyxvrpvyr0g" path="res://u/assets/game/data/beepsaber_logo.png" id="3_wpmn0"]
 [ext_resource type="PackedScene" uid="uid://dtipmx5ep1dkk" path="res://game/vr_slider.tscn" id="6"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/download.svg" id="icon_download"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/log-out.svg" id="icon_log-out"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/play.svg" id="icon_play"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/refresh-cw.svg" id="icon_refresh-cw"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/search.svg" id="icon_search"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/star.svg" id="icon_star"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/trash-2.svg" id="icon_trash-2"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/undo-2.svg" id="icon_undo-2"]
+[ext_resource type="Script" path="res://game/ui/IconButton.gd" id="icon_button"]
 
 [sub_resource type="StyleBoxFlat" id="1"]
 bg_color = Color(0.086, 0.094, 0.114, 1)
@@ -50,6 +59,8 @@ offset_top = 24.0
 offset_right = 184.0
 offset_bottom = 84.0
 text = "Search"
+icon = ExtResource("icon_search")
+script = ExtResource("icon_button")
 
 [node name="Label" type="Label" parent="Search_Button" unique_id=626122024]
 layout_mode = 0
@@ -74,7 +85,9 @@ offset_top = 24.0
 offset_right = 488.0
 offset_bottom = 84.0
 toggle_mode = true
-text = "★ Favorites"
+text = "Favorites"
+icon = ExtResource("icon_star")
+script = ExtResource("icon_button")
 
 [node name="ReactionLabel" type="Label" parent="."]
 layout_mode = 0
@@ -124,6 +137,8 @@ offset_top = 608.0
 offset_right = 760.0
 offset_bottom = 660.0
 text = "Get more songs"
+icon = ExtResource("icon_download")
+script = ExtResource("icon_button")
 
 [node name="cover" type="TextureRect" parent="." unique_id=925358881]
 layout_mode = 0
@@ -154,7 +169,9 @@ offset_right = 1256.0
 offset_bottom = 288.0
 theme_override_font_sizes/font_size = 22
 toggle_mode = true
-text = "☆ Add to favorites"
+text = "Add to favorites"
+icon = ExtResource("icon_star")
+script = ExtResource("icon_button")
 
 [node name="DifficultyPicker" type="VBoxContainer" parent="." unique_id=1422990200]
 layout_mode = 0
@@ -217,6 +234,8 @@ theme_override_styles/normal = SubResource("play")
 theme_override_styles/pressed = SubResource("play_hover")
 theme_override_styles/hover = SubResource("play_hover")
 text = "Play"
+icon = ExtResource("icon_play")
+script = ExtResource("icon_button")
 
 [node name="PlayerLabel" type="Label" parent="."]
 layout_mode = 0
@@ -288,10 +307,12 @@ theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
 text = "Modifiers"
 
 [node name="Reset_Button" type="Button" parent="ModifiersPanel/Margin/Rows/Header" unique_id=1815398217]
-custom_minimum_size = Vector2(56, 44)
+custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 tooltip_text = "Reset modifiers"
-text = "X"
+text = "Reset"
+icon = ExtResource("icon_undo-2")
+script = ExtResource("icon_button")
 
 [node name="Toggles" type="GridContainer" parent="ModifiersPanel/Margin/Rows"]
 layout_mode = 2
@@ -368,6 +389,8 @@ offset_top = 64.0
 offset_right = 456.0
 offset_bottom = 136.0
 text = "Refresh Songs"
+icon = ExtResource("icon_refresh-cw")
+script = ExtResource("icon_button")
 
 [node name="Delete_Button" type="Button" parent="MorePanel" unique_id=1222545396]
 layout_mode = 0
@@ -377,6 +400,8 @@ offset_right = 456.0
 offset_bottom = 224.0
 disabled = true
 text = "Delete Song"
+icon = ExtResource("icon_trash-2")
+script = ExtResource("icon_button")
 
 [node name="Licenses" type="Button" parent="MorePanel" unique_id=980969105]
 layout_mode = 0
@@ -393,6 +418,8 @@ offset_top = 328.0
 offset_right = 456.0
 offset_bottom = 400.0
 text = "Exit Game"
+icon = ExtResource("icon_log-out")
+script = ExtResource("icon_button")
 
 [node name="upload_url" type="Label" parent="MorePanel" unique_id=1379669192]
 layout_mode = 0

@@ -4,6 +4,10 @@
 [ext_resource type="Script" uid="uid://cpwy2bk3ecxqb" path="res://game/settings_Panel.gd" id="2"]
 [ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="theme"]
 [ext_resource type="PackedScene" uid="uid://dtipmx5ep1dkk" path="res://game/vr_slider.tscn" id="4"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/check.svg" id="icon_check"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/locate-fixed.svg" id="icon_locate-fixed"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/undo-2.svg" id="icon_undo-2"]
+[ext_resource type="Script" path="res://game/ui/IconButton.gd" id="icon_button"]
 
 [sub_resource type="FontFile" id="2"]
 fallbacks = Array[Font]([ExtResource("1")])
@@ -257,6 +261,8 @@ value = -0.25
 [node name="recenter" type="Button" parent="Tabs/Gameplay/VBox"]
 layout_mode = 2
 text = "Recenter"
+icon = ExtResource("icon_locate-fixed")
+script = ExtResource("icon_button")
 
 [node name="Visuals" type="ScrollContainer" parent="Tabs"]
 visible = false
@@ -693,6 +699,8 @@ offset_top = 616.0
 offset_right = 1012.0
 offset_bottom = 696.0
 text = "Reset all"
+icon = ExtResource("icon_undo-2")
+script = ExtResource("icon_button")
 
 [node name="apply" type="Button" parent="."]
 layout_mode = 0
@@ -701,6 +709,8 @@ offset_top = 616.0
 offset_right = 1256.0
 offset_bottom = 696.0
 text = "Done"
+icon = ExtResource("icon_check")
+script = ExtResource("icon_button")
 
 [node name="vr_slider" parent="." instance=ExtResource("4")]
 scroll_node_path = NodePath("../Tabs/Gameplay")

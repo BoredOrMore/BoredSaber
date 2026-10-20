@@ -99,9 +99,14 @@ often than unlabelled ones in UserTesting's study).
 - Icon-only is fine only for near-universal actions (search 🔍, close ✕, play ▶, back ←) and for
   repeated compact info whose meaning a header or the first use already taught (⏱ 3:24 in a list).
   An icon-only button still shows its name on hover (Apple: visionOS shows a tooltip on hover).
-- One icon = one meaning everywhere, one meaning = one icon. Keep a single family: same stroke
-  weight and corner style, white SVGs tinted in code with the palette roles (`game/ui/*.svg`:
-  `heart.svg` health, `target.svg` precision, `edit.svg`).
+- One icon = one meaning everywhere, one meaning = one icon. Keep a single family: Lucide
+  (ISC, `game/ui/icons/` with its `LICENSE`; copy only the icons used, stroke `#e6e8ee`, 36 px).
+  Current meanings: search, star favourite, download get songs, play play/continue, refresh-cw
+  rescan songs, trash-2 delete, log-out exit, house main menu, rotate-ccw restart song, undo-2 reset
+  settings, locate-fixed recenter, check done, x close/clear, arrow-left back. Older
+  `game/ui/*.svg` (`heart.svg` health, `target.svg` precision, `edit.svg`) match its style.
+- A button with icon and label uses `IconButton` (`game/ui/IconButton.gd`) so the icon sits next
+  to the centred word, not at the far edge.
 - Size icons like targets (≥ 2.5-3°), and give them the same colour role as their meaning (danger
   only for danger, `UI_ACCENT` only for selected/main action).
 - Draw icons as SVG in `game/ui/`; don't rely on font symbols (★ ✓ ←): glyphs Roboto lacks

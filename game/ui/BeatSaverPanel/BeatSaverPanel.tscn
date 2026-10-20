@@ -4,6 +4,11 @@
 [ext_resource type="PackedScene" uid="uid://dtipmx5ep1dkk" path="res://game/vr_slider.tscn" id="3"]
 [ext_resource type="Texture2D" uid="uid://cviyxvrpvyr0g" path="res://game/data/beepsaber_logo.png" id="5"]
 [ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="menu_theme"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/arrow-left.svg" id="icon_arrow-left"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/download.svg" id="icon_download"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/search.svg" id="icon_search"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/x.svg" id="icon_x"]
+[ext_resource type="Script" path="res://game/ui/IconButton.gd" id="icon_button"]
 
 [sub_resource type="StyleBoxFlat" id="root"]
 bg_color = Color(0.086, 0.094, 0.114, 1)
@@ -105,6 +110,8 @@ theme_override_styles/normal = SubResource("primary")
 theme_override_styles/hover = SubResource("primary_hover")
 theme_override_styles/pressed = SubResource("primary_hover")
 text = "Download"
+icon = ExtResource("icon_download")
+script = ExtResource("icon_button")
 
 [node name="search" type="Button" parent="."]
 layout_mode = 0
@@ -113,6 +120,7 @@ offset_top = 16.0
 offset_right = 316.0
 offset_bottom = 80.0
 text = "Search songs"
+icon = ExtResource("icon_search")
 alignment = 0
 clip_text = true
 
@@ -123,7 +131,9 @@ offset_left = 324.0
 offset_top = 16.0
 offset_right = 388.0
 offset_bottom = 80.0
-text = "X"
+tooltip_text = "Clear search"
+icon = ExtResource("icon_x")
+icon_alignment = 1
 
 [node name="back" type="Button" parent="."]
 layout_mode = 0
@@ -131,7 +141,9 @@ offset_left = 16.0
 offset_top = 856.0
 offset_right = 316.0
 offset_bottom = 936.0
-text = "← Back to results"
+text = "Back to results"
+icon = ExtResource("icon_arrow-left")
+script = ExtResource("icon_button")
 
 [node name="gotoMapsBy" type="Button" parent="."]
 visible = false
@@ -195,6 +207,8 @@ offset_top = 856.0
 offset_right = 1520.0
 offset_bottom = 936.0
 text = "Close"
+icon = ExtResource("icon_x")
+script = ExtResource("icon_button")
 
 [node name="list_slider" parent="." instance=ExtResource("3")]
 scroll_node_path = NodePath("../ItemList")

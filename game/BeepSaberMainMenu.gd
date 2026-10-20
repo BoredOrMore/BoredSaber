@@ -15,6 +15,8 @@ signal get_songs_requested()
 signal start_map(info: MapInfo, difficulty: DifficultyInfo, health: bool)
 
 const FAVORITE_MASK := 0x4000000000000000
+const STAR_ICON := preload("res://game/ui/icons/star.svg")
+const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 @export var main_song_player_ref: AudioStreamPlayer
 @export var keyboard: OQ_UI2DKeyboard
 @export var beepsaber_game : BeepSaber_Game
@@ -1030,13 +1032,16 @@ func _set_reset_icon() -> void:
 	if _are_mods_default():
 		reset_button.hide()
 	else:
-		reset_button.text = "\u21BA" 
 		reset_button.show()
 
+## Shows whether the selected song is a favourite: a filled yellow star, or an outline to add it.
 func _set_favorite_icon(value: bool) -> void:
 	favorite_button.set_pressed_no_signal(value)
-	favorite_button.text = "\u2605 Favorite" if value else "\u2606 Add to favorites"
+	favorite_button.text = "Favorite" if value else "Add to favorites"
+	favorite_button.icon = STAR_FILLED_ICON if value else STAR_ICON
 	var color := Color.YELLOW if value else Color.WHITE
+	for icon_color in [&"icon_normal_color", &"icon_pressed_color", &"icon_hover_color", &"icon_hover_pressed_color", &"icon_focus_color"]:
+		favorite_button.add_theme_color_override(icon_color, color)
 	favorite_button.add_theme_color_override("font_color", color)
 	favorite_button.add_theme_color_override("font_disabled_color", color)
 	favorite_button.add_theme_color_override("font_focus_color", color)

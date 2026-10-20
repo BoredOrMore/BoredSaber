@@ -2,6 +2,10 @@
 
 [ext_resource type="Script" path="res://game/Pause_Panel.gd" id="3"]
 [ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="menu_theme"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/house.svg" id="icon_house"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/play.svg" id="icon_play"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/rotate-ccw.svg" id="icon_rotate-ccw"]
+[ext_resource type="Script" path="res://game/ui/IconButton.gd" id="icon_button"]
 
 [sub_resource type="StyleBoxFlat" id="menu_root"]
 bg_color = Color(0.086, 0.094, 0.114, 1)
@@ -17,25 +21,31 @@ theme = ExtResource("menu_theme")
 theme_override_styles/panel = SubResource("menu_root")
 
 [node name="mainmenu" type="Button" parent="."]
-offset_left = 216.0
+offset_left = 192.0
 offset_top = 480.0
-offset_right = 424.0
+offset_right = 448.0
 offset_bottom = 544.0
 text = "Main Menu"
+icon = ExtResource("icon_house")
+script = ExtResource("icon_button")
 
 [node name="restart" type="Button" parent="."]
-offset_left = 216.0
+offset_left = 192.0
 offset_top = 400.0
-offset_right = 424.0
+offset_right = 448.0
 offset_bottom = 464.0
 text = "Restart"
+icon = ExtResource("icon_rotate-ccw")
+script = ExtResource("icon_button")
 
 [node name="continue" type="Button" parent="."]
-offset_left = 216.0
+offset_left = 192.0
 offset_top = 320.0
-offset_right = 424.0
+offset_right = 448.0
 offset_bottom = 384.0
 text = "Continue"
+icon = ExtResource("icon_play")
+script = ExtResource("icon_button")
 __meta__ = {
 "_edit_use_anchors_": false
 }
