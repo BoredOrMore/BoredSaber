@@ -287,7 +287,7 @@ visible = false
 keyboard = NodePath("../../../Keyboard_online_search")
 
 [node name="Keyboard_online_search" parent="." unique_id=789403462 instance=ExtResource("21")]
-transform = Transform3D(2.40442, 0, 0, 0, 2.37659, 0.364816, 0, -0.364816, 2.37659, -0.00735812, 0.350501, -0.67319)
+transform = Transform3D(2.4, 0, 0, 0, 1.96597, 1.37659, 0, -1.37659, 1.96597, 0, 0.95, -0.55)
 visible = false
 
 [node name="Points_label_driver" parent="." unique_id=1605321739 instance=ExtResource("22")]
@@ -316,7 +316,7 @@ scene = ExtResource("36_wallp")
 scene = ExtResource("37_arcp")
 
 [node name="Keyboard_highscore" parent="." unique_id=1086552033 instance=ExtResource("21")]
-transform = Transform3D(2.40442, 0, 0, 0, 2.37659, 0.364816, 0, -0.364816, 2.37659, -0.00735812, 0.350501, -0.67319)
+transform = Transform3D(2.4, 0, 0, 0, 1.96597, 1.37659, 0, -1.37659, 1.96597, 0, 0.95, -0.55)
 visible = false
 cancelable = false
 min_chars_to_enable_enter = 1

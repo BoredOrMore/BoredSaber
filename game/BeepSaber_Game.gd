@@ -94,7 +94,7 @@ const FAIL_SECONDS := 1.5
 # the high score saved at the end of the last song, so the player can rename it
 var _new_record := {}
 ## Where the name keyboard opens on the score screen: chest high in front of the score panel, tilted up to face the eye
-## (the menus open the same keyboard at its scene position, below the song list). Scale 2.4, tilted 35 degrees.
+## (the scene puts both keyboards here too, about 23 degrees below eye level). Scale 2.4, tilted 35 degrees.
 const NAME_KEYBOARD_TRANSFORM := Transform3D(Vector3(2.4, 0, 0), Vector3(0, 1.96597, -1.37659), Vector3(0, 1.37659, 1.96597),
 	Vector3(0, 0.95, -0.55))
 ## The shared keyboard's scene transform, put back when the score screen closes it.
