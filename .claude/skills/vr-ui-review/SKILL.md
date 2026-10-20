@@ -45,13 +45,17 @@ Flag:
 
 - [ ] Reading/pressing area outside ~±30° yaw, +20° / -12° pitch (lower is fine only for short,
       tilted tasks like the keyboard).
-- [ ] Distance under 0.5 m or over 2.5 m for something the player must read.
+- [ ] Distance under 0.5 m or over 2.5 m for something the player must read; pointer targets
+      closer than 0.8 m or further than 3 m [Meta hands UI].
 - [ ] Two pieces overlapping in view whose depths differ by less than ~5 cm, or the one to read is
       behind (the hidden name text box: keyboard text at z -0.83 behind the score panel at z -0.78).
 - [ ] A side panel not facing the player.
 - [ ] Targets under ~3° (≈ 5.2 cm at 1 m), text smaller in angle than the main menu's 28 px at
       scale 2.4 and 1 m.
-- [ ] Hit areas that don't match the drawn shape.
+- [ ] Hit areas that don't match the drawn shape; interactive elements overlapping or touching.
+- [ ] Text floating above its background; many depth levels to refocus between.
+- [ ] Sustained pulsing (worst near 0.2 Hz) or busy motion at the edges of view.
+- [ ] A pointer target without hover, press and sound feedback.
 - [ ] Anything inside the note lane during play.
 
 A short Python or GDScript snippet that prints these numbers from the `.tscn` transforms is fine;

@@ -34,7 +34,11 @@ then multiplied by the node `transform` scale.
   design talk and Mike Alger's "Visual Design Methods for Virtual Reality", 2015; maximum 55° to the
   side, 60° up, 40° down). Short tasks like typing may sit lower if tilted to face the eye.
 - Main panel distance 0.8-2.5 m. Eye strain starts at ~0.5 m and closer (Oculus recommends 0.75 m
-  minimum); further shrinks text.
+  minimum); further shrinks text. Pointer (ray) targets belong 0.8-3 m away, never closer than
+  0.8 m [Meta hands UI]; content read for a while at least 1 m away [Apple eyes].
+- Centre important content; content at the sides means turning the head again and again [Apple
+  spatial layout, Meta comfort]. Anchor UI in the world, never to the head, and keep the main
+  controls on one panel rather than many floating windows [Apple spatial layout, Meta comfort].
 - A side panel must face the player (yaw toward the origin) and stay inside the comfort zone. A
   table 2.3 m left turned 60° was out of sight.
 - **Depth:** two panels at similar depth must not overlap in the view. Compute world positions:
@@ -48,8 +52,15 @@ then multiplied by the node `transform` scale.
 
 ## 3. Size and legibility
 
-- Pointer targets: at least ~3° of visual angle (Meta Horizon guidance for gaze/ray targets):
-  `size = 2 · distance · tan(1.5°)` ≈ 5.2 cm at 1 m, 10.5 cm at 2 m.
+- Pointer targets: at least 2.5-3° of visual angle [Meta hands UI, Meta eyes]:
+  `size = 2 · distance · tan(1.5°)` ≈ 5.2 cm at 1 m, 10.5 cm at 2 m. The hit area may be larger than
+  the drawn button (Apple: a 60 pt hit area around a smaller visible button).
+- Spacing: button centres at least one target size apart with a visible gap (Apple: centres 60 pt
+  apart, 16 pt between); interactive elements never overlap [Apple spatial layout, buttons].
+- Pieces that act as one control (cover + title on a song card) share one highlight and hit shape
+  [Apple eyes].
+- Never lift text off its background in depth, and keep few depth levels: each refocus tires the
+  eyes [Apple spatial layout, Meta comfort]. Bolder weights than on a phone [Apple typography].
 - Text: the theme's 28 px on the main menu canvas (scale 2.4 at 1 m ≈ 6.6 cm ≈ 3.8°) is the
   playtested baseline; don't make body text smaller in angle than that. Muted text needs more size.
   In a reading study on Oculus Go and Quest (Kojić et al., "User Experience of Reading in Virtual
@@ -75,7 +86,8 @@ then multiplied by the node `transform` scale.
 
 ## 5. Feedback for every action
 
-- Every press gets an immediate visual and sound response (`UI_AudioEngine.attach_children`).
+- Every pointer target shows hover, a visible change on press and a short distinct sound on selection
+  [Meta hands UI, Apple buttons] (`UI_AudioEngine.attach_children`); haptics add to that, never replace it.
 - Anything slow (download, search, loading) shows progress or a spinner and a clear end state
   ("Downloading 45%" → "✓ In library · Play now").
 - Saving or renaming confirms on screen where the player is looking ("Saved as …").
@@ -87,6 +99,11 @@ then multiplied by the node `transform` scale.
 - Follow the root `AGENTS.md` colour rules (`UI_ACCENT` = selected/main action, danger colour never
   for UI). Pair colour with a word or shape.
 - No large bright or saturated areas, short moderate flashes only.
+- Motion only with a purpose. No sustained oscillation near 0.2 Hz (people are very sensitive to it)
+  and no busy motion at the edges of view [Apple motion, immersive experiences]: keep pulses,
+  glows and marquees small and short.
+- No repeating pattern or texture filling the view: the eyes can lock onto it at the wrong depth
+  [Apple eyes].
 - UI must not cost frame time during play: no per-frame viewport redraws of hidden canvases, no new
   post-processing. Canvases redraw only on input (see `game/ui/AGENTS.md`). Measure on the headset
   (`.github/AGENTS.md`) for anything visible during a song.
@@ -97,3 +114,12 @@ For a new screen or flow, send the user a short plan in player words: the flow s
 piece sits, the labels, and what you'll drop. Offer two or three wording options when the plain
 term isn't obvious. Then build in small steps, one build per step, and verify each with
 `vr-ui-review`.
+
+## Platform guidelines used
+
+- Apple Human Interface Guidelines, visionOS: Spatial layout, Eyes, Buttons, Typography, Motion,
+  Immersive experiences (https://developer.apple.com/design/human-interface-guidelines/spatial-layout
+  and sibling pages). Apple points are angular, so take its rules and convert sizes with Meta's degrees.
+- Meta Horizon design: Comfort (https://developers.meta.com/horizon/design/comfort/), Hands UI best
+  practices (https://developers.meta.com/horizon/design/hands-ui-best-practices/: 2.5-3° colliders,
+  ray UI 0.8-3 m, hover/press/sound feedback), Eyes best practices (3° gaze targets).
