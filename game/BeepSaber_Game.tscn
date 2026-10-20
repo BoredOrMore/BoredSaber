@@ -293,10 +293,10 @@ visible = false
 [node name="Points_label_driver" parent="." unique_id=1605321739 instance=ExtResource("22")]
 
 [node name="Highscores_Canvas" parent="." unique_id=1636266647 instance=ExtResource("3")]
-transform = Transform3D(1.6383, 0, 1.14715, 0, 2, 0, -1.14715, 0, 1.6383, -1.68, 1.5, -0.3)
+transform = Transform3D(1.3486, 0, 1.47691, 0, 2, 0, -1.47691, 0, 1.3486, -1.47691, 1.5, -0.3486)
 
 [node name="HighscorePanel" parent="Highscores_Canvas" unique_id=1748596360 instance=ExtResource("23")]
-offset_right = 752.0
+offset_right = 600.0
 show_close_button = false
 show_song_info = false
 
