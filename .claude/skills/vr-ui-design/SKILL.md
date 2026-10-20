@@ -30,9 +30,11 @@ facing -z. Panels are `OQ_UI2DCanvas` quads: 1024 px = 1 m at scale 1 (`vr.UI_PI
 then multiplied by the node `transform` scale.
 
 - Keep reading and pressing within about ±30° left/right, 20° up and 12° down of straight ahead;
-  beyond that the player has to turn the head (comfort figures quoted from Samsung/Google VR design
-  talks, secondary sources). Short tasks like typing may sit lower if tilted to face the eye.
-- Main panel distance 0.8-2.5 m. Closer than ~0.5 m is uncomfortable to focus; further shrinks text.
+  beyond that the player has to turn the head (comfortable head rotation from Alex Chu's Samsung VR
+  design talk and Mike Alger's "Visual Design Methods for Virtual Reality", 2015; maximum 55° to the
+  side, 60° up, 40° down). Short tasks like typing may sit lower if tilted to face the eye.
+- Main panel distance 0.8-2.5 m. Eye strain starts at ~0.5 m and closer (Oculus recommends 0.75 m
+  minimum); further shrinks text.
 - A side panel must face the player (yaw toward the origin) and stay inside the comfort zone. A
   table 2.3 m left turned 60° was out of sight.
 - **Depth:** two panels at similar depth must not overlap in the view. Compute world positions:
@@ -50,9 +52,16 @@ then multiplied by the node `transform` scale.
   `size = 2 · distance · tan(1.5°)` ≈ 5.2 cm at 1 m, 10.5 cm at 2 m.
 - Text: the theme's 28 px on the main menu canvas (scale 2.4 at 1 m ≈ 6.6 cm ≈ 3.8°) is the
   playtested baseline; don't make body text smaller in angle than that. Muted text needs more size.
+  In a reading study on Oculus Go and Quest (Kojić et al., "User Experience of Reading in Virtual
+  Reality", QoMEX 2020) players set short labels larger than paragraphs (about 30 against 17
+  milliradians), so short labels and buttons get the bigger sizes, and they picked a contrast of 7:1
+  or more, above the 4.5:1 minimum in the root `AGENTS.md`.
 - Clickable shapes: the hit area matches what the player sees (a favourite star whose hitbox missed
   the icon felt broken). Leave room for dropdown arrows and padding; never let text touch edges.
 - No dense blocks of text. Split details into short labelled lines or chips; clip long descriptions.
+- Design for the longest real content, not the sample: long song titles and mapper names, 0 results,
+  6 difficulties. A button label that doesn't fit gets shortened or split onto two lines on purpose,
+  never wrapped by the engine mid-word; one line per idea in lists, with "…" for overflow.
 
 ## 4. Controls that explain themselves
 

@@ -57,7 +57,32 @@ Flag:
 A short Python or GDScript snippet that prints these numbers from the `.tscn` transforms is fine;
 keep it in the scratchpad, not the repo.
 
-## 4. Check on the headset
+## 4. Check the 2D panel before the headset
+
+The cloud sessions have no headset and can't reach beatsaver.com, so render the panel itself:
+
+1. Write a scratch scene that instances the panel `.tscn`, fills it with fake data (copy the shape of
+   a real response or map folder) and saves `get_viewport().get_texture().get_image()` to a PNG.
+   Run it with the Linux Godot under Xvfb:
+   `DISPLAY=:99 timeout 100 <godot> --path . --rendering-driver opengl3 --resolution 1280x720 res://<scene>.tscn`.
+   Keep the scene out of the commit unless the user asks for it.
+2. Render every state the panel has, not only the happy one: empty, loading, error, long content
+   (the longest title, mapper and tag list you can find), a selected item, progress at 0 % and 100 %,
+   already-downloaded or saved.
+3. Look at each PNG and flag: text clipped or wrapped by the engine, labels touching edges or each
+   other, two lines of a list item fighting for one row, a dropdown arrow on top of its text, the
+   active choice not in `UI_ACCENT`, any developer word.
+4. Code checks that a render won't show:
+   - visuals that change without pointer input (progress, cover loaded, list refreshed) call
+     `canvas._input_update()`, or the headset shows a stale frame (`game/ui/AGENTS.md`);
+   - nodes inside a canvas are found with `find_child` or exported `NodePath`s, since the canvas
+     reparents its `Control`;
+   - GDScript types are explicit where a ternary or `and`/`or` returns a Variant, or the panel fails
+     to parse on load and shows nothing.
+5. Share the PNGs with the user when a layout changed, so they can say what's wrong before the APK
+   reaches the headset.
+
+## 5. Check on the headset
 
 Follow `.github/AGENTS.md` to install the build. Then:
 
@@ -71,7 +96,7 @@ Follow `.github/AGENTS.md` to install the build. Then:
 5. Ask the user to try the flow and say what to look for; the change isn't done until they've
    played it ("Changes to feel need a playtest" in the root `AGENTS.md`).
 
-## 5. Report
+## 6. Report
 
 - Problems found, each with cause and fix, worst first.
 - What you checked and how (numbers for placement, states walked, headset or not).
