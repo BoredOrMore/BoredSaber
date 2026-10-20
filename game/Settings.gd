@@ -43,9 +43,11 @@ signal changed(name: StringName)
 var LANE_DISTANCE_X := Constants.DEFAULT_LANE_DISTANCE_X
 var LANE_ZERO_X := Constants.DEFAULT_LANE_ZERO_X
 
+## The sample songs were copied into the library once; saved, so a deleted sample stays deleted.
 var preloaded_songs: bool:
 	set(value):
 		preloaded_songs = value
+		set_and_emit(&"preloaded_songs", value)
 var thickness: float:
 	set(value):
 		thickness = value
@@ -367,10 +369,14 @@ func save() -> void:
 		vr.log_file_error(error, CONFIG_PATH, "save() in Settings.gd")
 		return
 
+## Puts every setting back to its default; the library's sample songs aren't a setting, so they aren't copied again.
 func restore_defaults() -> void:
+	var samples_copied := preloaded_songs
 	config.clear()
 	save()
 	reload()
+	preloaded_songs = samples_copied
+	save()
 	
 func get_saber_visuals() -> String:
 	return SABER_VISUALS[saber_visual if not claws else 0][1]

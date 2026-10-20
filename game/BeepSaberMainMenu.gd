@@ -192,6 +192,7 @@ func _load_playlists() -> void:
 					copy_file_name = copy.get_next()
 			file_name = dir.get_next()
 		Settings.preloaded_songs = true
+		Settings.save()
 	
 	_discover_all_songs(Constants.APPDATA_PATH+"Songs/")
 	SongTags.look_up_missing(self, _all_songs, _show_environment)
