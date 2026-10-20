@@ -21,7 +21,7 @@ const float TOP_SOFTNESS = 0.6;
 const float SIDE_SOFTNESS = 0.25;
 const vec3 FOG_BASE = vec3(0.05, 0.05, 0.07);
 const float LIGHT_GAIN = 6.0;
-const float BACKLIGHT = 0.8;
+const float BACK_GLOW = 0.8;
 const float NEAR_START = 3.0;
 const float NEAR_FULL = 8.0;
 
@@ -46,6 +46,6 @@ void fragment() {
 	float height = 1.0 - smoothstep(BODY, BODY + TOP_SOFTNESS, sheet_uv.y + (n - 0.5) * 0.4);
 	float sides = smoothstep(0.0, SIDE_SOFTNESS, sheet_uv.x) * smoothstep(0.0, SIDE_SOFTNESS, 1.0 - sheet_uv.x);
 	float density = clamp(height * sides * (0.55 + 0.9 * n), 0.0, 1.0);
-	ALBEDO = FOG_BASE + env_haze.rgb * LIGHT_GAIN * (1.0 + BACKLIGHT * (1.0 - density));
+	ALBEDO = FOG_BASE + env_haze.rgb * LIGHT_GAIN * (1.0 + BACK_GLOW * (1.0 - density));
 	ALPHA = density * opacity * fade;
 }
