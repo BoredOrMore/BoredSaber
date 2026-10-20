@@ -8,10 +8,11 @@ const PLAIN_NOTES := 2
 const LASERS := 4
 const RINGS := 8
 const SKY := 16
+const DUST := 128
 ## Not read by shaders: while on, a song steps through CYCLE_STEPS by itself (cycle_tick), so one run measures
 ## every part; the log line "debug_view N" marks each step for matching with the headset's GPU timings.
 const CYCLE := 1024
-const CYCLE_STEPS: Array[int] = [0, WALLS, PLAIN_NOTES, LASERS, RINGS, SKY]
+const CYCLE_STEPS: Array[int] = [0, WALLS, PLAIN_NOTES, LASERS, RINGS, SKY, DUST]
 const CYCLE_SECONDS := 10.0
 ## label and bit of each switch, in the order they show
 const SWITCHES := [
@@ -20,6 +21,7 @@ const SWITCHES := [
 	["Hide lasers", LASERS],
 	["Hide rings and floor lines", RINGS],
 	["Plain black sky", SKY],
+	["Hide dust", DUST],
 	["Measure each part (cycles the switches)", CYCLE],
 ]
 
