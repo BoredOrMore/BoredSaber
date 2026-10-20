@@ -123,7 +123,7 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 		menu.show_play_error()
 		return
 		
-	event_driver.set_environment(EventDriver.pick_environment(info.environment_name))
+	event_driver.set_environment(EventDriver.pick_environment(info))
 	# for reading GPU timings on the headset by environment
 	print("Song starts in environment %s, smoke %s, debug_view %d" % [event_driver.environment, Settings.smoke, DebugView.flags])
 	event_driver.set_background_texture()
@@ -507,7 +507,7 @@ func _apply_note_style() -> void:
 
 ## Shows the environment the player picked, or on "Auto" the one for the last map played.
 func _apply_environment() -> void:
-	event_driver.set_environment(EventDriver.pick_environment(Map.current_info.environment_name if Map.current_info else ""))
+	event_driver.set_environment(EventDriver.pick_environment(Map.current_info))
 
 func set_colors_from_settings() -> void:
 	# only the menus use the settings' colours: dim the scene so the menu holds the eye

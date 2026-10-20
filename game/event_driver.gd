@@ -153,16 +153,26 @@ func set_background_texture() -> void:
 	texture = load(Settings.background_texture)
 	classic_sky_material.set_shader_parameter("bg_base", texture)
 
-## The environment a map plays in: the player's pick, or with "auto" the one that matches the
-## environment the map was made for (Constants.MAP_ENVIRONMENTS), else Classic.
-static func pick_environment(map_name: String) -> String:
+## The environment a map plays in: the player's pick, or with "auto" the one map_environment finds.
+static func pick_environment(map: MapInfo) -> String:
 	if Settings.environment != "auto":
 		return Settings.environment
-	return map_environment(map_name)
+	return map_environment(map)
 
-## Our environment for the one a map was made for: Constants.MAP_ENVIRONMENTS, else Classic.
-static func map_environment(map_name: String) -> String:
-	return Constants.MAP_ENVIRONMENTS.get(map_name.trim_suffix("Environment"), "classic")
+## Our environment for a map: the one matching the Beat Saber environment it names (Constants.MAP_ENVIRONMENTS),
+## else the one for its genre (Constants.TAG_ENVIRONMENTS, tags from SongTags), else one of
+## Constants.AUTO_ENVIRONMENTS picked by its folder name, so a song always gets the same one. Classic without a map.
+static func map_environment(map: MapInfo) -> String:
+	if map == null:
+		return "classic"
+	var named := map.environment_name.trim_suffix("Environment")
+	if Constants.MAP_ENVIRONMENTS.has(named):
+		return Constants.MAP_ENVIRONMENTS[named]
+	for tag in SongTags.tags_of(map):
+		if Constants.TAG_ENVIRONMENTS.has(tag):
+			return Constants.TAG_ENVIRONMENTS[tag]
+	var folder := SongTags.folder_of(map)
+	return Constants.AUTO_ENVIRONMENTS[absi(folder.hash()) % Constants.AUTO_ENVIRONMENTS.size()]
 
 ## Swaps the scenery around the track; the lights carry over as they are.
 func set_environment(id: String) -> void:

@@ -118,7 +118,7 @@ var _genre_tag := ""
 const SORT_TABS := [["Popular", "Rating"], ["New", "Latest"], ["Staff picks", "Curated"], ["Random", "Random"]]
 var search_word := ""
 var item_selected := -1
-var downloading := []#[["name","version_info"]]
+var downloading := []#[["name","version_info", tags]]
 ## Most previews kept in memory, so clicking a map again plays at once.
 const MAX_CACHED_PREVIEWS := 10
 ## Tries again after a failed list request before showing the error (the headset sometimes fails to connect
@@ -583,7 +583,7 @@ func _on_download_button_up() -> void:
 	if downloading.any(func(entry: Array) -> bool: return Utils.get_str(entry[1] as Dictionary, "hash", "") == hash):
 		return
 	OS.request_permissions()
-	downloading.append([song.name, song.versions[0]])
+	downloading.append([song.name, song.versions[0], song.tags])
 	if downloading.size() == 1:
 		download_next()
 	_update_download_button()
@@ -633,6 +633,7 @@ func _on_HTTPRequest_download_completed(result: int, response_code: int, headers
 		
 		if not has_error:
 			Utils.unzip(zippath,song_out_dir)
+			SongTags.remember(song_dir_name, downloading[0][2])
 		
 		DirAccess.remove_absolute(zippath)
 		

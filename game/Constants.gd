@@ -156,13 +156,32 @@ const RANK_COLORS := {
 }
 
 # Which of our environments a map gets on "Auto", keyed by the Beat Saber environment it names, without the
-# "Environment" suffix (maps write both forms). Anything else plays in Classic.
+# "Environment" suffix (maps write both forms), grouped by the mood of the original scene. Default and names not
+# here go by the song's genre (TAG_ENVIRONMENTS), then AUTO_ENVIRONMENTS.
 const MAP_ENVIRONMENTS := {
-	"Triangle": "neon_grid",
-	"Weave": "neon_grid",
-	"EDM": "neon_grid",
-	"Lattice": "neon_grid",
+	"Origins": "classic", "Nice": "classic", "BigMirror": "classic", "KDA": "classic", "Monstercat": "classic",
+	"Triangle": "neon_grid", "Weave": "neon_grid", "EDM": "neon_grid", "Lattice": "neon_grid",
+	"FitBeat": "neon_grid", "Timbaland": "neon_grid", "Interscope": "neon_grid", "Skrillex": "neon_grid",
+	"BTS": "night_city", "Billie": "night_city", "LinkinPark": "night_city", "GreenDay": "night_city",
+	"Gaga": "night_city", "Panic": "night_city", "Rocket": "night_city", "Weeknd": "night_city",
+	"Kaleidoscope": "night_city",
+	"Dragons": "pulse_void", "Spooky": "pulse_void", "Halloween": "pulse_void", "CrabRave": "pulse_void",
+	"GlassDesert": "pulse_void", "TheSecond": "pulse_void", "RockMixtape": "pulse_void", "Pyro": "pulse_void",
 }
+# Environment for a map whose environment is Default, by the first of its BeatSaver genre tags found here.
+const TAG_ENVIRONMENTS := {
+	"electronic": "neon_grid", "house": "neon_grid", "techno": "neon_grid", "trance": "neon_grid",
+	"dubstep": "neon_grid", "drum-and-bass": "neon_grid",
+	"pop": "night_city", "k-pop": "night_city", "j-pop": "night_city", "hip-hop-rap": "night_city",
+	"rb": "night_city", "dance": "night_city", "anime": "night_city", "vocaloid": "night_city",
+	"rock": "pulse_void", "metal": "pulse_void", "punk": "pulse_void", "hardcore": "pulse_void",
+	"alternative": "pulse_void",
+	"classical-orchestral": "classic", "jazz": "classic", "ambient": "classic", "kids-family": "classic",
+	"tv-movie-soundtrack": "classic", "video-game-soundtrack": "classic",
+}
+# Environments a map with neither a known environment nor a genre tag is spread over, the same one for a song
+# every time.
+const AUTO_ENVIRONMENTS := ["classic", "neon_grid", "night_city", "pulse_void"]
 
 # Difficulty colours as players know them from Beat Saber, keyed by the map's difficulty name.
 const DIFFICULTY_COLORS := {

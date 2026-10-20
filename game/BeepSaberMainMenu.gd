@@ -194,6 +194,7 @@ func _load_playlists() -> void:
 		Settings.preloaded_songs = true
 	
 	_discover_all_songs(Constants.APPDATA_PATH+"Songs/")
+	SongTags.look_up_missing(self, _all_songs, _show_environment)
 	
 	_sort_songs()
 	MapStats.count_all_async(_all_songs, _on_map_stats_counted)
@@ -839,7 +840,7 @@ func _show_environment() -> void:
 	var ids: Array = Settings.ENVIRONMENTS.map(func(e: Array) -> String: return e[0])
 	environment_picker.select(maxi(ids.find(Settings.environment), 0))
 	var follow: String = Settings.ENVIRONMENTS[0][1]
-	var resolved := EventDriver.map_environment(_shown_map.environment_name if _shown_map else "")
+	var resolved := EventDriver.map_environment(_shown_map)
 	if _shown_map:
 		follow += " (%s)" % Settings.ENVIRONMENTS[ids.find(resolved)][1]
 	environment_picker.set_item_text(0, follow)
