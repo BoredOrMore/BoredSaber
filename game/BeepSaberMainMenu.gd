@@ -259,6 +259,7 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 				_select_song(i, false)
 		if current_selected == -1:
 			songs_menu.deselect_all()
+	_update_play_button()
 
 ## False for non-favorites when only favorites are shown. Otherwise true if any difficulty of the map is playable (MapStats.is_unplayable), at the picked level
 ## (MapStats.level_of), inside the length filter and, when only workouts are shown, has a set of wall moves
@@ -583,14 +584,28 @@ func _on_Play_Button_pressed() -> void:
 		_load_map_and_start(map)
 		play_button.disabled = false
 		if play_button.text == "Loading...":
-			play_button.text = "Play"
+			play_button.text = PLAY_TEXT
+
+## Play button text while a song is picked, and while none is, when the button is off.
+const PLAY_TEXT := "Play"
+const NO_SONG_TEXT := "Pick a song"
+
+## Turns Play off, saying why, while no song is picked.
+func _update_play_button() -> void:
+	var play_button := $Play_Button as Button
+	var picked := current_selected >= 0 and current_selected < _currently_selected_songlist_ref.size()
+	play_button.disabled = not picked
+	if not picked:
+		play_button.text = NO_SONG_TEXT
+	elif play_button.text == NO_SONG_TEXT:
+		play_button.text = PLAY_TEXT
 
 ## Tells the player on the Play button that the selected map couldn't be loaded.
 func show_play_error() -> void:
 	var play_button := $Play_Button as Button
 	play_button.text = "Can't load map"
 	await get_tree().create_timer(3.0).timeout
-	play_button.text = "Play"
+	play_button.text = PLAY_TEXT
 
 func _on_Exit_Button_pressed() -> void:
 	get_tree().quit()
@@ -789,6 +804,7 @@ func update_view() -> void:
 	else:	
 		difficulty_changed.emit(null, -1)
 	_sync_difficulty_picker()
+	_update_play_button()
 	_set_reset_icon()
 
 ## Fills the fail and damage rows with one toggle button per option, so they're a single press away;
