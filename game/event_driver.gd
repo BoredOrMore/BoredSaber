@@ -123,6 +123,7 @@ var _combo_target := 0.0
 ## whatever the map's light show does, so the player always sees where they stand
 const PLATFORM_LIGHTS := preload("res://game/env/platform_lights.tres")
 @onready var classic_rig := $Level/ClassicRig as ClassicRig
+@onready var neon_grid_rig := $Level/NeonGridRig as NeonGridRig
 
 @onready var ring_anim_player := $Level/rings/AnimationPlayer as AnimationPlayer
 @onready var left_laser_anim_player := $Level/LeftWavingLasers/AnimationPlayer as AnimationPlayer
@@ -135,6 +136,8 @@ func _ready() -> void:
 	for laser: Node3D in diagonal_lasers + _waving_lasers():
 		_classic_rig[laser] = laser.global_transform
 	_classic_rig[square_lasers_holder] = square_lasers_holder.transform
+	for bar in _square_bars():
+		_classic_rig[bar] = bar.global_transform
 	track_lights_holder.hide()
 	
 	set_background_texture()
@@ -217,9 +220,15 @@ func set_environment(id: String) -> void:
 ## the horizon; Night City sweeps its waving lasers like searchlights from far beside the track and crosses its
 ## diagonal beams from rooftop height; Pulse Void aims its diagonal lasers into a point behind the track like a
 ## tunnel. Every beam starts at its fixture and turns around it (game/AGENTS.md). Positions in metres, untuned.
-const RIG_FAN_ORIGIN := Vector3(0.0, -1.0, -70.0)
+const RIG_FAN_ORIGIN := Vector3(0.0, NeonGridRig.STAGE_TOP, NeonGridRig.STAGE_CENTRE.z)
 const RIG_FAN_SPREAD_DEG := 70.0
-const RIG_GRID_EDGE_X := 14.0
+const RIG_GRID_EDGE_X := NeonGridRig.POLE_X
+## Neon Grid's square bars as stripes across the backdrop: the horizontal ones stacked from STRIPE_BOTTOM every
+## STRIPE_GAP metres, the vertical ones in a block at each side from STRIPE_SIDE_X every STRIPE_SIDE_GAP metres
+const STRIPE_BOTTOM := 1.5
+const STRIPE_GAP := 1.8
+const STRIPE_SIDE_X := 9.0
+const STRIPE_SIDE_GAP := 0.7
 const RIG_CITY_SEARCH_X := 26.0
 const RIG_CITY_ROOF := Vector3(20.0, 8.0, -35.0)
 const RIG_VOID_RADIUS := 16.0
@@ -228,7 +237,6 @@ const RIG_VOID_TARGET := Vector3(0.0, 1.5, -75.0)
 const RIG_WAVING_Y := -1.26
 ## where the square bars hang per environment: [position, scale]
 const RIG_SQUARE := {
-	"neon_grid": [Vector3(0.0, -4.0, -60.0), 1.6],
 	"night_city": [Vector3(0.0, -2.0, -45.0), 2.0],
 	"pulse_void": [Vector3(0.0, 0.0, -55.0), 1.3],
 }
@@ -242,6 +250,13 @@ func _waving_lasers() -> Array[Node3D]:
 		for child in holder.get_children():
 			if child is Node3D and not child is AnimationPlayer:
 				out.append(child as Node3D)
+	return out
+
+## The square bars: the horizontal ones (children of the holder) first, then the vertical ones of each side.
+func _square_bars() -> Array[Node3D]:
+	var out: Array[Node3D] = []
+	for node in square_lasers_holder.find_children("*", "MeshInstance3D", true, false):
+		out.append(node as Node3D)
 	return out
 
 ## Aims a laser fixture from a point along a direction, keeping its beam length (local z scale).
@@ -271,7 +286,17 @@ func _apply_rig(id: String) -> void:
 				_aim(diagonal_lasers[i], RIG_FAN_ORIGIN, Vector3(sin(a), cos(a), -0.15))
 			for i in waving.size():
 				var side := -1.0 if i < half else 1.0
-				waving[i].global_position = Vector3(side * RIG_GRID_EDGE_X, RIG_WAVING_Y, -20.0 - 8.0 * (i % half))
+				waving[i].global_position = Vector3(side * RIG_GRID_EDGE_X, NeonGridRig.POLE_HEIGHT, NeonGridRig.POLE_Z[i % half])
+			var top := 0
+			var sides := 0
+			for bar in _square_bars():
+				if bar.get_parent() == square_lasers_holder:
+					bar.global_position = Vector3(0.0, STRIPE_BOTTOM + STRIPE_GAP * top, NeonGridRig.BACKDROP_FRONT)
+					top += 1
+				else:
+					var side := -1.0 if bar.global_position.x < 0.0 else 1.0
+					bar.global_position = Vector3(side * (STRIPE_SIDE_X + STRIPE_SIDE_GAP * (sides % 6)), NeonGridRig.BACKDROP_CENTRE.y, NeonGridRig.BACKDROP_FRONT)
+					sides += 1
 		"night_city":
 			for i in diagonal_lasers.size():
 				var pairs := diagonal_lasers.size() >> 1
@@ -295,6 +320,7 @@ func show_scenery_for_mixed_reality() -> void:
 	neon_grid.visible = environment == "neon_grid" and not Settings.mixed_reality
 	pulse_void.visible = environment == "pulse_void" and not Settings.mixed_reality
 	classic_rig.visible = environment == "classic" and not Settings.mixed_reality
+	neon_grid_rig.visible = environment == "neon_grid" and not Settings.mixed_reality
 	stage_smoke.visible = Settings.smoke and not Settings.mixed_reality
 
 func set_background() -> void:
