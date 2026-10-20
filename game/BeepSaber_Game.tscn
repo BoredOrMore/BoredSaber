@@ -25,9 +25,7 @@
 [ext_resource type="PackedScene" uid="uid://dmuvh1rllcn3e" path="res://game/Points_label_driver.tscn" id="22"]
 [ext_resource type="PackedScene" uid="uid://cpwxp083qm1jq" path="res://game/HighscorePanel.tscn" id="23"]
 [ext_resource type="PackedScene" uid="uid://6du64wi28yi6" path="res://game/Bomb/Bomb.tscn" id="24"]
-[ext_resource type="PackedScene" uid="uid://cb8ftj7lpxrfy" path="res://game/ui/YouTubeUI/YouTubeUI.tscn" id="26"]
 [ext_resource type="PackedScene" uid="uid://cjirr6sfxfhhd" path="res://game/scripts/ScenePool/ScenePool.tscn" id="27"]
-[ext_resource type="PackedScene" uid="uid://bmdbiqndkvcm6" path="res://game/ui/BeatSageUI/BeatSageUI.tscn" id="29"]
 [ext_resource type="PackedScene" uid="uid://cgfj82g2xp1ne" path="res://OQ_Toolkit/OQ_UI2D/OQ_UI2DLogWindow.tscn" id="31"]
 [ext_resource type="Script" uid="uid://cnh3j4w1c5ulx" path="res://game/scripts/SongUploader/song_uploader.gd" id="33_l0uxg"]
 [ext_resource type="PackedScene" uid="uid://dvj8dorx2l7s0" path="res://game/BeepCube/BeepCube.tscn" id="33_nc705"]
@@ -271,19 +269,6 @@ visible = false
 
 [node name="BeatSaverPanel" parent="MapSourceDialogs/BeatSaver_Canvas" unique_id=187967703 node_paths=PackedStringArray("main_menu_ref", "keyboard") instance=ExtResource("20")]
 main_menu_ref = NodePath("../../../MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu")
-keyboard = NodePath("../../../Keyboard_online_search")
-
-[node name="BeatSage_Canvas" parent="MapSourceDialogs" unique_id=1559135146 instance=ExtResource("3")]
-transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0)
-visible = false
-
-[node name="BeatSageUI" parent="MapSourceDialogs/BeatSage_Canvas" unique_id=720995097 instance=ExtResource("29")]
-
-[node name="YouTube_Canvas" parent="MapSourceDialogs" unique_id=1975419147 instance=ExtResource("3")]
-transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0.01)
-visible = false
-
-[node name="YouTubeUI" parent="MapSourceDialogs/YouTube_Canvas" unique_id=629036710 node_paths=PackedStringArray("keyboard") instance=ExtResource("26")]
 keyboard = NodePath("../../../Keyboard_online_search")
 
 [node name="Keyboard_online_search" parent="." unique_id=789403462 instance=ExtResource("21")]
