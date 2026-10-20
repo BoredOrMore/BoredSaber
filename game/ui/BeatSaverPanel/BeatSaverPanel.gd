@@ -110,6 +110,7 @@ var _preview_url := ""
 @onready var httppreviewdownload := $PreviewDownload as HTTPRequest
 @onready var placeholder_cover := preload("res://game/data/beepsaber_logo.png")
 @onready var goto_maps_by := $gotoMapsBy as Button
+@onready var download_button := $download as Button
 @onready var reaction_filter := $ReactionFilter as OptionButton
 @onready var genre_filter := $GenreFilter as OptionButton
 @onready var style_chips := $StyleChips as HBoxContainer
@@ -132,6 +133,7 @@ var prev_request: BeatSaverRequest
 func on_song_list_changed() -> void:
 	for item_index in mini(item_list.item_count, song_data.size()):
 		item_list.set_item_text(item_index, _card_text(song_data[item_index]))
+	_update_download_button()
 
 ## True if the map is already in the song list.
 func _in_library(song: BeatSaverSongInfo) -> bool:
@@ -301,10 +303,14 @@ func update_list(req: BeatSaverRequest) -> void:
 	if req.page == 0:
 		# brand new request, clear list to prep for reload
 		item_list.clear()
+		label.text = ""
 		if goto_maps_by:
 			goto_maps_by.visible = false
 		song_data = []
 		item_selected = -1
+		($song_data as RichTextLabel).text = "Pick a song to see what it plays like."
+		($TextureRect as TextureRect).texture = placeholder_cover
+		_update_download_button()
 	if not httpcoverdownload:
 		return
 	httpcoverdownload.cancel_request()
@@ -361,6 +367,7 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 
 	else:
 		vr.log_error("request error "+str(result))
+		label.text = "Can't reach BeatSaver. Check your Wi-Fi."
 	back_button.visible = prev_request != null and prev_request.type == "uploader" and back_stack.size() > 0
 	_scroll_page_request_pending = false
 	
@@ -369,6 +376,8 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 	
 	_update_all_covers()
 	_fill_reaction_filtered_list()
+	if result == 0 and item_list.item_count == 0 and not _scroll_page_request_pending:
+		label.text = "No songs match. Try another style."
 
 ## Most items the list fetches pages for on its own while the reaction time filter hides songs.
 const REACTION_FILL_ITEMS := 20
@@ -418,36 +427,12 @@ func _on_clear_search_pressed() -> void:
 func _on_ItemList_item_selected(index: int) -> void:
 	item_selected = index
 	var selected_data := _get_selected_song()
-	var dur_s := int(selected_data.duration)
-	var version = selected_data.versions[0]
-	goto_maps_by.text = "Maps by %s" % selected_data.level_author_name
-	goto_maps_by.visible = true
-	var difficulties := ""
-	for diff in version['diffs']:
-		var diff_name := str(diff.get('difficulty', ""))
-		var diff_color: Color = Constants.DIFFICULTY_COLORS.get(diff_name, Constants.UI_TEXT)
-		if diff is Dictionary and selected_data.bpm > 0.0:
-			var reaction := selected_data.reaction_seconds(diff as Dictionary)
-			diff_name += " · Notes appear %.2f s ahead" % reaction
-		difficulties += "\n[color=#%s]%s[/color]" % [diff_color.to_html(false), diff_name]
-	var text := """[center]%s By %s[/center]
-
-Map author: %s
-Duration: %dm %ds
-Difficulties:%s
-
-[center]Description:[/center]
-%s""" % [
-		selected_data.song_name,
-		selected_data.song_author_name,
-		selected_data.level_author_name,
-		dur_s/60,dur_s%60,
-		difficulties,
-		selected_data.description,
-	]
-	($song_data as RichTextLabel).text = text
-	
+	var version: Dictionary = selected_data.versions[0]
+	goto_maps_by.text = "More by %s" % selected_data.level_author_name
+	goto_maps_by.visible = selected_data.uploader_id != -1 and prev_request != null and prev_request.type != "uploader"
+	($song_data as RichTextLabel).text = _details_text(selected_data)
 	($TextureRect as TextureRect).texture = item_list.get_item_icon(index)
+	_update_download_button()
 
 	if Settings.audio_master > 0 and Settings.audio_music_preview > 0:
 		# the click means the player wants this map's preview: quiet the local song now
@@ -459,18 +444,105 @@ Difficulties:%s
 		elif httppreviewdownload.request(_preview_url) != OK:
 			vr.log_warning("Preview request failed: %s" % _preview_url)
 
+## The picked map in plain words: title, artist and mapper, how liked it is, its tags, each difficulty and
+## the start of its description.
+func _details_text(song: BeatSaverSongInfo) -> String:
+	var muted := Constants.UI_TEXT_MUTED.to_html(false)
+	var seconds := int(song.duration)
+	var text := "[b]%s[/b]\n%s\n[color=#%s]Mapped by %s · %d%% liked · %d:%02d[/color]" % [
+		_escape(song.song_name), _escape(song.song_author_name), muted, _escape(song.level_author_name),
+		roundi(song.score * 100.0), seconds / 60, seconds % 60]
+	var tag_names := PackedStringArray()
+	for tag in song.tags:
+		tag_names.append(_tag_name(tag))
+	if not tag_names.is_empty():
+		text += "\n[color=#%s]%s[/color]" % [muted, " · ".join(tag_names)]
+	text += "\n"
+	for diff: Variant in Utils.get_array(song.versions[0] as Dictionary, "diffs", []):
+		var d := diff as Dictionary
+		var diff_name := Utils.get_str(d, "difficulty", "")
+		var line := diff_name.replace("ExpertPlus", "Expert+")
+		if Utils.get_str(d, "characteristic", "Standard") != "Standard":
+			line += " (%s)" % Utils.get_str(d, "characteristic", "")
+		if song.bpm > 0.0:
+			line += " · Notes %.2f s ahead" % song.reaction_seconds(d)
+		var walls := int(Utils.get_float(d, "obstacles", 0))
+		if walls > 0:
+			line += " · %d walls" % walls
+		var color: Color = Constants.DIFFICULTY_COLORS.get(diff_name, Constants.UI_TEXT)
+		text += "\n[color=#%s]%s[/color]" % [color.to_html(false), line]
+	var description := song.description.strip_edges()
+	if not description.is_empty():
+		var lines := description.split("\n", false)
+		var shown := "\n".join(lines.slice(0, DESCRIPTION_LINES))
+		if lines.size() > DESCRIPTION_LINES:
+			shown += " …"
+		text += "\n\n[color=#%s]%s[/color]" % [muted, _escape(shown)]
+	return text
+
+## Most description lines the details show.
+const DESCRIPTION_LINES := 3
+
+## Text with BBCode brackets made harmless.
+static func _escape(text: String) -> String:
+	return text.replace("[", "[lb]")
+
+## A BeatSaver tag in the words the style chips and genre list use, else the tag with spaces.
+static func _tag_name(tag: String) -> String:
+	for entry: Array in STYLES + GENRES:
+		if entry[1] == tag:
+			return entry[0]
+	return tag.replace("-", " ").capitalize()
+
+## The big button under the details: Download, its progress while downloading, or Play now once the map is in
+## the song list.
+func _update_download_button() -> void:
+	var song := _get_selected_song()
+	download_button.visible = song != null
+	if song == null:
+		return
+	var hash := song.get_hash()
+	if _in_library(song):
+		download_button.text = "✓ In library · Play now"
+	elif not downloading.is_empty() and Utils.get_str(downloading[0][1] as Dictionary, "hash", "") == hash:
+		var total := httpdownload.get_body_size()
+		var done := httpdownload.get_downloaded_bytes()
+		download_button.text = "Downloading %d%%" % (100 * done / total) if total > 0 else "Downloading…"
+	elif downloading.any(func(entry: Array) -> bool: return Utils.get_str(entry[1] as Dictionary, "hash", "") == hash):
+		download_button.text = "Waiting to download"
+	else:
+		download_button.text = "Download"
+
+## Keeps the download progress on the button current.
+func _process(_delta: float) -> void:
+	if downloading.is_empty():
+		return
+	var before := download_button.text
+	_update_download_button()
+	if download_button.text != before:
+		var canvas := get_parent().get_parent()
+		if canvas is OQ_UI2DCanvas: (canvas as OQ_UI2DCanvas)._input_update()
+
+## Downloads the picked map, or once it is in the song list, picks it there and closes this page.
 func _on_download_button_up() -> void:
+	var song := _get_selected_song()
+	if song == null: return
+	if _in_library(song):
+		if main_menu_ref.show_song(song.get_hash()):
+			_hide()
+		return
+	var hash := song.get_hash()
+	if downloading.any(func(entry: Array) -> bool: return Utils.get_str(entry[1] as Dictionary, "hash", "") == hash):
+		return
 	OS.request_permissions()
-	if item_selected == -1: return
-	var version_info = song_data[item_selected].versions[0]
-	downloading.insert(downloading.size(),[song_data[item_selected].name,version_info])
-	download_next()
+	downloading.append([song.name, song.versions[0]])
+	if downloading.size() == 1:
+		download_next()
+	_update_download_button()
 
 func download_next() -> void:
 	if downloading.size() > 0:
 		httpdownload.request(downloading[0][1]['downloadURL'])
-		label.text = "Downloading: %s - %d left" % [str(downloading[0][0]),downloading.size()-1]
-		label.visible = true
 
 func _on_HTTPRequest_download_completed(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray) -> void:
 #	$download.disabled = false
@@ -520,13 +592,11 @@ func _on_HTTPRequest_download_completed(result: int, response_code: int, headers
 		
 		if not downloading.size() > 0:
 			main_menu_ref._on_LoadPlaylists_Button_pressed()
-			label.text = "All downloaded"
 	else:
-		label.text = "Download error "+str(result)
-		if result == -1:
-			label.text += "\nInvalid URL or server is down"
+		label.text = "Couldn't download %s. Check your Wi-Fi and try again." % str(downloading[0][0])
 		vr.log_info("download error "+str(result))
 		downloading.remove_at(0)
+	_update_download_button()
 	
 	var canvas := get_parent().get_parent()
 	if canvas is OQ_UI2DCanvas:

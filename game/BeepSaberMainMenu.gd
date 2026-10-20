@@ -648,6 +648,30 @@ func _check_and_request_permission() -> bool:
 		return true
 
 
+## Picks a downloaded song (by its folder name) in the list, clearing the search and filters first if they hide
+## it. False if the song isn't loaded.
+func show_song(folder_name: String) -> bool:
+	var path := Constants.APPDATA_PATH + "Songs/" + folder_name + "/"
+	if _shown_index(path) < 0:
+		Settings.song_filter_reaction = 0
+		Settings.song_filter_length = 0
+		Settings.song_filter_favorites = false
+		Settings.song_filter_workout = false
+		_clean_search()
+	var index := _shown_index(path)
+	if index < 0:
+		return false
+	songs_menu.select(index)
+	_select_song(index)
+	return true
+
+## Index of a song in the shown list by its path, or -1.
+func _shown_index(path: String) -> int:
+	for i in _currently_selected_songlist_ref.size():
+		if _currently_selected_songlist_ref[i].filepath == path:
+			return i
+	return -1
+
 func _on_LoadPlaylists_Button_pressed() -> void:
 	# Note: this call is non-blocking; so a user has to click again after
 	#       granting the permissions; we need to find a solutio for this
