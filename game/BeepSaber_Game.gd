@@ -547,6 +547,7 @@ func update_left_color(color: Color) -> void:
 	Arc.left_material_magnet.set_shader_parameter(&"color", color)
 	goggles_shader.set_shader_parameter(&"left_color", color)
 	event_driver.update_left_color(color)
+	RenderingServer.global_shader_parameter_set(&"left_saber_color", color)
 	standing_ground.update_left_color(color)
 
 func update_right_color(color: Color) -> void:
@@ -557,6 +558,7 @@ func update_right_color(color: Color) -> void:
 	Arc.right_material_magnet.set_shader_parameter(&"color", color)
 	goggles_shader.set_shader_parameter(&"right_color", color)
 	event_driver.update_right_color(color)
+	RenderingServer.global_shader_parameter_set(&"right_saber_color", color)
 	standing_ground.update_right_color(color)
 
 func _clear_track() -> void:

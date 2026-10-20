@@ -79,6 +79,16 @@ var rings_enabled := true
 var _sky_materials := {}
 ## 1 right after a combo milestone, falling to 0
 var _combo_pulse := 0.0
+## A good cut sends a ring of the saber's light out from the player along the scene's lights
+## (player_light.gdshaderinc): how far each saber's ring has gone in metres, negative when there is none.
+var _cut_waves := Vector2(-1.0, -1.0)
+## metres per second, and how far a ring runs before it stops
+const CUT_WAVE_SPEED := 30.0
+const CUT_WAVE_REACH := 80.0
+## a mistake dims the air by this much for a moment
+var _mistake_dip := 0.0
+const MISTAKE_DIP := 0.5
+const MISTAKE_DIP_SECONDS := 0.6
 ## 0 at x1 to 1 at x8, and where it is heading
 var _combo_level := 0.0
 var _combo_target := 0.0
@@ -419,6 +429,13 @@ func set_background() -> void:
 
 func _process(delta: float) -> void:
 	_combo_pulse = maxf(_combo_pulse - delta / COMBO_PULSE_SECONDS, 0.0)
+	_mistake_dip = maxf(_mistake_dip - delta / MISTAKE_DIP_SECONDS, 0.0)
+	for i in 2:
+		if _cut_waves[i] >= 0.0:
+			_cut_waves[i] += CUT_WAVE_SPEED * delta
+			if _cut_waves[i] > CUT_WAVE_REACH:
+				_cut_waves[i] = -1.0
+	RenderingServer.global_shader_parameter_set(&"cut_waves", _cut_waves)
 	_combo_level = move_toward(_combo_level, _combo_target,
 			delta / (COMBO_RISE_SECONDS if _combo_target > _combo_level else COMBO_FALL_SECONDS))
 	if menu_focus:
@@ -441,7 +458,7 @@ func _update_haze() -> void:
 	if track_lights_holder.visible:
 		haze += floor_material.albedo_color * HAZE_LIGHT_WEIGHT
 	var pulse := _combo_pulse * _combo_pulse
-	haze *= 1.0 + COMBO_HAZE_BOOST * _combo_level + COMBO_PULSE * pulse
+	haze *= (1.0 + COMBO_HAZE_BOOST * _combo_level + COMBO_PULSE * pulse) * (1.0 - MISTAKE_DIP * _mistake_dip)
 	if menu_focus:
 		haze *= MENU_HAZE_BOOST
 	var grey := haze.r * 0.299 + haze.g * 0.587 + haze.b * 0.114
@@ -453,6 +470,14 @@ func _update_haze() -> void:
 ## Sets how lit up the scene is for the combo multiplier (1, 2, 4 or 8).
 func set_combo_multiplier(multiplier: int) -> void:
 	_combo_target = log(maxf(multiplier, 1)) / log(8.0)
+
+## Starts a ring of light from the player for a good cut with the saber of this type (0 left, 1 right).
+func cut_wave(saber_type: int) -> void:
+	_cut_waves[saber_type] = 0.0
+
+## Dims the air for a moment, for a miss, a bad cut or a bomb.
+func mistake_dip() -> void:
+	_mistake_dip = 1.0
 
 ## Brightens the air for a moment, for a combo milestone.
 func combo_pulse() -> void:

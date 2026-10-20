@@ -204,7 +204,8 @@ func _physics_process(delta: float) -> void:
 			var floor_body := raycoli as Floor
 			var colipoint := _ray_cast.get_collision_point()
 			floor_body.burn_mark(colipoint,type)
-	RenderingServer.global_shader_parameter_set(&"left_saber" if type == 0 else &"right_saber", saber_end)
+	# a blade that is off lights nothing (PlayerLight.gdshader)
+	RenderingServer.global_shader_parameter_set(&"left_saber" if type == 0 else &"right_saber", saber_end if is_extended() else Vector3.DOWN * 100.0)
 
 func set_saber(saber_path: String) -> void:
 	var newsaber := (load(saber_path) as PackedScene).instantiate()
