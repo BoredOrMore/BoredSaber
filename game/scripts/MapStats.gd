@@ -12,6 +12,8 @@ static var _cache := {}
 static var _cache_mutex := Mutex.new()
 static var _loaded := false
 static var _thread: Thread
+## Bumped when the counting rules change, so cached entries are counted again.
+const STATS_VERSION := 2
 
 ## Returns {notes, seconds, nps, gap, flow} for one difficulty, counting it now if it isn't cached yet.
 static func get_stats(info: MapInfo, difficulty: DifficultyInfo) -> Dictionary:
@@ -27,8 +29,8 @@ static func get_cached(info: MapInfo, difficulty: DifficultyInfo) -> Dictionary:
 	_cache_mutex.lock()
 	var stats: Dictionary = _cache.get(_key(info, difficulty), {})
 	_cache_mutex.unlock()
-	# entries saved before the wall workout existed are counted again
-	return stats if stats.has("sets") else {}
+	# entries counted by older rules are counted again
+	return stats if int(stats.get("version", 0)) == STATS_VERSION else {}
 
 ## Counts every uncounted difficulty of the songs on a background thread, then saves the cache
 ## and calls on_done on the main thread. Does nothing while a previous pass is still running.
@@ -91,7 +93,7 @@ static func _count(info: MapInfo, difficulty: DifficultyInfo) -> Dictionary:
 					hand_notes[color].append([float(n.get("b", 0.0)), int(data.get("d", 8)), int(data.get("x", 1))])
 	var seconds_per_beat := 60.0 / info.beats_per_minute if info.beats_per_minute > 0.0 else 0.0
 	var seconds := last_beat * seconds_per_beat
-	var stats := {"notes": notes, "seconds": seconds, "nps": notes / seconds if seconds > 0.0 else 0.0,
+	var stats := {"version": STATS_VERSION, "notes": notes, "seconds": seconds, "nps": notes / seconds if seconds > 0.0 else 0.0,
 		"gap": _swing_gap(hand_beats, seconds_per_beat), "flow": _awkward_percent(hand_notes, seconds_per_beat)}
 	stats.merge(_workout(_walls(map_data), seconds_per_beat))
 	return stats
@@ -123,56 +125,55 @@ static func _walls(map_data: Variant) -> Array[Array]:
 					float(data.get("y", 0)), float(data.get("w", 0)), float(data.get("h", 0))])
 	return walls
 
-## Walls of one move that touch closer than this are one hold (from doc/research/wall-workout.md).
-const SAME_MOVE_SECONDS := 0.25
+## Walls of one move starting closer than this are one move (doc/research/wall-workout.md).
+const SAME_MOVE_SECONDS := 0.1
 ## A set is at least this many moves of one kind, each within SET_GAP_SECONDS of the last (ACSM's 8-12
 ## repetitions per set; see doc/research/wall-workout.md).
 const SET_MOVES := 8
 const SET_GAP_SECONDS := 4.0
 
-## Squats, side steps and sets the walls ask for. A wall moves the player only when it covers the head, in
-## the middle of the grid between columns 1 and 2: one high enough to pass under (bottom at layer 1.5 or up)
-## spanning both middle columns is a squat; one from the floor to head height covering one middle column is a
-## step to the other side. Sets are runs of one kind of move (SET_MOVES, SET_GAP_SECONDS); set_seconds is the
-## time inside them.
+## Squats, side steps and sets the walls ask for (doc/research/wall-workout.md). The player stands between
+## the middle columns 1 and 2: a wall over the head row with room below (bottom at layer 1 or 2, top above 2)
+## across both middle columns is a squat; one from the floor at least 3 high over one middle column is a step
+## to the other side. Sets are runs of one kind of move (SET_MOVES, SET_GAP_SECONDS); set_seconds is the time
+## from the first to the last move of each set.
 static func _workout(walls: Array[Array], seconds_per_beat: float) -> Dictionary:
 	walls.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
-	# [start, end, kind] of each hold: 0 squat, 1 step right (wall on the left), 2 step left
-	var holds: Array[Array] = []
+	# [start, kind] of each move: 0 squat, 1 step right (wall on the left), 2 step left
+	var moves: Array[Array] = []
 	for wall in walls:
 		var x: float = wall[2]
+		var y: float = wall[3]
 		var width: float = wall[4]
+		var height: float = wall[5]
 		var covers_left := x <= 1.0 and 1.0 < x + width
 		var covers_right := x <= 2.0 and 2.0 < x + width
 		var kind := -1
-		if wall[3] >= 1.5 and covers_left and covers_right:
+		if y >= 1.0 and y <= 2.0 and 2.0 < y + height and covers_left and covers_right:
 			kind = 0
-		elif wall[3] <= 1.0 and wall[3] + wall[5] >= 3.0 and covers_left != covers_right:
+		elif y < 0.5 and height >= 3.0 and covers_left != covers_right:
 			kind = 1 if covers_left else 2
 		if kind < 0:
 			continue
 		var start: float = wall[0] * seconds_per_beat
-		var end: float = (wall[0] + maxf(wall[1], 0.0)) * seconds_per_beat
-		if not holds.is_empty() and holds[-1][2] == kind and start - holds[-1][1] < SAME_MOVE_SECONDS:
-			holds[-1][1] = maxf(holds[-1][1], end)
-		else:
-			holds.append([start, end, kind])
+		if moves.is_empty() or moves[-1][1] != kind or start - moves[-1][0] >= SAME_MOVE_SECONDS:
+			moves.append([start, kind])
 	var squats := 0
 	var sets := 0
 	var set_seconds := 0.0
 	var run_start := 0
-	for i in holds.size() + 1:
-		if i < holds.size() and holds[i][2] == 0:
+	for i in moves.size() + 1:
+		if i < moves.size() and moves[i][1] == 0:
 			squats += 1
 		# a run of one kind (squats, or steps to either side) ends at a change of kind or a long gap
-		var ends: bool = i == holds.size() or (holds[i][2] == 0) != (holds[run_start][2] == 0) \
-			or holds[i][0] - holds[i - 1][0] > SET_GAP_SECONDS
+		var ends: bool = i == moves.size() or (moves[i][1] == 0) != (moves[run_start][1] == 0) \
+			or moves[i][0] - moves[i - 1][0] > SET_GAP_SECONDS
 		if i > 0 and ends:
 			if i - run_start >= SET_MOVES:
 				sets += 1
-				set_seconds += holds[i - 1][1] - holds[run_start][0]
+				set_seconds += moves[i - 1][0] - moves[run_start][0]
 			run_start = i
-	return {"squats": squats, "side_steps": holds.size() - squats, "sets": sets, "set_seconds": set_seconds}
+	return {"squats": squats, "side_steps": moves.size() - squats, "sets": sets, "set_seconds": set_seconds}
 
 ## Index in Constants.WORKOUT_LEVELS for a difficulty's stats: none, some sets, or mostly sets.
 static func workout_level(stats: Dictionary) -> int:
