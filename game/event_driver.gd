@@ -124,6 +124,7 @@ var _combo_target := 0.0
 const PLATFORM_LIGHTS := preload("res://game/env/platform_lights.tres")
 @onready var classic_rig := $Level/ClassicRig as ClassicRig
 @onready var neon_grid_rig := $Level/NeonGridRig as NeonGridRig
+@onready var night_city_rig := $Level/NightCityRig as NightCityRig
 
 @onready var ring_anim_player := $Level/rings/AnimationPlayer as AnimationPlayer
 @onready var left_laser_anim_player := $Level/LeftWavingLasers/AnimationPlayer as AnimationPlayer
@@ -226,15 +227,15 @@ const RIG_GRID_EDGE_X := NeonGridRig.POLE_X
 ## Neon Grid's square bars: the horizontal ones become light rails between neighbouring lamp poles, along the
 ## track; the vertical ones are left out there, as the poles are shorter than a bar.
 const RAIL_BASIS := Basis(Vector3(1.0, 0.0, 0.0), Vector3(0.0, 1.0, 0.0), Vector3(0.0, 0.0, 0.3))
-const RIG_CITY_SEARCH_X := 26.0
-const RIG_CITY_ROOF := Vector3(20.0, 8.0, -35.0)
+## Night City's signs (the horizontal square bars) hang this far up the buildings' inner faces, just off them
+const SIGN_HEIGHT := 5.0
+const SIGN_OFFSET := 0.2
 const RIG_VOID_RADIUS := 16.0
 const RIG_VOID_CENTER := Vector3(0.0, 1.5, -45.0)
 const RIG_VOID_TARGET := Vector3(0.0, 1.5, -75.0)
 const RIG_WAVING_Y := -1.26
 ## where the square bars hang per environment: [position, scale]
 const RIG_SQUARE := {
-	"night_city": [Vector3(0.0, -2.0, -45.0), 2.0],
 	"pulse_void": [Vector3(0.0, 0.0, -55.0), 1.3],
 }
 ## each laser's and the square bars' Classic transform, put back before another rig is hung
@@ -298,15 +299,29 @@ func _apply_rig(id: String) -> void:
 				bar.global_transform = Transform3D(RAIL_BASIS, Vector3(side * RIG_GRID_EDGE_X, NeonGridRig.POLE_HEIGHT, z))
 				rail += 1
 		"night_city":
+			# diagonal lasers cross from the roofs' inner edges, one every 6 m along each row of buildings
 			for i in diagonal_lasers.size():
 				var pairs := diagonal_lasers.size() >> 1
 				var side := -1.0 if i < pairs else 1.0
-				var k := i % pairs
-				_aim(diagonal_lasers[i], Vector3(side * RIG_CITY_ROOF.x, RIG_CITY_ROOF.y, RIG_CITY_ROOF.z - 5.0 * k),
-					Vector3(-side * 0.35, 1.0, 0.1))
+				var z := -18.0 - 8.0 * (i % pairs)
+				var roof := maxf(NightCityRig.roof_at(side, z), 1.0)
+				_aim(diagonal_lasers[i], Vector3(side * NightCityRig.INNER_FACE_X, roof, z), Vector3(-side * 0.35, 1.0, 0.1))
+			# searchlights stand in the middle of each roof
 			for i in waving.size():
 				var side := -1.0 if i < half else 1.0
-				waving[i].global_position = Vector3(side * RIG_CITY_SEARCH_X, RIG_WAVING_Y, -25.0 - 10.0 * (i % half))
+				var b: Vector3 = NightCityRig.buildings(side)[i % half]
+				waving[i].global_position = Vector3(side * (NightCityRig.INNER_FACE_X + NightCityRig.DEPTH_X * 0.5), b.z + 0.3, b.x)
+			# signs: the horizontal bars run along the buildings' inner faces; the vertical ones are left out
+			var sign_i := 0
+			for bar in _square_bars():
+				if bar.get_parent() != square_lasers_holder:
+					bar.visible = false
+					continue
+				var side := -1.0 if sign_i % 2 == 0 else 1.0
+				var b: Vector3 = NightCityRig.buildings(side)[(sign_i >> 1) % NightCityRig.LEFT.size()]
+				bar.global_transform = Transform3D(RAIL_BASIS,
+					Vector3(side * (NightCityRig.INNER_FACE_X - SIGN_OFFSET), SIGN_HEIGHT + float(sign_i >> 1), b.x))
+				sign_i += 1
 		"pulse_void":
 			for i in diagonal_lasers.size():
 				var a := TAU * float(i) / diagonal_lasers.size()
@@ -321,6 +336,7 @@ func show_scenery_for_mixed_reality() -> void:
 	pulse_void.visible = environment == "pulse_void" and not Settings.mixed_reality
 	classic_rig.visible = environment == "classic" and not Settings.mixed_reality
 	neon_grid_rig.visible = environment == "neon_grid" and not Settings.mixed_reality
+	night_city_rig.visible = environment == "night_city" and not Settings.mixed_reality
 	stage_smoke.visible = Settings.smoke and not Settings.mixed_reality
 
 func set_background() -> void:
