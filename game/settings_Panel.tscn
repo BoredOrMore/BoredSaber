@@ -714,15 +714,19 @@ script = ExtResource("icon_button")
 
 [node name="vr_slider" parent="." instance=ExtResource("4")]
 scroll_node_path = NodePath("../Tabs/Gameplay")
+scroll_without_pointer = true
 
 [node name="vr_slider2" parent="." instance=ExtResource("4")]
 scroll_node_path = NodePath("../Tabs/Visuals")
+scroll_without_pointer = true
 
 [node name="vr_slider3" parent="." instance=ExtResource("4")]
 scroll_node_path = NodePath("../Tabs/Audio")
+scroll_without_pointer = true
 
 [node name="vr_slider4" parent="." instance=ExtResource("4")]
 scroll_node_path = NodePath("../Tabs/Advanced")
+scroll_without_pointer = true
 
 [connection signal="value_changed" from="Tabs/Audio/VBox/audio/master/master_slider" to="." method="_on_master_slider_value_changed"]
 [connection signal="value_changed" from="Tabs/Audio/VBox/audio/sfx/sfx_slider" to="." method="_on_sfx_slider_value_changed"]

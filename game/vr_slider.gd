@@ -62,11 +62,17 @@ func _process(delta: float) -> void:
 			v_scroll.value += ((relpos - newpos) * 20.0)
 		else:
 			_joystick_scroll(delta)
-	elif scroll_without_pointer and scroll_node.is_visible_in_tree():
+	elif scroll_without_pointer and scroll_node.is_visible_in_tree() and _canvas_shown():
 		_joystick_scroll(delta)
 	else:
 		_hold_time = 0.0
 	relpos = newpos
+
+## False while the 3D canvas showing this list is hidden (a Control inside a canvas's SubViewport stays
+## "visible" when the canvas is hidden).
+func _canvas_shown() -> bool:
+	var canvas := scroll_node.get_viewport().get_parent() as Node3D
+	return canvas == null or canvas.is_visible_in_tree()
 
 ## Scrolls by the stronger thumbstick of the two hands, faster the longer it is held.
 func _joystick_scroll(delta: float) -> void:
