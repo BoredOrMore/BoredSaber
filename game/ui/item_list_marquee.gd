@@ -1,6 +1,7 @@
 extends Node
 ## Scrolls the text of the hovered (or else selected) ItemList item in a loop
-## when it is too long to fit, like a marquee.
+## when it is too long to fit, like a marquee. Only the first line (the title) scrolls; the lines under it stay.
+## A list that shortens long titles to one line keeps the whole title in the item's metadata as {"title": ...}.
 
 ## Seconds between each one-character step of the scrolling text.
 const STEP_SECONDS := 0.15
@@ -16,6 +17,8 @@ const SINGLE_COLUMN_PADDING := 140.0
 var _list: ItemList
 var _index := -1
 var _original := ""
+## The item's lines after the first, kept still under the scrolling title.
+var _rest := ""
 var _shown := ""
 var _offset := 0
 var _timer := 0.0
@@ -31,8 +34,10 @@ func _process(delta: float) -> void:
 	if target != _index:
 		_restore()
 		_index = target
-		if _index >= 0 and _overflows(_list.get_item_text(_index)):
+		if _index >= 0 and _overflows(_title(_index)):
 			_original = _list.get_item_text(_index)
+			var newline := _original.find("\n")
+			_rest = _original.substr(newline) if newline >= 0 else ""
 			_shown = _original
 			_offset = 0
 			_timer = -START_DELAY
@@ -44,9 +49,9 @@ func _process(delta: float) -> void:
 	if _timer < STEP_SECONDS:
 		return
 	_timer = 0.0
-	var looped := _original + GAP
+	var looped := _title(_index) + GAP
 	_offset = (_offset + 1) % looped.length()
-	_shown = looped.substr(_offset) + looped.substr(0, _offset)
+	_shown = looped.substr(_offset) + looped.substr(0, _offset) + _rest
 	_list.set_item_text(_index, _shown)
 	_redraw()
 
@@ -59,6 +64,13 @@ func _target_index() -> int:
 		return hovered
 	var selected := _list.get_selected_items()
 	return selected[0] if selected.size() > 0 else -1
+
+## The whole title of an item: its metadata's "title", else its text's first line.
+func _title(index: int) -> String:
+	var meta: Variant = _list.get_item_metadata(index)
+	if meta is Dictionary and (meta as Dictionary).has("title"):
+		return str(meta["title"])
+	return _list.get_item_text(index).get_slice("\n", 0)
 
 ## Returns whether the text is wider than the space an item has for it.
 func _overflows(text: String) -> bool:

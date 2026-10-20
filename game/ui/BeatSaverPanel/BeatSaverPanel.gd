@@ -13,12 +13,20 @@ class BeatSaverSongInfo extends RefCounted:
 	var uploader_id: int
 	## Made by an auto-mapper (AI), not a person.
 	var automapper: bool
+	## Share of players who liked the map, 0 to 1 (BeatSaver's rating score).
+	var score: float
+	## Picked by BeatSaver's staff.
+	var curated: bool
+	var tags: PackedStringArray
 
 	func _init(song_info: Dictionary) -> void:
 		name = Utils.get_str(song_info, "name", "")
 		description = Utils.get_str(song_info, "description", "")
 		versions = Utils.get_array(song_info, "versions", [])
 		automapper = bool(song_info.get("automapper", false))
+		score = Utils.get_float(Utils.get_dict(song_info, "stats", {}), "score", 0.0)
+		curated = song_info.get("curatedAt") != null
+		tags = PackedStringArray(Utils.get_array(song_info, "tags", []))
 		# difficulties that need a mod this game doesn't have (Noodle Extensions, Mapping Extensions,
 		# Vivify) don't play right here, so they are left out
 		if not versions.is_empty() and versions[0] is Dictionary:
@@ -36,6 +44,10 @@ class BeatSaverSongInfo extends RefCounted:
 	## Seconds a note of one difficulty (from versions[0].diffs) is visible before reaching the player.
 	func reaction_seconds(diff: Dictionary) -> float:
 		return MapStats.reaction_seconds_for(bpm, Utils.get_float(diff, "njs", 0.0), Utils.get_float(diff, "offset", 0.0))
+
+	## Hash of the newest version, which is also its folder name once downloaded.
+	func get_hash() -> String:
+		return Utils.get_str(versions[0] as Dictionary, "hash", "") if not versions.is_empty() else ""
 
 	## True if the map can be played here: made by a person, with a Standard difficulty that needs no mod.
 	func is_playable() -> bool:
@@ -118,8 +130,34 @@ var prev_request: BeatSaverRequest
 @export var keyboard: OQ_UI2DKeyboard
 
 func on_song_list_changed() -> void:
-	for item_index in range(0, item_list.item_count):
-		item_list.set_item_disabled(item_index,main_menu_ref.all_song_hashes.has(item_list.get_item_metadata(item_index)))
+	for item_index in mini(item_list.item_count, song_data.size()):
+		item_list.set_item_text(item_index, _card_text(song_data[item_index]))
+
+## True if the map is already in the song list.
+func _in_library(song: BeatSaverSongInfo) -> bool:
+	return main_menu_ref.all_song_hashes.has(song.get_hash())
+
+## A title cut to fit one line of a card, ending in "…" (the marquee scrolls the whole title).
+func _one_line(title: String) -> String:
+	var font := item_list.get_theme_font("font")
+	var font_size := item_list.get_theme_font_size("font_size")
+	var room := float(item_list.fixed_column_width)
+	if font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x <= room:
+		return title
+	while title.length() > 1 and font.get_string_size(title + "…", HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > room:
+		title = title.left(-1)
+	return title.strip_edges() + "…"
+
+## A map's card under its cover: title, how liked it is and its length, then whether staff picked it or it is
+## already downloaded.
+func _card_text(song: BeatSaverSongInfo) -> String:
+	var seconds := int(song.duration)
+	var text := "%s\n%d%% liked · %d:%02d" % [_one_line(song.name), roundi(song.score * 100.0), seconds / 60, seconds % 60]
+	if _in_library(song):
+		text += "\n✓ In library"
+	elif song.curated:
+		text += "\n★ Staff pick"
+	return text
 
 func _ready() -> void:
 	var tab_group := ButtonGroup.new()
@@ -315,13 +353,11 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 						var parsed_song := BeatSaverSongInfo.new(i as Dictionary)
 						if not parsed_song.is_playable() or (prev_request.type != "uploader" and not parsed_song.passes_reaction_filter()):
 							continue
-						var index := item_list.add_item(parsed_song.name)
+						var index := item_list.add_item(_card_text(parsed_song))
 						item_list.set_item_icon(index, placeholder_cover)
-						var tooltip := "Map author: %s" % parsed_song.level_author_name
-						item_list.set_item_tooltip(index, tooltip)
+						item_list.set_item_tooltip_enabled(index, false)
 						song_data.append(parsed_song)
-						item_list.set_item_disabled(index, main_menu_ref.all_song_hashes.has(parsed_song.versions[0]["hash"]))
-						item_list.set_item_metadata(index, parsed_song.versions[0]["hash"])
+						item_list.set_item_metadata(index, {"title": parsed_song.name})
 
 	else:
 		vr.log_error("request error "+str(result))
@@ -429,7 +465,6 @@ func _on_download_button_up() -> void:
 	var version_info = song_data[item_selected].versions[0]
 	downloading.insert(downloading.size(),[song_data[item_selected].name,version_info])
 	download_next()
-	item_list.set_item_disabled(item_selected, true)
 
 func download_next() -> void:
 	if downloading.size() > 0:
