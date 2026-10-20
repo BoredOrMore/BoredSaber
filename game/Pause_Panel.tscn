@@ -43,6 +43,7 @@ offset_left = 192.0
 offset_top = 320.0
 offset_right = 448.0
 offset_bottom = 384.0
+theme_type_variation = &"PrimaryButton"
 text = "Continue"
 icon = ExtResource("icon_play")
 script = ExtResource("icon_button")

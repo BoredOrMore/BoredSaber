@@ -50,6 +50,8 @@ var _rank_up_player := AudioStreamPlayer.new()
 @onready var _name_card := $NameCard as MeshInstance3D
 @onready var _name_label := ($NameCard/Label as MeshInstance3D).mesh as TextMesh
 @onready var _name_button := $NameCard/Button as UIRaycastButton
+## The song was played to the end, so Main Menu (pick the next song) is the main action; after a fail it is Retry.
+var _finished := false
 var _card_material: ShaderMaterial
 
 ## Paints the panel and the percent ring in the menu colours and starts with the buttons off.
@@ -147,6 +149,8 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 	var repeat_button := $Repeat as UIRaycastButton
 	repeat_button.text = "Retry" if percent < 0 else "Repeat"
 	repeat_button.set_primary(percent < 0)
+	_finished = percent >= 0
+	($MainMenu as UIRaycastButton).set_primary(_finished)
 	
 	
 	var tw: Tween
@@ -251,6 +255,8 @@ func show_name_card(text: String, button_text := "", primary := false) -> void:
 	if _name_button.visible:
 		_name_button.text = button_text
 		_name_button.set_primary(primary)
+	# one main action: a name to type for a new record comes before going back
+	($MainMenu as UIRaycastButton).set_primary(_finished and not (_name_button.visible and primary))
 
 func hide_name_card() -> void:
 	_name_card.visible = false

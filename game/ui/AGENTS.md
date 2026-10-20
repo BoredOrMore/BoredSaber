@@ -12,7 +12,9 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
 ## File map
 
 - `menu_theme.tres`: the one shared `Theme` (Roboto-Medium 28 px, dark surfaces, accent borders, `toggle_on/off.svg`
-  pills for `CheckButton`). Every panel `.tscn` sets `theme = ExtResource(...)` on its root.
+  pills for `CheckButton`). Every panel `.tscn` sets `theme = ExtResource(...)` on its root. The one main
+  button of a screen sets `theme_type_variation = &"PrimaryButton"` (accent border, blue fill); 3D
+  `UIRaycastButton`s use `set_primary(true)`.
 - `BeatSaverPanel/`: browse/search/download maps from beatsaver.com (class `BeatSaverPanel`).
 - `BeatSageUI/` (+ `BeatSageRequest/`): generate a map from a YouTube URL via beatsage.com (class `BeatSagePanel`).
 - `MapDownloadPanel/`: picker between BeatSaver and BeatSage; `MapSourceButton` is its image+text button. Not in the game

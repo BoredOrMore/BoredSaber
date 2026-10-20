@@ -802,9 +802,9 @@ text = "Score on spectator view"
 
 [node name="defaults" type="Button" parent="."]
 layout_mode = 0
-offset_left = 548.0
+offset_left = 24.0
 offset_top = 616.0
-offset_right = 1012.0
+offset_right = 344.0
 offset_bottom = 696.0
 text = "Reset all"
 icon = ExtResource("icon_undo-2")
@@ -817,6 +817,7 @@ offset_left = 1032.0
 offset_top = 616.0
 offset_right = 1256.0
 offset_bottom = 696.0
+theme_type_variation = &"PrimaryButton"
 text = "Done"
 icon = ExtResource("icon_check")
 script = ExtResource("icon_button")
