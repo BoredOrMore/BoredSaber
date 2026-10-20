@@ -30,9 +30,10 @@ const MENU_BREATH_SECONDS := 12.0
 const MENU_LASER_LEVEL := 0.2
 const MENU_LASER_SWEEP_SECONDS := 30.0
 const MENU_HAZE_BOOST := 1.5
-## The house light colour the menu lights lean toward, and how far (0 = note colours only).
-const HOUSE_COLOR := Color(0.25, 0.35, 0.65)
-const MENU_HOUSE_MIX := 0.5
+## The house light colour the menu lights lean toward, and how far (0 = note colours only): a near-neutral
+## cool grey, like Beat Saber's menu, so the stage doesn't look tinted (saturation about 0.09). Untuned.
+const HOUSE_COLOR := Color(0.62, 0.64, 0.68)
+const MENU_HOUSE_MIX := 0.85
 ## Seconds the menu lights take to fade in before they start breathing.
 const MENU_FADE_SECONDS := 1.0
 ## When a song starts every light goes dark for this long before the show's lights come on, like a concert.
