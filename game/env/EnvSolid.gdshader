@@ -16,6 +16,8 @@ uniform float fog_density = 0.03;
 uniform float floor_haze_falloff = 0.35;
 
 varying float fog;
+// how much of the height fog the solids take: less than the air, so buildings and frames read as dark shapes
+const float SOLID_HEIGHT_FOG = 0.55;
 
 void vertex() {
 	if ((debug_view & 8) != 0) {
@@ -26,9 +28,10 @@ void vertex() {
 	float distance_fog = 1.0 - exp(-fog_density * dist);
 	float floor_haze = exp(-max(world.y, 0.0) * floor_haze_falloff);
 	fog = clamp(distance_fog * mix(0.5, 1.0, floor_haze), 0.0, 1.0);
-	fog = max(fog, height_fog(world, CAMERA_POSITION_WORLD));
+	// height fog lifts the solids' bottoms into the fog, but they stay darker than the air around them (silhouettes)
+	fog = max(fog, height_fog(world, CAMERA_POSITION_WORLD) * SOLID_HEIGHT_FOG);
 }
 
 void fragment() {
-	ALBEDO = shadow_tone(mix(albedo.rgb, env_haze.rgb * HEIGHT_FOG_GLOW, fog));
+	ALBEDO = shadow_tone(mix(albedo.rgb, env_haze.rgb, fog));
 }
