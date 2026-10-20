@@ -247,10 +247,6 @@ var last_map: String:
 	set(value):
 		last_map = value
 		set_and_emit(&"last_map", value)
-var song_filter_nps: int:
-	set(value):
-		song_filter_nps = value
-		set_and_emit(&"song_filter_nps", value)
 var song_filter_length: int:
 	set(value):
 		song_filter_length = value
@@ -338,7 +334,6 @@ var default_values = {
 	arrows_enabled = true,
 	block_size = 100,
 	last_map = "",
-	song_filter_nps = 0,
 	song_filter_length = 0,
 	song_filter_reaction = 0,
 	song_filter_favorites = false,

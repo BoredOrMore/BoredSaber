@@ -65,6 +65,15 @@ var song_data: Array[BeatSaverSongInfo] = []
 # not requestable (ie. reached end of the list)
 var prev_page_available := -1
 var next_page_available := -1
+## Style chips and genres: [label, BeatSaver tag], "" meaning any.
+const STYLES := [["Any", ""], ["Dance", "dance-style"], ["Workout", "fitness"], ["Accuracy", "accuracy"],
+	["Tech", "tech"], ["Speed", "speed"], ["Challenge", "challenge"]]
+const GENRES := [["Any genre", ""], ["Pop", "pop"], ["J-Pop", "j-pop"], ["K-Pop", "k-pop"], ["Anime", "anime"],
+	["Electronic", "electronic"], ["Rock", "rock"], ["Game music", "video-game-soundtrack"], ["Metal", "metal"],
+	["Classical", "classical-orchestral"], ["Hip-hop", "hip-hop-rap"], ["Vocaloid", "vocaloid"]]
+## Tags of the picked style and genre.
+var _style_tag := ""
+var _genre_tag := ""
 ## Sort tabs: [label, BeatSaver sortOrder]. The play-count list BeatSaver used to keep is all zeros now.
 const SORT_TABS := [["Popular", "Rating"], ["New", "Latest"], ["Staff picks", "Curated"], ["Random", "Random"]]
 var search_word := ""
@@ -90,7 +99,8 @@ var _preview_url := ""
 @onready var placeholder_cover := preload("res://game/data/beepsaber_logo.png")
 @onready var goto_maps_by := $gotoMapsBy as Button
 @onready var reaction_filter := $ReactionFilter as OptionButton
-@onready var nps_filter := $NpsFilter as OptionButton
+@onready var genre_filter := $GenreFilter as OptionButton
+@onready var style_chips := $StyleChips as HBoxContainer
 @onready var length_filter := $LengthFilter as OptionButton
 @onready var v_scroll := item_list.get_v_scroll_bar()
 
@@ -122,6 +132,19 @@ func _ready() -> void:
 		button.pressed.connect(_on_sort_tab_pressed.bind(tab[1]))
 		sort_tabs.add_child(button)
 	(sort_tabs.get_child(0) as Button).set_pressed_no_signal(true)
+	var style_group := ButtonGroup.new()
+	for style: Array in STYLES:
+		var chip := Button.new()
+		chip.text = style[0]
+		chip.toggle_mode = true
+		chip.button_group = style_group
+		chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		chip.add_theme_font_size_override(&"font_size", 22)
+		chip.pressed.connect(_on_style_pressed.bind(style[1]))
+		style_chips.add_child(chip)
+	(style_chips.get_child(0) as Button).set_pressed_no_signal(true)
+	for genre: Array in GENRES:
+		genre_filter.add_item(genre[0])
 	UI_AudioEngine.attach_children(self)
 	back_button.visible = false
 	v_scroll.value_changed.connect(_on_ListV_Scroll_value_changed)
@@ -149,8 +172,7 @@ func _ready() -> void:
 	
 	for filter: Array in MapStats.difficulty_filters():
 		reaction_filter.add_item(filter[1])
-	for filter: Array in Constants.NPS_FILTERS:
-		nps_filter.add_item(filter[1])
+	reaction_filter.set_item_text(0, "Any difficulty")
 	for filter: Array in Constants.LENGTH_FILTERS:
 		length_filter.add_item(filter[1])
 	_sync_filter_controls()
@@ -159,18 +181,18 @@ func _ready() -> void:
 ## Shows the saved song filters in the dropdowns.
 func _sync_filter_controls() -> void:
 	reaction_filter.select(clampi(Settings.song_filter_reaction, 0, Constants.DIFFICULTY_LEVELS.size()))
-	nps_filter.select(MapStats.nps_filter()[0])
 	length_filter.select(MapStats.length_filter()[0])
 
-## BeatSaver search parameters for the saved NPS and length filters, or "" when both are off.
-static func _filter_query() -> String:
-	var nps := MapStats.nps_filter()
+## BeatSaver search parameters for the picked style and genre (both must match) and the saved length filter,
+## or "" when all are off.
+func _filter_query() -> String:
 	var length := MapStats.length_filter()
 	var query := ""
-	if float(nps[2]) > 0.0:
-		query += "&minNps=%s" % nps[2]
-	if float(nps[3]) > 0.0:
-		query += "&maxNps=%s" % nps[3]
+	var tags := PackedStringArray([_style_tag, _genre_tag])
+	tags.erase("")
+	tags.erase("")
+	if not tags.is_empty():
+		query += "&tags=" + ",".join(tags)
 	if float(length[2]) > 0.0:
 		query += "&minDuration=%d" % int(length[2])
 	if float(length[3]) > 0.0:
@@ -179,20 +201,30 @@ static func _filter_query() -> String:
 
 ## Follows filter changes (made here or in the song menu) and reloads the current list with them.
 func _on_settings_changed(key: StringName) -> void:
-	if key != &"song_filter_reaction" and key != &"song_filter_nps" and key != &"song_filter_length":
+	if key != &"song_filter_reaction" and key != &"song_filter_length":
 		return
 	_sync_filter_controls()
+	_reload()
+
+## Loads the current list or search again from its first page, with the current filters.
+func _reload() -> void:
 	if prev_request != null and prev_request.type != "uploader":
 		prev_request.page = 0
 		update_list(prev_request)
 
+## Lists only maps of one style (a BeatSaver tag), or any.
+func _on_style_pressed(tag: String) -> void:
+	_style_tag = tag
+	_reload()
+
+## Lists only maps of one genre (a BeatSaver tag), or any.
+func _on_genre_filter_item_selected(index: int) -> void:
+	_genre_tag = GENRES[index][1]
+	_reload()
+
 ## Stores the picked reaction time filter.
 func _on_reaction_filter_item_selected(index: int) -> void:
 	Settings.song_filter_reaction = index
-
-## Stores the picked NPS filter.
-func _on_nps_filter_item_selected(index: int) -> void:
-	Settings.song_filter_nps = Constants.NPS_FILTERS[index][0]
 
 ## Stores the picked length filter.
 func _on_length_filter_item_selected(index: int) -> void:
@@ -224,7 +256,7 @@ func _show() -> void:
 	_on_BeatSaverPanel_visibility_changed()
 
 ## BeatSaver search URL for one page. Leaving out the automapper parameter leaves out AI-made maps.
-static func _search_url(page: int, query: String, sort_order: String) -> String:
+func _search_url(page: int, query: String, sort_order: String) -> String:
 	return "https://beatsaver.com/api/search/text/%d?q=%s&sortOrder=%s%s" % [page, query.uri_encode(), sort_order, _filter_query()]
 
 func update_list(req: BeatSaverRequest) -> void:

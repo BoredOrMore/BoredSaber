@@ -303,10 +303,6 @@ static func level_of(info: MapInfo, difficulty: DifficultyInfo, stats: Dictionar
 		level += 1
 	return mini(level, Constants.DIFFICULTY_LEVELS.size() - 1)
 
-## The saved NPS filter entry [id, label, min, max] from Constants.NPS_FILTERS.
-static func nps_filter() -> Array:
-	return Constants.NPS_FILTERS[clampi(Settings.song_filter_nps, 0, Constants.NPS_FILTERS.size() - 1)]
-
 ## The saved length filter entry [id, label, min, max] from Constants.LENGTH_FILTERS.
 static func length_filter() -> Array:
 	return Constants.LENGTH_FILTERS[clampi(Settings.song_filter_length, 0, Constants.LENGTH_FILTERS.size() - 1)]
