@@ -128,6 +128,7 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	print("Song starts in environment %s, smoke %s, debug_view %d" % [event_driver.environment, Settings.smoke, DebugView.flags])
 	event_driver.set_background_texture()
 	
+	event_driver.set_menu_focus(false)
 	update_left_color(Map.color_left)
 	update_right_color(Map.color_right)
 	_update_danger_color(Map.color_obstacle)
@@ -505,6 +506,8 @@ func _apply_environment() -> void:
 	event_driver.set_environment(EventDriver.pick_environment(Map.current_info.environment_name if Map.current_info else ""))
 
 func set_colors_from_settings() -> void:
+	# only the menus use the settings' colours: dim the scene so the menu holds the eye
+	event_driver.set_menu_focus(true)
 	update_left_color(Settings.color_left)
 	update_right_color(Settings.color_right)
 	event_driver.set_background()

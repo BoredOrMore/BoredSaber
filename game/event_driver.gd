@@ -19,6 +19,12 @@ const COMBO_LASER_BOOST := 0.2
 const COMBO_PULSE_LASER := 0.3
 const COMBO_RISE_SECONDS := 1.0
 const COMBO_FALL_SECONDS := 0.3
+## In the menus the lights stay at this part of their colour and the moving lasers go off, so the menu
+## holds the eye: no distracting motion or bright, high-contrast objects in the periphery (Apple visionOS
+## HIG, Spatial layout and Immersive experiences). Untuned.
+const MENU_LIGHT_LEVEL := 0.3
+## A menu is showing: lights dimmed (MENU_LIGHT_LEVEL), waving lasers off, rings still.
+var menu_focus := false
 ## The sky draws after every other solid thing, so the GPU skips the parts of it hidden behind the floor,
 ## the track and the scenery instead of shading the whole sphere first (Godot draws higher priority later).
 const SKY_RENDER_PRIORITY := Material.RENDER_PRIORITY_MAX
@@ -264,14 +270,43 @@ func set_combo_multiplier(multiplier: int) -> void:
 func combo_pulse() -> void:
 	_combo_pulse = 1.0
 
+## Dims the scene for the menus, fading over a second, or (off) leaves the lights to the song, which sets them next.
+func set_menu_focus(on: bool) -> void:
+	menu_focus = on
+	if not on:
+		return
+	_combo_target = 0.0
+	ring_rot_speed = 0.0
+	_apply_menu_lights()
+
+## Menu lighting: the static lights at MENU_LIGHT_LEVEL of the current colours, the waving lasers faded out.
+func _apply_menu_lights() -> void:
+	if disabled:
+		return
+	fade_light_from_current(EventInfo.TYPE_DIAGONAL_LASERS, left_color.darkened(1.0 - MENU_LIGHT_LEVEL))
+	fade_light_from_current(EventInfo.TYPE_SQUARE_LASERS, right_color.darkened(1.0 - MENU_LIGHT_LEVEL))
+	fade_light_from_current(EventInfo.TYPE_FLOOR_LIGHTS, right_color.darkened(1.0 - MENU_LIGHT_LEVEL))
+	if left_waving_lasers_holder.visible:
+		fade_light(EventInfo.TYPE_LEFT_WAVING_LASERS, left_waving_lasers_material.get_shader_parameter(&"light_color"),
+			Color.BLACK, true, Tween.TRANS_LINEAR, Tween.EASE_IN)
+	if right_waving_lasers_holder.visible:
+		fade_light(EventInfo.TYPE_RIGHT_WAVING_LASERS, right_waving_lasers_material.get_shader_parameter(&"light_color"),
+			Color.BLACK, true, Tween.TRANS_LINEAR, Tween.EASE_IN)
+
 func update_left_color(color: Color) -> void:
 	left_color = color
+	if menu_focus:
+		_apply_menu_lights()
+		return
 	turn_light_on(EventInfo.TYPE_DIAGONAL_LASERS, color)
 	turn_light_on(EventInfo.TYPE_LEFT_WAVING_LASERS, color)
 	turn_light_on(EventInfo.TYPE_RIGHT_WAVING_LASERS, color)
 
 func update_right_color(color: Color) -> void:
 	right_color = color
+	if menu_focus:
+		_apply_menu_lights()
+		return
 	turn_light_on(EventInfo.TYPE_SQUARE_LASERS, color)
 	turn_light_on(EventInfo.TYPE_FLOOR_LIGHTS, color)
 
