@@ -369,15 +369,21 @@ func _on_recenter_button_up() -> void:
 	recenter_button.disabled = false
 	beepsaber_game.recenter()
 
+## Opens or closes the left saber's colour picker; only one picker is open at a time, so they never overlap.
 func _on_left_saber_col_pressed() -> void:
 	if left_saber_col_state:
 		left_saber_col.get_popup().hide()
 	left_saber_col_state = not left_saber_col_state
+	right_saber_col.get_popup().hide()
+	right_saber_col_state = false
 
+## Opens or closes the right saber's colour picker, closing the left one.
 func _on_right_saber_col_pressed() -> void:
 	if right_saber_col_state:
 		right_saber_col.get_popup().hide()
 	right_saber_col_state = not right_saber_col_state
+	left_saber_col.get_popup().hide()
+	left_saber_col_state = false
 
 func _on_not_music_dl_toggled(button_pressed: bool) -> void:
 	Settings.not_music_dl = button_pressed
