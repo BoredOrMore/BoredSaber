@@ -10,6 +10,7 @@ render_mode unshaded, fog_disabled, shadows_disabled;
 // it at the wrong depth (Apple visionOS HIG, Eyes), so the grid stays only around the player. All values untuned.
 global uniform vec4 env_haze;
 #include "res://game/env/shadow_tone.gdshaderinc"
+#include "res://game/env/height_fog.gdshaderinc"
 // metres between lines
 const float SPACING = 2.0;
 const float LINE_WIDTH = 0.04;
@@ -28,10 +29,13 @@ const float HORIZON_HAZE = 1.25;
 varying vec3 world;
 // worked out per vertex (the plane is subdivided for it), since it changes slowly across the plane
 varying float fade;
+// the floor sits in the densest part of the height fog
+varying float ground_fog;
 
 void vertex() {
 	world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	fade = exp(-length(world.xz - CAMERA_POSITION_WORLD.xz) / FADE_DISTANCE);
+	ground_fog = height_fog(world, CAMERA_POSITION_WORLD);
 }
 
 void fragment() {
@@ -45,5 +49,6 @@ void fragment() {
 	vec3 line_col = mix(env_haze.rgb, vec3(max(env_haze.r, max(env_haze.g, env_haze.b))), LINE_DESATURATE);
 	vec3 near = mix(env_haze.rgb * GROUND_SHADE, line_col * LINE_GAIN, line);
 	ALBEDO = mix(env_haze.rgb * HORIZON_HAZE, near, fade);
+	ALBEDO = mix(ALBEDO, env_haze.rgb * HEIGHT_FOG_GLOW, ground_fog);
 	ALBEDO = shadow_tone(ALBEDO);
 }
