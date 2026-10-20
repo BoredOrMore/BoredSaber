@@ -9,6 +9,11 @@ const LASERS := 4
 const RINGS := 8
 const SKY := 16
 const PLAIN_WALLS := 64
+## Not read by shaders: while on, a song steps through CYCLE_STEPS by itself (cycle_tick), so one run measures
+## every part; the log line "debug_view N" marks each step for matching with the headset's GPU timings.
+const CYCLE := 1024
+const CYCLE_STEPS: Array[int] = [0, WALLS, PLAIN_NOTES, LASERS, RINGS, SKY, PLAIN_WALLS]
+const CYCLE_SECONDS := 10.0
 ## label and bit of each switch, in the order they show
 const SWITCHES := [
 	["Hide walls", WALLS],
@@ -17,6 +22,7 @@ const SWITCHES := [
 	["Hide rings and floor lines", RINGS],
 	["Plain black sky", SKY],
 	["Plain walls (no shimmer)", PLAIN_WALLS],
+	["Measure each part (cycles the switches)", CYCLE],
 ]
 
 static var flags := 0:
@@ -24,6 +30,15 @@ static var flags := 0:
 		flags = value
 		RenderingServer.global_shader_parameter_set(&"debug_view", value)
 		print("debug_view ", value)
+
+## While CYCLE is on, switches to the next of CYCLE_STEPS every CYCLE_SECONDS; call it every frame of a song.
+static func cycle_tick() -> void:
+	if flags & CYCLE == 0:
+		return
+	var step := int(Time.get_ticks_msec() / 1000.0 / CYCLE_SECONDS) % CYCLE_STEPS.size()
+	var wanted := CYCLE | CYCLE_STEPS[step]
+	if flags != wanted:
+		flags = wanted
 
 static func set_flag(bit: int, on: bool) -> void:
 	flags = flags | bit if on else flags & ~bit
