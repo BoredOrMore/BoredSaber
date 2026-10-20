@@ -13,6 +13,7 @@
 [ext_resource type="Texture2D" path="res://game/ui/icons/star.svg" id="icon_star"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/trash-2.svg" id="icon_trash-2"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/undo-2.svg" id="icon_undo-2"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/x.svg" id="icon_x"]
 [ext_resource type="Script" path="res://game/ui/IconButton.gd" id="icon_button"]
 [ext_resource type="Script" path="res://game/ui/ConfirmButton.gd" id="confirm_button"]
 
@@ -63,15 +64,6 @@ text = "Search"
 icon = ExtResource("icon_search")
 script = ExtResource("icon_button")
 
-[node name="Label" type="Label" parent="Search_Button" unique_id=626122024]
-layout_mode = 0
-offset_left = 176.0
-offset_top = 10.0
-offset_right = 480.0
-offset_bottom = 50.0
-theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
-clip_text = true
-
 [node name="PlaylistSelector" type="OptionButton" parent="." unique_id=301008456]
 layout_mode = 0
 offset_left = 500.0
@@ -90,46 +82,70 @@ text = "Favorites"
 icon = ExtResource("icon_star")
 script = ExtResource("icon_button")
 
-[node name="ReactionLabel" type="Label" parent="."]
+[node name="ReactionFilter" type="OptionButton" parent="." unique_id=1730492215]
 layout_mode = 0
 offset_left = 24.0
 offset_top = 100.0
-offset_right = 152.0
-offset_bottom = 160.0
-text = "Difficulty"
-vertical_alignment = 1
-
-[node name="ReactionFilter" type="OptionButton" parent="." unique_id=1730492215]
-layout_mode = 0
-offset_left = 156.0
-offset_top = 100.0
-offset_right = 344.0
+offset_right = 254.0
 offset_bottom = 160.0
 fit_to_longest_item = false
 
 [node name="LengthFilter" type="OptionButton" parent="." unique_id=1730492216]
 layout_mode = 0
-offset_left = 356.0
+offset_left = 266.0
 offset_top = 100.0
-offset_right = 576.0
+offset_right = 476.0
 offset_bottom = 160.0
+fit_to_longest_item = false
 
 [node name="WorkoutFilter" type="Button" parent="."]
 layout_mode = 0
-offset_left = 588.0
+offset_left = 488.0
 offset_top = 100.0
 offset_right = 760.0
 offset_bottom = 160.0
 toggle_mode = true
 text = "Workout"
 
+[node name="FilterStatus" type="Label" parent="."]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 168.0
+offset_right = 508.0
+offset_bottom = 216.0
+theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
+vertical_alignment = 1
+text_overrun_behavior = 3
+
+[node name="ClearFilters_Button" type="Button" parent="."]
+layout_mode = 0
+offset_left = 520.0
+offset_top = 168.0
+offset_right = 760.0
+offset_bottom = 216.0
+text = "Clear filters"
+icon = ExtResource("icon_x")
+script = ExtResource("icon_button")
+
 [node name="SongsMenu" type="ItemList" parent="." unique_id=1448329630]
 layout_mode = 0
 offset_left = 24.0
-offset_top = 176.0
+offset_top = 224.0
 offset_right = 760.0
 offset_bottom = 596.0
 fixed_icon_size = Vector2i(72, 72)
+
+[node name="EmptyList" type="Label" parent="."]
+visible = false
+layout_mode = 0
+offset_left = 24.0
+offset_top = 224.0
+offset_right = 760.0
+offset_bottom = 596.0
+theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
 
 [node name="GetSongs_Button" type="Button" parent="." unique_id=1531123590]
 layout_mode = 0
@@ -469,6 +485,7 @@ scroll_without_pointer = true
 [connection signal="pressed" from="Play_Button" to="." method="_on_Play_Button_pressed"]
 [connection signal="confirmed" from="MorePanel/Delete_Button" to="." method="_on_delete_confirmed"]
 [connection signal="confirmed" from="MorePanel/Exit_Button" to="." method="_on_Exit_Button_pressed"]
+[connection signal="pressed" from="ClearFilters_Button" to="." method="_clear_filters"]
 [connection signal="pressed" from="MorePanel/Licenses" to="." method="_on_licenses_pressed"]
 [connection signal="button_up" from="Search_Button" to="." method="_on_Search_Button_button_up"]
 [connection signal="pressed" from="PlayerName_Button" to="." method="_on_PlayerName_Button_pressed"]

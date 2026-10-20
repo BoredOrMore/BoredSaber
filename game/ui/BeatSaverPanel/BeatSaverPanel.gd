@@ -248,7 +248,6 @@ func _ready() -> void:
 	
 	for filter: Array in MapStats.difficulty_filters():
 		reaction_filter.add_item(filter[1])
-	reaction_filter.set_item_text(0, "Any difficulty")
 	for filter: Array in Constants.LENGTH_FILTERS:
 		length_filter.add_item(filter[1])
 	_sync_filter_controls()

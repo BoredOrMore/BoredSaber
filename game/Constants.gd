@@ -95,7 +95,7 @@ const FLOW_HIDDEN_PERCENT := 25.0
 const WORKOUT_LEVELS := ["", "Some workout", "Workout"]
 const WORKOUT_SET_SHARE := 0.3
 ## Difficulty filter choices: 0 shows every song, n songs with a difficulty at DIFFICULTY_LEVELS[n - 1] or easier.
-const ANY_DIFFICULTY_LABEL := "Any"
+const ANY_DIFFICULTY_LABEL := "Any difficulty"
 ## Difficulty filter label for a level above Easy, which also lists easier songs.
 const UP_TO_LEVEL_LABEL := "Up to %s"
 const LENGTH_FILTERS := [ [0, "Any length", 0.0, 0.0], [1, "Under 2 min", 0.0, 120.0], [2, "2-4 min", 120.0, 240.0], [3, "Over 4 min", 240.0, 0.0] ]
