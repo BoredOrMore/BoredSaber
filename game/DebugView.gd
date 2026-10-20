@@ -8,6 +8,7 @@ const PLAIN_NOTES := 2
 const LASERS := 4
 const RINGS := 8
 const SKY := 16
+const PLAIN_WALLS := 64
 ## label and bit of each switch, in the order they show
 const SWITCHES := [
 	["Hide walls", WALLS],
@@ -15,6 +16,7 @@ const SWITCHES := [
 	["Hide lasers", LASERS],
 	["Hide rings and floor lines", RINGS],
 	["Plain black sky", SKY],
+	["Plain walls (no shimmer)", PLAIN_WALLS],
 ]
 
 static var flags := 0:
