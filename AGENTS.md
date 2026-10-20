@@ -62,6 +62,9 @@ not developers. Follow "Don't make me think": a player should understand every c
 - Keep labels short, consistent and in the same words everywhere (one term per concept).
 - When a request needs a new player-facing term, choice or flow and the plain wording isn't obvious,
   ask the user or propose two or three player-friendly options instead of shipping developer wording.
+- For any menu, panel, HUD or score-screen work, follow `.claude/skills/vr-ui-design/SKILL.md` before
+  building (flow, 3D placement, sizes, feedback) and `.claude/skills/vr-ui-review/SKILL.md` before calling
+  it done (every game state that shows the node, overlap and depth checks, headset walk-through).
 
 ## Research before changing game feel
 

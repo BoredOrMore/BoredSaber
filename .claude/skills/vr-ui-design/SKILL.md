@@ -1,0 +1,90 @@
+---
+name: vr-ui-design
+description: Rules for building or changing anything the player sees or touches in BoredSaber (menus, panels, HUD, score screen, keyboard, BeatSaver page, labels, filters). Use before writing UI code or scene changes, and when proposing a UI plan to the user.
+---
+
+# VR UI design for BoredSaber
+
+The player wears a Pico 4, holds two sabers that double as laser pointers, and cannot see the code.
+Every past UI bug in this repo came from one of the rules below being missed. Read the root
+`AGENTS.md` ("Player-facing wording and UX", "Colour rules") and `game/ui/AGENTS.md` (how 2D UI
+reaches VR) first; this skill adds the VR-specific checks.
+
+## 1. Start from the player's flow, not the widget
+
+Before touching a scene, write the flow as numbered steps from the player's view: what they see,
+what they press, what happens next, how they leave. For each step answer:
+
+- Where is the player looking right now? New UI goes where the eyes already are, not in a spot they
+  have to discover. (The name bar under the score at waist height went unnoticed.)
+- What does the player do next by default? There is always one obvious main action (`UI_ACCENT`).
+- How do they back out? Every modal (keyboard, dialog) has Cancel, and an empty or invalid input can
+  never trap them (the name keyboard once had no cancel and ignored Enter on an empty name).
+- What else is clickable while this step is open? Disable controls that would abandon the step
+  (Repeat/Main Menu stayed live while typing a name).
+
+## 2. Placement in 3D
+
+Positions are metres in the main scene; the player's eyes are around y = 1.5-1.7 at the origin,
+facing -z. Panels are `OQ_UI2DCanvas` quads: 1024 px = 1 m at scale 1 (`vr.UI_PIXELS_TO_METER`),
+then multiplied by the node `transform` scale.
+
+- Keep reading and pressing within about ±30° left/right, 20° up and 12° down of straight ahead;
+  beyond that the player has to turn the head (comfort figures quoted from Samsung/Google VR design
+  talks, secondary sources). Short tasks like typing may sit lower if tilted to face the eye.
+- Main panel distance 0.8-2.5 m. Closer than ~0.5 m is uncomfortable to focus; further shrinks text.
+- A side panel must face the player (yaw toward the origin) and stay inside the comfort zone. A
+  table 2.3 m left turned 60° was out of sight.
+- **Depth:** two panels at similar depth must not overlap in the view. Compute world positions:
+  a child offset is rotated and scaled by every parent transform. (The keyboard's text box sat 5 cm
+  behind the score panel and was invisible.) Leave at least 5 cm between layers that overlap, and
+  put the one the player reads in front.
+- **One node, many states:** a canvas shown in several game states (e.g. `Highscores_Canvas` in the
+  song menu and on the score screen) must be placed per state, or checked against every state's
+  layout. Moving it for one screen once covered the song list in another.
+- Never put UI inside the play lane (x ±1 m, in front of the player) while notes can fly.
+
+## 3. Size and legibility
+
+- Pointer targets: at least ~3° of visual angle (Meta Horizon guidance for gaze/ray targets):
+  `size = 2 · distance · tan(1.5°)` ≈ 5.2 cm at 1 m, 10.5 cm at 2 m.
+- Text: the theme's 28 px on the main menu canvas (scale 2.4 at 1 m ≈ 6.6 cm ≈ 3.8°) is the
+  playtested baseline; don't make body text smaller in angle than that. Muted text needs more size.
+- Clickable shapes: the hit area matches what the player sees (a favourite star whose hitbox missed
+  the icon felt broken). Leave room for dropdown arrows and padding; never let text touch edges.
+- No dense blocks of text. Split details into short labelled lines or chips; clip long descriptions.
+
+## 4. Controls that explain themselves
+
+- No hidden modes: never a button that silently cycles through lists ("Plays" did). Show all
+  choices as tabs or chips with the active one in `UI_ACCENT`.
+- One vocabulary per concept, everywhere (difficulty became one Easy..Expert+ scale after four
+  overlapping ones confused the player). Before adding a label, search the UI for an existing term.
+- Don't add a filter that duplicates another. Prefer a few named choices with a default over raw
+  numbers (root `AGENTS.md`).
+- Show state: what's selected, what's already downloaded or saved, what a button will do.
+
+## 5. Feedback for every action
+
+- Every press gets an immediate visual and sound response (`UI_AudioEngine.attach_children`).
+- Anything slow (download, search, loading) shows progress or a spinner and a clear end state
+  ("Downloading 45%" → "✓ In library · Play now").
+- Saving or renaming confirms on screen where the player is looking ("Saved as …").
+- Errors in player words with a next step ("Can't reach BeatSaver. Check your Wi-Fi.").
+- Typed text is always visible where the player looks while typing.
+
+## 6. Colours, comfort, performance
+
+- Follow the root `AGENTS.md` colour rules (`UI_ACCENT` = selected/main action, danger colour never
+  for UI). Pair colour with a word or shape.
+- No large bright or saturated areas, short moderate flashes only.
+- UI must not cost frame time during play: no per-frame viewport redraws of hidden canvases, no new
+  post-processing. Canvases redraw only on input (see `game/ui/AGENTS.md`). Measure on the headset
+  (`.github/AGENTS.md`) for anything visible during a song.
+
+## 7. Propose before building
+
+For a new screen or flow, send the user a short plan in player words: the flow steps, where each
+piece sits, the labels, and what you'll drop. Offer two or three wording options when the plain
+term isn't obvious. Then build in small steps, one build per step, and verify each with
+`vr-ui-review`.

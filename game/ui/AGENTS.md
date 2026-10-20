@@ -6,6 +6,9 @@ All text here is player-facing: follow "Player-facing wording and UX" in the roo
 developer terms like NJS/NPS/RT in labels, named choices with a default, ask or propose options when
 the plain wording isn't obvious).
 
+Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md` and
+`.claude/skills/vr-ui-review/SKILL.md` (placement in 3D, shared canvases across game states, feedback, dead ends).
+
 ## File map
 
 - `menu_theme.tres`: the one shared `Theme` (Roboto-Medium 28 px, dark surfaces, accent borders, `toggle_on/off.svg`
