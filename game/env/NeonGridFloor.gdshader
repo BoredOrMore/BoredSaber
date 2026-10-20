@@ -5,7 +5,9 @@ render_mode unshaded, fog_disabled, shadows_disabled;
 // map's lights. The grid stands still on purpose: a floor sliding past at the edge of view makes a standing
 // player feel they are moving (vection), which goes with VR sickness (Keshavarz, Riecke, Hettinger & Campos
 // 2015, doi:10.3389/fpsyg.2015.00472). Lines never get thinner than MIN_LINE_PIXELS and dim instead (as
-// NeonRibbon.gdshader does), and the floor fades into the horizon haze far away. All values untuned.
+// NeonRibbon.gdshader does), and the floor fades into the horizon haze far away. The lines themselves fade out
+// between LINE_FADE_START and LINE_FADE_END: a repeating pattern that fills the view lets the eyes lock onto
+// it at the wrong depth (Apple visionOS HIG, Eyes), so the grid stays only around the player. All values untuned.
 global uniform vec4 env_haze;
 #include "res://game/env/shadow_tone.gdshaderinc"
 // metres between lines
@@ -15,6 +17,9 @@ const float MIN_LINE_PIXELS = 1.0;
 const float LINE_GAIN = 4.0;
 const float GROUND_SHADE = 0.3;
 const float FADE_DISTANCE = 60.0;
+// metres from the player where the lines start fading, and where they are gone
+const float LINE_FADE_START = 8.0;
+const float LINE_FADE_END = 35.0;
 // the skies' haze at the horizon (SKY_HAZE + 1 in both), so the floor meets the sky without a seam
 const float HORIZON_HAZE = 1.25;
 
@@ -34,6 +39,7 @@ void fragment() {
 	vec2 half_width = max(vec2(LINE_WIDTH * 0.5), px * MIN_LINE_PIXELS * 0.5);
 	vec2 lines = (1.0 - smoothstep(half_width - px, half_width + px, to_line)) * (LINE_WIDTH * 0.5 / half_width);
 	float line = max(lines.x, lines.y);
+	line *= 1.0 - smoothstep(LINE_FADE_START, LINE_FADE_END, length(world.xz - CAMERA_POSITION_WORLD.xz));
 	vec3 near = mix(env_haze.rgb * GROUND_SHADE, env_haze.rgb * LINE_GAIN, line);
 	ALBEDO = mix(env_haze.rgb * HORIZON_HAZE, near, fade);
 	ALBEDO = shadow_tone(ALBEDO);
