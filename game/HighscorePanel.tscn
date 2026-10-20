@@ -279,9 +279,3 @@ text = "Song Author: TheFatRat
 Song Title: Time Lapse
 Beatmap Author: Timeweaver"
 clip_text = true
-
-[node name="Exit_Button" type="Button" parent="Margin/VBox"]
-layout_mode = 2
-text = "Close"
-
-[connection signal="pressed" from="Margin/VBox/Exit_Button" to="." method="_on_Exit_Button_pressed"]

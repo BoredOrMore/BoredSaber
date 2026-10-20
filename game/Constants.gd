@@ -5,6 +5,9 @@ const LAYER_ZERO_Y := 0.8
 const BEAT_DISTANCE := 4.0
 const DEFAULT_LANE_DISTANCE_X := 0.6
 const LANE_DISTANCE_Y := 0.6
+## Eye height the note rows (0.8, 1.4 and 2.0 m) and crouch walls (1.2 m) suit, as Beat Saber's default 1.80 m player
+## (eyes about 0.1 m below the top of the head); "Measure my height" moves the view to it.
+const EYE_HEIGHT := 1.7
 const MISS_Z := 2.5
 const DIRECTION8_OFFSET := 2 * TAU 
 const DIRECTION8_COMPARE := DIRECTION8_OFFSET - .001
@@ -60,7 +63,7 @@ const DIFFICULTY_WIDTH_BIT0 := 0x1000 # 1<<12
 const DIFFICULTY_WIDTH_BIT1 := 0x2000
 const DIFFICULTY_WIDTH_BIT2 := 0x40000
 const DIFFICULTY_WIDTH_MASK := 0x1000 | 0x2000 | 0x4000
-const WIDTHS := [ [100, "No Stretch", 0], [125, "Stretch 125%", 1<<DIFFICULTY_WIDTH_SHIFT], [150, "Stretch 150%", 2<<DIFFICULTY_WIDTH_SHIFT], [175, "Stretch 175%", 3<<DIFFICULTY_WIDTH_SHIFT], [200, "Stretch 200%", 4<<12] ]
+const WIDTHS := [ [100, "Normal Width", 0], [125, "Wide 125%", 1<<DIFFICULTY_WIDTH_SHIFT], [150, "Wide 150%", 2<<DIFFICULTY_WIDTH_SHIFT], [175, "Wide 175%", 3<<DIFFICULTY_WIDTH_SHIFT], [200, "Wide 200%", 4<<12] ]
 #const DIFFICULTY_RESERVED := 0x8000
 const DIFFICULTY_SPEED_SHIFT := 17
 const DIFFICULTY_SPEED_BIT0 := 0x20000
@@ -91,8 +94,10 @@ const FLOW_HIDDEN_PERCENT := 25.0
 ## in sets (doc/research/wall-workout.md).
 const WORKOUT_LEVELS := ["", "Some workout", "Workout"]
 const WORKOUT_SET_SHARE := 0.3
-## Difficulty filter choices: 0 shows every song, n songs with a difficulty at DIFFICULTY_LEVELS[n - 1].
-const ANY_DIFFICULTY_LABEL := "Any"
+## Difficulty filter choices: 0 shows every song, n songs with a difficulty at DIFFICULTY_LEVELS[n - 1] or easier.
+const ANY_DIFFICULTY_LABEL := "Any difficulty"
+## Difficulty filter label for a level above Easy, which also lists easier songs.
+const UP_TO_LEVEL_LABEL := "Up to %s"
 const LENGTH_FILTERS := [ [0, "Any length", 0.0, 0.0], [1, "Under 2 min", 0.0, 120.0], [2, "2-4 min", 120.0, 240.0], [3, "Over 4 min", 240.0, 0.0] ]
 const DIFFICULTY_FLIP_SHIFT := 20
 const DIFFICULTY_FLIP_HORIZONTAL := 0x100000
@@ -100,17 +105,22 @@ const DIFFICULTY_FLIP_VERTICAL := 0x200000
 const DIFFICULTY_FLIP_MASK := 0x100000 | 0x200000
 const DIFFICULTY_HANDEDNESS_FORCE_LEFT := 0x400000
 const DIFFICULTY_HANDEDNESS_FORCE_RIGHT := 0x800000
-const DIFFICULTY_HANDEDNESS_IGNORE := 0x800000
+## Both bits: it once shared Right Saber Only's bit, so those records read as Right Saber Only.
+const DIFFICULTY_HANDEDNESS_IGNORE := 0x400000 | 0x800000
 const DIFFICULTY_HANDEDNESS_MASK := 0x400000 | 0x800000
 const FLIP_MASK := 3
 const FLIP_HORIZONTAL := 1
 const FLIP_VERTICAL := 2
-const FLIPS := [ [0, "No Flip" ], [FLIP_HORIZONTAL,"Flip Horiz"], [FLIP_VERTICAL,"Flip Vert"], [FLIP_HORIZONTAL|FLIP_VERTICAL,"Flip HV"] ]
+const FLIPS := [ [0, "No Mirror" ], [FLIP_HORIZONTAL,"Mirror Left-Right"], [FLIP_VERTICAL,"Mirror Up-Down"], [FLIP_HORIZONTAL|FLIP_VERTICAL,"Mirror Both Ways"] ]
 const HANDEDNESS_NORMAL := 0
 const HANDEDNESS_IGNORE := 1
 const HANDEDNESS_FORCE_LEFT := 2
 const HANDEDNESS_FORCE_RIGHT := 3
-const HANDEDNESSES := [ [0, "Normal Hands"], [HANDEDNESS_IGNORE, "Ignore Side"], [HANDEDNESS_FORCE_LEFT, "Left Only"], [HANDEDNESS_FORCE_RIGHT, "Right Only"] ]
+const HANDEDNESSES := [ [0, "Normal Sabers"], [HANDEDNESS_IGNORE, "Any Saber, Any Color"], [HANDEDNESS_FORCE_LEFT, "Left Saber Only"], [HANDEDNESS_FORCE_RIGHT, "Right Saber Only"] ]
+## Modifier labels without an option table; the Modifiers tab and the record table both use them.
+const NO_BOMBS_LABEL := "No Bombs"
+const NO_ARROWS_LABEL := "No Arrows"
+const CLAWS_LABEL := "Short Sabers"
 const SIZES := [ [50, "Small Blocks"], [100, "Normal Blocks"], [150, "Big Blocks"], [225, "Giant Blocks"]]
 const DIFFICULTY_BLOCK_SIZE_MASK := 0x1000000 | 0x2000000
 const DIFFICULTY_BLOCK_SIZE_SMALL := 0x1000000
@@ -126,6 +136,8 @@ const UI_BORDER := Color(0.208, 0.227, 0.271)
 const UI_ACCENT := Color(0.37, 0.78, 0.94)
 const UI_TEXT := Color(0.894, 0.902, 0.922)
 const UI_TEXT_MUTED := Color(0.6, 0.63, 0.67)
+## Text of a button asking before it deletes or resets something (ConfirmButton).
+const UI_DANGER := Color(1.0, 0.45, 0.4)
 ## Health strips when full: the light UI text tinted toward the accent. They shift to the song's danger colour as health drops.
 const HEALTH_FULL_COLOR := Color(0.74, 0.86, 0.93)
 # The X shown for a missed note: a softer red than pure red
@@ -153,13 +165,32 @@ const RANK_COLORS := {
 }
 
 # Which of our environments a map gets on "Auto", keyed by the Beat Saber environment it names, without the
-# "Environment" suffix (maps write both forms). Anything else plays in Classic.
+# "Environment" suffix (maps write both forms), grouped by the mood of the original scene. Default and names not
+# here go by the song's genre (TAG_ENVIRONMENTS), then AUTO_ENVIRONMENTS.
 const MAP_ENVIRONMENTS := {
-	"Triangle": "neon_grid",
-	"Weave": "neon_grid",
-	"EDM": "neon_grid",
-	"Lattice": "neon_grid",
+	"Origins": "classic", "Nice": "classic", "BigMirror": "classic", "KDA": "classic", "Monstercat": "classic",
+	"Triangle": "neon_grid", "Weave": "neon_grid", "EDM": "neon_grid", "Lattice": "neon_grid",
+	"FitBeat": "neon_grid", "Timbaland": "neon_grid", "Interscope": "neon_grid", "Skrillex": "neon_grid",
+	"BTS": "night_city", "Billie": "night_city", "LinkinPark": "night_city", "GreenDay": "night_city",
+	"Gaga": "night_city", "Panic": "night_city", "Rocket": "night_city", "Weeknd": "night_city",
+	"Kaleidoscope": "night_city",
+	"Dragons": "pulse_void", "Spooky": "pulse_void", "Halloween": "pulse_void", "CrabRave": "pulse_void",
+	"GlassDesert": "pulse_void", "TheSecond": "pulse_void", "RockMixtape": "pulse_void", "Pyro": "pulse_void",
 }
+# Environment for a map whose environment is Default, by the first of its BeatSaver genre tags found here.
+const TAG_ENVIRONMENTS := {
+	"electronic": "neon_grid", "house": "neon_grid", "techno": "neon_grid", "trance": "neon_grid",
+	"dubstep": "neon_grid", "drum-and-bass": "neon_grid",
+	"pop": "night_city", "k-pop": "night_city", "j-pop": "night_city", "hip-hop-rap": "night_city",
+	"rb": "night_city", "dance": "night_city", "anime": "night_city", "vocaloid": "night_city",
+	"rock": "pulse_void", "metal": "pulse_void", "punk": "pulse_void", "hardcore": "pulse_void",
+	"alternative": "pulse_void",
+	"classical-orchestral": "classic", "jazz": "classic", "ambient": "classic", "kids-family": "classic",
+	"tv-movie-soundtrack": "classic", "video-game-soundtrack": "classic",
+}
+# Environments a map with neither a known environment nor a genre tag is spread over, the same one for a song
+# every time.
+const AUTO_ENVIRONMENTS := ["classic", "neon_grid", "night_city", "pulse_void"]
 
 # Difficulty colours as players know them from Beat Saber, keyed by the map's difficulty name.
 const DIFFICULTY_COLORS := {

@@ -51,20 +51,70 @@ Read the one for the folder you are changing before editing.
 
 Everything a player sees (menus, buttons, labels, tooltips, score screen, errors) is for players,
 not developers. Follow "Don't make me think": a player should understand every choice at a glance.
+Each rule below names its source and a bug it would have caught here.
 
-- No developer or modding terms in the UI: not `NJS`, `HJD`, `RT`, `NPS`, `BPM`, `JSON`, `null`,
-  `index`, `request failed (code 0)`. Say what it means for the player instead, e.g. "Reaction time:
-  Quick (0.7 s)", "Notes per second", "Couldn't download the song. Check your Wi-Fi and try again."
-- Prefer a few named choices over raw numbers or free input (e.g. Gentle / Normal / Hard, not a
-  0.5–1.5 slider), with a sensible default already selected so the player can just press Play.
-- Show the current state plainly: which tab or menu is active, what is selected, what a button will
-  do. Never leave the player stuck on a screen that needs input to continue; always offer a default.
-- Keep labels short, consistent and in the same words everywhere (one term per concept).
-- When a request needs a new player-facing term, choice or flow and the plain wording isn't obvious,
-  ask the user or propose two or three player-friendly options instead of shipping developer wording.
+Words and choices
+- Speak the player's language, not the code's: no `NJS`, `HJD`, `RT`, `NPS`, `BPM`, `JSON`, `null`,
+  `index`, `request failed (code 0)`, "(can stutter)". Say what it means for the player, e.g. "Notes
+  appear 0.7 s ahead", "Couldn't download the song. Check your Wi-Fi and try again." [Nielsen #2]
+- One word per concept and one concept per word, everywhere, and one place to change each setting.
+  No two controls that do the same thing. (Difficulty had four vocabularies; "Workout" meant two
+  things; handedness lived in Settings and Modifiers; two buttons renamed the player.) [Nielsen #4]
+- Prefer a few named choices over raw numbers or free input (Easy / Normal / Hard, not a 0.5-1.5
+  slider), with a sensible default already selected. (Twelve saber-offset number boxes.)
+- When a new term, choice or flow has no obvious plain wording, ask the user or propose two or three
+  player-friendly options instead of shipping developer wording.
+
+Flow
+- Shortest path to play: count the presses from launch to playing a song and never add one without a
+  reason; every screen has a way on to playing. (Forced name entry; Play hidden by the Modifiers tab.)
+- Always a way out: every modal has Cancel, every page has Back or Close, and no state needs input the
+  player can't give. Walk the error, empty and cancel paths, not only the happy one. (Keyboard without
+  ✕; empty name blocking Enter; a failed restart leaving no menu.) [Nielsen #3]
+- Prevent mistakes, then confirm what's lost: destructive actions (delete, reset, exit, abandon a run)
+  name what goes ("Delete Blinding Lights and its 3 records?") or offer undo; don't ask about things
+  that are easy to undo. (Reset all silently wiped the name, filters and modifiers.) [Nielsen #5]
+
+Feedback and state
+- Every action answers at once: a visible change and a sound on press, progress for slow work
+  ("Loading songs…", "Downloading 45%"), and on failure what happened plus what to do. Never "nothing
+  happens". (Empty BeatSaver list after a failed request; Play with no song picked.) [Nielsen #1, #9]
+- Mind the three response limits: the press itself shows within 0.1 s (highlight, sound); anything over
+  1 s shows that it is working ("Loading songs…"); anything over 10 s shows how far it got and can be
+  cancelled. (Refresh Songs gave no sign it ran.) [Nielsen, "Response Times: The 3 Important Limits"]
+- Show the current state, don't make the player remember it: what is selected, which filters are on,
+  what was typed, which tab is open, what a button will do. (Search text hidden under a button; the
+  typed name invisible behind a panel.) [Nielsen #6]
+- Filters never surprise: show which filters are on, how many results remain ("Showing 5 of 30 ·
+  Clear filters"), counts on the choices, and a message with a way back when nothing matches; one
+  screen's filters don't change another's. (Easy + Workout silently left 0 songs.) [Nielsen #1, #6]
+
+Layout and look
+- One primary action per screen in `UI_ACCENT`; everything else secondary, destructive actions
+  secondary and apart. (Settings, Pause and the score screen had no main button.) [Hick's law]
+- Things that can be pressed look pressable, and things that look pressable are: a control looks like
+  what it does (a tab switches content in place; a button that opens another screen isn't styled as a
+  tab). (Settings looked like a tab but opened a whole screen.) [Norman: signifiers]
+- Show less, reveal on demand: the first view holds what most players use; detailed or developer
+  options go in Advanced or behind a toggle. (Debug switches, saber X/Y/Z among everyday settings.)
+  [Nielsen #8, progressive disclosure]
+- Remove before adding: before a new button, option or screen, check whether an existing one can do
+  the job, and delete what nobody can reach. (BeatSage/YouTube screens still loaded but unreachable.)
+- Help in place: a short hint where the choice is made (a one-line explanation, a label that appears
+  on hover), not a manual. [Nielsen #10]
+- Mixed reality: virtual scenery never covers the player's room; with mixed reality on, draw only what
+  play needs (track, notes, sabers, light beams). (Neon Grid's floor hid the room.)
+
+Process
 - For any menu, panel, HUD or score-screen work, follow `.claude/skills/vr-ui-design/SKILL.md` before
   building (flow, 3D placement, sizes, feedback) and `.claude/skills/vr-ui-review/SKILL.md` before calling
   it done (every game state that shows the node, overlap and depth checks, headset walk-through).
+- Fix the class, not the case: when a UX problem is found, search the whole game for the same pattern,
+  fix every instance in one change, and add the check to `vr-ui-review` so it doesn't come back.
+
+Sources: Nielsen, "10 Usability Heuristics for User Interface Design" (NN/g,
+https://www.nngroup.com/articles/ten-usability-heuristics/); Norman, "The Design of Everyday Things"
+(signifiers, feedback); Krug, "Don't Make Me Think"; Hick-Hyman law (more choices, slower decisions).
 
 ## Research before changing game feel
 
@@ -105,6 +155,42 @@ constant with its role, or reuse one.
 - Comfort: no large areas of saturated or pure-white colour, keep flashes short and moderate, and
   keep body text at a 4.5:1 contrast or better against its panel.
 - A new colour role needs the user's agreement first; propose it with where it is used.
+
+## Light
+
+The scene is lit like a concert stage, not a toy: dark, with small bright sources whose colour shows in
+their glow and the haze. Read this before changing lights, environments, walls, bombs, haze or the sky,
+and measure every change on the headset (`.github/AGENTS.md`). The game renders without HDR (0-1 per
+channel), so brightness comes from contrast and the size of bright areas, not from values above 1.
+
+1. Value before hue: most of the frame is dark; light lives in small, bright sources. Keep a clear
+   brightness order: notes and sabers > walls and bombs > light fixtures > beams in haze > scenery > sky.
+2. Hot core, coloured falloff: a bright emitter burns toward white at its centre and shows its colour in
+   the glow around it (overexposure desaturates). Brighten by mixing toward white or widening the
+   bright part, never by multiplying a saturated colour past 1 (it clips to a flat, fully saturated
+   colour). Walls already do this (`game/Wall/DangerWall.gdshader`: white-hot frame, red halo).
+3. Saturation lives in small areas: full note colour only on fixtures, beams and their halos; large
+   surfaces (floor, sky, haze, walls' glass) stay dark and low in saturation.
+4. Limited palette: the two note colours, the danger colour, and neutrals (cool or warm grey, white).
+   No extra hues; the menus use a near-neutral house light (`EventDriver.HOUSE_COLOR`).
+5. Light has a source and a path: every beam starts at a fixture and turns around it (`game/AGENTS.md`),
+   shows only through haze, and fades with distance and along its length; far things lose contrast
+   toward the haze colour (aerial perspective).
+6. Haze reveals, it doesn't paint: the air stays mostly neutral and is tinted only a little by nearby
+   lights (`EventDriver.HAZE_LIGHT_WEIGHT`).
+7. Fixtures move like machines: pan and tilt around the fixture with ease in and out at plausible
+   speeds; colour changes fade, except deliberate flashes.
+8. Flashes are short and rare: fewer than 3 a second, never large saturated red flashes, moderate
+   peaks (`EventDriver.FLASH_BOOST`) (WCAG 2.3.1 Three Flashes; Harding flash test).
+9. Dynamics tell the story: dim and slow before the show (menus), the map's light show during it,
+   a blackout between; contrast between moments beats constant brightness.
+10. Fake it cheaply: no post-processing or screen reads on the Pico (a screen read copies the frame per
+    eye); glow, distortion and shadows are drawn in the object's own shader.
+
+Sources: James Gurney, "Color and Light" (luminance and saturation, limited palettes); Richard
+Pilbrow, "Stage Lighting Design" (direction, source and movement of stage light); W3C WCAG 2.2
+success criterion 2.3.1 (https://www.w3.org/WAI/WCAG22/Understanding/three-flashes-or-below-threshold);
+inverse-square falloff and atmospheric extinction as used in physically based rendering.
 
 ## Pico 4 constraints
 

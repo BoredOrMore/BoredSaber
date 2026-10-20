@@ -12,15 +12,14 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
 ## File map
 
 - `menu_theme.tres`: the one shared `Theme` (Roboto-Medium 28 px, dark surfaces, accent borders, `toggle_on/off.svg`
-  pills for `CheckButton`). Every panel `.tscn` sets `theme = ExtResource(...)` on its root.
+  pills for `CheckButton`). Every panel `.tscn` sets `theme = ExtResource(...)` on its root. The one main
+  button of a screen sets `theme_type_variation = &"PrimaryButton"` (accent border, blue fill); 3D
+  `UIRaycastButton`s use `set_primary(true)`.
 - `BeatSaverPanel/`: browse/search/download maps from beatsaver.com (class `BeatSaverPanel`).
-- `BeatSageUI/` (+ `BeatSageRequest/`): generate a map from a YouTube URL via beatsage.com (class `BeatSagePanel`).
-- `MapDownloadPanel/`: picker between BeatSaver and BeatSage; `MapSourceButton` is its image+text button. Not in the game
-  scene: with BeatSage hidden it was a one-choice step, so the menu's "Get more songs" opens BeatSaver directly
-  (`BeepSaber_Game._open_beatsaver`), in front of the player in place of the song menu.
+  The menu's "Get more songs" opens it directly (`BeepSaber_Game._open_beatsaver`), in front of the player in place
+  of the song menu. (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
 - `UI_AudioEngine/`: autoload; `attach_children(node)` wires hover/click sounds to every `Button` below `node`.
-- `YouTubeUI/` (+ `YouTubeAPI/`): YouTube search used by BeatSage.
-- In `game/`: `BeepSaberMainMenu.gd/.tscn` (class `MainMenu`: song list, difficulty, Song/Modifiers/Settings/More tabs above the right column),
+- In `game/`: `BeepSaberMainMenu.gd/.tscn` (class `MainMenu`: song list, difficulty, Song/Modifiers/More tabs and a Settings gear above the right column),
   `settings_Panel.gd/.tscn` (class `SettingsPanel`, tabs Gameplay/Visuals/Audio/Advanced), `HighscorePanel`,
   `Pause_Panel` (signals `continue_button`/`restart_button`/`mainmenu_button`), `EndScore` (3D `MeshInstance3D`, not a
   canvas), `vr_slider.gd` (thumbstick/drag scrolling), `UI_Panel.gdshader` (rounded 3D panel used by `EndScore.tscn`
@@ -42,8 +41,7 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   changes visuals without input must ask for a redraw: `canvas._input_update()` (`BeatSaverPanel.gd:243-244`, 368-370,
   428-429).
 - Game states show/hide canvases with `_show()`/`_hide()` (`game/scripts/GameState/*.gd`); those toggle SubViewport
-  updates. The panel-level `_show/_hide` in `BeatSaverPanel.gd:141-163`, `MapDownloadPanel.gd:30-51`,
-  `BeatSageUI.gd:56-79`, `YouTubeUI.gd:26-47` call the canvas's plain `show()/hide()` instead, so the viewport keeps
+  updates. The panel-level `_show/_hide` in `BeatSaverPanel.gd` calls the canvas's plain `show()/hide()` instead, so the viewport keeps
   its update mode. Don't copy that pattern into new panels; call the canvas `_show/_hide`.
 - Main-scene `.gd` code reaches panels through typed `@onready` canvas refs (`BeepSaber_Game.gd:29-48`). Inside a
   canvas, `$Path` from outside fails after reparenting; use `find_child` or exported `NodePath`s set in the scene.

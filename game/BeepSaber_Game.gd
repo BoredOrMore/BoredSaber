@@ -95,7 +95,7 @@ const FAIL_SECONDS := 1.5
 # the high score saved at the end of the last song, so the player can rename it
 var _new_record := {}
 ## Where the name keyboard opens on the score screen: chest high in front of the score panel, tilted up to face the eye
-## (the menus open the same keyboard at its scene position, below the song list). Scale 2.4, tilted 35 degrees.
+## (the scene puts both keyboards here too, about 23 degrees below eye level). Scale 2.4, tilted 35 degrees.
 const NAME_KEYBOARD_TRANSFORM := Transform3D(Vector3(2.4, 0, 0), Vector3(0, 1.96597, -1.37659), Vector3(0, 1.37659, 1.96597),
 	Vector3(0, 0.95, -0.55))
 ## The shared keyboard's scene transform, put back when the score screen closes it.
@@ -124,20 +124,25 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 		menu.show_play_error()
 		return
 		
-	event_driver.set_environment(EventDriver.pick_environment(info.environment_name))
+	event_driver.set_environment(EventDriver.pick_environment(info))
 	# for reading GPU timings on the headset by environment
 	print("Song starts in environment %s, smoke %s, debug_view %d" % [event_driver.environment, Settings.smoke, DebugView.flags])
 	event_driver.set_background_texture()
 	
+	event_driver.set_menu_focus(false)
 	update_left_color(Map.color_left)
 	update_right_color(Map.color_right)
 	_update_danger_color(Map.color_obstacle)
 	event_driver.set_background()
 	
+	# the show starts in the dark (EventDriver.SHOW_BLACKOUT_SECONDS); a map with its own light show turns
+	# lights on at its first event, one without gets them all on after the blackout
+	event_driver.set_all_off()
 	if Map.event_stack.is_empty():
-		event_driver.set_all_on(Map.color_left, Map.color_right)
-	else:
-		event_driver.set_all_off()
+		get_tree().create_timer(EventDriver.SHOW_BLACKOUT_SECONDS).timeout.connect(func() -> void:
+			if gamestate == gamestate_playing or gamestate == gamestate_paused:
+				event_driver.set_all_on(Map.color_left, Map.color_right)
+		)
 	
 	var filename := info.filepath + info.song_filename
 	vr.log_info("loading: " + filename)
@@ -250,6 +255,8 @@ func _open_beatsaver() -> void:
 	_menu_highscores_shown = highscore_canvas.visible
 	main_menu._hide()
 	highscore_canvas._hide()
+	# the song menu's keyboard sits where the BeatSaver one opens
+	highscore_keyboard._hide()
 	beatsaver_canvas._show()
 
 ## Brings the song menu back once the BeatSaver page closes in the song menu.
@@ -503,9 +510,11 @@ func _apply_note_style() -> void:
 
 ## Shows the environment the player picked, or on "Auto" the one for the last map played.
 func _apply_environment() -> void:
-	event_driver.set_environment(EventDriver.pick_environment(Map.current_info.environment_name if Map.current_info else ""))
+	event_driver.set_environment(EventDriver.pick_environment(Map.current_info))
 
 func set_colors_from_settings() -> void:
+	# only the menus use the settings' colours: dim the scene so the menu holds the eye
+	event_driver.set_menu_focus(true)
 	update_left_color(Settings.color_left)
 	update_right_color(Settings.color_right)
 	event_driver.set_background()
@@ -615,7 +624,7 @@ func _on_song_ended() -> void:
 		"%s By %s\n%s     Map author: %s" % [
 			Map.current_info.song_name,
 			Map.current_info.song_author_name,
-			Map.current_difficulty.get_display_name(),
+			MapStats.level_name(Map.current_info, Map.current_difficulty),
 			Map.current_info.level_author_name],
 		Scoreboard.full_combo,
 		new_record

@@ -30,6 +30,9 @@ const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 @onready var favorites_filter := $FavoritesFilter as Button
 @onready var workout_filter := $WorkoutFilter as Button
 @onready var length_filter := $LengthFilter as OptionButton
+@onready var filter_status := $FilterStatus as Label
+@onready var clear_filters_button := $ClearFilters_Button as Button
+@onready var empty_list_label := $EmptyList as Label
 @onready var _bg_img_loader := preload("res://game/scripts/BackgroundImgLoader.gd").new()
 
 @onready var cover := $cover as TextureRect
@@ -37,7 +40,7 @@ const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 @onready var characteristic_row := $DifficultyPicker/CharacteristicRow as HBoxContainer
 @onready var level_row := $DifficultyPicker/LevelRow as HBoxContainer
 @onready var level_stats := $DifficultyPicker/LevelStats as Label
-@onready var delete_button := $MorePanel/Delete_Button as Button
+@onready var delete_button := $MorePanel/Delete_Button as ConfirmButton
 @onready var fail_row := $FailRow as HBoxContainer
 @onready var damage_row := $DamageRow as HBoxContainer
 @onready var environment_row := $EnvironmentRow as HBoxContainer
@@ -194,8 +197,10 @@ func _load_playlists() -> void:
 					copy_file_name = copy.get_next()
 			file_name = dir.get_next()
 		Settings.preloaded_songs = true
+		Settings.save()
 	
 	_discover_all_songs(Constants.APPDATA_PATH+"Songs/")
+	SongTags.look_up_missing(self, _all_songs, _show_environment)
 	
 	_sort_songs()
 	MapStats.count_all_async(_all_songs, _on_map_stats_counted)
@@ -232,10 +237,12 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 	current_map = null
 	if current_selected >= 0:
 		current_map = _currently_selected_songlist_ref[current_selected]
+	var filter := SongFilter.saved()
 	var shown: Array[MapInfo] = []
 	for map in songs:
-		if _passes_song_filter(map):
+		if filter.passes(map):
 			shown.append(map)
+	_show_filter_counts(filter, songs, shown.size())
 	songs = shown
 	_currently_selected_songlist_ref = songs
 	songs_menu.clear()
@@ -245,7 +252,7 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 	for map in songs:
 		@warning_ignore("return_value_discarded")
 		var favorite := PlayCount.is_favorite(map)
-		songs_menu.add_item("%s%s - %s%s" % ["\u2605 " if favorite else "", map.song_author_name, map.song_name, "" if map.have_song else " [silent]"], default_song_icon)
+		songs_menu.add_item("%s%s - %s%s" % ["\u2605 " if favorite else "", map.song_author_name, map.song_name, "" if map.have_song else NO_MUSIC_SUFFIX], default_song_icon)
 		songs_menu.set_item_custom_fg_color(map_index, Color.YELLOW if favorite else Color.WHITE)
 		_bg_img_loader.load_texture(map.filepath, map.cover_image_filename, _on_cover_loaded.bind(_list_generation), false, map_index)
 		map_index += 1
@@ -259,28 +266,141 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 				_select_song(i, false)
 		if current_selected == -1:
 			songs_menu.deselect_all()
+	_update_play_button()
 
-## False for non-favorites when only favorites are shown. Otherwise true if any difficulty of the map is playable (MapStats.is_unplayable), at the picked level
-## (MapStats.level_of), inside the length filter and, when only workouts are shown, has a set of wall moves
-## (MapStats.workout_level). Maps that haven't been counted yet pass, so the list never hides songs it knows
-## nothing about.
-func _passes_song_filter(map: MapInfo) -> bool:
-	if Settings.song_filter_favorites and not PlayCount.is_favorite(map):
+## One set of song list filters, so the counts can try a choice without saving it.
+class SongFilter:
+	## Difficulty filter id (MapStats.difficulty_filters).
+	var reaction := 0
+	## Length filter id (Constants.LENGTH_FILTERS).
+	var length := 0
+	var favorites := false
+	var workout := false
+
+	## The filters as saved in Settings.
+	static func saved() -> SongFilter:
+		var filter := SongFilter.new()
+		filter.reaction = MapStats.difficulty_filter(Settings.song_filter_reaction)
+		filter.length = Settings.song_filter_length
+		filter.favorites = Settings.song_filter_favorites
+		filter.workout = Settings.song_filter_workout
+		return filter
+
+	## A copy to change one choice of.
+	func copy() -> SongFilter:
+		var filter := SongFilter.new()
+		filter.reaction = reaction
+		filter.length = length
+		filter.favorites = favorites
+		filter.workout = workout
+		return filter
+
+	## True when every filter is off.
+	func is_off() -> bool:
+		return reaction == 0 and length == 0 and not favorites and not workout
+
+	## False for non-favorites when only favorites are shown. Otherwise true if any difficulty of the map is
+	## playable (MapStats.is_unplayable), at the picked level or easier (MapStats.level_of), inside the length
+	## filter and, when only workouts are shown, has a set of wall moves (MapStats.workout_level). Maps that
+	## haven't been counted yet pass, so the list never hides songs it knows nothing about.
+	func passes(map: MapInfo) -> bool:
+		if favorites and not PlayCount.is_favorite(map):
+			return false
+		var length_range := MapStats.length_filter(length)
+		for diff in map.difficulty_beatmaps:
+			var stats := MapStats.get_cached(map, diff)
+			if not MapStats.is_unplayable(stats) \
+					and MapStats.passes_difficulty_filter(MapStats.level_of(map, diff, stats), reaction) \
+					and (stats.is_empty() or MapStats.in_filter(float(stats.seconds), length_range)) \
+					and (not workout or stats.is_empty() or MapStats.workout_level(stats) > 0):
+				return true
 		return false
-	var length_range := MapStats.length_filter()
-	for diff in map.difficulty_beatmaps:
-		var stats := MapStats.get_cached(map, diff)
-		if not MapStats.is_unplayable(stats) \
-				and (Settings.song_filter_reaction == 0 or MapStats.level_of(map, diff, stats) == Settings.song_filter_reaction - 1) \
-				and (stats.is_empty() or MapStats.in_filter(float(stats.seconds), length_range)) \
-				and (not Settings.song_filter_workout or stats.is_empty() or MapStats.workout_level(stats) > 0):
-			return true
-	return false
+
+	## How many of the songs pass.
+	func count(songs: Array[MapInfo]) -> int:
+		var passing := 0
+		for map in songs:
+			if passes(map):
+				passing += 1
+		return passing
+
+## After the name of a song whose music file is missing (it plays without sound).
+const NO_MUSIC_SUFFIX := " (no music)"
+## A filter choice with how many songs it would list, e.g. "Up to Hard (18)".
+const FILTER_COUNT_LABEL := "%s (%d)"
+const FAVORITES_LABEL := "Favorites"
+const WORKOUT_LABEL := "Workout"
+## Status above the list while filters hide songs; with none it only gives the total (SONG_TOTAL_TEXT).
+## The %s is "song" or "songs" (SONG_NOUNS), following the total.
+const FILTER_STATUS_TEXT := "Showing %d of %d %s"
+const SONG_TOTAL_TEXT := "%d %s"
+const SONG_NOUNS := ["song", "songs"]
+## Status while searching, shorter so the search text fits: shown of total, then the text.
+const SEARCH_FILTER_STATUS_TEXT := "%d of %d %s"
+const SEARCH_STATUS_TEXT := " · \"%s\""
+const NO_MATCH_TEXT := "No songs match these filters."
+const NO_SONGS_TEXT := "No songs yet.\nGet more songs below."
+
+## Puts next to each filter choice how many of the songs (the playlist, or the search matches) it would list with
+## the other filters as they are, greys out
+## choices that would list none (so the list can't be filtered empty), and says above the list how many songs
+## are shown, what the search is, and how to clear both. Faceted filters that show counts, the active
+## filters and one clear action keep a list from emptying without a reason (NN/g, "Filters vs. Facets";
+## Baymard Institute, product list filtering).
+func _show_filter_counts(filter: SongFilter, songs: Array[MapInfo], shown: int) -> void:
+	var difficulties := MapStats.difficulty_filters()
+	for i in reaction_filter.item_count:
+		var choice := filter.copy()
+		choice.reaction = difficulties[i][0]
+		_show_choice_count(reaction_filter, i, difficulties[i][1], choice.count(songs))
+	for i in length_filter.item_count:
+		var choice := filter.copy()
+		choice.length = Constants.LENGTH_FILTERS[i][0]
+		_show_choice_count(length_filter, i, Constants.LENGTH_FILTERS[i][1], choice.count(songs))
+	# the dropdown shows the picked choice without its count, which the status row gives
+	reaction_filter.text = difficulties[reaction_filter.selected][1]
+	length_filter.text = Constants.LENGTH_FILTERS[length_filter.selected][1]
+	var favorites := filter.copy()
+	favorites.favorites = true
+	_show_toggle_count(favorites_filter, FAVORITES_LABEL, favorites.count(songs))
+	var workout := filter.copy()
+	workout.workout = true
+	_show_toggle_count(workout_filter, WORKOUT_LABEL, workout.count(songs))
+
+	var total := _all_songs.size()
+	var noun: String = SONG_NOUNS[0] if total == 1 else SONG_NOUNS[1]
+	var status := SONG_TOTAL_TEXT % [total, noun]
+	if not filter.is_off() or not _search_text.is_empty():
+		status = (FILTER_STATUS_TEXT if _search_text.is_empty() else SEARCH_FILTER_STATUS_TEXT) % [shown, total, noun]
+	if not _search_text.is_empty():
+		status += SEARCH_STATUS_TEXT % _search_text
+	filter_status.text = status
+	clear_filters_button.visible = not filter.is_off() or not _search_text.is_empty()
+	empty_list_label.visible = shown == 0
+	empty_list_label.text = NO_SONGS_TEXT if total == 0 else NO_MATCH_TEXT
+
+## Shows a dropdown choice with its song count, greyed out at none unless it is the picked one.
+func _show_choice_count(control: OptionButton, index: int, label: String, count: int) -> void:
+	control.set_item_text(index, FILTER_COUNT_LABEL % [label, count])
+	control.set_item_disabled(index, count == 0 and index != control.selected)
+
+## Shows a filter toggle with how many songs it lists when on, greyed out at none unless it is on.
+func _show_toggle_count(toggle: Button, label: String, count: int) -> void:
+	toggle.text = FILTER_COUNT_LABEL % [label, count]
+	toggle.disabled = count == 0 and not toggle.button_pressed
+
+## Turns every filter off and clears the search, from the status row's Clear filters.
+func _clear_filters() -> void:
+	Settings.song_filter_reaction = 0
+	Settings.song_filter_length = 0
+	Settings.song_filter_favorites = false
+	Settings.song_filter_workout = false
+	_clean_search()
 
 ## Rebuilds the shown song list with the current search text and filters.
 func _refilter() -> void:
 	if keyboard.is_node_ready():
-		_apply_search(($Search_Button/Label as Label).text)
+		_apply_search(_search_text)
 	else:
 		refresh_playlist()
 
@@ -324,10 +444,6 @@ func _on_cover_loaded(img_tex: Texture2D, is_main_cover: bool, list_idx: int, ge
 func _set_list_cover(list_idx: int, img_tex: Texture2D, generation: int) -> void:
 	if generation == _list_generation and list_idx < songs_menu.item_count:
 		songs_menu.set_item_icon(list_idx, img_tex)
-
-func _load_cover(cover_path: String, filename: String) -> ImageTexture:
-	# parse buffer into an ImageTexture
-	return ImageTexture.create_from_image(Image.load_from_file(cover_path+filename))
 
 ## Bumped by every preview request, so only the newest one plays after the fade-out awaits.
 var _preview_generation := 0
@@ -377,6 +493,9 @@ func _select_song(id: int, with_preview: bool = true) -> void:
 	favorite_button.show()
 	
 	var map := _currently_selected_songlist_ref[id]
+	var song_name := map.song_name if map.song_name.length() <= DELETE_NAME_CHARS else map.song_name.left(DELETE_NAME_CHARS - 1) + "…"
+	delete_button.cancel()
+	delete_button.question = "Delete %s?\nIts scores too · press again" % song_name
 	_shown_map = map
 	($SongInfo_Label as Label).text = "%s\n%s\nMapped by %s\nPlayed %d times" % [
 		map.song_name,
@@ -436,17 +555,15 @@ func _load_map_and_start(map: MapInfo) -> void:
 	
 	start_map.emit(map, diff_info)
 
-func _on_Delete_Button_button_up() -> void:
-	if delete_button.text != "Sure?":
-		delete_button.text = "Sure?"
-		await get_tree().create_timer(5).timeout
-		delete_button.text = "Delete Song"
-	else:
-		delete_button.text = "Delete Song"
-		_delete_map(_currently_selected_songlist_ref[current_selected])
-		current_selected = -1
-		update_view()
-	
+## Longest song name the delete question shows before cutting it short.
+const DELETE_NAME_CHARS := 18
+
+## Deletes the picked song once the player pressed Delete twice (ConfirmButton).
+func _on_delete_confirmed() -> void:
+	_delete_map(_currently_selected_songlist_ref[current_selected])
+	current_selected = -1
+	update_view()
+
 func _delete_map(map: MapInfo) -> void:
 	Highscores.remove_map(map)
 	PlayCount.remove_map(map)
@@ -513,7 +630,7 @@ func _ready() -> void:
 	playlist_selector.add_item("All Songs")
 	playlist_selector.add_item("Recently Added")
 	playlist_selector.add_item("Most Played")
-	_drop_down(reaction_filter, MapStats.difficulty_filters(), Settings.song_filter_reaction, 0)
+	_drop_down(reaction_filter, MapStats.difficulty_filters(), MapStats.difficulty_filter(Settings.song_filter_reaction), 0)
 	_drop_down(length_filter, Constants.LENGTH_FILTERS, Settings.song_filter_length, 0)
 	favorites_filter.set_pressed_no_signal(Settings.song_filter_favorites)
 	workout_filter.set_pressed_no_signal(Settings.song_filter_workout)
@@ -549,14 +666,13 @@ func on_settings_changed(key: StringName) -> void:
 		&"music_speed":
 			song_preview.pitch_scale = Settings.music_speed / 100.
 			# reaction times depend on the Speed modifier
-			if Settings.song_filter_reaction != 0:
+			if MapStats.difficulty_filter(Settings.song_filter_reaction) != 0:
 				_refilter()
 		&"environment":
 			_show_environment()
 		&"song_filter_reaction", &"song_filter_length":
-			# the BeatSaver panel shares these filters, so follow changes made there too
-			reaction_filter.select(clampi(Settings.song_filter_reaction, 0, Constants.DIFFICULTY_LEVELS.size()))
-			length_filter.select(MapStats.length_filter()[0])
+			reaction_filter.select(MapStats.difficulty_filter(Settings.song_filter_reaction))
+			length_filter.select(MapStats.length_filter(Settings.song_filter_length)[0])
 			_refilter()
 		&"song_filter_favorites":
 			favorites_filter.set_pressed_no_signal(Settings.song_filter_favorites)
@@ -564,9 +680,6 @@ func on_settings_changed(key: StringName) -> void:
 		&"song_filter_workout":
 			workout_filter.set_pressed_no_signal(Settings.song_filter_workout)
 			_refilter()
-
-func difficulty_modifier_changed() -> void:
-	pass			
 
 func _on_Play_Button_pressed() -> void:
 	if current_selected >= 0:
@@ -583,23 +696,38 @@ func _on_Play_Button_pressed() -> void:
 		_load_map_and_start(map)
 		play_button.disabled = false
 		if play_button.text == "Loading...":
-			play_button.text = "Play"
+			play_button.text = PLAY_TEXT
+
+## Play button text while a song is picked, and while none is, when the button is off.
+const PLAY_TEXT := "Play"
+const NO_SONG_TEXT := "Pick a song"
+
+## Turns Play off, saying why, while no song is picked.
+func _update_play_button() -> void:
+	var play_button := $Play_Button as Button
+	var picked := current_selected >= 0 and current_selected < _currently_selected_songlist_ref.size()
+	play_button.disabled = not picked
+	if not picked:
+		play_button.text = NO_SONG_TEXT
+	elif play_button.text == NO_SONG_TEXT:
+		play_button.text = PLAY_TEXT
 
 ## Tells the player on the Play button that the selected map couldn't be loaded.
 func show_play_error() -> void:
 	var play_button := $Play_Button as Button
 	play_button.text = "Can't load map"
 	await get_tree().create_timer(3.0).timeout
-	play_button.text = "Play"
+	play_button.text = PLAY_TEXT
 
 func _on_Exit_Button_pressed() -> void:
 	get_tree().quit()
 
-## Tabs above the right column, in order.
-enum Tab { SONG, MODIFIERS, SETTINGS, MORE }
-const TAB_LABELS := ["Song", "Modifiers", "Settings", "More"]
+## Tabs above the right column, in order. Settings is not one: it opens its own screen, so it is the gear
+## button beside them (a control looks like what it does).
+enum Tab { SONG, MODIFIERS, MORE }
+const TAB_LABELS := ["Song", "Modifiers", "More"]
 
-## Fills the tab row; Song shows the details and Play, Settings opens the settings screen.
+## Fills the tab row; Song shows the details, the others a panel above Play.
 func _build_tabs() -> void:
 	var group := ButtonGroup.new()
 	for i in TAB_LABELS.size():
@@ -607,12 +735,11 @@ func _build_tabs() -> void:
 	_show_tab(Tab.SONG)
 
 func _on_tab_pressed(tab: int) -> void:
-	if tab == Tab.SETTINGS:
-		# the settings screen replaces the menu; come back to the song details
-		_show_tab(Tab.SONG)
-		settings_requested.emit()
-	else:
-		_show_tab(tab)
+	_show_tab(tab)
+
+## Opens the settings screen from the gear button.
+func _on_settings_button_pressed() -> void:
+	settings_requested.emit()
 
 ## Shows the tab's panel over the song details (Song shows the details) and lights up its tab.
 func _show_tab(tab: int) -> void:
@@ -661,11 +788,7 @@ func _check_and_request_permission() -> bool:
 func show_song(folder_name: String) -> bool:
 	var path := Constants.APPDATA_PATH + "Songs/" + folder_name + "/"
 	if _shown_index(path) < 0:
-		Settings.song_filter_reaction = 0
-		Settings.song_filter_length = 0
-		Settings.song_filter_favorites = false
-		Settings.song_filter_workout = false
-		_clean_search()
+		_clear_filters()
 	var index := _shown_index(path)
 	if index < 0:
 		return false
@@ -694,6 +817,8 @@ const KEYBOARD_SEARCH := &"search"
 const KEYBOARD_NAME := &"name"
 ## What the shared keyboard is open for here; empty when it was opened elsewhere (the new-record name).
 var _keyboard_for := &""
+## The text the song list is sorted by, shown in the status row above it; empty when not searching.
+var _search_text := ""
 
 func _on_Search_Button_button_up() -> void:
 	_keyboard_for = KEYBOARD_SEARCH
@@ -733,15 +858,18 @@ func _text_input_changed() -> void:
 		return
 	_apply_search(keyboard._text_edit.text)
 
-## Shows the songs most similar to the search text first, or the playlist when the text is empty.
+## Lists the songs whose title, artist or mapper contains the search text, closest title first, like the
+## BeatSaver page's search; the playlist when the text is empty.
 func _apply_search(text: String) -> void:
-	($Search_Button/Label as Label).text = text
+	_search_text = text
 	if text == "":
 		_clean_search()
 		return
 	text = text.to_upper() # ignore case
 	var songs_sorted_by_similarity: Array[MapInfoWithSort] = []
 	for song in _all_songs:
+		if not (song.song_name + "\n" + song.song_author_name + "\n" + song.level_author_name).to_upper().contains(text):
+			continue
 		# similarity is between 0.0 and 1.0, MapInfoWithSort takes an int,
 		# gotta make the number larger else it'll just be 0 or 1 later
 		var similarity := song.song_name.to_upper().similarity(text) * 65536.0
@@ -753,8 +881,10 @@ func _apply_search(text: String) -> void:
 	_set_cur_playlist(songs_sorted)
 
 func _clean_search() -> void:
+	_search_text = ""
+	if keyboard.is_node_ready() and not keyboard._text_edit.text.is_empty():
+		keyboard._text_edit.text = ""
 	_on_PlaylistSelector_item_selected(playlist_selector.get_selected_id())
-	($Search_Button/Label as Label).text = ""
 
 func _on_PlaylistSelector_item_selected(id: int) -> void:
 	match id:
@@ -793,6 +923,7 @@ func update_view() -> void:
 	else:	
 		difficulty_changed.emit(null, -1)
 	_sync_difficulty_picker()
+	_update_play_button()
 	_set_reset_icon()
 
 ## Fills the fail and damage rows with one toggle button per option, so they're a single press away;
@@ -845,7 +976,7 @@ func _show_environment() -> void:
 	var ids: Array = Settings.ENVIRONMENTS.map(func(e: Array) -> String: return e[0])
 	environment_picker.select(maxi(ids.find(Settings.environment), 0))
 	var follow: String = Settings.ENVIRONMENTS[0][1]
-	var resolved := EventDriver.map_environment(_shown_map.environment_name if _shown_map else "")
+	var resolved := EventDriver.map_environment(_shown_map)
 	if _shown_map:
 		follow += " (%s)" % Settings.ENVIRONMENTS[ids.find(resolved)][1]
 	environment_picker.set_item_text(0, follow)
@@ -865,6 +996,8 @@ const CHARACTERISTIC_LABELS := {"OneSaber": "1 Saber", "NoArrows": "No Arrows", 
 
 ## Characteristic of each tab in characteristic_row, in tab order, for the selected map.
 var _characteristics: Array[String] = []
+## Side padding of the level buttons, so "Expert+" fits five to a row at full size.
+const LEVEL_BUTTON_PADDING := 4.0
 
 ## Fills the difficulty picker with one button per level and a pool of characteristic tabs, so nothing scrolls.
 func _build_difficulty_picker() -> void:
@@ -882,6 +1015,14 @@ func _build_difficulty_picker() -> void:
 		for state: StringName in [&"font_color", &"font_hover_color", &"font_pressed_color", &"font_hover_pressed_color", &"font_focus_color"]:
 			button.add_theme_color_override(state, color)
 		level_row.add_child(button)
+		# five buttons share the column: narrow side padding (read once in the tree, from the menu theme),
+		# and the text never widens the row past the panel
+		button.clip_text = true
+		for style: StringName in [&"normal", &"hover", &"pressed", &"hover_pressed", &"disabled", &"focus"]:
+			var box := button.get_theme_stylebox(style).duplicate() as StyleBox
+			box.content_margin_left = LEVEL_BUTTON_PADDING
+			box.content_margin_right = LEVEL_BUTTON_PADDING
+			button.add_theme_stylebox_override(style, box)
 	_sync_difficulty_picker()
 
 ## The characteristic a difficulty belongs to; maps without one are Standard.
@@ -918,9 +1059,13 @@ func _sync_difficulty_picker() -> void:
 		if tab.visible:
 			tab.text = CHARACTERISTIC_LABELS.get(_characteristics[i], _characteristics[i])
 			tab.set_pressed_no_signal(picked != null and _characteristic_of(picked) == _characteristics[i])
+	# the tab row only takes room when there are tabs; then the stats get one line less, so the picker
+	# never runs into the fail row below it
+	characteristic_row.visible = _characteristics.size() > 1
+	level_stats.max_lines_visible = 2 if characteristic_row.visible else 3
 	# each of the map's difficulties keeps the mapper's slot but shows the difficulty it plays at
 	# (MapStats.level_of); slots the map lacks are hidden, and slots that play at the same level
-	# add the mapper's label so no name shows twice
+	# are numbered in the map's order ("Hard 1", "Hard 2") so no name shows twice
 	var levels := {}
 	var level_counts := {}
 	for i in LEVELS.size():
@@ -929,6 +1074,7 @@ func _sync_difficulty_picker() -> void:
 			var diff := map.difficulty_beatmaps[index]
 			levels[i] = MapStats.level_of(map, diff, MapStats.get_stats(map, diff))
 			level_counts[levels[i]] = level_counts.get(levels[i], 0) + 1
+	var level_seen := {}
 	for i in LEVELS.size():
 		var button := level_row.get_child(i) as Button
 		var index := _find_difficulty(map, _characteristic_of(picked), i) if picked else -1
@@ -940,8 +1086,8 @@ func _sync_difficulty_picker() -> void:
 			var level: Array = Constants.DIFFICULTY_LEVELS[levels[i]]
 			button.text = level[0]
 			if level_counts[levels[i]] > 1:
-				button.text += "\n" + map.difficulty_beatmaps[index].get_display_name()
-				button.add_theme_font_size_override(&"font_size", 18)
+				level_seen[levels[i]] = level_seen.get(levels[i], 0) + 1
+				button.text += " %d" % level_seen[levels[i]]
 			button.add_theme_color_override(&"font_color", level[1])
 			button.add_theme_color_override(&"font_pressed_color", level[1])
 		button.visible = index >= 0 or not picked
@@ -1064,10 +1210,6 @@ func _on_favorite_button_pressed() -> void:
 	_sort_songs()
 	update_view()
 	
-func _on_small_toggled(value: bool) -> void:
-	Settings.small = value
-	update_view()
-
 func _on_width_item_selected(index: int) -> void:
 	Settings.width = Constants.WIDTHS[index][0]
 	update_view()
@@ -1093,6 +1235,7 @@ func _on_reset_button_pressed() -> void:
 	Settings.fail_mode = Constants.FAIL_MODE_BAR
 	Settings.damage_scale = 1.0
 	Settings.bombs_enabled = true
+	Settings.arrows_enabled = true
 	Settings.claws = false
 	Settings.block_size = 100
 	Settings.width = 100 

@@ -8,6 +8,9 @@ const INTENSITY_PARAMS: Array[StringName] = [&"bg_0_intensity", &"bg_1_intensity
 ## Air colour with every light off, and how much each lit group tints the haze (sky, distant scenery). Untuned.
 const HAZE_BASE := Color(0.01, 0.01, 0.02)
 const HAZE_LIGHT_WEIGHT := 0.08
+## How far the air's colour leans to grey of the same brightness: haze reveals light, it doesn't paint the scene
+## (AGENTS.md "Light", rule 6). Untuned.
+const HAZE_NEUTRAL := 0.5
 ## A combo milestone (ComboHud) brightens the air for a moment: the haze jumps by this part of itself and fades
 ## out over COMBO_PULSE_SECONDS. Below the map's own flashes (FLASH_BOOST), so it reads as a bonus, not an event. Untuned.
 const COMBO_PULSE := 0.8
@@ -19,6 +22,28 @@ const COMBO_LASER_BOOST := 0.2
 const COMBO_PULSE_LASER := 0.3
 const COMBO_RISE_SECONDS := 1.0
 const COMBO_FALL_SECONDS := 0.3
+## In the menus the stage waits like a concert before the show: dim lights in a cool house tone that slowly
+## "breathe" between MENU_BREATH_LOW and MENU_BREATH_HIGH of their colour, thicker haze so beams show, and the
+## waving lasers sweeping slowly through it at MENU_LASER_LEVEL from their fixtures at the sides. Slow and dim on
+## purpose so the menu still holds the eye: no bright or busy motion in the periphery, and nothing oscillating
+## near 0.2 Hz (Apple visionOS HIG, Spatial layout, Motion). All values untuned.
+const MENU_BREATH_LOW := 0.3
+const MENU_BREATH_HIGH := 0.4
+const MENU_BREATH_SECONDS := 12.0
+const MENU_LASER_LEVEL := 0.2
+const MENU_LASER_SWEEP_SECONDS := 30.0
+const MENU_HAZE_BOOST := 1.5
+## The house light colour the menu lights lean toward, and how far (0 = note colours only): a near-neutral
+## cool grey, like Beat Saber's menu, so the stage doesn't look tinted (saturation about 0.09). Untuned.
+const HOUSE_COLOR := Color(0.62, 0.64, 0.68)
+const MENU_HOUSE_MIX := 0.85
+## Seconds the menu lights take to fade in before they start breathing.
+const MENU_FADE_SECONDS := 1.0
+## When a song starts every light goes dark for this long before the show's lights come on, like a concert.
+const SHOW_BLACKOUT_SECONDS := 0.5
+## A menu is showing: pre-show lighting (see MENU_BREATH_LOW), rings still.
+var menu_focus := false
+var _menu_time := 0.0
 ## The sky draws after every other solid thing, so the GPU skips the parts of it hidden behind the floor,
 ## the track and the scenery instead of shading the whole sphere first (Godot draws higher priority later).
 const SKY_RENDER_PRIORITY := Material.RENDER_PRIORITY_MAX
@@ -93,6 +118,7 @@ var _combo_target := 0.0
 @onready var track_lights_right := $Level/TrackLights/Bar1 as MeshInstance3D
 @onready var track_lights_left := $Level/TrackLights/Bar2 as MeshInstance3D
 @onready var end_path := $Level/Endpath as MeshInstance3D
+@onready var stage_smoke := $Level/StageSmoke as StageSmoke
 
 @onready var ring_anim_player := $Level/rings/AnimationPlayer as AnimationPlayer
 @onready var left_laser_anim_player := $Level/LeftWavingLasers/AnimationPlayer as AnimationPlayer
@@ -131,16 +157,26 @@ func set_background_texture() -> void:
 	texture = load(Settings.background_texture)
 	classic_sky_material.set_shader_parameter("bg_base", texture)
 
-## The environment a map plays in: the player's pick, or with "auto" the one that matches the
-## environment the map was made for (Constants.MAP_ENVIRONMENTS), else Classic.
-static func pick_environment(map_name: String) -> String:
+## The environment a map plays in: the player's pick, or with "auto" the one map_environment finds.
+static func pick_environment(map: MapInfo) -> String:
 	if Settings.environment != "auto":
 		return Settings.environment
-	return map_environment(map_name)
+	return map_environment(map)
 
-## Our environment for the one a map was made for: Constants.MAP_ENVIRONMENTS, else Classic.
-static func map_environment(map_name: String) -> String:
-	return Constants.MAP_ENVIRONMENTS.get(map_name.trim_suffix("Environment"), "classic")
+## Our environment for a map: the one matching the Beat Saber environment it names (Constants.MAP_ENVIRONMENTS),
+## else the one for its genre (Constants.TAG_ENVIRONMENTS, tags from SongTags), else one of
+## Constants.AUTO_ENVIRONMENTS picked by its folder name, so a song always gets the same one. Classic without a map.
+static func map_environment(map: MapInfo) -> String:
+	if map == null:
+		return "classic"
+	var named := map.environment_name.trim_suffix("Environment")
+	if Constants.MAP_ENVIRONMENTS.has(named):
+		return Constants.MAP_ENVIRONMENTS[named]
+	for tag in SongTags.tags_of(map):
+		if Constants.TAG_ENVIRONMENTS.has(tag):
+			return Constants.TAG_ENVIRONMENTS[tag]
+	var folder := SongTags.folder_of(map)
+	return Constants.AUTO_ENVIRONMENTS[absi(folder.hash()) % Constants.AUTO_ENVIRONMENTS.size()]
 
 ## Swaps the scenery around the track; the lights carry over as they are.
 func set_environment(id: String) -> void:
@@ -162,10 +198,17 @@ func set_environment(id: String) -> void:
 				sky.set_shader_parameter(param, value)
 	sphere_material = sky
 	($Level/Sphere as MeshInstance3D).material_override = sky
-	neon_grid.visible = id == "neon_grid"
-	pulse_void.visible = id == "pulse_void"
 	rings_enabled = id == "classic"
+	show_scenery_for_mixed_reality()
 	set_background()
+
+## Shows the environment's own scenery (Neon Grid's floor, Pulse Void's rings, the smoke) except in mixed reality,
+## where opaque scenery would cover the player's room: there only the track, notes and light beams are drawn
+## (the sky is hidden by MixedReality.gd).
+func show_scenery_for_mixed_reality() -> void:
+	neon_grid.visible = environment == "neon_grid" and not Settings.mixed_reality
+	pulse_void.visible = environment == "pulse_void" and not Settings.mixed_reality
+	stage_smoke.visible = Settings.smoke and not Settings.mixed_reality
 
 func set_background() -> void:
 	var width_scale := 2 * Settings.LANE_DISTANCE_X / 3.
@@ -205,7 +248,7 @@ func set_background() -> void:
 		disabled = true
 	else:
 		ring_holder.visible = rings_enabled
-		($Level/StageSmoke).visible = Settings.smoke
+		stage_smoke.visible = Settings.smoke and not Settings.mixed_reality
 		diagonal_lasers_holder.show()
 		square_lasers_holder.show()
 		left_waving_lasers_holder.show()
@@ -233,6 +276,8 @@ func _process(delta: float) -> void:
 	_combo_pulse = maxf(_combo_pulse - delta / COMBO_PULSE_SECONDS, 0.0)
 	_combo_level = move_toward(_combo_level, _combo_target,
 			delta / (COMBO_RISE_SECONDS if _combo_target > _combo_level else COMBO_FALL_SECONDS))
+	if menu_focus:
+		_breathe(delta)
 	_update_haze()
 	# update the level animations
 	#procces ring rotations
@@ -252,6 +297,10 @@ func _update_haze() -> void:
 		haze += floor_material.albedo_color * HAZE_LIGHT_WEIGHT
 	var pulse := _combo_pulse * _combo_pulse
 	haze *= 1.0 + COMBO_HAZE_BOOST * _combo_level + COMBO_PULSE * pulse
+	if menu_focus:
+		haze *= MENU_HAZE_BOOST
+	var grey := haze.r * 0.299 + haze.g * 0.587 + haze.b * 0.114
+	haze = haze.lerp(Color(grey, grey, grey), HAZE_NEUTRAL)
 	haze.a = 1.0
 	RenderingServer.global_shader_parameter_set(&"env_haze", haze)
 	RenderingServer.global_shader_parameter_set(&"combo_glow", COMBO_LASER_BOOST * _combo_level + COMBO_PULSE_LASER * pulse)
@@ -264,14 +313,71 @@ func set_combo_multiplier(multiplier: int) -> void:
 func combo_pulse() -> void:
 	_combo_pulse = 1.0
 
+## Dims the scene for the menus, fading over a second, and fills the stage with smoke; off, it clears the smoke and
+## leaves the lights to the song, which sets them next.
+func set_menu_focus(on: bool) -> void:
+	if on == menu_focus and on:
+		_apply_menu_lights()
+		return
+	menu_focus = on
+	if not on:
+		stage_smoke.dissipate()
+		# the show starts: every light goes dark, the song turns its own lights on (BeepSaber_Game.start_map)
+		if not disabled:
+			for type in 5:
+				turn_light_off(type)
+		left_laser_anim_player.speed_scale = 1.0
+		right_laser_anim_player.speed_scale = 1.0
+		return
+	_menu_time = 0.0
+	stage_smoke.refill()
+	_combo_target = 0.0
+	ring_rot_speed = 0.0
+	for player: AnimationPlayer in [left_laser_anim_player, right_laser_anim_player]:
+		player.speed_scale = player.current_animation_length / MENU_LASER_SWEEP_SECONDS
+		player.seek(randf_range(0.0, player.current_animation_length), true)
+	_apply_menu_lights()
+
+## A note colour pulled toward the house colour and dimmed to a part of itself, for the menus.
+static func _menu_color(color: Color, level: float) -> Color:
+	return color.lerp(HOUSE_COLOR, MENU_HOUSE_MIX).darkened(1.0 - level)
+
+## Pre-show lighting faded in over MENU_FADE_SECONDS: static lights at MENU_BREATH_LOW, waving lasers at
+## MENU_LASER_LEVEL.
+func _apply_menu_lights() -> void:
+	if disabled:
+		return
+	fade_light_from_current(EventInfo.TYPE_DIAGONAL_LASERS, _menu_color(left_color, MENU_BREATH_LOW))
+	fade_light_from_current(EventInfo.TYPE_SQUARE_LASERS, _menu_color(right_color, MENU_BREATH_LOW))
+	fade_light_from_current(EventInfo.TYPE_FLOOR_LIGHTS, _menu_color(right_color, MENU_BREATH_LOW))
+	fade_light_from_current(EventInfo.TYPE_LEFT_WAVING_LASERS, _menu_color(left_color, MENU_LASER_LEVEL))
+	fade_light_from_current(EventInfo.TYPE_RIGHT_WAVING_LASERS, _menu_color(right_color, MENU_LASER_LEVEL))
+
+## Slowly brightens and dims the static lights between MENU_BREATH_LOW and MENU_BREATH_HIGH.
+func _breathe(delta: float) -> void:
+	_menu_time += delta
+	if disabled or _menu_time < MENU_FADE_SECONDS:
+		return
+	var level := lerpf(MENU_BREATH_LOW, MENU_BREATH_HIGH,
+		0.5 - 0.5 * cos(TAU * (_menu_time - MENU_FADE_SECONDS) / MENU_BREATH_SECONDS))
+	turn_light_on(EventInfo.TYPE_DIAGONAL_LASERS, _menu_color(left_color, level))
+	turn_light_on(EventInfo.TYPE_SQUARE_LASERS, _menu_color(right_color, level))
+	turn_light_on(EventInfo.TYPE_FLOOR_LIGHTS, _menu_color(right_color, level))
+
 func update_left_color(color: Color) -> void:
 	left_color = color
+	if menu_focus:
+		_apply_menu_lights()
+		return
 	turn_light_on(EventInfo.TYPE_DIAGONAL_LASERS, color)
 	turn_light_on(EventInfo.TYPE_LEFT_WAVING_LASERS, color)
 	turn_light_on(EventInfo.TYPE_RIGHT_WAVING_LASERS, color)
 
 func update_right_color(color: Color) -> void:
 	right_color = color
+	if menu_focus:
+		_apply_menu_lights()
+		return
 	turn_light_on(EventInfo.TYPE_SQUARE_LASERS, color)
 	turn_light_on(EventInfo.TYPE_FLOOR_LIGHTS, color)
 

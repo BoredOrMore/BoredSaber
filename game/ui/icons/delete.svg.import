@@ -2,9 +2,9 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bmetc7xglkymg"
-path.s3tc="res://.godot/imported/beat_sage_icon.png-73b21f9e2b63fce257353de42beb8eae.s3tc.ctex"
-path.etc2="res://.godot/imported/beat_sage_icon.png-73b21f9e2b63fce257353de42beb8eae.etc2.ctex"
+uid="uid://diu8b5b55l5gl"
+path.s3tc="res://.godot/imported/delete.svg-44c88a52c0ddce9b5524ee66762506c6.s3tc.ctex"
+path.etc2="res://.godot/imported/delete.svg-44c88a52c0ddce9b5524ee66762506c6.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -12,8 +12,8 @@ metadata={
 
 [deps]
 
-source_file="res://game/ui/BeatSageUI/beat_sage_icon.png"
-dest_files=["res://.godot/imported/beat_sage_icon.png-73b21f9e2b63fce257353de42beb8eae.s3tc.ctex", "res://.godot/imported/beat_sage_icon.png-73b21f9e2b63fce257353de42beb8eae.etc2.ctex"]
+source_file="res://game/ui/icons/delete.svg"
+dest_files=["res://.godot/imported/delete.svg-44c88a52c0ddce9b5524ee66762506c6.s3tc.ctex", "res://.godot/imported/delete.svg-44c88a52c0ddce9b5524ee66762506c6.etc2.ctex"]
 
 [params]
 
@@ -33,10 +33,13 @@ process/channel_remap/red=0
 process/channel_remap/green=1
 process/channel_remap/blue=2
 process/channel_remap/alpha=3
-process/fix_alpha_border=true
+process/fix_alpha_border=false
 process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
 process/size_limit=0
 detect_3d/compress_to=1
+svg/scale=1.0
+editor/scale_with_editor_scale=false
+editor/convert_colors_with_editor_theme=false

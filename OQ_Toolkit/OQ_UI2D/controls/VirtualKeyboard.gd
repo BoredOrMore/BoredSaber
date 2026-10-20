@@ -32,9 +32,14 @@ signal cancel_pressed
 
 var _all_letter_buttons: Array[Button] = []
 
+## Label of the key that switches to symbols, and back to letters (phone keyboards' convention).
+const SYMBOLS_KEY_TEXT := "#+="
+const LETTERS_KEY_TEXT := "ABC"
+
 func _toggle_symbols(show_symbols: bool) -> void:
 	_container_letters.visible = not show_symbols
 	_container_symbols.visible = show_symbols
+	_toggle_symbols_button.text = LETTERS_KEY_TEXT if show_symbols else SYMBOLS_KEY_TEXT
 
 func _create_input_event(b: Button, pressed: bool) -> InputEventKey:
 	var keycode := KEY_NONE
@@ -119,6 +124,19 @@ func _create_button(parent: Node, text: String, x: float, y: float, w: float = 1
 	parent.add_child(b)
 	return b
 
+const SHIFT_ICON := preload("res://game/ui/icons/arrow-big-up.svg")
+const BACKSPACE_ICON := preload("res://game/ui/icons/delete.svg")
+const ENTER_ICON := preload("res://game/ui/icons/corner-down-left.svg")
+const CANCEL_ICON := preload("res://game/ui/icons/x.svg")
+
+## Shows an icon in place of a key's text, centred.
+func _icon_key(b: Button, icon: Texture2D) -> Button:
+	b.text = ""
+	b.icon = icon
+	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	b.expand_icon = false
+	return b
+
 var _toggle_symbols_button: Button
 var _shift_button: Button
 var _backspace_button: Button
@@ -126,22 +144,20 @@ var _enter_button: Button
 var _space_button: Button
 var _cancel_button: Button
 
+## The side keys are tall and upright with an icon each; their labels used to be written sideways ("BckSp.").
 func _create_keyboard_buttons() -> void:
-	_toggle_symbols_button = _create_button(self, "#$%", 0+1, 1, 2, 1)
-	_toggle_symbols_button.set_rotation(deg_to_rad(90.0))
+	_toggle_symbols_button = _create_button(self, SYMBOLS_KEY_TEXT, 0, 1, 1, 2)
 	_toggle_symbols_button.toggle_mode = true
 	
-	_shift_button = _create_button(self, "Δ", 0, 3, 1, 2)
+	_shift_button = _icon_key(_create_button(self, "Shift", 0, 3, 1, 2), SHIFT_ICON)
 	_shift_button.toggle_mode = true
 	
-	_backspace_button = _create_button(self, "BckSp.", 11+1, 1, 2, 1)
-	_backspace_button.set_rotation(deg_to_rad(90.0))
-	_enter_button = _create_button(self, "Enter", 11+1, 3, 2, 1)
-	_enter_button.set_rotation(deg_to_rad(90.0))
+	_backspace_button = _icon_key(_create_button(self, "Backspace", 11, 1, 1, 2), BACKSPACE_ICON)
+	_enter_button = _icon_key(_create_button(self, "Enter", 11, 3, 1, 2), ENTER_ICON)
 	
 	_space_button = _create_button(self, "Space", 2, 4, 9, 1)
 
-	_cancel_button = _create_button(self, "X", 11, 0, 1, 1)
+	_cancel_button = _icon_key(_create_button(self, "Cancel", 11, 0, 1, 1), CANCEL_ICON)
 	
 	var x := 1.0
 	var y := 0.0

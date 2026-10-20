@@ -34,18 +34,21 @@ const NOTE_DARK_VALUE := 0.7
 ## the scenery around the track, picked beside the song; "auto" follows the environment each map was made for
 ## (EventDriver.pick_environment)
 const ENVIRONMENTS := [ ["auto", "Follow map"], ["classic", "Classic"], ["neon_grid", "Neon Grid"], ["pulse_void", "Pulse Void"], ["night_city", "Night City"] ]
-const BACKGROUND_MODES := [ ["dynamic", "*Dynamic"],
-		["simple", "Simple"],
-		["static", "Static"] ]
+## Stage lights: a light show that follows the music, lights off, or lights off with the stage pieces hidden too.
+const BACKGROUND_MODES := [ ["dynamic", "Light show"],
+		["simple", "Off, no stage"],
+		["static", "Off"] ]
 
 signal changed(name: StringName)
 
 var LANE_DISTANCE_X := Constants.DEFAULT_LANE_DISTANCE_X
 var LANE_ZERO_X := Constants.DEFAULT_LANE_ZERO_X
 
+## The sample songs were copied into the library once; saved, so a deleted sample stays deleted.
 var preloaded_songs: bool:
 	set(value):
 		preloaded_songs = value
+		set_and_emit(&"preloaded_songs", value)
 var thickness: float:
 	set(value):
 		thickness = value
@@ -263,6 +266,16 @@ var song_filter_workout: bool:
 	set(value):
 		song_filter_workout = value
 		set_and_emit(&"song_filter_workout", value)
+## Length filter of the BeatSaver page, kept apart from the song menu's so changing one doesn't empty the other.
+var beatsaver_filter_length: int:
+	set(value):
+		beatsaver_filter_length = value
+		set_and_emit(&"beatsaver_filter_length", value)
+## Difficulty filter of the BeatSaver page, kept apart from the song menu's.
+var beatsaver_filter_reaction: int:
+	set(value):
+		beatsaver_filter_reaction = value
+		set_and_emit(&"beatsaver_filter_reaction", value)
 	
 func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(Constants.CONFIG_ROOT_PATH)
@@ -338,6 +351,8 @@ var default_values = {
 	song_filter_reaction = 0,
 	song_filter_favorites = false,
 	song_filter_workout = false,
+	beatsaver_filter_length = 0,
+	beatsaver_filter_reaction = 0,
 	claws = false,
 	preloaded_songs = false
 }
@@ -367,10 +382,14 @@ func save() -> void:
 		vr.log_file_error(error, CONFIG_PATH, "save() in Settings.gd")
 		return
 
+## Puts every setting back to its default; the library's sample songs aren't a setting, so they aren't copied again.
 func restore_defaults() -> void:
+	var samples_copied := preloaded_songs
 	config.clear()
 	save()
 	reload()
+	preloaded_songs = samples_copied
+	save()
 	
 func get_saber_visuals() -> String:
 	return SABER_VISUALS[saber_visual if not claws else 0][1]

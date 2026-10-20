@@ -23,11 +23,13 @@ func _notification(what: int) -> void:
 
 ## Half the room the icon and label leave free, at least a small edge.
 func _centred_margin() -> float:
-	var width := get_theme_font(&"font").get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1,
+	var width := get_theme_font(&"font").get_multiline_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1,
 			get_theme_font_size(&"font_size")).x
 	if icon != null:
 		width += icon.get_width() + get_theme_constant(&"h_separation")
-	return maxf(roundf((size.x - width) / 2.0), 12.0)
+	# never so far right that the label runs into the right padding
+	var right := get_theme_stylebox(&"normal").content_margin_right
+	return maxf(minf(roundf((size.x - width) / 2.0), size.x - width - right), 12.0)
 
 ## Sets the left padding of every state's style.
 func _set_margin(margin: float) -> void:

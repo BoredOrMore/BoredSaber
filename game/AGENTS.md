@@ -85,6 +85,12 @@ constraints apply here unchanged.
 
 ## Invariants and gotchas
 
+- Light comes from a source. Every beam, laser and glow in the scenery starts at a place a real fixture
+  could sit (floor, rig, ring, sky edge), and moves the way a real light does: a beam turns around the
+  fixture it comes out of, never around its middle. In `event_driver.tscn` a laser's pivot node is the
+  fixture; its ribbon mesh is offset by half its length so it starts at the pivot (`ribbon` is 32 m long,
+  centred; a `Bar7` scaled 3 on z sits at z -48). Animate the pivot, not the mesh.
+
 - Pooling: every spawned entity must `release()` exactly once (`PooledNode3D.release` warns on
   repeats). Cube/link with `cube_cuts_falloff` release only after both `CutPiece`s die
   (`Cuttable._on_cut_piece_died`). `clear_from_track()` must hide and release if not yet released;

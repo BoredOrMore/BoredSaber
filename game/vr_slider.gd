@@ -40,6 +40,11 @@ const JOYSTICK_ACCELERATION := 1.5
 const JOYSTICK_MAX_BOOST := 4.0
 
 var _hold_time := 0.0
+## Scroll movement smaller than one pixel, kept for the next frame so slow scrolling still moves.
+var _carry := 0.0
+
+## How far one press of the scroll bar's up or down arrow moves the list, in pixels (about two rows).
+const ARROW_STEP := 120.0
 
 func _ready() -> void:
 	scroll_node = get_node(scroll_node_path) as Control
@@ -48,6 +53,8 @@ func _ready() -> void:
 		v_scroll = (scroll_node as ItemList).get_v_scroll_bar()
 	elif scroll_node is ScrollContainer:
 		v_scroll = (scroll_node as ScrollContainer).get_v_scroll_bar()
+	# the arrows move nothing until given a step
+	v_scroll.custom_step = ARROW_STEP
 	
 	@warning_ignore("return_value_discarded")
 	scroll_node.connect(&"mouse_entered", Callable(self, &"_mouse_entered"))
@@ -59,14 +66,20 @@ func _process(delta: float) -> void:
 	if is_mouse_in:
 		if vr.rightController.trigger_pressed():
 			# Scroll via "click & drag"
-			v_scroll.value += ((relpos - newpos) * 20.0)
+			_scroll_by((relpos - newpos) * 20.0)
 		else:
 			_joystick_scroll(delta)
-	elif scroll_without_pointer and scroll_node.is_visible_in_tree():
+	elif scroll_without_pointer and scroll_node.is_visible_in_tree() and _canvas_shown():
 		_joystick_scroll(delta)
 	else:
 		_hold_time = 0.0
 	relpos = newpos
+
+## False while the 3D canvas showing this list is hidden (a Control inside a canvas's SubViewport stays
+## "visible" when the canvas is hidden).
+func _canvas_shown() -> bool:
+	var canvas := scroll_node.get_viewport().get_parent() as Node3D
+	return canvas == null or canvas.is_visible_in_tree()
 
 ## Scrolls by the stronger thumbstick of the two hands, faster the longer it is held.
 func _joystick_scroll(delta: float) -> void:
@@ -83,7 +96,24 @@ func _joystick_scroll(delta: float) -> void:
 		JOYSTICK_SLOW_SCROLL_SPEED,
 		JOYSTICK_FAST_SCROLL_SPEED,
 		absf(y_joy)) * boost * -signf(y_joy) * delta
-	v_scroll.value += scroll_amount
+	_scroll_by(scroll_amount)
+
+## Moves the list by whole pixels and redraws its canvas. A canvas that redraws only on pointer input
+## would otherwise freeze between pointer moves while the thumbstick scrolls, which looks jerky.
+func _scroll_by(amount: float) -> void:
+	_carry += amount
+	var step := roundf(_carry)
+	if step == 0.0:
+		return
+	_carry -= step
+	var before := v_scroll.value
+	v_scroll.value += step
+	if v_scroll.value == before:
+		_carry = 0.0
+		return
+	var canvas := scroll_node.get_viewport().get_parent() as OQ_UI2DCanvas
+	if canvas != null:
+		canvas._input_update()
 
 func _mouse_entered() -> void:
 	is_mouse_in = true

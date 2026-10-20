@@ -52,11 +52,19 @@ class BeatSaverSongInfo extends RefCounted:
 		return 100.0 * (Utils.get_float(parity, "errors", 0.0) + Utils.get_float(parity, "warns", 0.0)
 			+ Utils.get_float(parity, "resets", 0.0)) / notes
 
+	## Median same-hand swing gap over 2 / notes per second (each hand takes about half the notes): 0.84
+	## (quartiles 0.75-0.92, r = 0.96) over the test headset's 77 Standard difficulties, measured with
+	## doc/research/flow_research.py's note reader. Stacks and chains make it a little under 1.
+	const SWING_GAP_PER_NOTE_GAP := 0.84
+
 	## Difficulty a map difficulty plays at before it is downloaded (an index in Constants.DIFFICULTY_LEVELS):
-	## its reaction time level, one up when its swings are Tangled. Swing pace needs the notes themselves, so it
-	## counts only once the map is downloaded (MapStats.level_of).
+	## the harder of its reaction time and its swing pace estimated from notes per second, one up when its swings
+	## are Tangled. Downloaded maps use the measured swing gap instead (MapStats.level_of).
 	func level_of(diff: Dictionary) -> int:
 		var level := MapStats.reaction_level(reaction_seconds(diff))
+		var nps := Utils.get_float(diff, "nps", 0.0)
+		if nps > 0.0:
+			level = maxi(level, MapStats.swing_pace_level(SWING_GAP_PER_NOTE_GAP * 2.0 / nps / MapStats._speed()))
 		if MapStats.flow_level(parity_percent(diff)) == Constants.FLOW_LEVELS.size() - 1:
 			level += 1
 		return mini(level, Constants.DIFFICULTY_LEVELS.size() - 1)
@@ -78,15 +86,15 @@ class BeatSaverSongInfo extends RefCounted:
 				return true
 		return false
 
-	## True if the difficulty filter is off or any difficulty of the newest version plays at the picked
-	## difficulty (level_of).
+	## True if the difficulty filter is off or any difficulty of the newest version plays at the picked level or
+	## easier (level_of).
 	func passes_reaction_filter() -> bool:
-		if Settings.song_filter_reaction == 0:
+		if MapStats.difficulty_filter(Settings.beatsaver_filter_reaction) == 0:
 			return true
 		if versions.is_empty():
 			return false
 		for diff: Variant in Utils.get_array(versions[0] as Dictionary, "diffs", []):
-			if diff is Dictionary and level_of(diff as Dictionary) == Settings.song_filter_reaction - 1:
+			if diff is Dictionary and MapStats.passes_difficulty_filter(level_of(diff as Dictionary), Settings.beatsaver_filter_reaction):
 				return true
 		return false
 
@@ -98,7 +106,7 @@ var song_data: Array[BeatSaverSongInfo] = []
 var prev_page_available := -1
 var next_page_available := -1
 ## Style chips and genres: [label, BeatSaver tag], "" meaning any.
-const STYLES := [["Any", ""], ["Dance", "dance-style"], ["Workout", "fitness"], ["Accuracy", "accuracy"],
+const STYLES := [["Any", ""], ["Dance", "dance-style"], ["Fitness", "fitness"], ["Accuracy", "accuracy"],
 	["Tech", "tech"], ["Speed", "speed"], ["Challenge", "challenge"]]
 const GENRES := [["Any genre", ""], ["Pop", "pop"], ["J-Pop", "j-pop"], ["K-Pop", "k-pop"], ["Anime", "anime"],
 	["Electronic", "electronic"], ["Rock", "rock"], ["Game music", "video-game-soundtrack"], ["Metal", "metal"],
@@ -110,9 +118,14 @@ var _genre_tag := ""
 const SORT_TABS := [["Popular", "Rating"], ["New", "Latest"], ["Staff picks", "Curated"], ["Random", "Random"]]
 var search_word := ""
 var item_selected := -1
-var downloading := []#[["name","version_info"]]
+var downloading := []#[["name","version_info", tags]]
 ## Most previews kept in memory, so clicking a map again plays at once.
 const MAX_CACHED_PREVIEWS := 10
+## Tries again after a failed list request before showing the error (the headset sometimes fails to connect
+## once, e.g. "request error 2"). Seconds to wait before each try.
+const LIST_RETRIES := 2
+const LIST_RETRY_SECONDS := 1.0
+var _list_retries_left := LIST_RETRIES
 ## Icons of the big button: download, or play once the song is in the library.
 const DOWNLOAD_ICON := preload("res://game/ui/icons/download.svg")
 const PLAY_ICON := preload("res://game/ui/icons/play.svg")
@@ -235,7 +248,6 @@ func _ready() -> void:
 	
 	for filter: Array in MapStats.difficulty_filters():
 		reaction_filter.add_item(filter[1])
-	reaction_filter.set_item_text(0, "Any difficulty")
 	for filter: Array in Constants.LENGTH_FILTERS:
 		length_filter.add_item(filter[1])
 	_sync_filter_controls()
@@ -243,13 +255,13 @@ func _ready() -> void:
 
 ## Shows the saved song filters in the dropdowns.
 func _sync_filter_controls() -> void:
-	reaction_filter.select(clampi(Settings.song_filter_reaction, 0, Constants.DIFFICULTY_LEVELS.size()))
-	length_filter.select(MapStats.length_filter()[0])
+	reaction_filter.select(MapStats.difficulty_filter(Settings.beatsaver_filter_reaction))
+	length_filter.select(MapStats.length_filter(Settings.beatsaver_filter_length)[0])
 
 ## BeatSaver search parameters for the picked style and genre (both must match) and the saved length filter,
 ## or "" when all are off.
 func _filter_query() -> String:
-	var length := MapStats.length_filter()
+	var length := MapStats.length_filter(Settings.beatsaver_filter_length)
 	var query := ""
 	var tags := PackedStringArray([_style_tag, _genre_tag])
 	tags.erase("")
@@ -262,9 +274,9 @@ func _filter_query() -> String:
 		query += "&maxDuration=%d" % int(length[3])
 	return query
 
-## Follows filter changes (made here or in the song menu) and reloads the current list with them.
+## Follows filter changes and reloads the current list with them.
 func _on_settings_changed(key: StringName) -> void:
-	if key != &"song_filter_reaction" and key != &"song_filter_length":
+	if key != &"beatsaver_filter_reaction" and key != &"beatsaver_filter_length":
 		return
 	_sync_filter_controls()
 	_reload()
@@ -287,11 +299,11 @@ func _on_genre_filter_item_selected(index: int) -> void:
 
 ## Stores the picked reaction time filter.
 func _on_reaction_filter_item_selected(index: int) -> void:
-	Settings.song_filter_reaction = index
+	Settings.beatsaver_filter_reaction = index
 
 ## Stores the picked length filter.
 func _on_length_filter_item_selected(index: int) -> void:
-	Settings.song_filter_length = Constants.LENGTH_FILTERS[index][0]
+	Settings.beatsaver_filter_length = Constants.LENGTH_FILTERS[index][0]
 
 # override hide() method to handle case where UI is inside a OQ_UI2DCanvas
 func _hide() -> void:
@@ -326,7 +338,7 @@ func update_list(req: BeatSaverRequest) -> void:
 	if req.page == 0:
 		# brand new request, clear list to prep for reload
 		item_list.clear()
-		label.text = ""
+		label.text = "Loading songs…"
 		if goto_maps_by:
 			goto_maps_by.visible = false
 		song_data = []
@@ -387,9 +399,16 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 						item_list.set_item_tooltip_enabled(index, false)
 						song_data.append(parsed_song)
 
+	elif _list_retries_left > 0 and prev_request != null:
+		_list_retries_left -= 1
+		vr.log_warning("BeatSaver list request failed (result %d), trying again" % result)
+		await get_tree().create_timer(LIST_RETRY_SECONDS).timeout
+		update_list(prev_request)
+		return
 	else:
 		vr.log_error("request error "+str(result))
 		label.text = "Can't reach BeatSaver. Check your Wi-Fi."
+	_list_retries_left = LIST_RETRIES
 	back_button.visible = prev_request != null and prev_request.type == "uploader" and back_stack.size() > 0
 	_scroll_page_request_pending = false
 	
@@ -398,8 +417,11 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 	
 	_update_all_covers()
 	_fill_reaction_filtered_list()
-	if result == 0 and item_list.item_count == 0 and not _scroll_page_request_pending:
-		label.text = "No songs match. Try another style."
+	if result == 0:
+		if item_list.item_count > 0:
+			label.text = ""
+		elif not _scroll_page_request_pending:
+			label.text = "No songs match. Try another style."
 
 ## Most items the list fetches pages for on its own while the reaction time filter hides songs.
 const REACTION_FILL_ITEMS := 20
@@ -409,7 +431,7 @@ const REACTION_FILL_PAGES := 10
 ## BeatSaver can't filter by reaction time, so it is applied to each page after it arrives and a page
 ## can show few or no songs; fetch the next pages until the list has enough songs to scroll.
 func _fill_reaction_filtered_list() -> void:
-	if Settings.song_filter_reaction == 0 or prev_request == null or prev_request.type == "uploader":
+	if MapStats.difficulty_filter(Settings.beatsaver_filter_reaction) == 0 or prev_request == null or prev_request.type == "uploader":
 		return
 	if next_page_available == -1 or item_list.item_count >= REACTION_FILL_ITEMS or prev_request.page >= REACTION_FILL_PAGES:
 		return
@@ -480,15 +502,10 @@ func _details_text(song: BeatSaverSongInfo) -> String:
 	if not tag_names.is_empty():
 		text += "\n[color=#%s]%s[/color]" % [muted, " · ".join(tag_names)]
 	text += "\n"
-	var relabeled := false
 	for diff: Variant in Utils.get_array(song.versions[0] as Dictionary, "diffs", []):
 		var d := diff as Dictionary
-		var map_label := Utils.get_str(d, "difficulty", "").replace("ExpertPlus", "Expert+")
 		var level: Array = Constants.DIFFICULTY_LEVELS[song.level_of(d)]
 		var line: String = level[0]
-		if map_label != level[0]:
-			line += " (%s)" % map_label
-			relabeled = true
 		if Utils.get_str(d, "characteristic", "Standard") != "Standard":
 			line += " · %s" % Utils.get_str(d, "characteristic", "")
 		if song.bpm > 0.0:
@@ -500,8 +517,6 @@ func _details_text(song: BeatSaverSongInfo) -> String:
 		if walls > 0:
 			line += " · %d walls" % walls
 		text += "\n[color=#%s]%s[/color]" % [(level[1] as Color).to_html(false), line]
-	if relabeled:
-		text += "\n[color=#%s](in brackets: the map's own label)[/color]" % muted
 	var description := song.description.strip_edges()
 	if not description.is_empty():
 		var lines := description.split("\n", false)
@@ -567,7 +582,7 @@ func _on_download_button_up() -> void:
 	if downloading.any(func(entry: Array) -> bool: return Utils.get_str(entry[1] as Dictionary, "hash", "") == hash):
 		return
 	OS.request_permissions()
-	downloading.append([song.name, song.versions[0]])
+	downloading.append([song.name, song.versions[0], song.tags])
 	if downloading.size() == 1:
 		download_next()
 	_update_download_button()
@@ -617,6 +632,7 @@ func _on_HTTPRequest_download_completed(result: int, response_code: int, headers
 		
 		if not has_error:
 			Utils.unzip(zippath,song_out_dir)
+			SongTags.remember(song_dir_name, downloading[0][2])
 		
 		DirAccess.remove_absolute(zippath)
 		
@@ -765,8 +781,15 @@ func _on_CloseButton_pressed() -> void:
 	self._hide()
 
 var _is_first_show := true
+## Makes sure the page always opens with songs listed: the most liked maps the first time, and the last list
+## again if it came back empty (e.g. no connection when it last loaded).
 func _on_BeatSaverPanel_visibility_changed() -> void:
 	if _is_first_show:
 		# start on the most liked maps
 		_on_sort_tab_pressed(SORT_TABS[0][1])
 		_is_first_show = false
+	elif item_list.item_count == 0 and httpreq.get_http_client_status() == HTTPClient.STATUS_DISCONNECTED:
+		if prev_request != null and prev_request.type != "uploader":
+			_reload()
+		else:
+			_on_sort_tab_pressed(SORT_TABS[0][1])
