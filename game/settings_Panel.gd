@@ -22,18 +22,18 @@ signal apply()
 @onready var show_collisions := $Tabs/Advanced/VBox/show_collisions as CheckButton
 @onready var ui_volume_slider := $Tabs/Audio/VBox/UI_VolumeRow/ui_volume_slider as HSlider
 @onready var disable_map_color_control := $Tabs/Gameplay/VBox/disable_map_color as CheckButton
-@onready var left_saber_posx_control := $Tabs/Advanced/VBox/left_saber_offset/posx as SpinBox
-@onready var left_saber_posy_control := $Tabs/Advanced/VBox/left_saber_offset/posy as SpinBox
-@onready var left_saber_posz_control := $Tabs/Advanced/VBox/left_saber_offset/posz as SpinBox
-@onready var left_saber_rotx_control := $Tabs/Advanced/VBox/left_saber_offset/rotx as SpinBox
-@onready var left_saber_roty_control := $Tabs/Advanced/VBox/left_saber_offset/roty as SpinBox
-@onready var left_saber_rotz_control := $Tabs/Advanced/VBox/left_saber_offset/rotz as SpinBox
-@onready var right_saber_posx_control := $Tabs/Advanced/VBox/right_saber_offset/posx as SpinBox
-@onready var right_saber_posy_control := $Tabs/Advanced/VBox/right_saber_offset/posy as SpinBox
-@onready var right_saber_posz_control := $Tabs/Advanced/VBox/right_saber_offset/posz as SpinBox
-@onready var right_saber_rotx_control := $Tabs/Advanced/VBox/right_saber_offset/rotx as SpinBox
-@onready var right_saber_roty_control := $Tabs/Advanced/VBox/right_saber_offset/roty as SpinBox
-@onready var right_saber_rotz_control := $Tabs/Advanced/VBox/right_saber_offset/rotz as SpinBox
+@onready var left_saber_posx_control := $Tabs/Advanced/VBox/left_saber_offset/pos_row/posx as SpinBox
+@onready var left_saber_posy_control := $Tabs/Advanced/VBox/left_saber_offset/pos_row/posy as SpinBox
+@onready var left_saber_posz_control := $Tabs/Advanced/VBox/left_saber_offset/pos_row/posz as SpinBox
+@onready var left_saber_rotx_control := $Tabs/Advanced/VBox/left_saber_offset/rot_row/rotx as SpinBox
+@onready var left_saber_roty_control := $Tabs/Advanced/VBox/left_saber_offset/rot_row/roty as SpinBox
+@onready var left_saber_rotz_control := $Tabs/Advanced/VBox/left_saber_offset/rot_row/rotz as SpinBox
+@onready var right_saber_posx_control := $Tabs/Advanced/VBox/right_saber_offset/pos_row/posx as SpinBox
+@onready var right_saber_posy_control := $Tabs/Advanced/VBox/right_saber_offset/pos_row/posy as SpinBox
+@onready var right_saber_posz_control := $Tabs/Advanced/VBox/right_saber_offset/pos_row/posz as SpinBox
+@onready var right_saber_rotx_control := $Tabs/Advanced/VBox/right_saber_offset/rot_row/rotx as SpinBox
+@onready var right_saber_roty_control := $Tabs/Advanced/VBox/right_saber_offset/rot_row/roty as SpinBox
+@onready var right_saber_rotz_control := $Tabs/Advanced/VBox/right_saber_offset/rot_row/rotz as SpinBox
 @onready var player_height_offset_control := $Tabs/Gameplay/VBox/player_height_offset/pos as SpinBox
 @onready var audio_master_control := $Tabs/Audio/VBox/audio/master/master_slider as HSlider
 @onready var audio_music_control := $Tabs/Audio/VBox/audio/music/music_slider as HSlider
@@ -83,6 +83,10 @@ func _ready() -> void:
 
 	set_controls_from_settings()
 	_play_ui_sound_demo = true
+	# each saber's position and rotation row has a Reset back to 0
+	for row: Node in [$Tabs/Advanced/VBox/left_saber_offset/pos_row, $Tabs/Advanced/VBox/left_saber_offset/rot_row,
+			$Tabs/Advanced/VBox/right_saber_offset/pos_row, $Tabs/Advanced/VBox/right_saber_offset/rot_row]:
+		(row.get_node(^"reset") as Button).pressed.connect(_reset_row.bind(row))
 	for picker in [left_saber_col.get_picker(),right_saber_col.get_picker()]:
 		picker.sampler_visible = false
 		picker.presets_visible = true
@@ -306,6 +310,19 @@ func _on_right_saber_rot_z_changed(value: float) -> void:
 
 func _on_player_height_offset_changed(value: float) -> void:
 	Settings.player_height_offset = value
+
+## Sets every number in a saber offset row back to 0.
+func _reset_row(row: Node) -> void:
+	for control in row.get_children():
+		if control is SpinBox:
+			(control as SpinBox).value = 0.0
+
+## Stand straight and press: raises or lowers the view so the eyes are at Constants.EYE_HEIGHT, the height the
+## notes and walls are laid out for, as far as the adjust range allows.
+func _on_measure_height_pressed() -> void:
+	var eyes := vr.get_current_player_height()
+	player_height_offset_control.value = clampf(snappedf(Constants.EYE_HEIGHT - eyes, 0.01),
+			player_height_offset_control.min_value, player_height_offset_control.max_value)
 
 func _on_disable_map_color_toggled(toggled_on: bool) -> void:
 	Settings.disable_map_color = toggled_on

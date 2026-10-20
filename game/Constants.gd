@@ -5,6 +5,9 @@ const LAYER_ZERO_Y := 0.8
 const BEAT_DISTANCE := 4.0
 const DEFAULT_LANE_DISTANCE_X := 0.6
 const LANE_DISTANCE_Y := 0.6
+## Eye height the note rows (0.8, 1.4 and 2.0 m) and crouch walls (1.2 m) suit, as Beat Saber's default 1.80 m player
+## (eyes about 0.1 m below the top of the head); "Measure my height" moves the view to it.
+const EYE_HEIGHT := 1.7
 const MISS_Z := 2.5
 const DIRECTION8_OFFSET := 2 * TAU 
 const DIRECTION8_COMPARE := DIRECTION8_OFFSET - .001

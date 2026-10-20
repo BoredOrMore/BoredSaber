@@ -8,6 +8,8 @@
 [ext_resource type="Texture2D" path="res://game/ui/icons/locate-fixed.svg" id="icon_locate-fixed"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/undo-2.svg" id="icon_undo-2"]
 [ext_resource type="Script" path="res://game/ui/IconButton.gd" id="icon_button"]
+[ext_resource type="Script" path="res://game/ui/StepperSpinBox.gd" id="stepper"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/ruler.svg" id="icon_ruler"]
 
 [sub_resource type="FontFile" id="2"]
 fallbacks = Array[Font]([ExtResource("1")])
@@ -244,19 +246,28 @@ layout_mode = 2
 custom_minimum_size = Vector2(320, 0)
 theme_override_styles/normal = SubResource("row_label")
 layout_mode = 2
-text = "Player height (m)"
+text = "Height adjust"
 
 [node name="Control" type="Control" parent="Tabs/Gameplay/VBox/player_height_offset"]
 layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="pos" type="SpinBox" parent="Tabs/Gameplay/VBox/player_height_offset"]
-custom_minimum_size = Vector2(0, 48)
+custom_minimum_size = Vector2(130, 52)
 layout_mode = 2
 min_value = -0.25
 max_value = 0.25
-step = 0.05
-value = -0.25
+step = 0.01
+suffix = "m"
+script = ExtResource("stepper")
+
+[node name="measure" type="Button" parent="Tabs/Gameplay/VBox/player_height_offset"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+tooltip_text = "Stand straight, then press"
+text = "Measure my height"
+icon = ExtResource("icon_ruler")
+script = ExtResource("icon_button")
 
 [node name="recenter" type="Button" parent="Tabs/Gameplay/VBox"]
 layout_mode = 2
@@ -542,137 +553,233 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="left_saber_offset" type="HBoxContainer" parent="Tabs/Advanced/VBox"]
+[node name="left_saber_offset" type="VBoxContainer" parent="Tabs/Advanced/VBox"]
 layout_mode = 2
 theme = SubResource("small")
+theme_override_constants/separation = 8
 
 [node name="Label" type="Label" parent="Tabs/Advanced/VBox/left_saber_offset"]
 layout_mode = 2
+theme_override_styles/normal = SubResource("row_label")
 text = "Left saber"
 
-[node name="Control" type="Control" parent="Tabs/Advanced/VBox/left_saber_offset"]
+[node name="pos_row" type="HBoxContainer" parent="Tabs/Advanced/VBox/left_saber_offset"]
 layout_mode = 2
-size_flags_horizontal = 3
+theme_override_constants/separation = 8
 
-[node name="poslabel" type="Label" parent="Tabs/Advanced/VBox/left_saber_offset"]
+[node name="poslabel" type="Label" parent="Tabs/Advanced/VBox/left_saber_offset/pos_row"]
+custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
+theme_override_styles/normal = SubResource("row_label")
 text = "Position"
 
-[node name="posx" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset"]
-custom_minimum_size = Vector2(0, 48)
+[node name="posx" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset/pos_row"]
+custom_minimum_size = Vector2(100, 52)
 layout_mode = 2
 min_value = -1.0
 max_value = 1.0
 step = 0.001
+prefix = "X"
+suffix = "m"
+script = ExtResource("stepper")
+button_step = 0.005
 
-[node name="posy" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset"]
-custom_minimum_size = Vector2(0, 48)
+[node name="posy" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset/pos_row"]
+custom_minimum_size = Vector2(100, 52)
 layout_mode = 2
 min_value = -1.0
 max_value = 1.0
 step = 0.001
+prefix = "Y"
+suffix = "m"
+script = ExtResource("stepper")
+button_step = 0.005
 
-[node name="posz" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset"]
-custom_minimum_size = Vector2(0, 48)
+[node name="posz" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset/pos_row"]
+custom_minimum_size = Vector2(100, 52)
 layout_mode = 2
 min_value = -1.0
 max_value = 1.0
 step = 0.001
+prefix = "Z"
+suffix = "m"
+script = ExtResource("stepper")
+button_step = 0.005
 
-[node name="Control2" type="Control" parent="Tabs/Advanced/VBox/left_saber_offset"]
+[node name="reset" type="Button" parent="Tabs/Advanced/VBox/left_saber_offset/pos_row"]
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
-size_flags_horizontal = 3
+size_flags_horizontal = 10
+tooltip_text = "Back to 0"
+text = "Reset"
+icon = ExtResource("icon_undo-2")
+script = ExtResource("icon_button")
 
-[node name="rotlabel" type="Label" parent="Tabs/Advanced/VBox/left_saber_offset"]
+[node name="rot_row" type="HBoxContainer" parent="Tabs/Advanced/VBox/left_saber_offset"]
 layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="rotlabel" type="Label" parent="Tabs/Advanced/VBox/left_saber_offset/rot_row"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+theme_override_styles/normal = SubResource("row_label")
 text = "Rotation"
 
-[node name="rotx" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset"]
-custom_minimum_size = Vector2(0, 48)
+[node name="rotx" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset/rot_row"]
+custom_minimum_size = Vector2(100, 52)
 layout_mode = 2
 min_value = -180.0
 max_value = 180.0
 step = 0.5
+prefix = "X"
+suffix = "°"
+script = ExtResource("stepper")
+button_step = 1.0
 
-[node name="roty" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset"]
-custom_minimum_size = Vector2(0, 48)
+[node name="roty" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset/rot_row"]
+custom_minimum_size = Vector2(100, 52)
 layout_mode = 2
 min_value = -180.0
 max_value = 180.0
 step = 0.5
+prefix = "Y"
+suffix = "°"
+script = ExtResource("stepper")
+button_step = 1.0
 
-[node name="rotz" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset"]
-custom_minimum_size = Vector2(0, 48)
+[node name="rotz" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset/rot_row"]
+custom_minimum_size = Vector2(100, 52)
 layout_mode = 2
 min_value = -180.0
 max_value = 180.0
 step = 0.5
+prefix = "Z"
+suffix = "°"
+script = ExtResource("stepper")
+button_step = 1.0
 
-[node name="right_saber_offset" type="HBoxContainer" parent="Tabs/Advanced/VBox"]
+[node name="reset" type="Button" parent="Tabs/Advanced/VBox/left_saber_offset/rot_row"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+size_flags_horizontal = 10
+tooltip_text = "Back to 0"
+text = "Reset"
+icon = ExtResource("icon_undo-2")
+script = ExtResource("icon_button")
+
+[node name="right_saber_offset" type="VBoxContainer" parent="Tabs/Advanced/VBox"]
 layout_mode = 2
 theme = SubResource("small")
+theme_override_constants/separation = 8
 
 [node name="Label" type="Label" parent="Tabs/Advanced/VBox/right_saber_offset"]
 layout_mode = 2
+theme_override_styles/normal = SubResource("row_label")
 text = "Right saber"
 
-[node name="Control" type="Control" parent="Tabs/Advanced/VBox/right_saber_offset"]
+[node name="pos_row" type="HBoxContainer" parent="Tabs/Advanced/VBox/right_saber_offset"]
 layout_mode = 2
-size_flags_horizontal = 3
+theme_override_constants/separation = 8
 
-[node name="poslabel" type="Label" parent="Tabs/Advanced/VBox/right_saber_offset"]
+[node name="poslabel" type="Label" parent="Tabs/Advanced/VBox/right_saber_offset/pos_row"]
+custom_minimum_size = Vector2(120, 0)
 layout_mode = 2
+theme_override_styles/normal = SubResource("row_label")
 text = "Position"
 
-[node name="posx" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset"]
-custom_minimum_size = Vector2(0, 48)
+[node name="posx" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset/pos_row"]
+custom_minimum_size = Vector2(100, 52)
 layout_mode = 2
 min_value = -1.0
 max_value = 1.0
 step = 0.001
+prefix = "X"
+suffix = "m"
+script = ExtResource("stepper")
+button_step = 0.005
 
-[node name="posy" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset"]
-custom_minimum_size = Vector2(0, 48)
+[node name="posy" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset/pos_row"]
+custom_minimum_size = Vector2(100, 52)
 layout_mode = 2
 min_value = -1.0
 max_value = 1.0
 step = 0.001
+prefix = "Y"
+suffix = "m"
+script = ExtResource("stepper")
+button_step = 0.005
 
-[node name="posz" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset"]
-custom_minimum_size = Vector2(0, 48)
+[node name="posz" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset/pos_row"]
+custom_minimum_size = Vector2(100, 52)
 layout_mode = 2
 min_value = -1.0
 max_value = 1.0
 step = 0.001
+prefix = "Z"
+suffix = "m"
+script = ExtResource("stepper")
+button_step = 0.005
 
-[node name="Control2" type="Control" parent="Tabs/Advanced/VBox/right_saber_offset"]
+[node name="reset" type="Button" parent="Tabs/Advanced/VBox/right_saber_offset/pos_row"]
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
-size_flags_horizontal = 3
+size_flags_horizontal = 10
+tooltip_text = "Back to 0"
+text = "Reset"
+icon = ExtResource("icon_undo-2")
+script = ExtResource("icon_button")
 
-[node name="rotlabel" type="Label" parent="Tabs/Advanced/VBox/right_saber_offset"]
+[node name="rot_row" type="HBoxContainer" parent="Tabs/Advanced/VBox/right_saber_offset"]
 layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="rotlabel" type="Label" parent="Tabs/Advanced/VBox/right_saber_offset/rot_row"]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+theme_override_styles/normal = SubResource("row_label")
 text = "Rotation"
 
-[node name="rotx" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset"]
-custom_minimum_size = Vector2(0, 48)
+[node name="rotx" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset/rot_row"]
+custom_minimum_size = Vector2(100, 52)
 layout_mode = 2
 min_value = -180.0
 max_value = 180.0
 step = 0.5
+prefix = "X"
+suffix = "°"
+script = ExtResource("stepper")
+button_step = 1.0
 
-[node name="roty" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset"]
-custom_minimum_size = Vector2(0, 48)
+[node name="roty" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset/rot_row"]
+custom_minimum_size = Vector2(100, 52)
 layout_mode = 2
 min_value = -180.0
 max_value = 180.0
 step = 0.5
+prefix = "Y"
+suffix = "°"
+script = ExtResource("stepper")
+button_step = 1.0
 
-[node name="rotz" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset"]
-custom_minimum_size = Vector2(0, 48)
+[node name="rotz" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset/rot_row"]
+custom_minimum_size = Vector2(100, 52)
 layout_mode = 2
 min_value = -180.0
 max_value = 180.0
 step = 0.5
+prefix = "Z"
+suffix = "°"
+script = ExtResource("stepper")
+button_step = 1.0
+
+[node name="reset" type="Button" parent="Tabs/Advanced/VBox/right_saber_offset/rot_row"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+size_flags_horizontal = 10
+tooltip_text = "Back to 0"
+text = "Reset"
+icon = ExtResource("icon_undo-2")
+script = ExtResource("icon_button")
 
 [node name="show_collisions" type="CheckButton" parent="Tabs/Advanced/VBox"]
 layout_mode = 2
@@ -748,19 +855,20 @@ scroll_without_pointer = true
 [connection signal="color_changed" from="Tabs/Visuals/VBox/SaberColorsRow/right_saber_col" to="." method="_on_right_saber_color_changed"]
 [connection signal="pressed" from="Tabs/Visuals/VBox/SaberColorsRow/right_saber_col" to="." method="_on_right_saber_col_pressed"]
 [connection signal="value_changed" from="Tabs/Audio/VBox/UI_VolumeRow/ui_volume_slider" to="." method="_on_ui_volume_slider_value_changed"]
-[connection signal="value_changed" from="Tabs/Advanced/VBox/left_saber_offset/posx" to="." method="_on_left_saber_pos_x_changed"]
-[connection signal="value_changed" from="Tabs/Advanced/VBox/left_saber_offset/posy" to="." method="_on_left_saber_pos_y_changed"]
-[connection signal="value_changed" from="Tabs/Advanced/VBox/left_saber_offset/posz" to="." method="_on_left_saber_pos_z_changed"]
-[connection signal="value_changed" from="Tabs/Advanced/VBox/left_saber_offset/rotx" to="." method="_on_left_saber_rot_x_changed"]
-[connection signal="value_changed" from="Tabs/Advanced/VBox/left_saber_offset/roty" to="." method="_on_left_saber_rot_y_changed"]
-[connection signal="value_changed" from="Tabs/Advanced/VBox/left_saber_offset/rotz" to="." method="_on_left_saber_rot_z_changed"]
-[connection signal="value_changed" from="Tabs/Advanced/VBox/right_saber_offset/posx" to="." method="_on_right_saber_pos_x_changed"]
-[connection signal="value_changed" from="Tabs/Advanced/VBox/right_saber_offset/posy" to="." method="_on_right_saber_pos_y_changed"]
-[connection signal="value_changed" from="Tabs/Advanced/VBox/right_saber_offset/posz" to="." method="_on_right_saber_pos_z_changed"]
-[connection signal="value_changed" from="Tabs/Advanced/VBox/right_saber_offset/rotx" to="." method="_on_right_saber_rot_x_changed"]
-[connection signal="value_changed" from="Tabs/Advanced/VBox/right_saber_offset/roty" to="." method="_on_right_saber_rot_y_changed"]
-[connection signal="value_changed" from="Tabs/Advanced/VBox/right_saber_offset/rotz" to="." method="_on_right_saber_rot_z_changed"]
+[connection signal="value_changed" from="Tabs/Advanced/VBox/left_saber_offset/pos_row/posx" to="." method="_on_left_saber_pos_x_changed"]
+[connection signal="value_changed" from="Tabs/Advanced/VBox/left_saber_offset/pos_row/posy" to="." method="_on_left_saber_pos_y_changed"]
+[connection signal="value_changed" from="Tabs/Advanced/VBox/left_saber_offset/pos_row/posz" to="." method="_on_left_saber_pos_z_changed"]
+[connection signal="value_changed" from="Tabs/Advanced/VBox/left_saber_offset/rot_row/rotx" to="." method="_on_left_saber_rot_x_changed"]
+[connection signal="value_changed" from="Tabs/Advanced/VBox/left_saber_offset/rot_row/roty" to="." method="_on_left_saber_rot_y_changed"]
+[connection signal="value_changed" from="Tabs/Advanced/VBox/left_saber_offset/rot_row/rotz" to="." method="_on_left_saber_rot_z_changed"]
+[connection signal="value_changed" from="Tabs/Advanced/VBox/right_saber_offset/pos_row/posx" to="." method="_on_right_saber_pos_x_changed"]
+[connection signal="value_changed" from="Tabs/Advanced/VBox/right_saber_offset/pos_row/posy" to="." method="_on_right_saber_pos_y_changed"]
+[connection signal="value_changed" from="Tabs/Advanced/VBox/right_saber_offset/pos_row/posz" to="." method="_on_right_saber_pos_z_changed"]
+[connection signal="value_changed" from="Tabs/Advanced/VBox/right_saber_offset/rot_row/rotx" to="." method="_on_right_saber_rot_x_changed"]
+[connection signal="value_changed" from="Tabs/Advanced/VBox/right_saber_offset/rot_row/roty" to="." method="_on_right_saber_rot_y_changed"]
+[connection signal="value_changed" from="Tabs/Advanced/VBox/right_saber_offset/rot_row/rotz" to="." method="_on_right_saber_rot_z_changed"]
 [connection signal="value_changed" from="Tabs/Gameplay/VBox/player_height_offset/pos" to="." method="_on_player_height_offset_changed"]
+[connection signal="pressed" from="Tabs/Gameplay/VBox/player_height_offset/measure" to="." method="_on_measure_height_pressed"]
 [connection signal="toggled" from="Tabs/Gameplay/VBox/disable_map_color" to="." method="_on_disable_map_color_toggled"]
 [connection signal="toggled" from="Tabs/Audio/VBox/not_music_dl" to="." method="_on_not_music_dl_toggled"]
 [connection signal="toggled" from="Tabs/Gameplay/VBox/swing_scoring" to="." method="_on_swing_scoring_toggled"]
