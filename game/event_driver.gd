@@ -219,8 +219,8 @@ func set_environment(id: String) -> void:
 ## the stages don't all look alike: Classic keeps Beat Saber's layout; Neon Grid fans its diagonal lasers out from
 ## one point on the horizon, lines its waving lasers along the grid's edges and hangs the square bars far above
 ## the horizon; Night City sweeps its waving lasers like searchlights from far beside the track and crosses its
-## diagonal beams from rooftop height; Pulse Void aims its diagonal lasers into a point behind the track like a
-## tunnel. Every beam starts at its fixture and turns around it (game/AGENTS.md). Positions in metres, untuned.
+## diagonal beams from rooftop height; Pulse Void mounts its lights on its rings: the diagonal lasers span from one
+## ring to a further one, and the waving lasers stand on the rings' upper sides. Every beam starts at its fixture and turns around it (game/AGENTS.md). Positions in metres, untuned.
 const RIG_FAN_ORIGIN := Vector3(0.0, NeonGridRig.STAGE_TOP, NeonGridRig.STAGE_CENTRE.z)
 const RIG_FAN_SPREAD_DEG := 70.0
 const RIG_GRID_EDGE_X := NeonGridRig.POLE_X
@@ -230,14 +230,16 @@ const RAIL_BASIS := Basis(Vector3(1.0, 0.0, 0.0), Vector3(0.0, 1.0, 0.0), Vector
 ## Night City's signs (the horizontal square bars) hang this far up the buildings' inner faces, just off them
 const SIGN_HEIGHT := 5.0
 const SIGN_OFFSET := 0.2
-const RIG_VOID_RADIUS := 16.0
-const RIG_VOID_CENTER := Vector3(0.0, 1.5, -45.0)
-const RIG_VOID_TARGET := Vector3(0.0, 1.5, -75.0)
+## Pulse Void's diagonal lasers each span VOID_SPAN rings and turn VOID_TWIST_DEG further round on the way, so they
+## wind along the tunnel; they sit between VOID_LOW_DEG and VOID_HIGH_DEG on each side (0 is level with the rings'
+## centre, 90 the top), above the floor and clear of the track
+const VOID_SPAN := 3
+const VOID_TWIST_DEG := 25.0
+const VOID_LOW_DEG := -5.0
+const VOID_HIGH_DEG := 85.0
+## where the waving lasers stand on their rings, in degrees above level
+const VOID_WAVING_DEG := 20.0
 const RIG_WAVING_Y := -1.26
-## where the square bars hang per environment: [position, scale]
-const RIG_SQUARE := {
-	"pulse_void": [Vector3(0.0, 0.0, -55.0), 1.3],
-}
 ## each laser's and the square bars' Classic transform, put back before another rig is hung
 var _classic_rig := {}
 
@@ -263,6 +265,14 @@ static func _aim(laser: Node3D, from: Vector3, direction: Vector3) -> void:
 	var aim := Basis.looking_at(direction.normalized(), Vector3.UP if absf(direction.normalized().y) < 0.99 else Vector3.FORWARD)
 	laser.global_transform = Transform3D(Basis(aim.x, aim.y, aim.z * length), from)
 
+## Aims a laser fixture at `from` toward `to` and sets its beam to end there.
+static func _span(laser: Node3D, from: Vector3, to: Vector3) -> void:
+	_aim(laser, from, to - from)
+	# the beam runs from the fixture to twice its centre's distance along local -z
+	var reach := -2.0 * (laser.get_child(0) as Node3D).position.z
+	var b := laser.global_transform.basis
+	laser.global_transform.basis = Basis(b.x, b.y, b.z.normalized() * from.distance_to(to) / reach)
+
 ## Hangs the lights on the environment's rig (see RIG_FAN_ORIGIN).
 func _apply_rig(id: String) -> void:
 	for node: Node3D in _classic_rig:
@@ -273,10 +283,6 @@ func _apply_rig(id: String) -> void:
 			if node is MeshInstance3D:
 				# a square bar a rig left out
 				node.visible = true
-	var square: Array = RIG_SQUARE.get(id, [])
-	if not square.is_empty():
-		square_lasers_holder.position = square[0]
-		square_lasers_holder.scale = Vector3.ONE * float(square[1])
 	var waving := _waving_lasers()
 	@warning_ignore("integer_division")
 	var half := waving.size() / 2
@@ -323,10 +329,23 @@ func _apply_rig(id: String) -> void:
 					Vector3(side * (NightCityRig.INNER_FACE_X - SIGN_OFFSET), SIGN_HEIGHT + float(sign_i >> 1), b.x))
 				sign_i += 1
 		"pulse_void":
+			var pairs := diagonal_lasers.size() >> 1
 			for i in diagonal_lasers.size():
-				var a := TAU * float(i) / diagonal_lasers.size()
-				var from := RIG_VOID_CENTER + Vector3(cos(a), sin(a), 0.0) * RIG_VOID_RADIUS
-				_aim(diagonal_lasers[i], from, RIG_VOID_TARGET - from)
+				var j := i % pairs
+				var a := deg_to_rad(lerpf(VOID_LOW_DEG, VOID_HIGH_DEG, float(j) / maxi(pairs - 1, 1)))
+				var twist := deg_to_rad(VOID_TWIST_DEG)
+				if i < pairs:
+					# left side: mirrored
+					a = PI - a
+					twist = -twist
+				var ring := 1 + 2 * j
+				_span(diagonal_lasers[i], PulseVoid.ring_point(ring, a), PulseVoid.ring_point(ring + VOID_SPAN, a + twist))
+			for i in waving.size():
+				var a := deg_to_rad(VOID_WAVING_DEG)
+				waving[i].global_position = PulseVoid.ring_point(1 + 3 * (i % half), PI - a if i < half else a)
+			# the rings carry the square lasers' light (PulseRing.gdshader), so the bars would only float in the void
+			for bar in _square_bars():
+				bar.visible = false
 
 ## Shows the environment's own scenery (Neon Grid's floor, Pulse Void's rings, the smoke) except in mixed reality,
 ## where opaque scenery would cover the player's room: there only the track, notes and light beams are drawn
