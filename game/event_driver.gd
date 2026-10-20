@@ -112,13 +112,16 @@ var _combo_target := 0.0
 @onready var square_lasers_material := ($Level/SquareLasers/Bar7 as MeshInstance3D).material_override as ShaderMaterial
 @onready var left_waving_lasers_material := ($Level/LeftWavingLasers/laser1/Bar7 as MeshInstance3D).material_override as ShaderMaterial
 @onready var right_waving_lasers_material := ($Level/RightWavingLasers/laser1/Bar7 as MeshInstance3D).material_override as ShaderMaterial
-@onready var track_lights_material := ($Level/TrackLights/Bar1 as MeshInstance3D).material_override as StandardMaterial3D
+@onready var track_lights_material := ($Level/TrackLights/Bar1 as MeshInstance3D).material_override as ShaderMaterial
 @onready var floor_mesh := ($Level/floor as MeshInstance3D).mesh as PlaneMesh
 @onready var floor_material := ($Level/floor as MeshInstance3D).material_override as StandardMaterial3D
 @onready var track_lights_right := $Level/TrackLights/Bar1 as MeshInstance3D
 @onready var track_lights_left := $Level/TrackLights/Bar2 as MeshInstance3D
 @onready var end_path := $Level/Endpath as MeshInstance3D
 @onready var stage_smoke := $Level/StageSmoke as StageSmoke
+## the player's platform border (game/floor.tscn): always lit, white-hot with the right note colour at its edges,
+## whatever the map's light show does, so the player always sees where they stand
+const PLATFORM_LIGHTS := preload("res://game/env/platform_lights.tres")
 @onready var classic_rig := $Level/ClassicRig as ClassicRig
 
 @onready var ring_anim_player := $Level/rings/AnimationPlayer as AnimationPlayer
@@ -459,6 +462,7 @@ func update_left_color(color: Color) -> void:
 
 func update_right_color(color: Color) -> void:
 	right_color = color
+	PLATFORM_LIGHTS.set_shader_parameter(&"light_color", color)
 	if menu_focus:
 		_apply_menu_lights()
 		return
@@ -557,7 +561,7 @@ func turn_light_off(type: int) -> void:
 			right_waving_lasers_material.set_shader_parameter(&"light_color", Color.BLACK)
 		EventInfo.TYPE_FLOOR_LIGHTS:
 			track_lights_holder.visible = false
-			track_lights_material.albedo_color = Color.BLACK
+			track_lights_material.set_shader_parameter(&"light_color", Color.BLACK)
 			floor_material.albedo_color = Color.BLACK
 	
 func turn_light_on(type: int, color: Color) -> void:
@@ -579,7 +583,7 @@ func turn_light_on(type: int, color: Color) -> void:
 			right_waving_lasers_material.set_shader_parameter(&"light_color", color)
 		EventInfo.TYPE_FLOOR_LIGHTS:
 			track_lights_holder.visible = true
-			track_lights_material.albedo_color = color
+			track_lights_material.set_shader_parameter(&"light_color", color)
 			floor_material.albedo_color = color
 
 func flash_light_on(type: int, color: Color) -> void:

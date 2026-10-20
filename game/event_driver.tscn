@@ -4,6 +4,7 @@
 [ext_resource type="Shader" path="res://game/env/NeonRibbon.gdshader" id="neon_ribbon"]
 [ext_resource type="Script" path="res://game/env/StageSmoke.gd" id="stage_smoke"]
 [ext_resource type="Script" path="res://game/env/ClassicRig.gd" id="classic_rig"]
+[ext_resource type="Material" path="res://game/env/floor_lights.tres" id="floor_lights"]
 [ext_resource type="Shader" path="res://game/env/NeonGridFloor.gdshader" id="neon_grid_floor"]
 [ext_resource type="Script" path="res://game/env/PulseVoid.gd" id="pulse_void"]
 [ext_resource type="Script" uid="uid://4mismrno10gr" path="res://game/event_driver.gd" id="2"]
@@ -263,10 +264,6 @@ blend_mode = 3
 shading_mode = 0
 disable_ambient_light = true
 albedo_texture = SubResource("GradientTexture2D_0et1e")
-
-[sub_resource type="StandardMaterial3D" id="1"]
-shading_mode = 0
-albedo_color = Color(0.992157, 0, 1, 1)
 
 [sub_resource type="Gradient" id="16"]
 offsets = PackedFloat32Array(0, 0.660256, 1)
@@ -936,7 +933,7 @@ layers = 3
 mesh = ExtResource("8_krd13")
 skeleton = NodePath("../..")
 surface_material_override/0 = SubResource("StandardMaterial3D_yn705")
-surface_material_override/1 = SubResource("1")
+surface_material_override/1 = ExtResource("floor_lights")
 
 [node name="floor" type="MeshInstance3D" parent="Level"]
 transform = Transform3D(-3.9101e-06, 0, 3, 0, 1, 0, -23.25, 0, -4.88762e-07, 0, 0, -24.75)
@@ -1003,13 +1000,13 @@ script = ExtResource("pulse_void")
 [node name="Bar1" type="MeshInstance3D" parent="Level/TrackLights"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1.44912, 3, 0, -24.686)
 layers = 3
-material_override = SubResource("1")
+material_override = ExtResource("floor_lights")
 mesh = SubResource("10")
 
 [node name="Bar2" type="MeshInstance3D" parent="Level/TrackLights"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1.44912, -3, 0, -24.686)
 layers = 3
-material_override = SubResource("1")
+material_override = ExtResource("floor_lights")
 mesh = SubResource("10")
 
 [node name="rings" type="Node3D" parent="Level"]
