@@ -114,7 +114,9 @@ func _update_backgrounds() -> void:
 				i += 1
 			name = dir.get_next()
 	background_texture_control.selected = selected
-	background_texture_control.connect("item_selected", _on_background_texture_selected)
+	# this runs each time Settings opens; connect once
+	if not background_texture_control.item_selected.is_connected(_on_background_texture_selected):
+		background_texture_control.item_selected.connect(_on_background_texture_selected)
 	
 func set_controls_from_settings() -> void:
 	saber_control.clear()
