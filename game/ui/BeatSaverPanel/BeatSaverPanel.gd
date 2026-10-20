@@ -113,6 +113,11 @@ var item_selected := -1
 var downloading := []#[["name","version_info"]]
 ## Most previews kept in memory, so clicking a map again plays at once.
 const MAX_CACHED_PREVIEWS := 10
+## Tries again after a failed list request before showing the error (the headset sometimes fails to connect
+## once, e.g. "request error 2"). Seconds to wait before each try.
+const LIST_RETRIES := 2
+const LIST_RETRY_SECONDS := 1.0
+var _list_retries_left := LIST_RETRIES
 ## Icons of the big button: download, or play once the song is in the library.
 const DOWNLOAD_ICON := preload("res://game/ui/icons/download.svg")
 const PLAY_ICON := preload("res://game/ui/icons/play.svg")
@@ -326,7 +331,7 @@ func update_list(req: BeatSaverRequest) -> void:
 	if req.page == 0:
 		# brand new request, clear list to prep for reload
 		item_list.clear()
-		label.text = ""
+		label.text = "Loading songs…"
 		if goto_maps_by:
 			goto_maps_by.visible = false
 		song_data = []
@@ -387,9 +392,16 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 						item_list.set_item_tooltip_enabled(index, false)
 						song_data.append(parsed_song)
 
+	elif _list_retries_left > 0 and prev_request != null:
+		_list_retries_left -= 1
+		vr.log_warning("BeatSaver list request failed (result %d), trying again" % result)
+		await get_tree().create_timer(LIST_RETRY_SECONDS).timeout
+		update_list(prev_request)
+		return
 	else:
 		vr.log_error("request error "+str(result))
 		label.text = "Can't reach BeatSaver. Check your Wi-Fi."
+	_list_retries_left = LIST_RETRIES
 	back_button.visible = prev_request != null and prev_request.type == "uploader" and back_stack.size() > 0
 	_scroll_page_request_pending = false
 	
@@ -398,8 +410,11 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 	
 	_update_all_covers()
 	_fill_reaction_filtered_list()
-	if result == 0 and item_list.item_count == 0 and not _scroll_page_request_pending:
-		label.text = "No songs match. Try another style."
+	if result == 0:
+		if item_list.item_count > 0:
+			label.text = ""
+		elif not _scroll_page_request_pending:
+			label.text = "No songs match. Try another style."
 
 ## Most items the list fetches pages for on its own while the reaction time filter hides songs.
 const REACTION_FILL_ITEMS := 20
