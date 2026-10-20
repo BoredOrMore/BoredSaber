@@ -3,6 +3,7 @@
 [ext_resource type="Shader" path="res://game/env/EnvSolid.gdshader" id="env_solid"]
 [ext_resource type="Shader" path="res://game/env/NeonRibbon.gdshader" id="neon_ribbon"]
 [ext_resource type="Script" path="res://game/env/StageSmoke.gd" id="stage_smoke"]
+[ext_resource type="Script" path="res://game/env/ClassicRig.gd" id="classic_rig"]
 [ext_resource type="Shader" path="res://game/env/NeonGridFloor.gdshader" id="neon_grid_floor"]
 [ext_resource type="Script" path="res://game/env/PulseVoid.gd" id="pulse_void"]
 [ext_resource type="Script" uid="uid://4mismrno10gr" path="res://game/event_driver.gd" id="2"]
@@ -980,6 +981,9 @@ skeleton = NodePath("../..")
 
 [node name="StageSmoke" type="Node3D" parent="Level"]
 script = ExtResource("stage_smoke")
+
+[node name="ClassicRig" type="Node3D" parent="Level"]
+script = ExtResource("classic_rig")
 
 [node name="NeonGrid" type="Node3D" parent="Level"]
 visible = false

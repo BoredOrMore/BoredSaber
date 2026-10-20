@@ -119,6 +119,7 @@ var _combo_target := 0.0
 @onready var track_lights_left := $Level/TrackLights/Bar2 as MeshInstance3D
 @onready var end_path := $Level/Endpath as MeshInstance3D
 @onready var stage_smoke := $Level/StageSmoke as StageSmoke
+@onready var classic_rig := $Level/ClassicRig as ClassicRig
 
 @onready var ring_anim_player := $Level/rings/AnimationPlayer as AnimationPlayer
 @onready var left_laser_anim_player := $Level/LeftWavingLasers/AnimationPlayer as AnimationPlayer
@@ -290,6 +291,7 @@ func _apply_rig(id: String) -> void:
 func show_scenery_for_mixed_reality() -> void:
 	neon_grid.visible = environment == "neon_grid" and not Settings.mixed_reality
 	pulse_void.visible = environment == "pulse_void" and not Settings.mixed_reality
+	classic_rig.visible = environment == "classic" and not Settings.mixed_reality
 	stage_smoke.visible = Settings.smoke and not Settings.mixed_reality
 
 func set_background() -> void:
