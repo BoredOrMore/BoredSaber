@@ -79,6 +79,9 @@ Feedback and state
 - Every action answers at once: a visible change and a sound on press, progress for slow work
   ("Loading songs…", "Downloading 45%"), and on failure what happened plus what to do. Never "nothing
   happens". (Empty BeatSaver list after a failed request; Play with no song picked.) [Nielsen #1, #9]
+- Mind the three response limits: the press itself shows within 0.1 s (highlight, sound); anything over
+  1 s shows that it is working ("Loading songs…"); anything over 10 s shows how far it got and can be
+  cancelled. (Refresh Songs gave no sign it ran.) [Nielsen, "Response Times: The 3 Important Limits"]
 - Show the current state, don't make the player remember it: what is selected, which filters are on,
   what was typed, which tab is open, what a button will do. (Search text hidden under a button; the
   typed name invisible behind a panel.) [Nielsen #6]
