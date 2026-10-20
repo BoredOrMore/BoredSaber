@@ -254,6 +254,8 @@ func _open_beatsaver() -> void:
 	_menu_highscores_shown = highscore_canvas.visible
 	main_menu._hide()
 	highscore_canvas._hide()
+	# the song menu's keyboard sits where the BeatSaver one opens
+	highscore_keyboard._hide()
 	beatsaver_canvas._show()
 
 ## Brings the song menu back once the BeatSaver page closes in the song menu.
