@@ -159,9 +159,9 @@ corner_radius_bottom_left = 6
 
 [sub_resource type="StyleBoxFlat" id="scroll_track"]
 content_margin_left = 10.0
-content_margin_top = 20.0
+content_margin_top = 0.0
 content_margin_right = 10.0
-content_margin_bottom = 20.0
+content_margin_bottom = 0.0
 bg_color = Color(0.11, 0.122, 0.149, 1)
 corner_radius_top_left = 10
 corner_radius_top_right = 10
