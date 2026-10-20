@@ -296,29 +296,10 @@ theme_override_constants/margin_bottom = 16
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Header" type="HBoxContainer" parent="ModifiersPanel/Margin/Rows"]
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-
-[node name="Title" type="Label" parent="ModifiersPanel/Margin/Rows/Header"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
-text = "Modifiers"
-
-[node name="Reset_Button" type="Button" parent="ModifiersPanel/Margin/Rows/Header" unique_id=1815398217]
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-tooltip_text = "Reset modifiers"
-text = "Reset"
-icon = ExtResource("icon_undo-2")
-script = ExtResource("icon_button")
-
 [node name="Toggles" type="GridContainer" parent="ModifiersPanel/Margin/Rows"]
 layout_mode = 2
 theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
-columns = 2
 
 [node name="Bombs" type="CheckButton" parent="ModifiersPanel/Margin/Rows/Toggles" unique_id=232093017]
 custom_minimum_size = Vector2(0, 44)
@@ -364,6 +345,18 @@ layout_mode = 2
 custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
 
+[node name="ResetRow" type="HBoxContainer" parent="ModifiersPanel/Margin/Rows"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+
+[node name="Reset_Button" type="Button" parent="ModifiersPanel/Margin/Rows/ResetRow" unique_id=1815398217]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Reset modifiers"
+icon = ExtResource("icon_undo-2")
+script = ExtResource("icon_button")
+
 [node name="MorePanel" type="Panel" parent="."]
 visible = false
 layout_mode = 0
@@ -372,22 +365,12 @@ offset_top = 88.0
 offset_right = 1256.0
 offset_bottom = 752.0
 
-[node name="Title" type="Label" parent="MorePanel"]
+[node name="LoadPlaylists_Button" type="Button" parent="MorePanel" unique_id=793107135]
 layout_mode = 0
 offset_left = 16.0
 offset_top = 16.0
 offset_right = 456.0
-offset_bottom = 52.0
-theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
-theme_override_font_sizes/font_size = 24
-text = "More"
-
-[node name="LoadPlaylists_Button" type="Button" parent="MorePanel" unique_id=793107135]
-layout_mode = 0
-offset_left = 16.0
-offset_top = 64.0
-offset_right = 456.0
-offset_bottom = 136.0
+offset_bottom = 88.0
 text = "Refresh Songs"
 icon = ExtResource("icon_refresh-cw")
 script = ExtResource("icon_button")
@@ -395,9 +378,9 @@ script = ExtResource("icon_button")
 [node name="Delete_Button" type="Button" parent="MorePanel" unique_id=1222545396]
 layout_mode = 0
 offset_left = 16.0
-offset_top = 152.0
+offset_top = 104.0
 offset_right = 456.0
-offset_bottom = 224.0
+offset_bottom = 176.0
 disabled = true
 text = "Delete Song"
 icon = ExtResource("icon_trash-2")
@@ -406,17 +389,17 @@ script = ExtResource("icon_button")
 [node name="Licenses" type="Button" parent="MorePanel" unique_id=980969105]
 layout_mode = 0
 offset_left = 16.0
-offset_top = 240.0
+offset_top = 192.0
 offset_right = 456.0
-offset_bottom = 312.0
+offset_bottom = 264.0
 text = "Licenses"
 
 [node name="Exit_Button" type="Button" parent="MorePanel" unique_id=1669148104]
 layout_mode = 0
 offset_left = 16.0
-offset_top = 328.0
+offset_top = 280.0
 offset_right = 456.0
-offset_bottom = 400.0
+offset_bottom = 352.0
 text = "Exit Game"
 icon = ExtResource("icon_log-out")
 script = ExtResource("icon_button")
@@ -424,9 +407,9 @@ script = ExtResource("icon_button")
 [node name="upload_url" type="Label" parent="MorePanel" unique_id=1379669192]
 layout_mode = 0
 offset_left = 16.0
-offset_top = 424.0
+offset_top = 376.0
 offset_right = 456.0
-offset_bottom = 504.0
+offset_bottom = 456.0
 theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
 theme_override_font_sizes/font_size = 22
 autowrap_mode = 3
@@ -434,9 +417,9 @@ autowrap_mode = 3
 [node name="version" type="Label" parent="MorePanel" unique_id=537676885]
 layout_mode = 0
 offset_left = 16.0
-offset_top = 512.0
+offset_top = 464.0
 offset_right = 456.0
-offset_bottom = 548.0
+offset_bottom = 500.0
 theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
 theme_override_font_sizes/font_size = 22
 horizontal_alignment = 2
@@ -495,5 +478,5 @@ scroll_without_pointer = true
 [connection signal="pressed" from="Favorite_Button" to="." method="_on_favorite_button_pressed"]
 [connection signal="toggled" from="FavoritesFilter" to="." method="_on_favorites_filter_toggled"]
 [connection signal="toggled" from="WorkoutFilter" to="." method="_on_workout_filter_toggled"]
-[connection signal="pressed" from="ModifiersPanel/Margin/Rows/Header/Reset_Button" to="." method="_on_reset_button_pressed"]
+[connection signal="pressed" from="ModifiersPanel/Margin/Rows/ResetRow/Reset_Button" to="." method="_on_reset_button_pressed"]
 [connection signal="pressed" from="GetSongs_Button" to="." method="_on_get_songs_pressed"]

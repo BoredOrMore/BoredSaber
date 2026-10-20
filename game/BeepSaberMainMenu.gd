@@ -50,7 +50,7 @@ var environment_picker: OptionButton
 @onready var speed_control := $ModifiersPanel/Margin/Rows/Speed as OptionButton
 @onready var favorite_button := $Favorite_Button as Button
 @onready var player_name_button := $PlayerName_Button as Button
-@onready var reset_button := $ModifiersPanel/Margin/Rows/Header/Reset_Button as Button
+@onready var reset_button := $ModifiersPanel/Margin/Rows/ResetRow/Reset_Button as Button
 
 @onready var song_preview := $song_prev as AudioStreamPlayer
 var song_preview_transition_time := 1.0
@@ -438,9 +438,9 @@ func _on_Delete_Button_button_up() -> void:
 	if delete_button.text != "Sure?":
 		delete_button.text = "Sure?"
 		await get_tree().create_timer(5).timeout
-		delete_button.text = "Delete"
+		delete_button.text = "Delete Song"
 	else:
-		delete_button.text = "Delete"
+		delete_button.text = "Delete Song"
 		_delete_map(_currently_selected_songlist_ref[current_selected])
 		current_selected = -1
 		update_view()
@@ -532,9 +532,7 @@ func _ready() -> void:
 	playlist_selector.item_selected.emit(1)
 	
 	if song_uploader_ref and song_uploader_ref.active:
-		$MorePanel/upload_url.text = "Manually Upload Songs/Backgrounds: \n%s"%[
-			song_uploader_ref.get_server_url()
-		]
+		$MorePanel/upload_url.text = "Add songs from a computer:\n%s" % song_uploader_ref.get_server_url()
 	else:
 		$MorePanel/upload_url.text = ""
 	
