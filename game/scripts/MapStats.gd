@@ -303,9 +303,9 @@ static func level_of(info: MapInfo, difficulty: DifficultyInfo, stats: Dictionar
 		level += 1
 	return mini(level, Constants.DIFFICULTY_LEVELS.size() - 1)
 
-## The saved length filter entry [id, label, min, max] from Constants.LENGTH_FILTERS.
-static func length_filter() -> Array:
-	return Constants.LENGTH_FILTERS[clampi(Settings.song_filter_length, 0, Constants.LENGTH_FILTERS.size() - 1)]
+## The length filter entry [id, label, min, max] from Constants.LENGTH_FILTERS with this id (a saved setting).
+static func length_filter(id: int) -> Array:
+	return Constants.LENGTH_FILTERS[clampi(id, 0, Constants.LENGTH_FILTERS.size() - 1)]
 
 ## True if value is inside a filter entry; max <= 0 means no upper limit.
 static func in_filter(value: float, filter: Array) -> bool:

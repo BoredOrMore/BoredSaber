@@ -265,6 +265,16 @@ var song_filter_workout: bool:
 	set(value):
 		song_filter_workout = value
 		set_and_emit(&"song_filter_workout", value)
+## Length filter of the BeatSaver page, kept apart from the song menu's so changing one doesn't empty the other.
+var beatsaver_filter_length: int:
+	set(value):
+		beatsaver_filter_length = value
+		set_and_emit(&"beatsaver_filter_length", value)
+## Difficulty filter of the BeatSaver page, kept apart from the song menu's.
+var beatsaver_filter_reaction: int:
+	set(value):
+		beatsaver_filter_reaction = value
+		set_and_emit(&"beatsaver_filter_reaction", value)
 	
 func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(Constants.CONFIG_ROOT_PATH)
@@ -340,6 +350,8 @@ var default_values = {
 	song_filter_reaction = 0,
 	song_filter_favorites = false,
 	song_filter_workout = false,
+	beatsaver_filter_length = 0,
+	beatsaver_filter_reaction = 0,
 	claws = false,
 	preloaded_songs = false
 }

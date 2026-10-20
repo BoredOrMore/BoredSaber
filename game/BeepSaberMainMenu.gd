@@ -268,7 +268,7 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 func _passes_song_filter(map: MapInfo) -> bool:
 	if Settings.song_filter_favorites and not PlayCount.is_favorite(map):
 		return false
-	var length_range := MapStats.length_filter()
+	var length_range := MapStats.length_filter(Settings.song_filter_length)
 	for diff in map.difficulty_beatmaps:
 		var stats := MapStats.get_cached(map, diff)
 		if not MapStats.is_unplayable(stats) \
@@ -556,9 +556,8 @@ func on_settings_changed(key: StringName) -> void:
 		&"environment":
 			_show_environment()
 		&"song_filter_reaction", &"song_filter_length":
-			# the BeatSaver panel shares these filters, so follow changes made there too
 			reaction_filter.select(clampi(Settings.song_filter_reaction, 0, Constants.DIFFICULTY_LEVELS.size()))
-			length_filter.select(MapStats.length_filter()[0])
+			length_filter.select(MapStats.length_filter(Settings.song_filter_length)[0])
 			_refilter()
 		&"song_filter_favorites":
 			favorites_filter.set_pressed_no_signal(Settings.song_filter_favorites)
