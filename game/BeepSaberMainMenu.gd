@@ -250,7 +250,7 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 	for map in songs:
 		@warning_ignore("return_value_discarded")
 		var favorite := PlayCount.is_favorite(map)
-		songs_menu.add_item("%s%s - %s%s" % ["\u2605 " if favorite else "", map.song_author_name, map.song_name, "" if map.have_song else " [silent]"], default_song_icon)
+		songs_menu.add_item("%s%s - %s%s" % ["\u2605 " if favorite else "", map.song_author_name, map.song_name, "" if map.have_song else NO_MUSIC_SUFFIX], default_song_icon)
 		songs_menu.set_item_custom_fg_color(map_index, Color.YELLOW if favorite else Color.WHITE)
 		_bg_img_loader.load_texture(map.filepath, map.cover_image_filename, _on_cover_loaded.bind(_list_generation), false, map_index)
 		map_index += 1
@@ -322,6 +322,8 @@ class SongFilter:
 				passing += 1
 		return passing
 
+## After the name of a song whose music file is missing (it plays without sound).
+const NO_MUSIC_SUFFIX := " (no music)"
 ## A filter choice with how many songs it would list, e.g. "Up to Hard (18)".
 const FILTER_COUNT_LABEL := "%s (%d)"
 const FAVORITES_LABEL := "Favorites"
