@@ -104,6 +104,11 @@ var _menu_highscores_shown := false
 ## The keyboard is open from the score screen's name card.
 var _editing_name := false
 const DANGER_WALL_MATERIAL := preload("res://game/Wall/danger_wall.tres")
+## Mistake sounds (tools/make_hit_sounds.py): a dull buzz for a bad cut or the wrong saber, a boom for a bomb.
+## Misses stay silent, as in Beat Saber.
+const BAD_CUT_SOUND := preload("res://game/data/bad_cut.wav")
+const BOMB_HIT_SOUND := preload("res://game/data/bomb_hit.wav")
+var _mistake_player: AudioStreamPlayer
 const BOMB_GLOW_MATERIAL := preload("res://game/Bomb/bomb_glow.tres")
 # how long a rumble that was on when the song failed takes to fade out
 const FAIL_RUMBLE_FADE_SECONDS := 0.6
@@ -390,6 +395,10 @@ func _enter_tree() -> void:
 	Settings.changed.connect(on_settings_changed)
 
 func _ready() -> void:
+	_mistake_player = AudioStreamPlayer.new()
+	_mistake_player.bus = &"SFX"
+	_mistake_player.max_polyphony = 2
+	add_child(_mistake_player)
 	# pre-allocate scenes in our scene pools
 	GlobalReferences.cube_pool = $BeepCubePool
 	GlobalReferences.link_pool = $ChainLinkPool
@@ -519,6 +528,11 @@ func set_colors_from_settings() -> void:
 	update_left_color(Settings.color_left)
 	update_right_color(Settings.color_right)
 	event_driver.set_background()
+
+## Plays the sound for a bad cut or wrong saber, or for a bomb hit.
+func play_mistake_sound(bomb: bool) -> void:
+	_mistake_player.stream = BOMB_HIT_SOUND if bomb else BAD_CUT_SOUND
+	_mistake_player.play()
 
 ## Colours walls and bombs with the song's danger colour.
 static func _update_danger_color(danger: Color) -> void:

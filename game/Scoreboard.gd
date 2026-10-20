@@ -160,14 +160,18 @@ func bad_cut(position: Vector3, _rotation: float, description: String, best: flo
 	if description != "bomb":
 		_count_note(best if best > 0.0 else note_best_score())
 	if description == "bomb":
+		GlobalReferences.main_game_scene.play_mistake_sound(true)
 		reset_combo(false)
 		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_BOMB, true)
 	elif description == "wrong saber" or description == "miss":
+		if description == "wrong saber":
+			GlobalReferences.main_game_scene.play_mistake_sound(false)
 		reset_combo(true)
 		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_MISS, true)
 		if description == "miss":
 			description = ""
 	else:
+		GlobalReferences.main_game_scene.play_mistake_sound(false)
 		reset_combo(true)
 		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_BAD_CUT, true)
 	points_awarded.emit(position, _rotation, description if Settings.explain else "x")
