@@ -263,6 +263,10 @@ var song_filter_favorites: bool:
 	set(value):
 		song_filter_favorites = value
 		set_and_emit(&"song_filter_favorites", value)
+var song_filter_workout: bool:
+	set(value):
+		song_filter_workout = value
+		set_and_emit(&"song_filter_workout", value)
 	
 func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(Constants.CONFIG_ROOT_PATH)
@@ -338,6 +342,7 @@ var default_values = {
 	song_filter_length = 0,
 	song_filter_reaction = 0,
 	song_filter_favorites = false,
+	song_filter_workout = false,
 	claws = false,
 	preloaded_songs = false
 }

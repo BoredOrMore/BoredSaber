@@ -22,6 +22,7 @@ const FAVORITE_MASK := 0x4000000000000000
 @onready var playlist_selector := $PlaylistSelector as OptionButton
 @onready var reaction_filter := $ReactionFilter as OptionButton
 @onready var favorites_filter := $FavoritesFilter as Button
+@onready var workout_filter := $WorkoutFilter as Button
 @onready var length_filter := $LengthFilter as OptionButton
 @onready var _bg_img_loader := preload("res://game/scripts/BackgroundImgLoader.gd").new()
 
@@ -254,8 +255,9 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 			songs_menu.deselect_all()
 
 ## False for non-favorites when only favorites are shown. Otherwise true if any difficulty of the map is playable (MapStats.is_unplayable), at the picked level
-## (MapStats.level_of) and inside the length filter. Maps that haven't been
-## counted yet pass, so the list never hides songs it knows nothing about.
+## (MapStats.level_of), inside the length filter and, when only workouts are shown, has a set of wall moves
+## (MapStats.workout_level). Maps that haven't been counted yet pass, so the list never hides songs it knows
+## nothing about.
 func _passes_song_filter(map: MapInfo) -> bool:
 	if Settings.song_filter_favorites and not PlayCount.is_favorite(map):
 		return false
@@ -264,7 +266,8 @@ func _passes_song_filter(map: MapInfo) -> bool:
 		var stats := MapStats.get_cached(map, diff)
 		if not MapStats.is_unplayable(stats) \
 				and (Settings.song_filter_reaction == 0 or MapStats.level_of(map, diff, stats) == Settings.song_filter_reaction - 1) \
-				and (stats.is_empty() or MapStats.in_filter(float(stats.seconds), length_range)):
+				and (stats.is_empty() or MapStats.in_filter(float(stats.seconds), length_range)) \
+				and (not Settings.song_filter_workout or stats.is_empty() or MapStats.workout_level(stats) > 0):
 			return true
 	return false
 
@@ -287,6 +290,10 @@ func _on_reaction_filter_item_selected(index: int) -> void:
 ## Stores whether only favorite songs are listed; on_settings_changed rebuilds the list.
 func _on_favorites_filter_toggled(on: bool) -> void:
 	Settings.song_filter_favorites = on
+
+## Stores whether only songs with a wall workout are listed; on_settings_changed rebuilds the list.
+func _on_workout_filter_toggled(on: bool) -> void:
+	Settings.song_filter_workout = on
 
 ## Stores the picked length filter; on_settings_changed rebuilds the list.
 func _on_length_filter_item_selected(index: int) -> void:
@@ -503,6 +510,7 @@ func _ready() -> void:
 	_drop_down(reaction_filter, MapStats.difficulty_filters(), Settings.song_filter_reaction, 0)
 	_drop_down(length_filter, Constants.LENGTH_FILTERS, Settings.song_filter_length, 0)
 	favorites_filter.set_pressed_no_signal(Settings.song_filter_favorites)
+	workout_filter.set_pressed_no_signal(Settings.song_filter_workout)
 	
 	_load_playlists()
 	
@@ -548,6 +556,9 @@ func on_settings_changed(key: StringName) -> void:
 			_refilter()
 		&"song_filter_favorites":
 			favorites_filter.set_pressed_no_signal(Settings.song_filter_favorites)
+			_refilter()
+		&"song_filter_workout":
+			workout_filter.set_pressed_no_signal(Settings.song_filter_workout)
 			_refilter()
 
 func difficulty_modifier_changed() -> void:

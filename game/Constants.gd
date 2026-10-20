@@ -88,6 +88,10 @@ const FLOW_LEVELS := [ ["Smooth", 0.0], ["Twisty", 4.0], ["Tangled", 10.0] ]
 ## Difficulties with at least this percent of awkward swings are left out of the song list: hardly playable
 ## (the worst 5% of the BeatSaver sample, doc/research/swing-flow.md). Tangled ones below it stay, one level up.
 const FLOW_HIDDEN_PERCENT := 25.0
+## Wall workout labels by MapStats.workout_level: no sets, some sets, or at least WORKOUT_SET_SHARE of the song
+## in sets (doc/research/wall-workout.md).
+const WORKOUT_LEVELS := ["", "Some workout", "Workout"]
+const WORKOUT_SET_SHARE := 0.3
 ## Difficulty filter choices: 0 shows every song, n songs with a difficulty at DIFFICULTY_LEVELS[n - 1].
 const ANY_DIFFICULTY_LABEL := "Any"
 const LENGTH_FILTERS := [ [0, "Any length", 0.0, 0.0], [1, "Under 2 min", 0.0, 120.0], [2, "2-4 min", 120.0, 240.0], [3, "Over 4 min", 240.0, 0.0] ]
