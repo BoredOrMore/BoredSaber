@@ -60,7 +60,12 @@ then multiplied by the node `transform` scale.
 - Pieces that act as one control (cover + title on a song card) share one highlight and hit shape
   [Apple eyes].
 - Never lift text off its background in depth, and keep few depth levels: each refocus tires the
-  eyes [Apple spatial layout, Meta comfort]. Bolder weights than on a phone [Apple typography].
+  eyes [Apple spatial layout, Meta comfort]. Bolder weights than on a phone [Apple typography]:
+  Medium or Bold only (the theme's Roboto-Medium), no Light/Thin, no italics, few sizes [Meta
+  typography]. Meta's text floor is 14 px, 18 px for reading, on panels where 1 dp = 2 mm, about our
+  px at canvas scale 2.
+- Rounded buttons and chips with the label centred and padded; flat, no heavy outlines [Apple
+  WWDC23 "Design for spatial input"].
 - Text: the theme's 28 px on the main menu canvas (scale 2.4 at 1 m ≈ 6.6 cm ≈ 3.8°) is the
   playtested baseline; don't make body text smaller in angle than that. Muted text needs more size.
   In a reading study on Oculus Go and Quest (Kojić et al., "User Experience of Reading in Virtual
@@ -99,6 +104,9 @@ then multiplied by the node `transform` scale.
 - Follow the root `AGENTS.md` colour rules (`UI_ACCENT` = selected/main action, danger colour never
   for UI). Pair colour with a word or shape.
 - No large bright or saturated areas, short moderate flashes only.
+- Text stays still while hovered and part of a screen (title, tabs) stays fixed when its content
+  changes; never swap the whole view [Apple WWDC25 "Design hover interactions"]. The song title
+  marquee is a deliberate exception the user asked for; don't add more moving text.
 - Motion only with a purpose. No sustained oscillation near 0.2 Hz (people are very sensitive to it)
   and no busy motion at the edges of view [Apple motion, immersive experiences]: keep pulses,
   glows and marquees small and short.
@@ -116,6 +124,8 @@ term isn't obvious. Then build in small steps, one build per step, and verify ea
 `vr-ui-review`.
 
 ## Platform guidelines used
+
+Numbers per source, with WWDC session links and the dp conversion: `sources.md` next to this file.
 
 - Apple Human Interface Guidelines, visionOS: Spatial layout, Eyes, Buttons, Typography, Motion,
   Immersive experiences (https://developer.apple.com/design/human-interface-guidelines/spatial-layout

@@ -75,7 +75,8 @@ The cloud sessions have no headset and can't reach beatsaver.com, so render the 
    already-downloaded or saved.
 3. Look at each PNG and flag: text clipped or wrapped by the engine, labels touching edges or each
    other, two lines of a list item fighting for one row, a dropdown arrow on top of its text, the
-   active choice not in `UI_ACCENT`, any developer word.
+   active choice not in `UI_ACCENT`, any developer word, a clickable thing with no hover highlight,
+   italics or Light/Thin weights, text under the main menu's size in angle.
 4. Code checks that a render won't show:
    - visuals that change without pointer input (progress, cover loaded, list refreshed) call
      `canvas._input_update()`, or the headset shows a stale frame (`game/ui/AGENTS.md`);
