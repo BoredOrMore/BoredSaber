@@ -43,6 +43,15 @@ Tangled difficulties count one overall level harder; only those at 25 % or more 
 sample, hardly playable) are left out of the song list. The 1 s window and the band edges are a data-based starting point; confirm with
 headset playtests.
 
+## Before download
+
+BeatSaver lists a parity summary per difficulty (errors, warnings and resets: swings against the
+natural back-and-forth). Over the same 464 difficulties, (errors + warnings + resets) / notes x 100
+correlates with the flow percent at r = 0.62; its median is 0 % for Smooth difficulties and 14 % for
+Tangled ones. The BeatSaver page uses it with the same bands: 10 % and up counts one level harder,
+25 % and up is not listed. Swing pace needs the notes themselves, so before download the level is the
+reaction time level plus this bump.
+
 ## Sources
 
 - BeatSaver API and map downloads: https://api.beatsaver.com

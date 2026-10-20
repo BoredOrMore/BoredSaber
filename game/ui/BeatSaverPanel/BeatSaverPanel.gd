@@ -28,11 +28,12 @@ class BeatSaverSongInfo extends RefCounted:
 		curated = song_info.get("curatedAt") != null
 		tags = PackedStringArray(Utils.get_array(song_info, "tags", []))
 		# difficulties that need a mod this game doesn't have (Noodle Extensions, Mapping Extensions,
-		# Vivify) don't play right here, so they are left out
+		# Vivify) don't play right here, and ones too tangled to swing aren't listed, so both are left out
 		if not versions.is_empty() and versions[0] is Dictionary:
 			var version := versions[0] as Dictionary
 			version["diffs"] = Utils.get_array(version, "diffs", []).filter(func(diff: Variant) -> bool:
-				return diff is Dictionary and not (diff.get("ne", false) or diff.get("me", false) or diff.get("vivify", false)))
+				return diff is Dictionary and not (diff.get("ne", false) or diff.get("me", false) or diff.get("vivify", false)) \
+					and parity_percent(diff as Dictionary) < Constants.FLOW_HIDDEN_PERCENT)
 		uploader_id = int(Utils.get_float(Utils.get_dict(song_info, "uploader", {}), "id", -1))
 		var metadata := Utils.get_dict(song_info, "metadata", {})
 		song_name = Utils.get_str(metadata, "songName", "")
@@ -40,6 +41,25 @@ class BeatSaverSongInfo extends RefCounted:
 		level_author_name = Utils.get_str(metadata, "levelAuthorName", "")
 		duration = Utils.get_float(metadata, "duration", 0.0)
 		bpm = Utils.get_float(metadata, "bpm", 0.0)
+
+	## BeatSaver's count of swings that break the flow (parity errors, warnings and resets) as a percent of the
+	## notes; it follows MapStats' swing flow percent (doc/research/swing-flow.md), so the same bands apply.
+	static func parity_percent(diff: Dictionary) -> float:
+		var notes := Utils.get_float(diff, "notes", 0.0)
+		if notes <= 0.0:
+			return 0.0
+		var parity := Utils.get_dict(diff, "paritySummary", {})
+		return 100.0 * (Utils.get_float(parity, "errors", 0.0) + Utils.get_float(parity, "warns", 0.0)
+			+ Utils.get_float(parity, "resets", 0.0)) / notes
+
+	## Difficulty a map difficulty plays at before it is downloaded (an index in Constants.DIFFICULTY_LEVELS):
+	## its reaction time level, one up when its swings are Tangled. Swing pace needs the notes themselves, so it
+	## counts only once the map is downloaded (MapStats.level_of).
+	func level_of(diff: Dictionary) -> int:
+		var level := MapStats.reaction_level(reaction_seconds(diff))
+		if MapStats.flow_level(parity_percent(diff)) == Constants.FLOW_LEVELS.size() - 1:
+			level += 1
+		return mini(level, Constants.DIFFICULTY_LEVELS.size() - 1)
 
 	## Seconds a note of one difficulty (from versions[0].diffs) is visible before reaching the player.
 	func reaction_seconds(diff: Dictionary) -> float:
@@ -58,15 +78,15 @@ class BeatSaverSongInfo extends RefCounted:
 				return true
 		return false
 
-	## True if the difficulty filter is off or any difficulty of the newest version reads like the picked
-	## difficulty. BeatSaver has no swing data, so only reaction time counts until the map is downloaded.
+	## True if the difficulty filter is off or any difficulty of the newest version plays at the picked
+	## difficulty (level_of).
 	func passes_reaction_filter() -> bool:
 		if Settings.song_filter_reaction == 0:
 			return true
 		if versions.is_empty():
 			return false
 		for diff: Variant in Utils.get_array(versions[0] as Dictionary, "diffs", []):
-			if diff is Dictionary and MapStats.reaction_level(reaction_seconds(diff as Dictionary)) == Settings.song_filter_reaction - 1:
+			if diff is Dictionary and level_of(diff as Dictionary) == Settings.song_filter_reaction - 1:
 				return true
 		return false
 
@@ -458,19 +478,28 @@ func _details_text(song: BeatSaverSongInfo) -> String:
 	if not tag_names.is_empty():
 		text += "\n[color=#%s]%s[/color]" % [muted, " · ".join(tag_names)]
 	text += "\n"
+	var relabeled := false
 	for diff: Variant in Utils.get_array(song.versions[0] as Dictionary, "diffs", []):
 		var d := diff as Dictionary
-		var diff_name := Utils.get_str(d, "difficulty", "")
-		var line := diff_name.replace("ExpertPlus", "Expert+")
+		var map_label := Utils.get_str(d, "difficulty", "").replace("ExpertPlus", "Expert+")
+		var level: Array = Constants.DIFFICULTY_LEVELS[song.level_of(d)]
+		var line: String = level[0]
+		if map_label != level[0]:
+			line += " (%s)" % map_label
+			relabeled = true
 		if Utils.get_str(d, "characteristic", "Standard") != "Standard":
-			line += " (%s)" % Utils.get_str(d, "characteristic", "")
+			line += " · %s" % Utils.get_str(d, "characteristic", "")
 		if song.bpm > 0.0:
 			line += " · Notes %.2f s ahead" % song.reaction_seconds(d)
+		var flow := MapStats.flow_level(BeatSaverSongInfo.parity_percent(d))
+		if flow > 0:
+			line += " · %s" % Constants.FLOW_LEVELS[flow][0]
 		var walls := int(Utils.get_float(d, "obstacles", 0))
 		if walls > 0:
 			line += " · %d walls" % walls
-		var color: Color = Constants.DIFFICULTY_COLORS.get(diff_name, Constants.UI_TEXT)
-		text += "\n[color=#%s]%s[/color]" % [color.to_html(false), line]
+		text += "\n[color=#%s]%s[/color]" % [(level[1] as Color).to_html(false), line]
+	if relabeled:
+		text += "\n[color=#%s](in brackets: the map's own label)[/color]" % muted
 	var description := song.description.strip_edges()
 	if not description.is_empty():
 		var lines := description.split("\n", false)
