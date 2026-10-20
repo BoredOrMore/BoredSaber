@@ -10,10 +10,14 @@ render_mode unshaded, cull_disabled, blend_mix;
 uniform vec4 danger_color : source_color = vec4(1.0, 0.188, 0.188, 1.0);
 // how far the glass leans from the danger colour toward white
 uniform float core_white = 0.0;
-uniform float fill_alpha = 0.3;
+// the glass is the danger colour dimmed to near black-red, so the wall reads as a dark, threatening slab
+// (as in Beat Saber) while the frame carries the colour
+uniform float body_brightness = 0.15;
+uniform float fill_alpha = 0.5;
 // the glowing frame line, in metres
 uniform float frame_width = 0.035;
-uniform float frame_white = 0.6;
+// the frame burns white-hot in the middle, its red halo (glow) around it
+uniform float frame_white = 0.85;
 const float MIN_FRAME_PIXELS = 1.5;
 // the halo: how far in it fades and how strong it is at the frame
 uniform float glow_width = 0.2;
@@ -45,7 +49,7 @@ void fragment() {
 	float frame = (1.0 - smoothstep(frame_w - px, frame_w + px, to_edge)) * (frame_width / frame_w);
 	float glow = exp(-max(to_edge - frame_width, 0.0) / glow_width) * glow_alpha;
 
-	vec3 col = mix(danger_color.rgb, vec3(1.0), core_white);
+	vec3 col = mix(danger_color.rgb * body_brightness, vec3(1.0), core_white);
 	float alpha = fill_alpha;
 	col = mix(col, danger_color.rgb, glow);
 	alpha = alpha + (1.0 - alpha) * glow;
