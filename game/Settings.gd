@@ -9,9 +9,8 @@ var SABER_VISUALS: Array[PackedStringArray] = [
 	PackedStringArray(["Particle sword","res://game/sabers/particles/particles_saber.tscn"])
 ]
 
-const BACKGROUND_TEXTURES := [ ["res://game/data/background/fractal.jpg", "Fractal 1"],
-		["res://game/data/background/fractal2.jpg", "Fractal 2"],
-		["res://game/data/background/nightsky.jpg", "Night Sky (credit: ESA/S. Brunier)"],
+## Classic sky pictures: "Stage" is made by tools/make_stage_sky.py to follow AGENTS.md "Light".
+const BACKGROUND_TEXTURES := [ ["res://game/data/background/stage_sky.png", "Stage"],
 		["res://game/data/background/bg_base.jpg", "Original Open Saber"] ]
 
 # Left/right note colours: bright enough to read as neon, but not fully saturated so long sessions are easier on the eyes.
@@ -339,7 +338,7 @@ var default_values = {
 	environment = "auto",
 	note_style = "solid",
 	darker_notes = false,
-	background_texture = "res://game/data/background/nightsky.jpg",
+	background_texture = "res://game/data/background/stage_sky.png",
 	health_mode = true,
 	fail_mode = 0,
 	damage_scale = 1.0,

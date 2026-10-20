@@ -156,9 +156,10 @@ func set_background_texture() -> void:
 			classic_sky_material.set_shader_parameter("bg_base", ImageTexture.create_from_image(img))
 			return
 		Settings.background_texture = Settings.default_values["background_texture"]
-	var texture : Resource = null
-	texture = load(Settings.background_texture)
-	classic_sky_material.set_shader_parameter("bg_base", texture)
+	# a saved picture that no longer ships (the old photographs) falls back to the default sky
+	if not ResourceLoader.exists(Settings.background_texture):
+		Settings.background_texture = Settings.default_values["background_texture"]
+	classic_sky_material.set_shader_parameter("bg_base", load(Settings.background_texture))
 
 ## The environment a map plays in: the player's pick, or with "auto" the one map_environment finds.
 static func pick_environment(map: MapInfo) -> String:
