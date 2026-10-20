@@ -219,8 +219,8 @@ func set_environment(id: String) -> void:
 ## the stages don't all look alike: Classic keeps Beat Saber's layout; Neon Grid fans its diagonal lasers out from
 ## one point on the horizon, lines its waving lasers along the grid's edges and hangs the square bars far above
 ## the horizon; Night City sweeps its waving lasers like searchlights from far beside the track and crosses its
-## diagonal beams from rooftop height; Pulse Void mounts its lights on its rings: the diagonal lasers span from one
-## ring to a further one, and the waving lasers stand on the rings' upper sides. Every beam starts at its fixture and turns around it (game/AGENTS.md). Positions in metres, untuned.
+## diagonal beams from rooftop height; Pulse Void mounts its lights on its rings: the diagonal lasers run as rails
+## from the nearest ring to the farthest, and the waving lasers stand on the rings' upper sides. Every beam starts at its fixture and turns around it (game/AGENTS.md). Positions in metres, untuned.
 const RIG_FAN_ORIGIN := Vector3(0.0, NeonGridRig.STAGE_TOP, NeonGridRig.STAGE_CENTRE.z)
 const RIG_FAN_SPREAD_DEG := 70.0
 const RIG_GRID_EDGE_X := NeonGridRig.POLE_X
@@ -230,11 +230,9 @@ const RAIL_BASIS := Basis(Vector3(1.0, 0.0, 0.0), Vector3(0.0, 1.0, 0.0), Vector
 ## Night City's signs (the horizontal square bars) hang this far up the buildings' inner faces, just off them
 const SIGN_HEIGHT := 5.0
 const SIGN_OFFSET := 0.2
-## Pulse Void's diagonal lasers each span VOID_SPAN rings and turn VOID_TWIST_DEG further round on the way, so they
-## wind along the tunnel; they sit between VOID_LOW_DEG and VOID_HIGH_DEG on each side (0 is level with the rings'
-## centre, 90 the top), above the floor and clear of the track
-const VOID_SPAN := 3
-const VOID_TWIST_DEG := 25.0
+## Pulse Void's diagonal lasers run straight along the tunnel from the nearest ring to the farthest, between
+## VOID_LOW_DEG and VOID_HIGH_DEG on each side (0 is level with the rings' centre, 90 the top), above the floor and
+## clear of the track
 const VOID_LOW_DEG := -5.0
 const VOID_HIGH_DEG := 85.0
 ## where the waving lasers stand on their rings, in degrees above level
@@ -333,13 +331,10 @@ func _apply_rig(id: String) -> void:
 			for i in diagonal_lasers.size():
 				var j := i % pairs
 				var a := deg_to_rad(lerpf(VOID_LOW_DEG, VOID_HIGH_DEG, float(j) / maxi(pairs - 1, 1)))
-				var twist := deg_to_rad(VOID_TWIST_DEG)
 				if i < pairs:
 					# left side: mirrored
 					a = PI - a
-					twist = -twist
-				var ring := 1 + 2 * j
-				_span(diagonal_lasers[i], PulseVoid.ring_point(ring, a), PulseVoid.ring_point(ring + VOID_SPAN, a + twist))
+				_span(diagonal_lasers[i], PulseVoid.ring_point(0, a), PulseVoid.ring_point(PulseVoid.RING_COUNT - 1, a))
 			for i in waving.size():
 				var a := deg_to_rad(VOID_WAVING_DEG)
 				waving[i].global_position = PulseVoid.ring_point(1 + 3 * (i % half), PI - a if i < half else a)
