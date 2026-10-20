@@ -15,9 +15,9 @@ uniform float core_white = 0.0;
 uniform float body_brightness = 0.15;
 uniform float fill_alpha = 0.5;
 // the glowing frame line, in metres
-uniform float frame_width = 0.035;
+uniform float frame_width = 0.05;
 // the frame burns white-hot in the middle, its red halo (glow) around it
-uniform float frame_white = 0.85;
+uniform float frame_white = 0.95;
 const float MIN_FRAME_PIXELS = 1.5;
 // Fake heat distortion, computed on the wall itself (a real one would read back the screen, a full copy per eye
 // per frame that the Pico's tile renderer can't afford): slow bands drifting through the glass, and the frame
@@ -29,8 +29,10 @@ uniform float arc_amplitude = 0.012;
 uniform float arc_scale = 9.0;
 uniform float arc_speed = 2.5;
 // the halo: how far in it fades and how strong it is at the frame
-uniform float glow_width = 0.2;
-uniform float glow_alpha = 0.6;
+uniform float glow_width = 0.25;
+uniform float glow_alpha = 0.9;
+// the halo burns toward white next to the frame (this part of white at the frame), red further out
+uniform float glow_white = 0.35;
 
 // DebugView.WALLS leaves walls out (no area, so nothing is drawn); DebugView.PLAIN_WALLS turns the shimmer off
 global uniform int debug_view;
@@ -67,7 +69,7 @@ void fragment() {
 	float bands = fx ? 1.0 + shimmer * sin((pos.x - pos.y) * shimmer_scale + TIME * shimmer_speed) * sin((pos.y + pos.z) * shimmer_scale * 1.3 - TIME * shimmer_speed * 0.7) : 1.0;
 	vec3 col = mix(danger_color.rgb * body_brightness * bands, vec3(1.0), core_white);
 	float alpha = fill_alpha;
-	col = mix(col, danger_color.rgb, glow);
+	col = mix(col, mix(danger_color.rgb, vec3(1.0), glow_white * glow), glow);
 	alpha = alpha + (1.0 - alpha) * glow;
 	col = mix(col, mix(danger_color.rgb, vec3(1.0), frame_white), frame);
 	alpha = mix(alpha, 1.0, frame);
