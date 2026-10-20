@@ -19,12 +19,27 @@ const COMBO_LASER_BOOST := 0.2
 const COMBO_PULSE_LASER := 0.3
 const COMBO_RISE_SECONDS := 1.0
 const COMBO_FALL_SECONDS := 0.3
-## In the menus the lights stay at this part of their colour and the moving lasers go off, so the menu
-## holds the eye: no distracting motion or bright, high-contrast objects in the periphery (Apple visionOS
-## HIG, Spatial layout and Immersive experiences). Untuned.
-const MENU_LIGHT_LEVEL := 0.3
-## A menu is showing: lights dimmed (MENU_LIGHT_LEVEL), waving lasers off, rings still.
+## In the menus the stage waits like a concert before the show: dim lights in a cool house tone that slowly
+## "breathe" between MENU_BREATH_LOW and MENU_BREATH_HIGH of their colour, thicker haze so beams show, and the
+## waving lasers sweeping slowly through it at MENU_LASER_LEVEL from their fixtures at the sides. Slow and dim on
+## purpose so the menu still holds the eye: no bright or busy motion in the periphery, and nothing oscillating
+## near 0.2 Hz (Apple visionOS HIG, Spatial layout, Motion). All values untuned.
+const MENU_BREATH_LOW := 0.3
+const MENU_BREATH_HIGH := 0.4
+const MENU_BREATH_SECONDS := 12.0
+const MENU_LASER_LEVEL := 0.2
+const MENU_LASER_SWEEP_SECONDS := 30.0
+const MENU_HAZE_BOOST := 1.5
+## The house light colour the menu lights lean toward, and how far (0 = note colours only).
+const HOUSE_COLOR := Color(0.25, 0.35, 0.65)
+const MENU_HOUSE_MIX := 0.5
+## Seconds the menu lights take to fade in before they start breathing.
+const MENU_FADE_SECONDS := 1.0
+## When a song starts every light goes dark for this long before the show's lights come on, like a concert.
+const SHOW_BLACKOUT_SECONDS := 0.5
+## A menu is showing: pre-show lighting (see MENU_BREATH_LOW), rings still.
 var menu_focus := false
+var _menu_time := 0.0
 ## The sky draws after every other solid thing, so the GPU skips the parts of it hidden behind the floor,
 ## the track and the scenery instead of shading the whole sphere first (Godot draws higher priority later).
 const SKY_RENDER_PRIORITY := Material.RENDER_PRIORITY_MAX
@@ -247,6 +262,8 @@ func _process(delta: float) -> void:
 	_combo_pulse = maxf(_combo_pulse - delta / COMBO_PULSE_SECONDS, 0.0)
 	_combo_level = move_toward(_combo_level, _combo_target,
 			delta / (COMBO_RISE_SECONDS if _combo_target > _combo_level else COMBO_FALL_SECONDS))
+	if menu_focus:
+		_breathe(delta)
 	_update_haze()
 	# update the level animations
 	#procces ring rotations
@@ -266,6 +283,8 @@ func _update_haze() -> void:
 		haze += floor_material.albedo_color * HAZE_LIGHT_WEIGHT
 	var pulse := _combo_pulse * _combo_pulse
 	haze *= 1.0 + COMBO_HAZE_BOOST * _combo_level + COMBO_PULSE * pulse
+	if menu_focus:
+		haze *= MENU_HAZE_BOOST
 	haze.a = 1.0
 	RenderingServer.global_shader_parameter_set(&"env_haze", haze)
 	RenderingServer.global_shader_parameter_set(&"combo_glow", COMBO_LASER_BOOST * _combo_level + COMBO_PULSE_LASER * pulse)
@@ -281,28 +300,53 @@ func combo_pulse() -> void:
 ## Dims the scene for the menus, fading over a second, and fills the stage with smoke; off, it clears the smoke and
 ## leaves the lights to the song, which sets them next.
 func set_menu_focus(on: bool) -> void:
+	if on == menu_focus and on:
+		_apply_menu_lights()
+		return
 	menu_focus = on
 	if not on:
 		stage_smoke.dissipate()
+		# the show starts: every light goes dark, the song turns its own lights on (BeepSaber_Game.start_map)
+		if not disabled:
+			for type in 5:
+				turn_light_off(type)
+		left_laser_anim_player.speed_scale = 1.0
+		right_laser_anim_player.speed_scale = 1.0
 		return
+	_menu_time = 0.0
 	stage_smoke.refill()
 	_combo_target = 0.0
 	ring_rot_speed = 0.0
+	for player: AnimationPlayer in [left_laser_anim_player, right_laser_anim_player]:
+		player.speed_scale = player.current_animation_length / MENU_LASER_SWEEP_SECONDS
+		player.seek(randf_range(0.0, player.current_animation_length), true)
 	_apply_menu_lights()
 
-## Menu lighting: the static lights at MENU_LIGHT_LEVEL of the current colours, the waving lasers faded out.
+## A note colour pulled toward the house colour and dimmed to a part of itself, for the menus.
+static func _menu_color(color: Color, level: float) -> Color:
+	return color.lerp(HOUSE_COLOR, MENU_HOUSE_MIX).darkened(1.0 - level)
+
+## Pre-show lighting faded in over MENU_FADE_SECONDS: static lights at MENU_BREATH_LOW, waving lasers at
+## MENU_LASER_LEVEL.
 func _apply_menu_lights() -> void:
 	if disabled:
 		return
-	fade_light_from_current(EventInfo.TYPE_DIAGONAL_LASERS, left_color.darkened(1.0 - MENU_LIGHT_LEVEL))
-	fade_light_from_current(EventInfo.TYPE_SQUARE_LASERS, right_color.darkened(1.0 - MENU_LIGHT_LEVEL))
-	fade_light_from_current(EventInfo.TYPE_FLOOR_LIGHTS, right_color.darkened(1.0 - MENU_LIGHT_LEVEL))
-	if left_waving_lasers_holder.visible:
-		fade_light(EventInfo.TYPE_LEFT_WAVING_LASERS, left_waving_lasers_material.get_shader_parameter(&"light_color"),
-			Color.BLACK, true, Tween.TRANS_LINEAR, Tween.EASE_IN)
-	if right_waving_lasers_holder.visible:
-		fade_light(EventInfo.TYPE_RIGHT_WAVING_LASERS, right_waving_lasers_material.get_shader_parameter(&"light_color"),
-			Color.BLACK, true, Tween.TRANS_LINEAR, Tween.EASE_IN)
+	fade_light_from_current(EventInfo.TYPE_DIAGONAL_LASERS, _menu_color(left_color, MENU_BREATH_LOW))
+	fade_light_from_current(EventInfo.TYPE_SQUARE_LASERS, _menu_color(right_color, MENU_BREATH_LOW))
+	fade_light_from_current(EventInfo.TYPE_FLOOR_LIGHTS, _menu_color(right_color, MENU_BREATH_LOW))
+	fade_light_from_current(EventInfo.TYPE_LEFT_WAVING_LASERS, _menu_color(left_color, MENU_LASER_LEVEL))
+	fade_light_from_current(EventInfo.TYPE_RIGHT_WAVING_LASERS, _menu_color(right_color, MENU_LASER_LEVEL))
+
+## Slowly brightens and dims the static lights between MENU_BREATH_LOW and MENU_BREATH_HIGH.
+func _breathe(delta: float) -> void:
+	_menu_time += delta
+	if disabled or _menu_time < MENU_FADE_SECONDS:
+		return
+	var level := lerpf(MENU_BREATH_LOW, MENU_BREATH_HIGH,
+		0.5 - 0.5 * cos(TAU * (_menu_time - MENU_FADE_SECONDS) / MENU_BREATH_SECONDS))
+	turn_light_on(EventInfo.TYPE_DIAGONAL_LASERS, _menu_color(left_color, level))
+	turn_light_on(EventInfo.TYPE_SQUARE_LASERS, _menu_color(right_color, level))
+	turn_light_on(EventInfo.TYPE_FLOOR_LIGHTS, _menu_color(right_color, level))
 
 func update_left_color(color: Color) -> void:
 	left_color = color
