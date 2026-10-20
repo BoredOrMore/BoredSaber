@@ -10,6 +10,7 @@
 [ext_resource type="Texture2D" path="res://game/ui/icons/play.svg" id="icon_play"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/refresh-cw.svg" id="icon_refresh-cw"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/search.svg" id="icon_search"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/settings.svg" id="icon_settings"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/star.svg" id="icon_star"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/trash-2.svg" id="icon_trash-2"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/undo-2.svg" id="icon_undo-2"]
@@ -262,9 +263,18 @@ icon_alignment = 1
 layout_mode = 0
 offset_left = 784.0
 offset_top = 24.0
-offset_right = 1256.0
+offset_right = 1176.0
 offset_bottom = 80.0
 theme_override_constants/separation = 4
+
+[node name="Settings_Button" type="Button" parent="."]
+layout_mode = 0
+offset_left = 1192.0
+offset_top = 24.0
+offset_right = 1256.0
+offset_bottom = 80.0
+icon = ExtResource("icon_settings")
+script = ExtResource("icon_button")
 
 [node name="ModifiersPanel" type="Panel" parent="."]
 visible = false
@@ -272,7 +282,7 @@ layout_mode = 0
 offset_left = 784.0
 offset_top = 88.0
 offset_right = 1256.0
-offset_bottom = 752.0
+offset_bottom = 650.0
 
 [node name="Margin" type="MarginContainer" parent="ModifiersPanel"]
 layout_mode = 1
@@ -356,7 +366,7 @@ layout_mode = 0
 offset_left = 784.0
 offset_top = 88.0
 offset_right = 1256.0
-offset_bottom = 752.0
+offset_bottom = 650.0
 
 [node name="LoadPlaylists_Button" type="Button" parent="MorePanel" unique_id=793107135]
 layout_mode = 0
@@ -459,6 +469,7 @@ scroll_without_pointer = true
 [connection signal="pressed" from="Play_Button" to="." method="_on_Play_Button_pressed"]
 [connection signal="confirmed" from="MorePanel/Delete_Button" to="." method="_on_delete_confirmed"]
 [connection signal="confirmed" from="MorePanel/Exit_Button" to="." method="_on_Exit_Button_pressed"]
+[connection signal="pressed" from="Settings_Button" to="." method="_on_settings_button_pressed"]
 [connection signal="pressed" from="ClearFilters_Button" to="." method="_clear_filters"]
 [connection signal="pressed" from="MorePanel/Licenses" to="." method="_on_licenses_pressed"]
 [connection signal="button_up" from="Search_Button" to="." method="_on_Search_Button_button_up"]

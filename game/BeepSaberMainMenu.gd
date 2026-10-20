@@ -721,11 +721,12 @@ func show_play_error() -> void:
 func _on_Exit_Button_pressed() -> void:
 	get_tree().quit()
 
-## Tabs above the right column, in order.
-enum Tab { SONG, MODIFIERS, SETTINGS, MORE }
-const TAB_LABELS := ["Song", "Modifiers", "Settings", "More"]
+## Tabs above the right column, in order. Settings is not one: it opens its own screen, so it is the gear
+## button beside them (a control looks like what it does).
+enum Tab { SONG, MODIFIERS, MORE }
+const TAB_LABELS := ["Song", "Modifiers", "More"]
 
-## Fills the tab row; Song shows the details and Play, Settings opens the settings screen.
+## Fills the tab row; Song shows the details, the others a panel above Play.
 func _build_tabs() -> void:
 	var group := ButtonGroup.new()
 	for i in TAB_LABELS.size():
@@ -733,12 +734,11 @@ func _build_tabs() -> void:
 	_show_tab(Tab.SONG)
 
 func _on_tab_pressed(tab: int) -> void:
-	if tab == Tab.SETTINGS:
-		# the settings screen replaces the menu; come back to the song details
-		_show_tab(Tab.SONG)
-		settings_requested.emit()
-	else:
-		_show_tab(tab)
+	_show_tab(tab)
+
+## Opens the settings screen from the gear button.
+func _on_settings_button_pressed() -> void:
+	settings_requested.emit()
 
 ## Shows the tab's panel over the song details (Song shows the details) and lights up its tab.
 func _show_tab(tab: int) -> void:
