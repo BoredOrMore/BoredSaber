@@ -41,6 +41,9 @@ const JOYSTICK_MAX_BOOST := 4.0
 
 var _hold_time := 0.0
 
+## How far one press of the scroll bar's up or down arrow moves the list, in pixels (about two rows).
+const ARROW_STEP := 120.0
+
 func _ready() -> void:
 	scroll_node = get_node(scroll_node_path) as Control
 	
@@ -48,6 +51,8 @@ func _ready() -> void:
 		v_scroll = (scroll_node as ItemList).get_v_scroll_bar()
 	elif scroll_node is ScrollContainer:
 		v_scroll = (scroll_node as ScrollContainer).get_v_scroll_bar()
+	# the arrows move nothing until given a step
+	v_scroll.custom_step = ARROW_STEP
 	
 	@warning_ignore("return_value_discarded")
 	scroll_node.connect(&"mouse_entered", Callable(self, &"_mouse_entered"))
