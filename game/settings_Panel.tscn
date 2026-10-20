@@ -377,25 +377,29 @@ max_value = 1.0
 step = 0.01
 value = 1.0
 
+[node name="effects_hint" type="Label" parent="Tabs/Visuals/VBox"]
+layout_mode = 2
+theme_override_styles/normal = SubResource("row_label")
+theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
+theme_override_font_sizes/font_size = 22
+text = "The four effects below cost frame rate. If play stutters, turn them off first."
+autowrap_mode = 3
+
 [node name="glare" type="CheckButton" parent="Tabs/Visuals/VBox"]
 layout_mode = 2
-tooltip_text = "Can make the game stutter"
-text = "Glow (can stutter)"
+text = "Glow"
 
 [node name="smoke" type="CheckButton" parent="Tabs/Visuals/VBox"]
 layout_mode = 2
-tooltip_text = "Can make the game stutter"
-text = "Smoke (can stutter)"
+text = "Smoke"
 
 [node name="saber_tail" type="CheckButton" parent="Tabs/Visuals/VBox"]
 layout_mode = 2
-tooltip_text = "Can make the game stutter"
-text = "Saber trail (can stutter)"
+text = "Saber trail"
 
 [node name="cut_blocks" type="CheckButton" parent="Tabs/Visuals/VBox"]
 layout_mode = 2
-tooltip_text = "Can make the game stutter"
-text = "Cut pieces (can stutter)"
+text = "Cut pieces"
 
 [node name="background_mode_grid" type="GridContainer" parent="Tabs/Visuals/VBox"]
 theme_override_constants/h_separation = 16
@@ -406,7 +410,7 @@ columns = 2
 custom_minimum_size = Vector2(320, 0)
 theme_override_styles/normal = SubResource("row_label")
 layout_mode = 2
-text = "Background"
+text = "Stage lights"
 
 [node name="background_mode" type="OptionButton" parent="Tabs/Visuals/VBox/background_mode_grid"]
 size_flags_horizontal = 3
@@ -575,34 +579,34 @@ theme_override_styles/normal = SubResource("row_label")
 text = "Position"
 
 [node name="posx" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset/pos_row"]
-custom_minimum_size = Vector2(100, 52)
+custom_minimum_size = Vector2(120, 52)
 layout_mode = 2
 min_value = -1.0
 max_value = 1.0
 step = 0.001
-prefix = "X"
+prefix = "Side"
 suffix = "m"
 script = ExtResource("stepper")
 button_step = 0.005
 
 [node name="posy" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset/pos_row"]
-custom_minimum_size = Vector2(100, 52)
+custom_minimum_size = Vector2(120, 52)
 layout_mode = 2
 min_value = -1.0
 max_value = 1.0
 step = 0.001
-prefix = "Y"
+prefix = "Up"
 suffix = "m"
 script = ExtResource("stepper")
 button_step = 0.005
 
 [node name="posz" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset/pos_row"]
-custom_minimum_size = Vector2(100, 52)
+custom_minimum_size = Vector2(120, 52)
 layout_mode = 2
 min_value = -1.0
 max_value = 1.0
 step = 0.001
-prefix = "Z"
+prefix = "Fwd"
 suffix = "m"
 script = ExtResource("stepper")
 button_step = 0.005
@@ -627,34 +631,34 @@ theme_override_styles/normal = SubResource("row_label")
 text = "Rotation"
 
 [node name="rotx" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset/rot_row"]
-custom_minimum_size = Vector2(100, 52)
+custom_minimum_size = Vector2(120, 52)
 layout_mode = 2
 min_value = -180.0
 max_value = 180.0
 step = 0.5
-prefix = "X"
+prefix = "Tilt"
 suffix = "°"
 script = ExtResource("stepper")
 button_step = 1.0
 
 [node name="roty" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset/rot_row"]
-custom_minimum_size = Vector2(100, 52)
+custom_minimum_size = Vector2(120, 52)
 layout_mode = 2
 min_value = -180.0
 max_value = 180.0
 step = 0.5
-prefix = "Y"
+prefix = "Turn"
 suffix = "°"
 script = ExtResource("stepper")
 button_step = 1.0
 
 [node name="rotz" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset/rot_row"]
-custom_minimum_size = Vector2(100, 52)
+custom_minimum_size = Vector2(120, 52)
 layout_mode = 2
 min_value = -180.0
 max_value = 180.0
 step = 0.5
-prefix = "Z"
+prefix = "Roll"
 suffix = "°"
 script = ExtResource("stepper")
 button_step = 1.0
@@ -689,34 +693,34 @@ theme_override_styles/normal = SubResource("row_label")
 text = "Position"
 
 [node name="posx" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset/pos_row"]
-custom_minimum_size = Vector2(100, 52)
+custom_minimum_size = Vector2(120, 52)
 layout_mode = 2
 min_value = -1.0
 max_value = 1.0
 step = 0.001
-prefix = "X"
+prefix = "Side"
 suffix = "m"
 script = ExtResource("stepper")
 button_step = 0.005
 
 [node name="posy" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset/pos_row"]
-custom_minimum_size = Vector2(100, 52)
+custom_minimum_size = Vector2(120, 52)
 layout_mode = 2
 min_value = -1.0
 max_value = 1.0
 step = 0.001
-prefix = "Y"
+prefix = "Up"
 suffix = "m"
 script = ExtResource("stepper")
 button_step = 0.005
 
 [node name="posz" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset/pos_row"]
-custom_minimum_size = Vector2(100, 52)
+custom_minimum_size = Vector2(120, 52)
 layout_mode = 2
 min_value = -1.0
 max_value = 1.0
 step = 0.001
-prefix = "Z"
+prefix = "Fwd"
 suffix = "m"
 script = ExtResource("stepper")
 button_step = 0.005
@@ -741,34 +745,34 @@ theme_override_styles/normal = SubResource("row_label")
 text = "Rotation"
 
 [node name="rotx" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset/rot_row"]
-custom_minimum_size = Vector2(100, 52)
+custom_minimum_size = Vector2(120, 52)
 layout_mode = 2
 min_value = -180.0
 max_value = 180.0
 step = 0.5
-prefix = "X"
+prefix = "Tilt"
 suffix = "°"
 script = ExtResource("stepper")
 button_step = 1.0
 
 [node name="roty" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset/rot_row"]
-custom_minimum_size = Vector2(100, 52)
+custom_minimum_size = Vector2(120, 52)
 layout_mode = 2
 min_value = -180.0
 max_value = 180.0
 step = 0.5
-prefix = "Y"
+prefix = "Turn"
 suffix = "°"
 script = ExtResource("stepper")
 button_step = 1.0
 
 [node name="rotz" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset/rot_row"]
-custom_minimum_size = Vector2(100, 52)
+custom_minimum_size = Vector2(120, 52)
 layout_mode = 2
 min_value = -180.0
 max_value = 180.0
 step = 0.5
-prefix = "Z"
+prefix = "Roll"
 suffix = "°"
 script = ExtResource("stepper")
 button_step = 1.0
@@ -790,14 +794,20 @@ text = "Show hit boxes"
 layout_mode = 2
 text = "Show frame rate and log"
 
+[node name="spectator_hint" type="Label" parent="Tabs/Advanced/VBox"]
+layout_mode = 2
+theme_override_styles/normal = SubResource("row_label")
+theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
+theme_override_font_sizes/font_size = 22
+text = "Spectator view draws the game a second time for the screen cast, which costs frame rate."
+autowrap_mode = 3
+
 [node name="spectator_view" type="CheckButton" parent="Tabs/Advanced/VBox"]
 layout_mode = 2
-tooltip_text = "Can make the game stutter"
-text = "Spectator view (can stutter)"
+text = "Spectator view"
 
 [node name="spectator_hud" type="CheckButton" parent="Tabs/Advanced/VBox"]
 layout_mode = 2
-tooltip_text = "Can make the game stutter"
 text = "Score on spectator view"
 
 [node name="defaults" type="Button" parent="."]
