@@ -446,7 +446,24 @@ func _set_list_cover(list_idx: int, img_tex: Texture2D, generation: int) -> void
 ## Bumped by every preview request, so only the newest one plays after the fade-out awaits.
 var _preview_generation := 0
 
-func play_preview(buffer: PackedByteArray, start_time: float = 0.0, duration: float = -1.0, buffer_data_type_hint: String = 'ogg') -> void:
+## The score screen plays the song's preview quietly, about 30% loudness, as background (20 * log10(0.3) dB).
+const SCORE_SCREEN_PREVIEW_DB := -10.5
+
+## Plays the selected song's preview, fading in to volume_db, so the menus never fall silent after a song (as in Beat
+## Saber); if a preview already plays, only fades it to that volume.
+func play_selected_preview(volume_db := 0.0) -> void:
+	if current_selected < 0 or current_selected >= _currently_selected_songlist_ref.size() or Settings.audio_music_preview <= 0:
+		return
+	var map := _currently_selected_songlist_ref[current_selected]
+	if not map.have_song:
+		return
+	if song_preview.playing:
+		song_preview.create_tween().tween_property(song_preview, ^"volume_db", volume_db, song_preview_transition_time)
+		return
+	play_preview(Utils.read_binary_file(map.filepath, map.song_filename), map.preview_start_time, map.preview_duration,
+		'ogg', volume_db)
+
+func play_preview(buffer: PackedByteArray, start_time: float = 0.0, duration: float = -1.0, buffer_data_type_hint: String = 'ogg', volume_db: float = 0.0) -> void:
 	_preview_generation += 1
 	var generation := _preview_generation
 	var stream: AudioStream
@@ -476,7 +493,7 @@ func play_preview(buffer: PackedByteArray, start_time: float = 0.0, duration: fl
 		var song_prev_Tween := song_preview.create_tween().set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_IN_OUT)
 		@warning_ignore("return_value_discarded")
 		# TODO: is this a good idea with higher speeds?
-		song_prev_Tween.tween_property(song_preview, ^"volume_db", 0, song_preview_transition_time)
+		song_prev_Tween.tween_property(song_preview, ^"volume_db", volume_db, song_preview_transition_time)
 		song_prev_Tween.play()
 		song_preview.play(start_time)
 		song_preview.pitch_scale = Settings.music_speed / 100.

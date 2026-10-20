@@ -13,6 +13,7 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.settings_canvas._hide()
 	game.show_MapSourceDialogs(false)
 	game.endscore._show()
+	game.menu.play_selected_preview(MainMenu.SCORE_SCREEN_PREVIEW_DB)
 	game.pause_menu._hide()
 	game.highscore_canvas.transform = game.highscores_score_transform
 	game.highscore_canvas._show()
