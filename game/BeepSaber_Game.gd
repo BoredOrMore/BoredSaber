@@ -91,12 +91,10 @@ var lead_in := 0.0
 const FAIL_SECONDS := 1.5
 # the high score saved at the end of the last song, so the player can rename it
 var _new_record := {}
-## Where the name keyboard opens on the score screen: 25 degrees below eye height, 0.65 m away and tilted to face the
-## eye, in front of the lower half of the score panel with its text box at eye height. The keys span 10 to 40 degrees down
-## (comfortable head turn is 12 degrees down, 40 at most) at 6 degrees each. Scale 1.5. The menus open the same keyboard
-## at its scene position, below the song list.
-const NAME_KEYBOARD_TRANSFORM := Transform3D(Vector3(1.5, 0, 0), Vector3(0, 1.35946, -0.63393), Vector3(0, 0.63393, 1.35946),
-	Vector3(0, 1.3253, -0.5891))
+## Where the name keyboard opens on the score screen: chest high in front of the score panel, tilted up to face the eye
+## (the menus open the same keyboard at its scene position, below the song list). Scale 2.4, tilted 35 degrees.
+const NAME_KEYBOARD_TRANSFORM := Transform3D(Vector3(2.4, 0, 0), Vector3(0, 1.96597, -1.37659), Vector3(0, 1.37659, 1.96597),
+	Vector3(0, 0.95, -0.55))
 ## The shared keyboard's scene transform, put back when the score screen closes it.
 var _keyboard_home: Transform3D
 ## The keyboard is open from the score screen's name card.
@@ -274,7 +272,7 @@ func _on_name_edit_requested() -> void:
 func _on_name_edit_cancelled() -> void:
 	highscore_keyboard._hide()
 
-## Echoes the name being typed on the name card, which stays in view when the keyboard closes.
+## Echoes the name being typed on the name card: the keyboard's own text box opens behind the score panel.
 func _on_name_typed() -> void:
 	if _editing_name:
 		endscore.show_name_card("Your name: %s_" % highscore_keyboard._text_edit.text)
