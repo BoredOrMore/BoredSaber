@@ -178,7 +178,7 @@ theme_override_constants/separation = 4
 
 [node name="LevelStats" type="Label" parent="DifficultyPicker" unique_id=1422990203]
 layout_mode = 2
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 22
 horizontal_alignment = 1
 text_overrun_behavior = 3
 

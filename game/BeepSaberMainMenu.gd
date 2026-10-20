@@ -797,8 +797,8 @@ func _build_difficulty_rows() -> void:
 		fail_row.add_child(_make_row_button(Constants.FAIL_OPTIONS[i][2], fail_group, _on_fail_option_pressed.bind(i)))
 	var damage_label := Label.new()
 	damage_label.text = "Damage"
-	damage_label.add_theme_font_size_override(&"font_size", 20)
-	damage_label.custom_minimum_size.x = 110
+	damage_label.add_theme_font_size_override(&"font_size", 24)
+	damage_label.custom_minimum_size.x = 130
 	damage_row.add_child(damage_label)
 	var damage_group := ButtonGroup.new()
 	for i in Constants.DAMAGE_SCALES.size():
@@ -815,12 +815,13 @@ const ENVIRONMENT_THUMB_WIDTH_CLOSED := 48
 func _build_environment_row() -> void:
 	var label := Label.new()
 	label.text = "Environment"
-	label.add_theme_font_size_override(&"font_size", 20)
-	label.custom_minimum_size.x = 130
+	label.add_theme_font_size_override(&"font_size", 24)
+	label.custom_minimum_size.x = 150
 	environment_row.add_child(label)
 	environment_picker = OptionButton.new()
 	environment_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	environment_picker.add_theme_font_size_override(&"font_size", 20)
+	environment_picker.add_theme_font_size_override(&"font_size", 24)
+	environment_picker.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	environment_picker.get_popup().add_theme_font_size_override(&"font_size", 24)
 	environment_picker.add_theme_constant_override(&"icon_max_width", ENVIRONMENT_THUMB_WIDTH_CLOSED)
 	environment_picker.get_popup().add_theme_constant_override(&"icon_max_width", ENVIRONMENT_THUMB_WIDTH)
@@ -864,13 +865,13 @@ func _build_difficulty_picker() -> void:
 	var tab_group := ButtonGroup.new()
 	for i in MAX_CHARACTERISTICS:
 		var tab := _make_row_button("", tab_group, _on_characteristic_pressed.bind(i))
-		tab.add_theme_font_size_override(&"font_size", 16)
+		tab.add_theme_font_size_override(&"font_size", 20)
 		tab.clip_text = true
 		characteristic_row.add_child(tab)
 	var level_group := ButtonGroup.new()
 	for i in LEVELS.size():
 		var button := _make_row_button(LEVELS[i][1], level_group, _on_level_pressed.bind(i))
-		button.add_theme_font_size_override(&"font_size", 18)
+		button.add_theme_font_size_override(&"font_size", 22)
 		var color: Color = Constants.DIFFICULTY_COLORS.get(LEVELS[i][0], Constants.UI_TEXT)
 		for state: StringName in [&"font_color", &"font_hover_color", &"font_pressed_color", &"font_hover_pressed_color", &"font_focus_color"]:
 			button.add_theme_color_override(state, color)
@@ -926,7 +927,7 @@ func _sync_difficulty_picker() -> void:
 		var button := level_row.get_child(i) as Button
 		var index := _find_difficulty(map, _characteristic_of(picked), i) if picked else -1
 		button.text = LEVELS[i][1]
-		button.add_theme_font_size_override(&"font_size", 18)
+		button.add_theme_font_size_override(&"font_size", 22)
 		button.remove_theme_color_override(&"font_color")
 		button.remove_theme_color_override(&"font_pressed_color")
 		if index >= 0:
@@ -934,7 +935,7 @@ func _sync_difficulty_picker() -> void:
 			button.text = level[0]
 			if level_counts[levels[i]] > 1:
 				button.text += "\n" + map.difficulty_beatmaps[index].get_display_name()
-				button.add_theme_font_size_override(&"font_size", 15)
+				button.add_theme_font_size_override(&"font_size", 18)
 			button.add_theme_color_override(&"font_color", level[1])
 			button.add_theme_color_override(&"font_pressed_color", level[1])
 		button.visible = index >= 0 or not picked
@@ -971,7 +972,7 @@ func _make_row_button(text: String, group: ButtonGroup, on_pressed: Callable) ->
 	button.toggle_mode = true
 	button.button_group = group
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.add_theme_font_size_override(&"font_size", 20)
+	button.add_theme_font_size_override(&"font_size", 24)
 	button.pressed.connect(on_pressed)
 	return button
 
