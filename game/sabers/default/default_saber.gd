@@ -9,12 +9,14 @@ var is_extended := false
 @onready var tip := $tip as Marker3D
 @onready var tail := $tail as SaberTail
 @onready var hitsound := $hitsound as AudioStreamPlayer3D
+@onready var _ring_mat := ($Hilt/Ring as MeshInstance3D).material_override as ShaderMaterial
 
 func _ready() -> void:
 	quickhide()
 
 func set_color(color: Color) -> void:
 	_mat.set_shader_parameter(&"color", color)
+	_ring_mat.set_shader_parameter(&"accent", color)
 	tail.set_color(color)
 
 func set_thickness(value: float) -> void:
