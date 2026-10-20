@@ -351,8 +351,10 @@ func set_background() -> void:
 	($Level/floor/line3).global_transform.origin.x = 2 * Settings.LANE_DISTANCE_X
 	($Level/floor/line4).global_transform.origin.x = -2 * Settings.LANE_DISTANCE_X
 	($Level/floor).scale.z = 1
-	for laser in diagonal_lasers:
-		laser.transform.origin.x = 4.5 * width_scale * sign(laser.transform.origin.x)
+	# the Classic rig spreads its diagonal lasers with the track's width; other rigs place them on their structure
+	if environment == "classic":
+		for laser in diagonal_lasers:
+			laser.transform.origin.x = 4.5 * width_scale * sign(laser.transform.origin.x)
 	
 	if Settings.background == "simple":
 		ring_holder.hide()
