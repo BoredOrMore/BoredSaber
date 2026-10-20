@@ -780,8 +780,15 @@ func _on_CloseButton_pressed() -> void:
 	self._hide()
 
 var _is_first_show := true
+## Makes sure the page always opens with songs listed: the most liked maps the first time, and the last list
+## again if it came back empty (e.g. no connection when it last loaded).
 func _on_BeatSaverPanel_visibility_changed() -> void:
 	if _is_first_show:
 		# start on the most liked maps
 		_on_sort_tab_pressed(SORT_TABS[0][1])
 		_is_first_show = false
+	elif item_list.item_count == 0 and httpreq.get_http_client_status() == HTTPClient.STATUS_DISCONNECTED:
+		if prev_request != null and prev_request.type != "uploader":
+			_reload()
+		else:
+			_on_sort_tab_pressed(SORT_TABS[0][1])
