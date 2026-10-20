@@ -1,5 +1,6 @@
 ## Body test: timed punch, squat and lean drills that get faster until the player can't keep up,
-## to measure how fast moves can follow each other before the Workout mode is built.
+## then charged moves held for longer and longer, to measure how fast moves can follow each other
+## and how long a stance can be held before the Workout mode is built.
 ## Every rep is printed to the log (lines starting "BODYTEST,") and saved as a CSV.
 extends Node3D
 class_name BodyTest
@@ -7,8 +8,10 @@ class_name BodyTest
 ## The test ended (finished or cancelled); the game goes back to the song menu.
 signal finished()
 
-enum Drill { REACH, GUARD, LOW_STANCE, PUNCH_HARD, PUNCH_TOUCH, PUNCH_ALTERNATE, PUNCH_SAME_HAND, SQUAT, LEAN, DONE }
-const DRILL_NAMES := ["reach", "guard", "low_stance", "punch_hard", "punch_touch", "punch_alternate", "punch_same_hand", "squat", "lean", "done"]
+enum Drill { REACH, GUARD, LOW_STANCE, PUNCH_HARD, PUNCH_TOUCH, PUNCH_ALTERNATE, PUNCH_SAME_HAND, SQUAT, LEAN,
+	CHARGE_PUNCH, SQUAT_UPPERCUT, SQUAT_STAND, DONE }
+const DRILL_NAMES := ["reach", "guard", "low_stance", "punch_hard", "punch_touch", "punch_alternate", "punch_same_hand", "squat", "lean",
+	"charge_punch", "squat_uppercut", "squat_stand", "done"]
 const DRILL_INSTRUCTIONS := [
 	"Stretch both arms straight ahead\nand hold them there",
 	"Guard: both fists up at your cheekbones,\nelbows in. Hold it",
@@ -19,6 +22,9 @@ const DRILL_INSTRUCTIONS := [
 	"Punch the balls: 4 with your right,\nthen 4 with your left. Faster and faster",
 	"Squat under each bar.\nThey come faster and faster",
 	"Step to the side the arrow shows,\naway from the wall. Faster and faster",
+	"Power punch: hold your guard until GO,\nthen punch the ball as hard as you can",
+	"Squat with your guard up until GO,\nthen rise and uppercut the ball",
+	"Squat and hold until GO,\nthen stand up as fast as you can",
 	"",
 ]
 ## Seconds each drill's instructions show before its first rep.
@@ -62,6 +68,21 @@ const LEAN_HEAD_X := HEAD_RADIUS
 ## How far in front of the eyes the squat bar and lean wall stand.
 const WALL_DISTANCE := 0.6
 const WALL_THICKNESS := 0.06
+## Charged moves: one rep per hold time, held longer each rep (untuned starting values). The stance
+## must be reached within STANCE_TIMEOUT, kept for the whole hold, then the move done within
+## RELEASE_WINDOW of GO; REST_SECONDS between reps.
+const HOLD_STEPS: Array[float] = [1.0, 2.0, 3.0, 4.0, 6.0, 8.0]
+const STANCE_TIMEOUT := 5.0
+const RELEASE_WINDOW := 1.5
+const REST_SECONDS := 1.5
+## A fist counts as in the guard while it is no more than this much further from the eyes than in
+## the measured guard (untuned).
+const GUARD_TOLERANCE := 0.08
+## The uppercut ball sits this far in front of the eyes, at standing chin height (untuned).
+const UPPERCUT_DISTANCE := 0.35
+## Standing back up means the eyes are within this of the standing height again (untuned).
+const STAND_MARGIN := 0.1
+enum Charge { STANCE, HOLD, RELEASE, REST }
 const HIT_RUMBLE := 0.6
 const HIT_RUMBLE_SECONDS := 0.08
 ## Where the instructions stand: 1.6 m in front of the eyes and 0.4 m above them (14 degrees up).
@@ -103,6 +124,14 @@ var _last_fist := {}
 var _fastest := {}
 ## Peak punch speeds of the hard and gentle drills.
 var _speeds := {Drill.PUNCH_HARD: [] as Array[float], Drill.PUNCH_TOUCH: [] as Array[float]}
+## Longest hold kept and median release speed of each charged move.
+var _charge_best := {}
+var _charge_speeds := {Drill.CHARGE_PUNCH: [] as Array[float], Drill.SQUAT_UPPERCUT: [] as Array[float],
+	Drill.SQUAT_STAND: [] as Array[float]}
+var _charge := Charge.STANCE
+## Seconds since the current charge phase began.
+var _charge_clock := 0.0
+var _last_head := Vector3.ZERO
 var _csv: FileAccess
 
 var _text: Label3D
@@ -142,7 +171,7 @@ func setup(game: BeepSaber_Game) -> void:
 	_csv = FileAccess.open(dir + "bodytest_%s.csv" % stamp, FileAccess.WRITE)
 	if _csv == null:
 		push_error("Body test: can't write %s (%s)" % [dir, error_string(FileAccess.get_open_error())])
-	_log("drill,step,interval_ms,rep,hand,hit,time_ms,peak_speed_mps,head_extreme_m")
+	_log("drill,step,interval_ms,rep,hand,hit,time_ms,peak_speed_mps,head_extreme_m,outcome")
 	_start_drill(Drill.REACH)
 
 ## Returns a hidden mesh child with an unshaded colour.
@@ -191,6 +220,8 @@ func _start_drill(drill: Drill) -> void:
 	_bar.visible = false
 	_wall.visible = false
 	_interval = START_INTERVAL.get(drill, CALIBRATION_INTERVAL)
+	_charge = Charge.STANCE
+	_charge_clock = 0.0
 	if drill == Drill.DONE:
 		_text.text = _summary() + "\n\nPull the trigger to go back"
 		return
@@ -215,7 +246,7 @@ func _process(delta: float) -> void:
 		if _game.left_controller.trigger_just_pressed() or _game.right_controller.trigger_just_pressed():
 			stop()
 		return
-	var fist_speed := _fist_speeds(delta)
+	var velocities := _velocities(delta)
 	if _intro_left > 0.0:
 		_intro_left -= delta
 		if _intro_left <= 0.0 and _drill > Drill.LOW_STANCE:
@@ -226,17 +257,22 @@ func _process(delta: float) -> void:
 		_process_reach()
 	elif _drill == Drill.GUARD or _drill == Drill.LOW_STANCE:
 		_process_stance()
+	elif _drill >= Drill.CHARGE_PUNCH:
+		_process_charge(velocities, delta)
 	else:
-		_process_rep(fist_speed)
+		_process_rep(velocities)
 
-## Returns each fist's speed straight ahead (m/s) this frame, keyed by "right" true/false.
-func _fist_speeds(delta: float) -> Dictionary:
-	var speeds := {}
+## Returns each fist's velocity (m/s) this frame keyed by "right" true/false, and the head's under "head".
+func _velocities(delta: float) -> Dictionary:
+	var velocities := {}
 	for right: bool in [false, true]:
 		var pos := (_game.right_controller if right else _game.left_controller).global_position
-		speeds[right] = (pos - _last_fist[right]).dot(_forward) / delta if _last_fist.has(right) and delta > 0.0 else 0.0
+		velocities[right] = (pos - _last_fist[right]) / delta if _last_fist.has(right) and delta > 0.0 else Vector3.ZERO
 		_last_fist[right] = pos
-	return speeds
+	var head := _camera.global_position
+	velocities["head"] = (head - _last_head) / delta if delta > 0.0 else Vector3.ZERO
+	_last_head = head
+	return velocities
 
 ## Averages how far the hands reach straight ahead over the second half of the hold.
 func _process_reach() -> void:
@@ -290,7 +326,7 @@ func _process_stance() -> void:
 	_start_drill((_drill + 1) as Drill)
 
 ## Opens, watches and closes the current rep of a punch, squat or lean drill.
-func _process_rep(fist_speed: Dictionary) -> void:
+func _process_rep(velocities: Dictionary) -> void:
 	if not _rep_open:
 		_open_rep()
 	var elapsed := _clock - _rep * _interval
@@ -311,7 +347,7 @@ func _process_rep(fist_speed: Dictionary) -> void:
 				_mark_hit(elapsed)
 		_:
 			if not _rep_hit:
-				_rep_peak_speed = maxf(_rep_peak_speed, fist_speed[_hand_right])
+				_rep_peak_speed = maxf(_rep_peak_speed, (velocities[_hand_right] as Vector3).dot(_forward))
 				var fist := (_game.right_controller if _hand_right else _game.left_controller).global_position
 				if fist.distance_to(_target.global_position) < TARGET_RADIUS + FIST_RADIUS:
 					_mark_hit(elapsed)
@@ -374,7 +410,7 @@ func _close_rep() -> void:
 		hand = ("right" if _hand_right else "left") if _drill != Drill.LEAN else ("to_right" if _hand_right else "to_left")
 	var extreme := "" if _drill != Drill.SQUAT and _drill != Drill.LEAN else "%.3f" % _rep_extreme
 	var speed := "" if _drill == Drill.SQUAT or _drill == Drill.LEAN else "%.2f" % _rep_peak_speed
-	_log("%s,%d,%d,%d,%s,%d,%s,%s,%s" % [DRILL_NAMES[_drill], _step, roundi(_interval * 1000), _rep, hand,
+	_log("%s,%d,%d,%d,%s,%d,%s,%s,%s," % [DRILL_NAMES[_drill], _step, roundi(_interval * 1000), _rep, hand,
 		int(_rep_hit), str(roundi(_rep_hit_time * 1000)) if _rep_hit else "", speed, extreme])
 	if _rep_hit:
 		_step_passes += 1
@@ -414,6 +450,15 @@ func _summary() -> String:
 		lines.append("%s: %s" % [label, "one every %.2f s" % fastest if fastest > 0.0 else "too fast from the start"])
 	lines.append("Guard: fists %d and %d cm from your eyes   Low stance: %d cm lower" % [
 		roundi(_guard.x * 100), roundi(_guard.y * 100), roundi(_low_drop * 100)])
+	for drill: Drill in [Drill.CHARGE_PUNCH, Drill.SQUAT_UPPERCUT, Drill.SQUAT_STAND]:
+		var label: String = {
+			Drill.CHARGE_PUNCH: "Power punch",
+			Drill.SQUAT_UPPERCUT: "Squat + uppercut",
+			Drill.SQUAT_STAND: "Squat + stand up",
+		}[drill]
+		var best: float = _charge_best.get(drill, 0.0)
+		lines.append("%s: %s, release %s" % [label, "held %d s" % roundi(best) if best > 0.0 else "no hold kept",
+			_median_text(_charge_speeds[drill])])
 	lines.append("Hard punch: %s   Gentle touch: %s" % [_median_text(_speeds[Drill.PUNCH_HARD]), _median_text(_speeds[Drill.PUNCH_TOUCH])])
 	return "\n".join(lines)
 
@@ -424,3 +469,92 @@ func _median_text(speeds: Array[float]) -> String:
 	var sorted := speeds.duplicate()
 	sorted.sort()
 	return "%.1f m/s" % sorted[sorted.size() >> 1]
+
+## Returns whether the player is in the stance the current charged move asks for.
+func _in_charge_stance() -> bool:
+	var eyes := _camera.global_position
+	var guard := (_game.left_controller.global_position.distance_to(eyes) <= _guard.x + GUARD_TOLERANCE
+		and _game.right_controller.global_position.distance_to(eyes) <= _guard.y + GUARD_TOLERANCE)
+	var squat := eyes.y <= SQUAT_HEAD_Y
+	match _drill:
+		Drill.CHARGE_PUNCH:
+			return guard
+		Drill.SQUAT_UPPERCUT:
+			return guard and squat
+		_:
+			return squat
+
+## Runs one charged rep: get into the stance, hold it for this rep's time, then release on GO.
+func _process_charge(velocities: Dictionary, delta: float) -> void:
+	var hold := HOLD_STEPS[_rep]
+	_charge_clock += delta
+	match _charge:
+		Charge.STANCE:
+			_hand_right = _rep % 2 == 0
+			_text.text = "%s\nGet into position" % DRILL_INSTRUCTIONS[_drill]
+			if _in_charge_stance():
+				_charge = Charge.HOLD
+				_charge_clock = 0.0
+			elif _charge_clock >= STANCE_TIMEOUT:
+				_end_charge(hold, "no_stance")
+		Charge.HOLD:
+			_text.text = "HOLD  %d" % ceili(hold - _charge_clock)
+			if not _in_charge_stance():
+				_end_charge(hold, "broke_at_%d" % roundi(_charge_clock * 1000))
+			elif _charge_clock >= hold:
+				_charge = Charge.RELEASE
+				_charge_clock = 0.0
+				_rep_peak_speed = 0.0
+				_text.text = "GO!"
+				if _drill != Drill.SQUAT_STAND:
+					var distance := _reach * TARGET_REACH_SHARE if _drill == Drill.CHARGE_PUNCH else UPPERCUT_DISTANCE
+					_target.global_position = (_standing_eyes + _forward * distance
+						+ _right * (TARGET_SIDE if _hand_right else -TARGET_SIDE) + Vector3.DOWN * TARGET_BELOW_EYES)
+					(_target.material_override as StandardMaterial3D).albedo_color = Settings.color_right if _hand_right else Settings.color_left
+					_target.visible = true
+		Charge.RELEASE:
+			var hand := _game.right_controller if _hand_right else _game.left_controller
+			var done := false
+			match _drill:
+				Drill.CHARGE_PUNCH:
+					_rep_peak_speed = maxf(_rep_peak_speed, (velocities[_hand_right] as Vector3).dot(_forward))
+					done = hand.global_position.distance_to(_target.global_position) < TARGET_RADIUS + FIST_RADIUS
+				Drill.SQUAT_UPPERCUT:
+					_rep_peak_speed = maxf(_rep_peak_speed, (velocities[_hand_right] as Vector3).y)
+					done = hand.global_position.distance_to(_target.global_position) < TARGET_RADIUS + FIST_RADIUS
+				_:
+					_rep_peak_speed = maxf(_rep_peak_speed, (velocities["head"] as Vector3).y)
+					done = _camera.global_position.y >= _standing_eyes.y - STAND_MARGIN
+			if done:
+				hand.simple_rumble(HIT_RUMBLE, HIT_RUMBLE_SECONDS)
+				(_charge_speeds[_drill] as Array[float]).append(_rep_peak_speed)
+				_charge_best[_drill] = maxf(_charge_best.get(_drill, 0.0), hold)
+				_end_charge(hold, "ok", _charge_clock)
+			elif _charge_clock >= RELEASE_WINDOW:
+				_end_charge(hold, "missed")
+		Charge.REST:
+			if _charge_clock >= REST_SECONDS:
+				_rep += 1
+				if _rep >= HOLD_STEPS.size():
+					_start_drill((_drill + 1) as Drill)
+					return
+				_charge = Charge.STANCE
+				_charge_clock = 0.0
+
+## Logs the charged rep (release time and speed only when it was done) and rests before the next one.
+func _end_charge(hold: float, outcome: String, release_time := -1.0) -> void:
+	var ok := release_time >= 0.0
+	_log("%s,0,%d,%d,%s,%d,%s,%s,,%s" % [DRILL_NAMES[_drill], roundi(hold * 1000), _rep,
+		"" if _drill == Drill.SQUAT_STAND else ("right" if _hand_right else "left"), int(ok),
+		str(roundi(release_time * 1000)) if ok else "", "%.2f" % _rep_peak_speed if ok else "", outcome])
+	_target.visible = false
+	if ok:
+		_text.text = "Nice!"
+	elif outcome == "no_stance":
+		_text.text = "Didn't see the stance"
+	elif outcome == "missed":
+		_text.text = "Too late"
+	else:
+		_text.text = "Stance lost"
+	_charge = Charge.REST
+	_charge_clock = 0.0
