@@ -8,6 +8,9 @@ const INTENSITY_PARAMS: Array[StringName] = [&"bg_0_intensity", &"bg_1_intensity
 ## Air colour with every light off, and how much each lit group tints the haze (sky, distant scenery). Untuned.
 const HAZE_BASE := Color(0.01, 0.01, 0.02)
 const HAZE_LIGHT_WEIGHT := 0.08
+## How far the air's colour leans to grey of the same brightness: haze reveals light, it doesn't paint the scene
+## (AGENTS.md "Light", rule 6). Untuned.
+const HAZE_NEUTRAL := 0.5
 ## A combo milestone (ComboHud) brightens the air for a moment: the haze jumps by this part of itself and fades
 ## out over COMBO_PULSE_SECONDS. Below the map's own flashes (FLASH_BOOST), so it reads as a bonus, not an event. Untuned.
 const COMBO_PULSE := 0.8
@@ -296,6 +299,8 @@ func _update_haze() -> void:
 	haze *= 1.0 + COMBO_HAZE_BOOST * _combo_level + COMBO_PULSE * pulse
 	if menu_focus:
 		haze *= MENU_HAZE_BOOST
+	var grey := haze.r * 0.299 + haze.g * 0.587 + haze.b * 0.114
+	haze = haze.lerp(Color(grey, grey, grey), HAZE_NEUTRAL)
 	haze.a = 1.0
 	RenderingServer.global_shader_parameter_set(&"env_haze", haze)
 	RenderingServer.global_shader_parameter_set(&"combo_glow", COMBO_LASER_BOOST * _combo_level + COMBO_PULSE_LASER * pulse)

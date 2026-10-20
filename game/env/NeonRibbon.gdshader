@@ -18,6 +18,11 @@ uniform float brightness = 3.5;
 // a wide faint beam around the tube that comes and goes along its length, as if it lit up drifting smoke
 // (see StageSmoke.gd); two slow waves stand in for the smoke so the beam needs no texture (untuned)
 const float BEAM = 0.12;
+// The tube burns white-hot in the middle and shows its colour in the halo and beam around it, like a real
+// light (AGENTS.md "Light", rule 2): the core leans CORE_WHITE of the way to white at the light's own
+// brightness, and the coloured halo gets less gain than the core so it doesn't clip to a flat colour. Untuned.
+const float CORE_WHITE = 0.7;
+const float HALO_GAIN = 0.5;
 const float BEAM_WAVE = 0.6;
 
 // how much brighter the bars are for the player's combo (EventDriver.set_combo_multiplier, combo_pulse)
@@ -57,5 +62,8 @@ void fragment() {
 	float smoke = 1.0 - BEAM_WAVE * (0.5 + 0.5 * sin(dot(world_pos, vec3(0.9, 1.3, 0.7)) + TIME * 0.6)
 		* sin(dot(world_pos, vec3(-0.5, 0.8, 1.7)) * 0.7 - TIME * 0.4));
 	float beam = exp(-d * d * 1.5) * BEAM * smoke;
-	ALBEDO = light_color.rgb * (core + halo + beam) * (1.0 - d) * tips * fade * brightness * (1.0 + combo_glow);
+	float peak = max(light_color.r, max(light_color.g, light_color.b));
+	vec3 hot = mix(light_color.rgb, vec3(peak), CORE_WHITE);
+	vec3 col = hot * core + light_color.rgb * (halo + beam) * HALO_GAIN;
+	ALBEDO = col * (1.0 - d) * tips * fade * brightness * (1.0 + combo_glow);
 }

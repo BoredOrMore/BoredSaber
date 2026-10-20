@@ -14,7 +14,9 @@ global uniform vec4 env_haze;
 const float SPACING = 2.0;
 const float LINE_WIDTH = 0.04;
 const float MIN_LINE_PIXELS = 1.0;
-const float LINE_GAIN = 4.0;
+const float LINE_GAIN = 2.5;
+// the floor lines are a big area, so they stay part grey (AGENTS.md "Light", rule 3). Untuned.
+const float LINE_DESATURATE = 0.4;
 const float GROUND_SHADE = 0.3;
 const float FADE_DISTANCE = 60.0;
 // metres from the player where the lines start fading, and where they are gone
@@ -40,7 +42,8 @@ void fragment() {
 	vec2 lines = (1.0 - smoothstep(half_width - px, half_width + px, to_line)) * (LINE_WIDTH * 0.5 / half_width);
 	float line = max(lines.x, lines.y);
 	line *= 1.0 - smoothstep(LINE_FADE_START, LINE_FADE_END, length(world.xz - CAMERA_POSITION_WORLD.xz));
-	vec3 near = mix(env_haze.rgb * GROUND_SHADE, env_haze.rgb * LINE_GAIN, line);
+	vec3 line_col = mix(env_haze.rgb, vec3(max(env_haze.r, max(env_haze.g, env_haze.b))), LINE_DESATURATE);
+	vec3 near = mix(env_haze.rgb * GROUND_SHADE, line_col * LINE_GAIN, line);
 	ALBEDO = mix(env_haze.rgb * HORIZON_HAZE, near, fade);
 	ALBEDO = shadow_tone(ALBEDO);
 }
