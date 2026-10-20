@@ -1,9 +1,6 @@
 extends Panel
 class_name HighscorePanel
 
-signal close()
-
-@export var show_close_button := true
 @export var show_song_info := true
 
 # keep a copy of the base row for regeneration later
@@ -11,12 +8,10 @@ signal close()
 @onready var _highscore_list = $Margin/VBox/LeftRight/ScrollContainer/Margin/HighscoresList
 @onready var _title = $Margin/VBox/Title
 @onready var _song_info = $Margin/VBox/LeftRight/VBox/SongInfo_Label
-@onready var _exit_button = $Margin/VBox/Exit_Button
 @onready var _song_info_panel = $Margin/VBox/LeftRight/VBox
 
 func _ready() -> void:
 	_clear_list()
-	_exit_button.visible = show_close_button
 	_song_info_panel.visible = show_song_info
 	
 ## highlight: a record (as add_highscore() returned it) whose row stands out, such as the run just played.
@@ -80,6 +75,3 @@ func _get_difficulty_name(map_info: MapInfo, diff_rank: int) -> String:
 		if beat_map.difficulty_rank == (diff_rank & Constants.DIFFICULTY_MASK):
 			return MapStats.level_name(map_info, beat_map) + ", " + game_type
 	return ('Rank %d' % (diff_rank & Constants.DIFFICULTY_MASK)) + " " + game_type
-
-func _on_Exit_Button_pressed() -> void:
-	close.emit()

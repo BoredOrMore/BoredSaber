@@ -405,18 +405,6 @@ func _on_right_saber_col_pressed() -> void:
 func _on_not_music_dl_toggled(button_pressed: bool) -> void:
 	Settings.not_music_dl = button_pressed
 
-func _on_simple_toggled(button_pressed: bool) -> void:
-	if button_pressed:
-		Settings.background = "simple"
-
-func _on_dynamic_toggled(button_pressed: bool) -> void:
-	if button_pressed:
-		Settings.background = "dynamic"
-
-func _on_static_toggled(button_pressed: bool) -> void:
-	if button_pressed:
-		Settings.background = "static"
-
 func _on_background_texture_selected(item: int) -> void:
 	if item < len(Settings.BACKGROUND_TEXTURES):
 		Settings.background_texture = Settings.BACKGROUND_TEXTURES[item][0]

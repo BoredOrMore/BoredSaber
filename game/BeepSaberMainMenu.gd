@@ -440,10 +440,6 @@ func _set_list_cover(list_idx: int, img_tex: Texture2D, generation: int) -> void
 	if generation == _list_generation and list_idx < songs_menu.item_count:
 		songs_menu.set_item_icon(list_idx, img_tex)
 
-func _load_cover(cover_path: String, filename: String) -> ImageTexture:
-	# parse buffer into an ImageTexture
-	return ImageTexture.create_from_image(Image.load_from_file(cover_path+filename))
-
 ## Bumped by every preview request, so only the newest one plays after the fade-out awaits.
 var _preview_generation := 0
 
@@ -679,9 +675,6 @@ func on_settings_changed(key: StringName) -> void:
 		&"song_filter_workout":
 			workout_filter.set_pressed_no_signal(Settings.song_filter_workout)
 			_refilter()
-
-func difficulty_modifier_changed() -> void:
-	pass			
 
 func _on_Play_Button_pressed() -> void:
 	if current_selected >= 0:
@@ -1205,10 +1198,6 @@ func _on_favorite_button_pressed() -> void:
 	_sort_songs()
 	update_view()
 	
-func _on_small_toggled(value: bool) -> void:
-	Settings.small = value
-	update_view()
-
 func _on_width_item_selected(index: int) -> void:
 	Settings.width = Constants.WIDTHS[index][0]
 	update_view()

@@ -282,7 +282,6 @@ transform = Transform3D(1.3486, 0, 1.47691, 0, 2, 0, -1.47691, 0, 1.3486, -1.476
 
 [node name="HighscorePanel" parent="Highscores_Canvas" unique_id=1748596360 instance=ExtResource("23")]
 offset_right = 600.0
-show_close_button = false
 show_song_info = false
 
 [node name="BeepCubePool" parent="." unique_id=834836976 instance=ExtResource("27")]
