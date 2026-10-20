@@ -169,10 +169,17 @@ func set_environment(id: String) -> void:
 				sky.set_shader_parameter(param, value)
 	sphere_material = sky
 	($Level/Sphere as MeshInstance3D).material_override = sky
-	neon_grid.visible = id == "neon_grid"
-	pulse_void.visible = id == "pulse_void"
 	rings_enabled = id == "classic"
+	show_scenery_for_mixed_reality()
 	set_background()
+
+## Shows the environment's own scenery (Neon Grid's floor, Pulse Void's rings, the smoke) except in mixed reality,
+## where opaque scenery would cover the player's room: there only the track, notes and light beams are drawn
+## (the sky is hidden by MixedReality.gd).
+func show_scenery_for_mixed_reality() -> void:
+	neon_grid.visible = environment == "neon_grid" and not Settings.mixed_reality
+	pulse_void.visible = environment == "pulse_void" and not Settings.mixed_reality
+	stage_smoke.visible = Settings.smoke and not Settings.mixed_reality
 
 func set_background() -> void:
 	var width_scale := 2 * Settings.LANE_DISTANCE_X / 3.
@@ -212,7 +219,7 @@ func set_background() -> void:
 		disabled = true
 	else:
 		ring_holder.visible = rings_enabled
-		($Level/StageSmoke).visible = Settings.smoke
+		stage_smoke.visible = Settings.smoke and not Settings.mixed_reality
 		diagonal_lasers_holder.show()
 		square_lasers_holder.show()
 		left_waving_lasers_holder.show()
