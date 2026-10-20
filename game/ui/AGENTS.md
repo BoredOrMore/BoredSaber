@@ -17,7 +17,6 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
 - `BeatSaverPanel/`: browse/search/download maps from beatsaver.com (class `BeatSaverPanel`).
 - `BeatSageUI/` (+ `BeatSageRequest/`): generate a map from a YouTube URL via beatsage.com (class `BeatSagePanel`).
 - `MapDownloadPanel/`: picker between BeatSaver and BeatSage; `MapSourceButton` is its image+text button.
-- `NameSelector/`: "Saved as <name>" plus an "Edit name" button that opens the keyboard, for new highscores.
 - `UI_AudioEngine/`: autoload; `attach_children(node)` wires hover/click sounds to every `Button` below `node`.
 - `YouTubeUI/` (+ `YouTubeAPI/`): YouTube search used by BeatSage.
 - In `game/`: `BeepSaberMainMenu.gd/.tscn` (class `MainMenu`: song list, difficulty, Song/Modifiers/Settings/More tabs above the right column),
@@ -36,12 +35,11 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
 ## How 2D UI reaches VR
 
 - Each panel is a child of an `OQ_UI2DCanvas` instance in `game/BeepSaber_Game.tscn` (MainMenu, PauseMenu, Settings,
-  MapSourceDialogs/*, Highscores, NameSelector). At runtime the canvas moves the `Control` into its `SubViewport` and
+  MapSourceDialogs/*, Highscores). At runtime the canvas moves the `Control` into its `SubViewport` and
   textures a quad with it; size is `control.size * vr.UI_PIXELS_TO_METER`, so scale with the node `transform`.
 - Canvases default to `update_only_on_input = true`: the viewport only redraws after pointer/key input. Code that
   changes visuals without input must ask for a redraw: `canvas._input_update()` (`BeatSaverPanel.gd:243-244`, 368-370,
-  428-429) or set `UPDATE_ONCE` (`item_list_marquee.gd:80-83`). `NameSelector_Canvas` opts out (`update_only_on_input =
-  false`).
+  428-429) or set `UPDATE_ONCE` (`item_list_marquee.gd:80-83`).
 - Game states show/hide canvases with `_show()`/`_hide()` (`game/scripts/GameState/*.gd`); those toggle SubViewport
   updates. The panel-level `_show/_hide` in `BeatSaverPanel.gd:141-163`, `MapDownloadPanel.gd:30-51`,
   `BeatSageUI.gd:56-79`, `YouTubeUI.gd:26-47` call the canvas's plain `show()/hide()` instead, so the viewport keeps
