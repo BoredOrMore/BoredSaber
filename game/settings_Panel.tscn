@@ -167,6 +167,9 @@ default_font = SubResource("2")
 [sub_resource type="Theme" id="small"]
 default_font_size = 22
 
+[sub_resource type="StyleBoxEmpty" id="row_label"]
+content_margin_left = 16.0
+
 [sub_resource type="StyleBoxFlat" id="root"]
 bg_color = Color(0.086, 0.094, 0.114, 1)
 
@@ -196,16 +199,6 @@ theme = SubResource("3")
 text = "Settings
 "
 
-[node name="note" type="Label" parent="."]
-layout_mode = 0
-offset_left = 24.0
-offset_top = 630.0
-offset_right = 700.0
-offset_bottom = 680.0
-text = "(*) Lowers performance"
-theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
-theme_override_font_sizes/font_size = 22
-
 [node name="Tabs" type="TabContainer" parent="."]
 layout_mode = 0
 offset_left = 24.0
@@ -226,32 +219,35 @@ theme_override_constants/separation = 12
 
 [node name="left_handed" type="CheckButton" parent="Tabs/Gameplay/VBox"]
 layout_mode = 2
-text = "Left-Handed"
+text = "Left-handed"
 
 [node name="swing_scoring" type="CheckButton" parent="Tabs/Gameplay/VBox"]
 layout_mode = 2
-text = "Score by Swing and Distance:"
+text = "Score by swing and distance"
 
 [node name="explain" type="CheckButton" parent="Tabs/Gameplay/VBox"]
 layout_mode = 2
-text = "Explain Scores:"
+text = "Explain scores"
 
 [node name="disable_map_color" type="CheckButton" parent="Tabs/Gameplay/VBox"]
 layout_mode = 2
-text = "Ignore Map's Colors:"
+text = "Ignore map colors"
 
 [node name="player_height_offset" type="HBoxContainer" parent="Tabs/Gameplay/VBox"]
 layout_mode = 2
 
 [node name="Label" type="Label" parent="Tabs/Gameplay/VBox/player_height_offset"]
+custom_minimum_size = Vector2(320, 0)
+theme_override_styles/normal = SubResource("row_label")
 layout_mode = 2
-text = "Player Height Offset:"
+text = "Player height (m)"
 
 [node name="Control" type="Control" parent="Tabs/Gameplay/VBox/player_height_offset"]
 layout_mode = 2
 size_flags_horizontal = 3
 
 [node name="pos" type="SpinBox" parent="Tabs/Gameplay/VBox/player_height_offset"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 min_value = -0.25
 max_value = 0.25
@@ -277,20 +273,23 @@ theme_override_constants/separation = 12
 layout_mode = 2
 
 [node name="color_preset_label" type="Label" parent="Tabs/Visuals/VBox/ColorPresetRow"]
+custom_minimum_size = Vector2(320, 0)
+theme_override_styles/normal = SubResource("row_label")
 layout_mode = 2
-text = "Color Preset:"
+text = "Color preset"
 
 [node name="color_preset" type="OptionButton" parent="Tabs/Visuals/VBox/ColorPresetRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-flat = true
 
 [node name="SaberColorsRow" type="HBoxContainer" parent="Tabs/Visuals/VBox"]
 layout_mode = 2
 
 [node name="left_saber_col_label" type="Label" parent="Tabs/Visuals/VBox/SaberColorsRow"]
+custom_minimum_size = Vector2(320, 0)
+theme_override_styles/normal = SubResource("row_label")
 layout_mode = 2
-text = "Saber Colors: "
+text = "Saber colors"
 
 [node name="left_saber_col" type="ColorPickerButton" parent="Tabs/Visuals/VBox/SaberColorsRow"]
 layout_mode = 2
@@ -309,41 +308,49 @@ color = Color(1, 0.101961, 0.101961, 1)
 edit_alpha = false
 
 [node name="note_style_grid" type="GridContainer" parent="Tabs/Visuals/VBox"]
+theme_override_constants/h_separation = 16
 layout_mode = 2
 columns = 2
 
 [node name="Label" type="Label" parent="Tabs/Visuals/VBox/note_style_grid"]
+custom_minimum_size = Vector2(320, 0)
+theme_override_styles/normal = SubResource("row_label")
 layout_mode = 2
-text = "Note Style:"
+text = "Note style"
 
 [node name="note_style" type="OptionButton" parent="Tabs/Visuals/VBox/note_style_grid"]
+size_flags_horizontal = 3
 layout_mode = 2
 
 [node name="darker_notes" type="CheckButton" parent="Tabs/Visuals/VBox"]
 layout_mode = 2
 tooltip_text = "Notes in deeper shades of the same colours"
-text = "Darker Notes: "
+text = "Darker notes"
 
 [node name="SaberTypeRow" type="HBoxContainer" parent="Tabs/Visuals/VBox"]
 layout_mode = 2
 
 [node name="saber_type_label" type="Label" parent="Tabs/Visuals/VBox/SaberTypeRow"]
+custom_minimum_size = Vector2(320, 0)
+theme_override_styles/normal = SubResource("row_label")
 layout_mode = 2
-text = "Saber Type:"
+text = "Saber type"
 
 [node name="saber" type="OptionButton" parent="Tabs/Visuals/VBox/SaberTypeRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-flat = true
 
 [node name="SaberThicknessRow" type="HBoxContainer" parent="Tabs/Visuals/VBox"]
 layout_mode = 2
 
 [node name="saber_thickness_label" type="Label" parent="Tabs/Visuals/VBox/SaberThicknessRow"]
+custom_minimum_size = Vector2(320, 0)
+theme_override_styles/normal = SubResource("row_label")
 layout_mode = 2
-text = "Saber Thickness: "
+text = "Saber thickness"
 
 [node name="saber_thickness" type="HSlider" parent="Tabs/Visuals/VBox/SaberThicknessRow"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 1
@@ -354,49 +361,57 @@ value = 1.0
 
 [node name="glare" type="CheckButton" parent="Tabs/Visuals/VBox"]
 layout_mode = 2
-tooltip_text = "Medium Performance impact*"
-text = "*Glow: "
+tooltip_text = "Can make the game stutter"
+text = "Glow (can stutter)"
 
 [node name="smoke" type="CheckButton" parent="Tabs/Visuals/VBox"]
 layout_mode = 2
-tooltip_text = "Medium Performance impact*"
-text = "*Smoke: "
+tooltip_text = "Can make the game stutter"
+text = "Smoke (can stutter)"
 
 [node name="saber_tail" type="CheckButton" parent="Tabs/Visuals/VBox"]
 layout_mode = 2
-tooltip_text = "High Performance impact*"
-text = "*Saber Tail: "
+tooltip_text = "Can make the game stutter"
+text = "Saber trail (can stutter)"
 
 [node name="cut_blocks" type="CheckButton" parent="Tabs/Visuals/VBox"]
 layout_mode = 2
-tooltip_text = "High Performance impact*"
-text = "*Cut Blocks: "
+tooltip_text = "Can make the game stutter"
+text = "Cut pieces (can stutter)"
 
 [node name="background_mode_grid" type="GridContainer" parent="Tabs/Visuals/VBox"]
+theme_override_constants/h_separation = 16
 layout_mode = 2
 columns = 2
 
 [node name="Label" type="Label" parent="Tabs/Visuals/VBox/background_mode_grid"]
+custom_minimum_size = Vector2(320, 0)
+theme_override_styles/normal = SubResource("row_label")
 layout_mode = 2
-text = "Background Mode:"
+text = "Background"
 
 [node name="background_mode" type="OptionButton" parent="Tabs/Visuals/VBox/background_mode_grid"]
+size_flags_horizontal = 3
 layout_mode = 2
 
 [node name="background_texture_grid" type="GridContainer" parent="Tabs/Visuals/VBox"]
+theme_override_constants/h_separation = 16
 layout_mode = 2
 columns = 2
 
 [node name="Label" type="Label" parent="Tabs/Visuals/VBox/background_texture_grid"]
+custom_minimum_size = Vector2(320, 0)
+theme_override_styles/normal = SubResource("row_label")
 layout_mode = 2
-text = "Background Image:"
+text = "Background picture"
 
 [node name="background_texture" type="OptionButton" parent="Tabs/Visuals/VBox/background_texture_grid"]
+size_flags_horizontal = 3
 layout_mode = 2
 
 [node name="mixed_reality" type="CheckButton" parent="Tabs/Visuals/VBox"]
 layout_mode = 2
-text = "Mixed Reality:"
+text = "Mixed reality"
 
 [node name="Audio" type="ScrollContainer" parent="Tabs"]
 visible = false
@@ -422,6 +437,7 @@ layout_mode = 2
 text = "Master"
 
 [node name="master_slider" type="HSlider" parent="Tabs/Audio/VBox/audio/master"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 1
@@ -437,9 +453,10 @@ size_flags_horizontal = 3
 
 [node name="sfx_label" type="Label" parent="Tabs/Audio/VBox/audio/sfx"]
 layout_mode = 2
-text = "SFX"
+text = "Effects"
 
 [node name="sfx_slider" type="HSlider" parent="Tabs/Audio/VBox/audio/sfx"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 1
@@ -458,6 +475,7 @@ layout_mode = 2
 text = "Music"
 
 [node name="music_slider" type="HSlider" parent="Tabs/Audio/VBox/audio/music"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 1
@@ -473,9 +491,10 @@ size_flags_horizontal = 3
 
 [node name="music_preview_label" type="Label" parent="Tabs/Audio/VBox/audio/music_preview"]
 layout_mode = 2
-text = "Music Preview"
+text = "Song preview"
 
 [node name="music_preview_slider" type="HSlider" parent="Tabs/Audio/VBox/audio/music_preview"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 1
@@ -489,10 +508,13 @@ ticks_on_borders = true
 layout_mode = 2
 
 [node name="ui_volume_label" type="Label" parent="Tabs/Audio/VBox/UI_VolumeRow"]
+custom_minimum_size = Vector2(320, 0)
+theme_override_styles/normal = SubResource("row_label")
 layout_mode = 2
-text = "UI Volume:"
+text = "Menu sounds"
 
 [node name="ui_volume_slider" type="HSlider" parent="Tabs/Audio/VBox/UI_VolumeRow"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
@@ -501,7 +523,7 @@ value = 10.0
 
 [node name="not_music_dl" type="CheckButton" parent="Tabs/Audio/VBox"]
 layout_mode = 2
-text = "Omit Music from Map Download/Upload:"
+text = "Download songs without music"
 
 [node name="Advanced" type="ScrollContainer" parent="Tabs"]
 visible = false
@@ -520,7 +542,7 @@ theme = SubResource("small")
 
 [node name="Label" type="Label" parent="Tabs/Advanced/VBox/left_saber_offset"]
 layout_mode = 2
-text = "Left Saber Offset:"
+text = "Left saber"
 
 [node name="Control" type="Control" parent="Tabs/Advanced/VBox/left_saber_offset"]
 layout_mode = 2
@@ -528,21 +550,24 @@ size_flags_horizontal = 3
 
 [node name="poslabel" type="Label" parent="Tabs/Advanced/VBox/left_saber_offset"]
 layout_mode = 2
-text = "Position:"
+text = "Position"
 
 [node name="posx" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 min_value = -1.0
 max_value = 1.0
 step = 0.001
 
 [node name="posy" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 min_value = -1.0
 max_value = 1.0
 step = 0.001
 
 [node name="posz" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 min_value = -1.0
 max_value = 1.0
@@ -554,21 +579,24 @@ size_flags_horizontal = 3
 
 [node name="rotlabel" type="Label" parent="Tabs/Advanced/VBox/left_saber_offset"]
 layout_mode = 2
-text = "Rotation:"
+text = "Rotation"
 
 [node name="rotx" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 min_value = -180.0
 max_value = 180.0
 step = 0.5
 
 [node name="roty" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 min_value = -180.0
 max_value = 180.0
 step = 0.5
 
 [node name="rotz" type="SpinBox" parent="Tabs/Advanced/VBox/left_saber_offset"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 min_value = -180.0
 max_value = 180.0
@@ -580,7 +608,7 @@ theme = SubResource("small")
 
 [node name="Label" type="Label" parent="Tabs/Advanced/VBox/right_saber_offset"]
 layout_mode = 2
-text = "Right Saber Offset:"
+text = "Right saber"
 
 [node name="Control" type="Control" parent="Tabs/Advanced/VBox/right_saber_offset"]
 layout_mode = 2
@@ -588,21 +616,24 @@ size_flags_horizontal = 3
 
 [node name="poslabel" type="Label" parent="Tabs/Advanced/VBox/right_saber_offset"]
 layout_mode = 2
-text = "Position:"
+text = "Position"
 
 [node name="posx" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 min_value = -1.0
 max_value = 1.0
 step = 0.001
 
 [node name="posy" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 min_value = -1.0
 max_value = 1.0
 step = 0.001
 
 [node name="posz" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 min_value = -1.0
 max_value = 1.0
@@ -614,21 +645,24 @@ size_flags_horizontal = 3
 
 [node name="rotlabel" type="Label" parent="Tabs/Advanced/VBox/right_saber_offset"]
 layout_mode = 2
-text = "Rotation:"
+text = "Rotation"
 
 [node name="rotx" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 min_value = -180.0
 max_value = 180.0
 step = 0.5
 
 [node name="roty" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 min_value = -180.0
 max_value = 180.0
 step = 0.5
 
 [node name="rotz" type="SpinBox" parent="Tabs/Advanced/VBox/right_saber_offset"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 min_value = -180.0
 max_value = 180.0
@@ -636,21 +670,21 @@ step = 0.5
 
 [node name="show_collisions" type="CheckButton" parent="Tabs/Advanced/VBox"]
 layout_mode = 2
-text = "Show Collision Shapes:"
+text = "Show hit boxes"
 
 [node name="show_debug" type="CheckButton" parent="Tabs/Advanced/VBox"]
 layout_mode = 2
-text = "Show Debug Info (FPS + Log):"
+text = "Show frame rate and log"
 
 [node name="spectator_view" type="CheckButton" parent="Tabs/Advanced/VBox"]
 layout_mode = 2
-tooltip_text = "High Performance impact*"
-text = "*Spectator View:"
+tooltip_text = "Can make the game stutter"
+text = "Spectator view (can stutter)"
 
 [node name="spectator_hud" type="CheckButton" parent="Tabs/Advanced/VBox"]
 layout_mode = 2
-tooltip_text = "High Performance impact*"
-text = "Spectator HUD:"
+tooltip_text = "Can make the game stutter"
+text = "Score on spectator view"
 
 [node name="defaults" type="Button" parent="."]
 layout_mode = 0
@@ -658,7 +692,7 @@ offset_left = 788.0
 offset_top = 616.0
 offset_right = 1012.0
 offset_bottom = 696.0
-text = "Default"
+text = "Reset all"
 
 [node name="apply" type="Button" parent="."]
 layout_mode = 0
@@ -666,7 +700,7 @@ offset_left = 1032.0
 offset_top = 616.0
 offset_right = 1256.0
 offset_bottom = 696.0
-text = "Apply"
+text = "Done"
 
 [node name="vr_slider" parent="." instance=ExtResource("4")]
 scroll_node_path = NodePath("../Tabs/Gameplay")
