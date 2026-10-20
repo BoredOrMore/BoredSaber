@@ -99,6 +99,7 @@ var _combo_target := 0.0
 @onready var track_lights_right := $Level/TrackLights/Bar1 as MeshInstance3D
 @onready var track_lights_left := $Level/TrackLights/Bar2 as MeshInstance3D
 @onready var end_path := $Level/Endpath as MeshInstance3D
+@onready var stage_smoke := $Level/StageSmoke as StageSmoke
 
 @onready var ring_anim_player := $Level/rings/AnimationPlayer as AnimationPlayer
 @onready var left_laser_anim_player := $Level/LeftWavingLasers/AnimationPlayer as AnimationPlayer
@@ -270,11 +271,14 @@ func set_combo_multiplier(multiplier: int) -> void:
 func combo_pulse() -> void:
 	_combo_pulse = 1.0
 
-## Dims the scene for the menus, fading over a second, or (off) leaves the lights to the song, which sets them next.
+## Dims the scene for the menus, fading over a second, and fills the stage with smoke; off, it clears the smoke and
+## leaves the lights to the song, which sets them next.
 func set_menu_focus(on: bool) -> void:
 	menu_focus = on
 	if not on:
+		stage_smoke.dissipate()
 		return
+	stage_smoke.refill()
 	_combo_target = 0.0
 	ring_rot_speed = 0.0
 	_apply_menu_lights()
