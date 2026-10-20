@@ -11,11 +11,20 @@ class BeatSaverSongInfo extends RefCounted:
 	var bpm: float
 	var versions: Array
 	var uploader_id: int
+	## Made by an auto-mapper (AI), not a person.
+	var automapper: bool
 
 	func _init(song_info: Dictionary) -> void:
 		name = Utils.get_str(song_info, "name", "")
 		description = Utils.get_str(song_info, "description", "")
 		versions = Utils.get_array(song_info, "versions", [])
+		automapper = bool(song_info.get("automapper", false))
+		# difficulties that need a mod this game doesn't have (Noodle Extensions, Mapping Extensions,
+		# Vivify) don't play right here, so they are left out
+		if not versions.is_empty() and versions[0] is Dictionary:
+			var version := versions[0] as Dictionary
+			version["diffs"] = Utils.get_array(version, "diffs", []).filter(func(diff: Variant) -> bool:
+				return diff is Dictionary and not (diff.get("ne", false) or diff.get("me", false) or diff.get("vivify", false)))
 		uploader_id = int(Utils.get_float(Utils.get_dict(song_info, "uploader", {}), "id", -1))
 		var metadata := Utils.get_dict(song_info, "metadata", {})
 		song_name = Utils.get_str(metadata, "songName", "")
@@ -27,6 +36,15 @@ class BeatSaverSongInfo extends RefCounted:
 	## Seconds a note of one difficulty (from versions[0].diffs) is visible before reaching the player.
 	func reaction_seconds(diff: Dictionary) -> float:
 		return MapStats.reaction_seconds_for(bpm, Utils.get_float(diff, "njs", 0.0), Utils.get_float(diff, "offset", 0.0))
+
+	## True if the map can be played here: made by a person, with a Standard difficulty that needs no mod.
+	func is_playable() -> bool:
+		if automapper or versions.is_empty():
+			return false
+		for diff: Variant in Utils.get_array(versions[0] as Dictionary, "diffs", []):
+			if Utils.get_str(diff as Dictionary, "characteristic", "") == "Standard":
+				return true
+		return false
 
 	## True if the difficulty filter is off or any difficulty of the newest version reads like the picked
 	## difficulty. BeatSaver has no swing data, so only reaction time counts until the map is downloaded.
@@ -41,16 +59,14 @@ class BeatSaverSongInfo extends RefCounted:
 		return false
 
 var song_data: Array[BeatSaverSongInfo] = []
-var current_list := 0
 # reference to the main main node (used for playing downloadable song previews)
 @export var main_menu_ref: MainMenu
 # the next requestable pages for the current list; -1 if prev/next page is
 # not requestable (ie. reached end of the list)
 var prev_page_available := -1
 var next_page_available := -1
-# Older API used to support more lists. temporarily limiting to ones that still work
-#var list_modes = ["hot","rating","latest","downloads","plays"]
-var list_modes: Array[String] = ["plays"]
+## Sort tabs: [label, BeatSaver sortOrder]. The play-count list BeatSaver used to keep is all zeros now.
+const SORT_TABS := [["Popular", "Rating"], ["New", "Latest"], ["Staff picks", "Curated"], ["Random", "Random"]]
 var search_word := ""
 var item_selected := -1
 var downloading := []#[["name","version_info"]]
@@ -62,7 +78,10 @@ var _preview_cache := {}
 var _preview_url := ""
 
 @onready var item_list := $ItemList as ItemList
-@onready var mode_button := $mode as Button
+@onready var sort_tabs := $SortTabs as HBoxContainer
+@onready var search_button := $search as Button
+@onready var clear_search_button := $ClearSearch as Button
+@onready var back_button := $back as Button
 @onready var label := $Label as Label
 @onready var httpreq := $HTTPReq as HTTPRequest
 @onready var httpdownload := $HTTPDownload as HTTPRequest
@@ -93,8 +112,18 @@ func on_song_list_changed() -> void:
 		item_list.set_item_disabled(item_index,main_menu_ref.all_song_hashes.has(item_list.get_item_metadata(item_index)))
 
 func _ready() -> void:
+	var tab_group := ButtonGroup.new()
+	for tab: Array in SORT_TABS:
+		var button := Button.new()
+		button.text = tab[0]
+		button.toggle_mode = true
+		button.button_group = tab_group
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		button.pressed.connect(_on_sort_tab_pressed.bind(tab[1]))
+		sort_tabs.add_child(button)
+	(sort_tabs.get_child(0) as Button).set_pressed_no_signal(true)
 	UI_AudioEngine.attach_children(self)
-	($back as Button).visible = false
+	back_button.visible = false
 	v_scroll.value_changed.connect(_on_ListV_Scroll_value_changed)
 	
 	var is_web := OS.get_name() == "Web"
@@ -194,8 +223,11 @@ func _show() -> void:
 		self.visible = true
 	_on_BeatSaverPanel_visibility_changed()
 
+## BeatSaver search URL for one page. Leaving out the automapper parameter leaves out AI-made maps.
+static func _search_url(page: int, query: String, sort_order: String) -> String:
+	return "https://beatsaver.com/api/search/text/%d?q=%s&sortOrder=%s%s" % [page, query.uri_encode(), sort_order, _filter_query()]
+
 func update_list(req: BeatSaverRequest) -> void:
-	mode_button.disabled = true
 	if req.page == 0:
 		# brand new request, clear list to prep for reload
 		item_list.clear()
@@ -212,21 +244,11 @@ func update_list(req: BeatSaverRequest) -> void:
 	
 	match req.type:
 		"list":
-			var list := req.data
-			mode_button.text = list.substr(0,1).capitalize() + list.substr(1)
-			var filters := _filter_query()
-			if filters.is_empty():
-				httpreq.request("https://beatsaver.com/api/maps/%s/%s" % [list,req.page])
-			else:
-				# the list endpoints can't filter, so search everything by rating instead
-				httpreq.request("https://beatsaver.com/api/search/text/%s?q=&sortOrder=Rating&automapper=true%s" % [req.page,filters])
+			httpreq.request(_search_url(req.page, "", req.data))
 		"text_search":
-			var search_text := req.data
-			mode_button.text = search_text
-			httpreq.request("https://beatsaver.com/api/search/text/%s?q=%s&sortOrder=Relevance&automapper=true%s" % [req.page,search_text.uri_encode(),_filter_query()])
+			httpreq.request(_search_url(req.page, req.data, "Relevance"))
 		"uploader":
 			var uploader_id := req.data
-			mode_button.text = "Uploader"
 			httpreq.request("https://beatsaver.com/api/maps/uploader/%s/%s" % [uploader_id,req.page])
 		_:
 			vr.log_warning("Unsupported request type '%s'" % req.type)
@@ -259,7 +281,7 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 					for i: Variant in docs_array:
 						if not i is Dictionary: continue
 						var parsed_song := BeatSaverSongInfo.new(i as Dictionary)
-						if parsed_song.versions.is_empty() or (prev_request.type != "uploader" and not parsed_song.passes_reaction_filter()):
+						if not parsed_song.is_playable() or (prev_request.type != "uploader" and not parsed_song.passes_reaction_filter()):
 							continue
 						var index := item_list.add_item(parsed_song.name)
 						item_list.set_item_icon(index, placeholder_cover)
@@ -271,8 +293,7 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 
 	else:
 		vr.log_error("request error "+str(result))
-	mode_button.disabled = false
-	($back as Button).visible = back_stack.size() > 0
+	back_button.visible = prev_request != null and prev_request.type == "uploader" and back_stack.size() > 0
 	_scroll_page_request_pending = false
 	
 	var canvas := get_parent().get_parent()
@@ -298,16 +319,32 @@ func _fill_reaction_filtered_list() -> void:
 	_scroll_page_request_pending = true
 
 
-func _on_mode_button_up() -> void:
-	current_list += 1
-	current_list %= list_modes.size()
-	mode_button.text = list_modes[current_list].capitalize()
-	_add_to_back_stack(prev_request)
+## Lists every map in one sort order, leaving any search.
+func _on_sort_tab_pressed(sort_order: String) -> void:
+	_set_search("")
+	back_stack.clear()
 	prev_request = BeatSaverRequest.new()
 	prev_request.page = 0
 	prev_request.type = "list"
-	prev_request.data = list_modes[current_list]
+	prev_request.data = sort_order
 	update_list(prev_request)
+
+## Shows the search text on the search button (with a clear button) and lights the sort tabs only when
+## there is no search.
+func _set_search(text: String) -> void:
+	search_word = text
+	search_button.text = text if not text.is_empty() else "Search songs"
+	clear_search_button.visible = not text.is_empty()
+	if not text.is_empty():
+		var pressed := (sort_tabs.get_child(0) as Button).button_group.get_pressed_button()
+		if pressed:
+			pressed.set_pressed_no_signal(false)
+
+## Clears the search and goes back to the Popular list.
+func _on_clear_search_pressed() -> void:
+	var popular := sort_tabs.get_child(0) as Button
+	popular.set_pressed_no_signal(true)
+	_on_sort_tab_pressed(SORT_TABS[0][1])
 
 
 func _on_ItemList_item_selected(index: int) -> void:
@@ -450,10 +487,11 @@ func _on_search_button_up() -> void:
 
 func _text_input_enter(text: String) -> void:
 	keyboard._hide()
-	search_word = text
-	mode_button.text = search_word
-	current_list = -1
-	_add_to_back_stack(prev_request)
+	if text.strip_edges().is_empty():
+		_on_clear_search_pressed()
+		return
+	_set_search(text.strip_edges())
+	back_stack.clear()
 	prev_request = BeatSaverRequest.new()
 	prev_request.page = 0
 	prev_request.type = "text_search"
@@ -538,8 +576,7 @@ func _on_back_pressed() -> void:
 	prev_request.page = 0
 	back_stack.pop_back()
 	update_list(prev_request)
-	
-	($back as Button).visible = back_stack.size() > 0
+	back_button.visible = false
 
 func _get_cover_url_from_song_data(song_info: BeatSaverSongInfo) -> String:
 	var song_versions := song_info.versions
@@ -561,11 +598,6 @@ func _on_CloseButton_pressed() -> void:
 var _is_first_show := true
 func _on_BeatSaverPanel_visibility_changed() -> void:
 	if _is_first_show:
-		# populate initial list of songs with most played on BeatSaver
-		var first_req := BeatSaverRequest.new()
-		first_req.page = 0
-		first_req.type = "list"
-		first_req.data = "plays"
-		prev_request = first_req
-		update_list(prev_request)
+		# start on the most liked maps
+		_on_sort_tab_pressed(SORT_TABS[0][1])
 		_is_first_show = false
