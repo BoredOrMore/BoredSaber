@@ -476,9 +476,9 @@ func play_preview(buffer: PackedByteArray, start_time: float = 0.0, duration: fl
 	
 	if not stream: return
 	
-	if duration < 0.0:
-		# assume preview duration based on parsed audio length
-		duration = stream.get_length()
+	# play on from the preview's start to the end of the song instead of looping the map's short preview
+	# window, which felt repetitive in the menus (the player's choice); _on_preview_ended starts it again
+	duration = maxf(stream.get_length() - start_time, 1.0)
 	
 	
 	# fade out preview if ones already running
