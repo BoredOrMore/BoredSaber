@@ -223,12 +223,9 @@ func set_environment(id: String) -> void:
 const RIG_FAN_ORIGIN := Vector3(0.0, NeonGridRig.STAGE_TOP, NeonGridRig.STAGE_CENTRE.z)
 const RIG_FAN_SPREAD_DEG := 70.0
 const RIG_GRID_EDGE_X := NeonGridRig.POLE_X
-## Neon Grid's square bars as stripes across the backdrop: the horizontal ones stacked from STRIPE_BOTTOM every
-## STRIPE_GAP metres, the vertical ones in a block at each side from STRIPE_SIDE_X every STRIPE_SIDE_GAP metres
-const STRIPE_BOTTOM := 1.5
-const STRIPE_GAP := 1.8
-const STRIPE_SIDE_X := 9.0
-const STRIPE_SIDE_GAP := 0.7
+## Neon Grid's square bars: the horizontal ones become light rails between neighbouring lamp poles, along the
+## track; the vertical ones are left out there, as the poles are shorter than a bar.
+const RAIL_BASIS := Basis(Vector3(1.0, 0.0, 0.0), Vector3(0.0, 1.0, 0.0), Vector3(0.0, 0.0, 0.3))
 const RIG_CITY_SEARCH_X := 26.0
 const RIG_CITY_ROOF := Vector3(20.0, 8.0, -35.0)
 const RIG_VOID_RADIUS := 16.0
@@ -272,6 +269,9 @@ func _apply_rig(id: String) -> void:
 			node.transform = _classic_rig[node]
 		else:
 			node.global_transform = _classic_rig[node]
+			if node is MeshInstance3D:
+				# a square bar a rig left out
+				node.visible = true
 	var square: Array = RIG_SQUARE.get(id, [])
 	if not square.is_empty():
 		square_lasers_holder.position = square[0]
@@ -287,16 +287,16 @@ func _apply_rig(id: String) -> void:
 			for i in waving.size():
 				var side := -1.0 if i < half else 1.0
 				waving[i].global_position = Vector3(side * RIG_GRID_EDGE_X, NeonGridRig.POLE_HEIGHT, NeonGridRig.POLE_Z[i % half])
-			var top := 0
-			var sides := 0
+			var rail := 0
+			var gaps := NeonGridRig.POLE_Z.size() - 1
 			for bar in _square_bars():
-				if bar.get_parent() == square_lasers_holder:
-					bar.global_position = Vector3(0.0, STRIPE_BOTTOM + STRIPE_GAP * top, NeonGridRig.BACKDROP_FRONT)
-					top += 1
-				else:
-					var side := -1.0 if bar.global_position.x < 0.0 else 1.0
-					bar.global_position = Vector3(side * (STRIPE_SIDE_X + STRIPE_SIDE_GAP * (sides % 6)), NeonGridRig.BACKDROP_CENTRE.y, NeonGridRig.BACKDROP_FRONT)
-					sides += 1
+				if bar.get_parent() != square_lasers_holder:
+					bar.visible = false
+					continue
+				var side := -1.0 if rail < gaps else 1.0
+				var z := (NeonGridRig.POLE_Z[rail % gaps] + NeonGridRig.POLE_Z[rail % gaps + 1]) * 0.5
+				bar.global_transform = Transform3D(RAIL_BASIS, Vector3(side * RIG_GRID_EDGE_X, NeonGridRig.POLE_HEIGHT, z))
+				rail += 1
 		"night_city":
 			for i in diagonal_lasers.size():
 				var pairs := diagonal_lasers.size() >> 1
