@@ -316,21 +316,22 @@ static func in_filter(value: float, filter: Array) -> bool:
 ## the player move.
 static func describe(info: MapInfo, difficulty: DifficultyInfo, stats: Dictionary) -> String:
 	var seconds := int(stats.get("seconds", 0.0))
-	var text := "%d:%02d · Notes %.2f s ahead" % [seconds / 60, seconds % 60, reaction_seconds(info, difficulty)]
+	# no-break spaces keep each phrase whole when the line wraps (at a " · ")
+	var text := "%d:%02d · Notes\u00A0%.2f\u00A0s\u00A0ahead" % [seconds / 60, seconds % 60, reaction_seconds(info, difficulty)]
 	var gap := float(stats.get("gap", 0.0)) / _speed()
 	if gap > 0.0:
-		text += " · Swings every %.2f s" % gap
+		text += " · Swings\u00A0every\u00A0%.2f\u00A0s" % gap
 	text += "\n"
 	if stats.has("flow"):
-		text += "Swing flow: %s · " % Constants.FLOW_LEVELS[flow_level(float(stats.flow))][0]
-	text += "Map's label: %s" % difficulty.get_display_name()
+		text += "Swing\u00A0flow:\u00A0%s · " % Constants.FLOW_LEVELS[flow_level(float(stats.flow))][0]
+	text += "Map's\u00A0label:\u00A0%s" % difficulty.get_display_name()
 	var level := workout_level(stats)
 	if level > 0:
 		text += "\n%s: %d %s" % [Constants.WORKOUT_LEVELS[level], stats.sets, "set" if stats.sets == 1 else "sets"]
 		for move: Array in [["side_steps", "side step"], ["squats", "squat"]]:
 			var count := int(stats.get(move[0], 0))
 			if count > 0:
-				text += " · %d %s%s" % [count, move[1], "" if count == 1 else "s"]
+				text += " · %d\u00A0%s%s" % [count, move[1].replace(" ", "\u00A0"), "" if count == 1 else "s"]
 	return text
 
 ## The difficulty filter choices for a dropdown: [id, label], id 0 being any difficulty.

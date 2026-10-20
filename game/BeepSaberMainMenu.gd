@@ -859,6 +859,8 @@ const CHARACTERISTIC_LABELS := {"OneSaber": "1 Saber", "NoArrows": "No Arrows", 
 
 ## Characteristic of each tab in characteristic_row, in tab order, for the selected map.
 var _characteristics: Array[String] = []
+## Side padding of the level buttons, so "Expert+" fits five to a row at full size.
+const LEVEL_BUTTON_PADDING := 4.0
 
 ## Fills the difficulty picker with one button per level and a pool of characteristic tabs, so nothing scrolls.
 func _build_difficulty_picker() -> void:
@@ -876,6 +878,14 @@ func _build_difficulty_picker() -> void:
 		for state: StringName in [&"font_color", &"font_hover_color", &"font_pressed_color", &"font_hover_pressed_color", &"font_focus_color"]:
 			button.add_theme_color_override(state, color)
 		level_row.add_child(button)
+		# five buttons share the column: narrow side padding (read once in the tree, from the menu theme),
+		# and the text never widens the row past the panel
+		button.clip_text = true
+		for style: StringName in [&"normal", &"hover", &"pressed", &"hover_pressed", &"disabled", &"focus"]:
+			var box := button.get_theme_stylebox(style).duplicate() as StyleBox
+			box.content_margin_left = LEVEL_BUTTON_PADDING
+			box.content_margin_right = LEVEL_BUTTON_PADDING
+			button.add_theme_stylebox_override(style, box)
 	_sync_difficulty_picker()
 
 ## The characteristic a difficulty belongs to; maps without one are Standard.
@@ -912,6 +922,10 @@ func _sync_difficulty_picker() -> void:
 		if tab.visible:
 			tab.text = CHARACTERISTIC_LABELS.get(_characteristics[i], _characteristics[i])
 			tab.set_pressed_no_signal(picked != null and _characteristic_of(picked) == _characteristics[i])
+	# the tab row only takes room when there are tabs; then the stats get one line less, so the picker
+	# never runs into the fail row below it
+	characteristic_row.visible = _characteristics.size() > 1
+	level_stats.max_lines_visible = 2 if characteristic_row.visible else 3
 	# each of the map's difficulties keeps the mapper's slot but shows the difficulty it plays at
 	# (MapStats.level_of); slots the map lacks are hidden, and slots that play at the same level
 	# add the mapper's label so no name shows twice
@@ -935,7 +949,6 @@ func _sync_difficulty_picker() -> void:
 			button.text = level[0]
 			if level_counts[levels[i]] > 1:
 				button.text += "\n" + map.difficulty_beatmaps[index].get_display_name()
-				button.add_theme_font_size_override(&"font_size", 18)
 			button.add_theme_color_override(&"font_color", level[1])
 			button.add_theme_color_override(&"font_pressed_color", level[1])
 		button.visible = index >= 0 or not picked
