@@ -143,7 +143,12 @@ often than unlabelled ones in UserTesting's study).
 ## 7. Propose before building
 
 For a new screen or flow, send the user a short plan in player words: the flow steps, where each
-piece sits, the labels, and what you'll drop. Offer two or three wording options when the plain
+piece sits, the labels, and what you'll drop. Before sending it, check the plan itself against every
+rule in this skill and in the root `AGENTS.md` ("Player-facing wording and UX"), with numbers for
+placement (section 2), and fix what fails: rules apply to proposals, not only to built code. (A
+"cut a block to play" plan reached the user with a second Play control kept "as a fallback", a font
+glyph in its label, no song name on the action and a target 30° below the eyes, because research and
+genre examples were checked but these rules were not.) Offer two or three wording options when the plain
 term isn't obvious. Then build in small steps, one build per step, and verify each with
 `vr-ui-review`.
 
