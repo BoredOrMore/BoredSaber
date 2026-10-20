@@ -52,11 +52,19 @@ class BeatSaverSongInfo extends RefCounted:
 		return 100.0 * (Utils.get_float(parity, "errors", 0.0) + Utils.get_float(parity, "warns", 0.0)
 			+ Utils.get_float(parity, "resets", 0.0)) / notes
 
+	## Median same-hand swing gap over 2 / notes per second (each hand takes about half the notes): 0.84
+	## (quartiles 0.75-0.92, r = 0.96) over the test headset's 77 Standard difficulties, measured with
+	## doc/research/flow_research.py's note reader. Stacks and chains make it a little under 1.
+	const SWING_GAP_PER_NOTE_GAP := 0.84
+
 	## Difficulty a map difficulty plays at before it is downloaded (an index in Constants.DIFFICULTY_LEVELS):
-	## its reaction time level, one up when its swings are Tangled. Swing pace needs the notes themselves, so it
-	## counts only once the map is downloaded (MapStats.level_of).
+	## the harder of its reaction time and its swing pace estimated from notes per second, one up when its swings
+	## are Tangled. Downloaded maps use the measured swing gap instead (MapStats.level_of).
 	func level_of(diff: Dictionary) -> int:
 		var level := MapStats.reaction_level(reaction_seconds(diff))
+		var nps := Utils.get_float(diff, "nps", 0.0)
+		if nps > 0.0:
+			level = maxi(level, MapStats.swing_pace_level(SWING_GAP_PER_NOTE_GAP * 2.0 / nps / MapStats._speed()))
 		if MapStats.flow_level(parity_percent(diff)) == Constants.FLOW_LEVELS.size() - 1:
 			level += 1
 		return mini(level, Constants.DIFFICULTY_LEVELS.size() - 1)
@@ -495,15 +503,13 @@ func _details_text(song: BeatSaverSongInfo) -> String:
 	if not tag_names.is_empty():
 		text += "\n[color=#%s]%s[/color]" % [muted, " · ".join(tag_names)]
 	text += "\n"
-	var relabeled := false
 	for diff: Variant in Utils.get_array(song.versions[0] as Dictionary, "diffs", []):
 		var d := diff as Dictionary
 		var map_label := Utils.get_str(d, "difficulty", "").replace("ExpertPlus", "Expert+")
 		var level: Array = Constants.DIFFICULTY_LEVELS[song.level_of(d)]
 		var line: String = level[0]
 		if map_label != level[0]:
-			line += " (%s)" % map_label
-			relabeled = true
+			line += " [color=#%s]· map says %s[/color]" % [muted, map_label]
 		if Utils.get_str(d, "characteristic", "Standard") != "Standard":
 			line += " · %s" % Utils.get_str(d, "characteristic", "")
 		if song.bpm > 0.0:
@@ -515,8 +521,6 @@ func _details_text(song: BeatSaverSongInfo) -> String:
 		if walls > 0:
 			line += " · %d walls" % walls
 		text += "\n[color=#%s]%s[/color]" % [(level[1] as Color).to_html(false), line]
-	if relabeled:
-		text += "\n[color=#%s](in brackets: the map's own label)[/color]" % muted
 	var description := song.description.strip_edges()
 	if not description.is_empty():
 		var lines := description.split("\n", false)
