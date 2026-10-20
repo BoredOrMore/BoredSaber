@@ -179,7 +179,8 @@ channel), so brightness comes from contrast and the size of bright areas, not fr
    beam spanning from one object to another. Nothing floats unsupported. Fixtures repeat in rows along their
    surface for rhythm and depth. A beam turns around its fixture (`game/AGENTS.md`), shows only through
    haze, and fades with distance and along its length; far things lose contrast toward the haze colour
-   (aerial perspective).
+   (aerial perspective). Keep each environment's signature view clear: structure goes to the sides and below the
+   horizon, never in front of it (a backdrop behind Neon Grid's horizon read as clutter).
 6. Haze reveals, it doesn't paint: the air stays mostly neutral and is tinted only a little by nearby
    lights (`EventDriver.HAZE_LIGHT_WEIGHT`).
 7. Fixtures move like machines: pan and tilt around the fixture with ease in and out at plausible
