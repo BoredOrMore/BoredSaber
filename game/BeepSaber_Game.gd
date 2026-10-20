@@ -265,6 +265,8 @@ func _on_beatsaver_visibility_changed() -> void:
 		main_menu._show()
 		if _menu_highscores_shown:
 			highscore_canvas._show()
+		# the BeatSaver preview stops; the selected song's preview comes back
+		menu.play_selected_preview(0.0, true)
 
 # call this method to submit a new highscore to the database
 ## Renames the record that was saved under the default name, and makes the name the new default.

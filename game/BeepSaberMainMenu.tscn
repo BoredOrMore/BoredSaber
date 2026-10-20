@@ -472,7 +472,7 @@ scroll_without_pointer = true
 [connection signal="item_selected" from="ReactionFilter" to="." method="_on_reaction_filter_item_selected"]
 [connection signal="item_selected" from="LengthFilter" to="." method="_on_length_filter_item_selected"]
 [connection signal="pressed" from="MorePanel/LoadPlaylists_Button" to="." method="_on_LoadPlaylists_Button_pressed"]
-[connection signal="timeout" from="song_prev/stop_prev" to="." method="_on_stop_prev_timeout"]
+[connection signal="timeout" from="song_prev/stop_prev" to="." method="_on_preview_ended"]
 [connection signal="pressed" from="Favorite_Button" to="." method="_on_favorite_button_pressed"]
 [connection signal="toggled" from="FavoritesFilter" to="." method="_on_favorites_filter_toggled"]
 [connection signal="toggled" from="WorkoutFilter" to="." method="_on_workout_filter_toggled"]

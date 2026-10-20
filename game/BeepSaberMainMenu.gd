@@ -451,13 +451,13 @@ const SCORE_SCREEN_PREVIEW_DB := -10.5
 
 ## Plays the selected song's preview, fading in to volume_db, so the menus never fall silent after a song (as in Beat
 ## Saber); if a preview already plays, only fades it to that volume.
-func play_selected_preview(volume_db := 0.0) -> void:
+func play_selected_preview(volume_db := 0.0, restart := false) -> void:
 	if current_selected < 0 or current_selected >= _currently_selected_songlist_ref.size() or Settings.audio_music_preview <= 0:
 		return
 	var map := _currently_selected_songlist_ref[current_selected]
 	if not map.have_song:
 		return
-	if song_preview.playing:
+	if song_preview.playing and not restart:
 		song_preview.create_tween().tween_property(song_preview, ^"volume_db", volume_db, song_preview_transition_time)
 		return
 	play_preview(Utils.read_binary_file(map.filepath, map.song_filename), map.preview_start_time, map.preview_duration,
@@ -498,6 +498,9 @@ func play_preview(buffer: PackedByteArray, start_time: float = 0.0, duration: fl
 		song_preview.play(start_time)
 		song_preview.pitch_scale = Settings.music_speed / 100.
 		($song_prev/stop_prev as Timer).start(duration)
+		_loop_start = start_time
+		_loop_duration = duration
+		_loop_volume_db = volume_db
 
 func _select_song(id: int, with_preview: bool = true) -> void:
 	current_selected = id 
@@ -537,13 +540,37 @@ func stop_preview() -> void:
 	_preview_generation += 1
 	await _on_stop_prev_timeout()
 
-func _on_stop_prev_timeout() -> void:
+## Seconds of quiet between the end of a preview and its next loop, and how fast Play fades it out.
+const PREVIEW_LOOP_GAP := 0.5
+const PLAY_FADE_SECONDS := 0.3
+## the playing preview's start, length and volume, to loop it
+var _loop_start := 0.0
+var _loop_duration := 0.0
+var _loop_volume_db := 0.0
+
+## The preview reached its end: fade it out, then play it again from its start after a short gap, as long as nothing
+## else took over (another preview, a song), so the song select never falls silent.
+func _on_preview_ended() -> void:
+	var generation := _preview_generation
+	await _on_stop_prev_timeout()
+	await get_tree().create_timer(PREVIEW_LOOP_GAP).timeout
+	if generation != _preview_generation or main_song_player_ref.playing or song_preview.playing or song_preview.stream == null:
+		return
+	song_preview.volume_db = -50
+	song_preview.play(_loop_start)
+	song_preview.create_tween().tween_property(song_preview, ^"volume_db", _loop_volume_db, song_preview_transition_time)
+	($song_prev/stop_prev as Timer).start(_loop_duration)
+
+## Fades out the preview over seconds (the usual transition when below 0) and stops it, unless a newer one started.
+func _on_stop_prev_timeout(seconds := -1.0) -> void:
+	if seconds < 0.0:
+		seconds = song_preview_transition_time
 	var generation := _preview_generation
 	var song_prev_Tween := song_preview.create_tween().set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_IN_OUT)
 	@warning_ignore("return_value_discarded")
-	song_prev_Tween.tween_property(song_preview, "volume_db", -50, song_preview_transition_time)
+	song_prev_Tween.tween_property(song_preview, "volume_db", -50, seconds)
 	song_prev_Tween.play()
-	await get_tree().create_timer(song_preview_transition_time).timeout
+	await get_tree().create_timer(seconds).timeout
 	# a newer preview has started meanwhile; leave it playing
 	if generation == _preview_generation:
 		song_preview.stop()
@@ -700,7 +727,8 @@ func _on_Play_Button_pressed() -> void:
 	if current_selected >= 0:
 		var map := _currently_selected_songlist_ref[current_selected]
 		Settings.last_map = map.filepath
-		song_preview.stop()
+		_preview_generation += 1
+		_on_stop_prev_timeout(PLAY_FADE_SECONDS)
 		Settings.save()
 		var play_button := $Play_Button as Button
 		play_button.text = "Loading..."
