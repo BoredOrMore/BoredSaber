@@ -8,6 +8,7 @@
 [ext_resource type="Texture2D" path="res://game/ui/icons/locate-fixed.svg" id="icon_locate-fixed"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/undo-2.svg" id="icon_undo-2"]
 [ext_resource type="Script" path="res://game/ui/IconButton.gd" id="icon_button"]
+[ext_resource type="Script" path="res://game/ui/ConfirmButton.gd" id="confirm_button"]
 [ext_resource type="Script" path="res://game/ui/StepperSpinBox.gd" id="stepper"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/ruler.svg" id="icon_ruler"]
 
@@ -801,13 +802,14 @@ text = "Score on spectator view"
 
 [node name="defaults" type="Button" parent="."]
 layout_mode = 0
-offset_left = 788.0
+offset_left = 548.0
 offset_top = 616.0
 offset_right = 1012.0
 offset_bottom = 696.0
 text = "Reset all"
 icon = ExtResource("icon_undo-2")
-script = ExtResource("icon_button")
+script = ExtResource("confirm_button")
+question = "Reset every setting?\nPress again"
 
 [node name="apply" type="Button" parent="."]
 layout_mode = 0
@@ -876,5 +878,5 @@ scroll_without_pointer = true
 [connection signal="toggled" from="Tabs/Advanced/VBox/show_debug" to="." method="_on_show_debug_toggled"]
 [connection signal="toggled" from="Tabs/Advanced/VBox/spectator_view" to="." method="_on_spectator_view_toggled"]
 [connection signal="toggled" from="Tabs/Advanced/VBox/spectator_hud" to="." method="_on_spectator_hud_toggled"]
-[connection signal="button_up" from="defaults" to="." method="_restore_defaults"]
+[connection signal="confirmed" from="defaults" to="." method="_restore_defaults"]
 [connection signal="pressed" from="apply" to="." method="_on_apply_pressed"]

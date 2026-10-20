@@ -35,7 +35,7 @@ const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 @onready var characteristic_row := $DifficultyPicker/CharacteristicRow as HBoxContainer
 @onready var level_row := $DifficultyPicker/LevelRow as HBoxContainer
 @onready var level_stats := $DifficultyPicker/LevelStats as Label
-@onready var delete_button := $MorePanel/Delete_Button as Button
+@onready var delete_button := $MorePanel/Delete_Button as ConfirmButton
 @onready var fail_row := $FailRow as HBoxContainer
 @onready var damage_row := $DamageRow as HBoxContainer
 @onready var environment_row := $EnvironmentRow as HBoxContainer
@@ -378,6 +378,9 @@ func _select_song(id: int, with_preview: bool = true) -> void:
 	favorite_button.show()
 	
 	var map := _currently_selected_songlist_ref[id]
+	var song_name := map.song_name if map.song_name.length() <= DELETE_NAME_CHARS else map.song_name.left(DELETE_NAME_CHARS - 1) + "…"
+	delete_button.cancel()
+	delete_button.question = "Delete %s?\nIts scores too · press again" % song_name
 	_shown_map = map
 	($SongInfo_Label as Label).text = "%s\n%s\nMapped by %s\nPlayed %d times" % [
 		map.song_name,
@@ -437,17 +440,15 @@ func _load_map_and_start(map: MapInfo) -> void:
 	
 	start_map.emit(map, diff_info)
 
-func _on_Delete_Button_button_up() -> void:
-	if delete_button.text != "Sure?":
-		delete_button.text = "Sure?"
-		await get_tree().create_timer(5).timeout
-		delete_button.text = "Delete Song"
-	else:
-		delete_button.text = "Delete Song"
-		_delete_map(_currently_selected_songlist_ref[current_selected])
-		current_selected = -1
-		update_view()
-	
+## Longest song name the delete question shows before cutting it short.
+const DELETE_NAME_CHARS := 18
+
+## Deletes the picked song once the player pressed Delete twice (ConfirmButton).
+func _on_delete_confirmed() -> void:
+	_delete_map(_currently_selected_songlist_ref[current_selected])
+	current_selected = -1
+	update_view()
+
 func _delete_map(map: MapInfo) -> void:
 	Highscores.remove_map(map)
 	PlayCount.remove_map(map)
