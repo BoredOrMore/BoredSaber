@@ -240,8 +240,8 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 	for map in songs:
 		if filter.passes(map):
 			shown.append(map)
+	_show_filter_counts(filter, songs, shown.size())
 	songs = shown
-	_show_filter_counts(filter, shown.size())
 	_currently_selected_songlist_ref = songs
 	songs_menu.clear()
 	_list_generation += 1
@@ -333,41 +333,42 @@ const WORKOUT_LABEL := "Workout"
 const FILTER_STATUS_TEXT := "Showing %d of %d %s"
 const SONG_TOTAL_TEXT := "%d %s"
 const SONG_NOUNS := ["song", "songs"]
-## Status while a search sorts the list, shorter so the search text fits: shown of total, then the text.
+## Status while searching, shorter so the search text fits: shown of total, then the text.
 const SEARCH_FILTER_STATUS_TEXT := "%d of %d %s"
-const SEARCH_STATUS_TEXT := " · \"%s\" first"
+const SEARCH_STATUS_TEXT := " · \"%s\""
 const NO_MATCH_TEXT := "No songs match these filters."
 const NO_SONGS_TEXT := "No songs yet.\nGet more songs below."
 
-## Puts next to each filter choice how many songs it would list with the other filters as they are, greys out
+## Puts next to each filter choice how many of the songs (the playlist, or the search matches) it would list with
+## the other filters as they are, greys out
 ## choices that would list none (so the list can't be filtered empty), and says above the list how many songs
 ## are shown, what the search is, and how to clear both. Faceted filters that show counts, the active
 ## filters and one clear action keep a list from emptying without a reason (NN/g, "Filters vs. Facets";
 ## Baymard Institute, product list filtering).
-func _show_filter_counts(filter: SongFilter, shown: int) -> void:
+func _show_filter_counts(filter: SongFilter, songs: Array[MapInfo], shown: int) -> void:
 	var difficulties := MapStats.difficulty_filters()
 	for i in reaction_filter.item_count:
 		var choice := filter.copy()
 		choice.reaction = difficulties[i][0]
-		_show_choice_count(reaction_filter, i, difficulties[i][1], choice.count(_all_songs))
+		_show_choice_count(reaction_filter, i, difficulties[i][1], choice.count(songs))
 	for i in length_filter.item_count:
 		var choice := filter.copy()
 		choice.length = Constants.LENGTH_FILTERS[i][0]
-		_show_choice_count(length_filter, i, Constants.LENGTH_FILTERS[i][1], choice.count(_all_songs))
+		_show_choice_count(length_filter, i, Constants.LENGTH_FILTERS[i][1], choice.count(songs))
 	# the dropdown shows the picked choice without its count, which the status row gives
 	reaction_filter.text = difficulties[reaction_filter.selected][1]
 	length_filter.text = Constants.LENGTH_FILTERS[length_filter.selected][1]
 	var favorites := filter.copy()
 	favorites.favorites = true
-	_show_toggle_count(favorites_filter, FAVORITES_LABEL, favorites.count(_all_songs))
+	_show_toggle_count(favorites_filter, FAVORITES_LABEL, favorites.count(songs))
 	var workout := filter.copy()
 	workout.workout = true
-	_show_toggle_count(workout_filter, WORKOUT_LABEL, workout.count(_all_songs))
+	_show_toggle_count(workout_filter, WORKOUT_LABEL, workout.count(songs))
 
 	var total := _all_songs.size()
 	var noun: String = SONG_NOUNS[0] if total == 1 else SONG_NOUNS[1]
 	var status := SONG_TOTAL_TEXT % [total, noun]
-	if not filter.is_off():
+	if not filter.is_off() or not _search_text.is_empty():
 		status = (FILTER_STATUS_TEXT if _search_text.is_empty() else SEARCH_FILTER_STATUS_TEXT) % [shown, total, noun]
 	if not _search_text.is_empty():
 		status += SEARCH_STATUS_TEXT % _search_text
@@ -855,7 +856,8 @@ func _text_input_changed() -> void:
 		return
 	_apply_search(keyboard._text_edit.text)
 
-## Shows the songs most similar to the search text first, or the playlist when the text is empty.
+## Lists the songs whose title, artist or mapper contains the search text, closest title first, like the
+## BeatSaver page's search; the playlist when the text is empty.
 func _apply_search(text: String) -> void:
 	_search_text = text
 	if text == "":
@@ -864,6 +866,8 @@ func _apply_search(text: String) -> void:
 	text = text.to_upper() # ignore case
 	var songs_sorted_by_similarity: Array[MapInfoWithSort] = []
 	for song in _all_songs:
+		if not (song.song_name + "\n" + song.song_author_name + "\n" + song.level_author_name).to_upper().contains(text):
+			continue
 		# similarity is between 0.0 and 1.0, MapInfoWithSort takes an int,
 		# gotta make the number larger else it'll just be 0 or 1 later
 		var similarity := song.song_name.to_upper().similarity(text) * 65536.0
