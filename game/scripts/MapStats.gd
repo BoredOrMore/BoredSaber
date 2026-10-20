@@ -337,12 +337,26 @@ static func describe(info: MapInfo, difficulty: DifficultyInfo, stats: Dictionar
 				text += " · %d\u00A0%s%s" % [count, move[1].replace(" ", "\u00A0"), "" if count == 1 else "s"]
 	return text
 
-## The difficulty filter choices for a dropdown: [id, label], id 0 being any difficulty.
+## The difficulty filter choices for a dropdown: [id, label], id 0 being any difficulty. Id n lists songs that
+## play at DIFFICULTY_LEVELS[n - 1] or easier, so a player picks the hardest they want ("no harder than this",
+## owner's choice 2026-10-20). The hardest level is left out: it would list the same songs as Any.
 static func difficulty_filters() -> Array:
 	var filters := [[0, Constants.ANY_DIFFICULTY_LABEL]]
-	for i in Constants.DIFFICULTY_LEVELS.size():
-		filters.append([i + 1, Constants.DIFFICULTY_LEVELS[i][0]])
+	for i in Constants.DIFFICULTY_LEVELS.size() - 1:
+		var level: String = Constants.DIFFICULTY_LEVELS[i][0]
+		filters.append([i + 1, level if i == 0 else Constants.UP_TO_LEVEL_LABEL % level])
 	return filters
+
+## A saved difficulty filter id, or 0 (any) when it is not one of difficulty_filters (an older save picked
+## Expert+).
+static func difficulty_filter(id: int) -> int:
+	return id if id > 0 and id < Constants.DIFFICULTY_LEVELS.size() else 0
+
+## True if a difficulty that plays at level passes the difficulty filter id: the filter is off or the level is
+## no harder than the picked one.
+static func passes_difficulty_filter(level: int, id: int) -> bool:
+	id = difficulty_filter(id)
+	return id == 0 or level <= id - 1
 
 ## Cache key of one difficulty.
 static func _key(info: MapInfo, difficulty: DifficultyInfo) -> String:

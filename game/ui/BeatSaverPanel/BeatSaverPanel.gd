@@ -86,15 +86,15 @@ class BeatSaverSongInfo extends RefCounted:
 				return true
 		return false
 
-	## True if the difficulty filter is off or any difficulty of the newest version plays at the picked
-	## difficulty (level_of).
+	## True if the difficulty filter is off or any difficulty of the newest version plays at the picked level or
+	## easier (level_of).
 	func passes_reaction_filter() -> bool:
-		if Settings.beatsaver_filter_reaction == 0:
+		if MapStats.difficulty_filter(Settings.beatsaver_filter_reaction) == 0:
 			return true
 		if versions.is_empty():
 			return false
 		for diff: Variant in Utils.get_array(versions[0] as Dictionary, "diffs", []):
-			if diff is Dictionary and level_of(diff as Dictionary) == Settings.beatsaver_filter_reaction - 1:
+			if diff is Dictionary and MapStats.passes_difficulty_filter(level_of(diff as Dictionary), Settings.beatsaver_filter_reaction):
 				return true
 		return false
 
@@ -256,7 +256,7 @@ func _ready() -> void:
 
 ## Shows the saved song filters in the dropdowns.
 func _sync_filter_controls() -> void:
-	reaction_filter.select(clampi(Settings.beatsaver_filter_reaction, 0, Constants.DIFFICULTY_LEVELS.size()))
+	reaction_filter.select(MapStats.difficulty_filter(Settings.beatsaver_filter_reaction))
 	length_filter.select(MapStats.length_filter(Settings.beatsaver_filter_length)[0])
 
 ## BeatSaver search parameters for the picked style and genre (both must match) and the saved length filter,
@@ -432,7 +432,7 @@ const REACTION_FILL_PAGES := 10
 ## BeatSaver can't filter by reaction time, so it is applied to each page after it arrives and a page
 ## can show few or no songs; fetch the next pages until the list has enough songs to scroll.
 func _fill_reaction_filtered_list() -> void:
-	if Settings.beatsaver_filter_reaction == 0 or prev_request == null or prev_request.type == "uploader":
+	if MapStats.difficulty_filter(Settings.beatsaver_filter_reaction) == 0 or prev_request == null or prev_request.type == "uploader":
 		return
 	if next_page_available == -1 or item_list.item_count >= REACTION_FILL_ITEMS or prev_request.page >= REACTION_FILL_PAGES:
 		return

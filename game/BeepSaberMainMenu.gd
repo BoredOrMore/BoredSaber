@@ -261,7 +261,7 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 			songs_menu.deselect_all()
 	_update_play_button()
 
-## False for non-favorites when only favorites are shown. Otherwise true if any difficulty of the map is playable (MapStats.is_unplayable), at the picked level
+## False for non-favorites when only favorites are shown. Otherwise true if any difficulty of the map is playable (MapStats.is_unplayable), at the picked level or easier
 ## (MapStats.level_of), inside the length filter and, when only workouts are shown, has a set of wall moves
 ## (MapStats.workout_level). Maps that haven't been counted yet pass, so the list never hides songs it knows
 ## nothing about.
@@ -272,7 +272,7 @@ func _passes_song_filter(map: MapInfo) -> bool:
 	for diff in map.difficulty_beatmaps:
 		var stats := MapStats.get_cached(map, diff)
 		if not MapStats.is_unplayable(stats) \
-				and (Settings.song_filter_reaction == 0 or MapStats.level_of(map, diff, stats) == Settings.song_filter_reaction - 1) \
+				and MapStats.passes_difficulty_filter(MapStats.level_of(map, diff, stats), Settings.song_filter_reaction) \
 				and (stats.is_empty() or MapStats.in_filter(float(stats.seconds), length_range)) \
 				and (not Settings.song_filter_workout or stats.is_empty() or MapStats.workout_level(stats) > 0):
 			return true
@@ -515,7 +515,7 @@ func _ready() -> void:
 	playlist_selector.add_item("All Songs")
 	playlist_selector.add_item("Recently Added")
 	playlist_selector.add_item("Most Played")
-	_drop_down(reaction_filter, MapStats.difficulty_filters(), Settings.song_filter_reaction, 0)
+	_drop_down(reaction_filter, MapStats.difficulty_filters(), MapStats.difficulty_filter(Settings.song_filter_reaction), 0)
 	_drop_down(length_filter, Constants.LENGTH_FILTERS, Settings.song_filter_length, 0)
 	favorites_filter.set_pressed_no_signal(Settings.song_filter_favorites)
 	workout_filter.set_pressed_no_signal(Settings.song_filter_workout)
@@ -551,12 +551,12 @@ func on_settings_changed(key: StringName) -> void:
 		&"music_speed":
 			song_preview.pitch_scale = Settings.music_speed / 100.
 			# reaction times depend on the Speed modifier
-			if Settings.song_filter_reaction != 0:
+			if MapStats.difficulty_filter(Settings.song_filter_reaction) != 0:
 				_refilter()
 		&"environment":
 			_show_environment()
 		&"song_filter_reaction", &"song_filter_length":
-			reaction_filter.select(clampi(Settings.song_filter_reaction, 0, Constants.DIFFICULTY_LEVELS.size()))
+			reaction_filter.select(MapStats.difficulty_filter(Settings.song_filter_reaction))
 			length_filter.select(MapStats.length_filter(Settings.song_filter_length)[0])
 			_refilter()
 		&"song_filter_favorites":
