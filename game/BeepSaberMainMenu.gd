@@ -327,10 +327,12 @@ const FILTER_COUNT_LABEL := "%s (%d)"
 const FAVORITES_LABEL := "Favorites"
 const WORKOUT_LABEL := "Workout"
 ## Status above the list while filters hide songs; with none it only gives the total (SONG_TOTAL_TEXT).
-const FILTER_STATUS_TEXT := "Showing %d of %d songs"
-const SONG_TOTAL_TEXT := "%d songs"
+## The %s is "song" or "songs" (SONG_NOUNS), following the total.
+const FILTER_STATUS_TEXT := "Showing %d of %d %s"
+const SONG_TOTAL_TEXT := "%d %s"
+const SONG_NOUNS := ["song", "songs"]
 ## Status while a search sorts the list, shorter so the search text fits: shown of total, then the text.
-const SEARCH_FILTER_STATUS_TEXT := "%d of %d songs"
+const SEARCH_FILTER_STATUS_TEXT := "%d of %d %s"
 const SEARCH_STATUS_TEXT := " · \"%s\" first"
 const NO_MATCH_TEXT := "No songs match these filters."
 const NO_SONGS_TEXT := "No songs yet.\nGet more songs below."
@@ -361,9 +363,10 @@ func _show_filter_counts(filter: SongFilter, shown: int) -> void:
 	_show_toggle_count(workout_filter, WORKOUT_LABEL, workout.count(_all_songs))
 
 	var total := _all_songs.size()
-	var status := SONG_TOTAL_TEXT % total
+	var noun: String = SONG_NOUNS[0] if total == 1 else SONG_NOUNS[1]
+	var status := SONG_TOTAL_TEXT % [total, noun]
 	if not filter.is_off():
-		status = (FILTER_STATUS_TEXT if _search_text.is_empty() else SEARCH_FILTER_STATUS_TEXT) % [shown, total]
+		status = (FILTER_STATUS_TEXT if _search_text.is_empty() else SEARCH_FILTER_STATUS_TEXT) % [shown, total, noun]
 	if not _search_text.is_empty():
 		status += SEARCH_STATUS_TEXT % _search_text
 	filter_status.text = status
