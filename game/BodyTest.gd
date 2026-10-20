@@ -7,10 +7,12 @@ class_name BodyTest
 ## The test ended (finished or cancelled); the game goes back to the song menu.
 signal finished()
 
-enum Drill { REACH, PUNCH_HARD, PUNCH_TOUCH, PUNCH_ALTERNATE, PUNCH_SAME_HAND, SQUAT, LEAN, DONE }
-const DRILL_NAMES := ["reach", "punch_hard", "punch_touch", "punch_alternate", "punch_same_hand", "squat", "lean", "done"]
+enum Drill { REACH, GUARD, LOW_STANCE, PUNCH_HARD, PUNCH_TOUCH, PUNCH_ALTERNATE, PUNCH_SAME_HAND, SQUAT, LEAN, DONE }
+const DRILL_NAMES := ["reach", "guard", "low_stance", "punch_hard", "punch_touch", "punch_alternate", "punch_same_hand", "squat", "lean", "done"]
 const DRILL_INSTRUCTIONS := [
 	"Stretch both arms straight ahead\nand hold them there",
+	"Guard: both fists up at your cheekbones,\nelbows in. Hold it",
+	"Low stance: feet wide, bend your knees\nas you would to start a punch. Hold it",
 	"Punch each ball as HARD as you can",
 	"Now just TOUCH each ball gently",
 	"Punch the balls, left and right in turn.\nThey come faster and faster",
@@ -25,6 +27,8 @@ const INTRO_SECONDS := 4.0
 const REACH_HOLD_SECONDS := 3.0
 ## Shorter than this (metres from head to hands, straight ahead) means the arms weren't stretched out.
 const REACH_MIN := 0.3
+## Seconds the guard and low stance are held; only the second half is averaged, like the reach.
+const STANCE_HOLD_SECONDS := 4.0
 ## Reps of the hard and gentle punch drills, at a fixed slow pace.
 const CALIBRATION_REPS := 6
 const CALIBRATION_INTERVAL := 2.0
@@ -86,6 +90,11 @@ var _hand_right := true
 var _reach_samples: Array[float] = []
 var _head_height_samples: Array[float] = []
 var _reach := 0.0
+var _eye_height := 0.0
+## Median distance of the left (x) and right (y) fist from the eyes in the guard.
+var _guard := Vector2.ZERO
+## How far the eyes dropped in the low stance.
+var _low_drop := 0.0
 var _standing_eyes := Vector3.ZERO
 var _forward := Vector3.FORWARD
 var _right := Vector3.RIGHT
@@ -209,12 +218,14 @@ func _process(delta: float) -> void:
 	var fist_speed := _fist_speeds(delta)
 	if _intro_left > 0.0:
 		_intro_left -= delta
-		if _intro_left <= 0.0 and _drill != Drill.REACH:
+		if _intro_left <= 0.0 and _drill > Drill.LOW_STANCE:
 			_take_stance()
 		return
 	_clock += delta
 	if _drill == Drill.REACH:
 		_process_reach()
+	elif _drill == Drill.GUARD or _drill == Drill.LOW_STANCE:
+		_process_stance()
 	else:
 		_process_rep(fist_speed)
 
@@ -247,9 +258,36 @@ func _process_reach() -> void:
 		_clock = 0.0
 		return
 	_head_height_samples.sort()
-	var eye_height := _head_height_samples[_head_height_samples.size() >> 1]
-	_log("reach,0,0,0,,,,%.3f,%.3f" % [_reach, eye_height])
-	_start_drill(Drill.PUNCH_HARD)
+	_eye_height = _head_height_samples[_head_height_samples.size() >> 1]
+	_head_height_samples.clear()
+	_log("reach,0,0,0,,,,%.3f,%.3f" % [_reach, _eye_height])
+	_start_drill(Drill.GUARD)
+
+## Holds the guard or low stance and logs its median shape: for the guard each fist's distance from
+## the eyes (in the time_ms and peak_speed columns, metres), for the low stance how far the eyes dropped.
+func _process_stance() -> void:
+	var eyes := _camera.global_position
+	_text.text = "%s\n%d" % [DRILL_INSTRUCTIONS[_drill], ceili(STANCE_HOLD_SECONDS - _clock)]
+	if _clock > STANCE_HOLD_SECONDS * 0.5:
+		if _drill == Drill.GUARD:
+			_reach_samples.append(_game.left_controller.global_position.distance_to(eyes))
+			_head_height_samples.append(_game.right_controller.global_position.distance_to(eyes))
+		else:
+			_head_height_samples.append(_eye_height - eyes.y)
+	if _clock < STANCE_HOLD_SECONDS:
+		return
+	_reach_samples.sort()
+	_head_height_samples.sort()
+	var median := _head_height_samples[_head_height_samples.size() >> 1]
+	if _drill == Drill.GUARD:
+		_guard = Vector2(_reach_samples[_reach_samples.size() >> 1], median)
+		_log("guard,0,0,0,,,%.3f,%.3f," % [_guard.x, _guard.y])
+	else:
+		_low_drop = median
+		_log("low_stance,0,0,0,,,,,%.3f" % _low_drop)
+	_reach_samples.clear()
+	_head_height_samples.clear()
+	_start_drill((_drill + 1) as Drill)
 
 ## Opens, watches and closes the current rep of a punch, squat or lean drill.
 func _process_rep(fist_speed: Dictionary) -> void:
@@ -374,6 +412,8 @@ func _summary() -> String:
 		}[drill]
 		var fastest: float = _fastest.get(drill, 0.0)
 		lines.append("%s: %s" % [label, "one every %.2f s" % fastest if fastest > 0.0 else "too fast from the start"])
+	lines.append("Guard: fists %d and %d cm from your eyes   Low stance: %d cm lower" % [
+		roundi(_guard.x * 100), roundi(_guard.y * 100), roundi(_low_drop * 100)])
 	lines.append("Hard punch: %s   Gentle touch: %s" % [_median_text(_speeds[Drill.PUNCH_HARD]), _median_text(_speeds[Drill.PUNCH_TOUCH])])
 	return "\n".join(lines)
 
