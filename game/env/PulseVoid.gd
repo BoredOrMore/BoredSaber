@@ -7,7 +7,8 @@ extends Node3D
 const PULSE_RING := preload("res://game/env/PulseRing.gdshader")
 const SEGMENTS := 96
 const RING_COUNT := 16
-const FIRST_Z := -8.0
+## the first ring goes round the player (who stands at z 1), so the tunnel starts where they stand
+const FIRST_Z := 1.0
 const RING_GAP := 3.5
 ## the rings' centre height and radius in metres; wide enough to stay clear of every note and wall
 const CENTER_Y := 1.5

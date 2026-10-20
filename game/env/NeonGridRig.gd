@@ -17,6 +17,12 @@ const POLE_Z: Array[float] = [-20.0, -28.0, -36.0, -44.0]
 const POLE_HEIGHT := 3.0
 const POLE_SIZE := 0.3
 const LAMP_SIZE := Vector3(0.6, 0.4, 0.6)
+## Near the player, out of the note lane and clear of the view ahead, a few pieces stand within a few metres so
+## they move against the far scenery as the head moves (parallax), which makes the player feel they stand in the
+## place rather than in front of it.
+## Two more poles stand on each side of the player, the grid's near edge; they hold no laser.
+const NEAR_POLE_X := 4.0
+const NEAR_POLE_Z: Array[float] = [3.0, -3.0]
 
 func _ready() -> void:
 	var boxes: Array[Transform3D] = [
@@ -26,6 +32,10 @@ func _ready() -> void:
 		for side in [-1.0, 1.0]:
 			boxes.append(_box(Vector3(side * POLE_X, POLE_HEIGHT * 0.5 - 0.5, z), Vector3(POLE_SIZE, POLE_HEIGHT + 1.0, POLE_SIZE)))
 			boxes.append(_box(Vector3(side * POLE_X, POLE_HEIGHT, z), LAMP_SIZE))
+	for z in NEAR_POLE_Z:
+		for side in [-1.0, 1.0]:
+			boxes.append(_box(Vector3(side * NEAR_POLE_X, POLE_HEIGHT * 0.5 - 0.5, z), Vector3(POLE_SIZE, POLE_HEIGHT + 1.0, POLE_SIZE)))
+			boxes.append(_box(Vector3(side * NEAR_POLE_X, POLE_HEIGHT, z), LAMP_SIZE))
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	multimesh.mesh = BoxMesh.new()
