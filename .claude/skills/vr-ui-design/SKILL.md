@@ -89,6 +89,25 @@ then multiplied by the node `transform` scale.
   numbers (root `AGENTS.md`).
 - Show state: what's selected, what's already downloaded or saved, what a button will do.
 
+### Icons
+
+Use an icon when it is quicker to read than the word (the user asked for this), but pair it with a
+short label by default: few icons are understood without one (NN/g "Icon usability": home, print
+and search are about the only near-universal ones; labelled icons were predicted correctly far more
+often than unlabelled ones in UserTesting's study).
+
+- Icon-only is fine only for near-universal actions (search 🔍, close ✕, play ▶, back ←) and for
+  repeated compact info whose meaning a header or the first use already taught (⏱ 3:24 in a list).
+  An icon-only button still shows its name on hover (Apple: visionOS shows a tooltip on hover).
+- One icon = one meaning everywhere, one meaning = one icon. Keep a single family: same stroke
+  weight and corner style, white SVGs tinted in code with the palette roles (`game/ui/*.svg`:
+  `heart.svg` health, `target.svg` precision, `edit.svg`).
+- Size icons like targets (≥ 2.5-3°), and give them the same colour role as their meaning (danger
+  only for danger, `UI_ACCENT` only for selected/main action).
+- Draw icons as SVG in `game/ui/`; don't rely on font symbols (★ ✓ ←): glyphs Roboto lacks
+  fall back to whatever font the headset has and look inconsistent.
+- New icon source (an icon library) counts as a new dependency: ask first (root `AGENTS.md`).
+
 ## 5. Feedback for every action
 
 - Every pointer target shows hover, a visible change on press and a short distinct sound on selection
@@ -124,6 +143,8 @@ term isn't obvious. Then build in small steps, one build per step, and verify ea
 `vr-ui-review`.
 
 ## Platform guidelines used
+
+- Icons: Nielsen Norman Group, "Icon Usability" (Harley, 2014), https://www.nngroup.com/articles/icon-usability/
 
 Numbers per source, with WWDC session links and the dp conversion: `sources.md` next to this file.
 
