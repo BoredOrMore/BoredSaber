@@ -17,7 +17,7 @@ const FLOOR_SUBDIVIDE := Vector2i(13, 29)
 ## height, opacity, and drift of each noise copy in metres per second, for each floor layer; one layer about as thick
 ## as the two there were
 const FLOOR_LAYERS := [
-	[0.12, 0.6, Vector2(0.05, 0.12), Vector2(-0.08, 0.05)],
+	[0.12, 0.9, Vector2(0.05, 0.12), Vector2(-0.08, 0.05)],
 ]
 ## x, y, z and size of each puff, beside the track further ahead (the ones close to the player filled most of the
 ## screen when looking sideways)
@@ -26,7 +26,7 @@ const BANKS: Array[Vector4] = [
 	Vector4(-4.8, 1.6, -19.0, 5.0), Vector4(5.0, 1.4, -20.0, 5.0),
 	Vector4(-4.5, 2.4, -28.0, 6.0), Vector4(4.8, 2.6, -29.0, 6.0),
 ]
-const BANK_OPACITY := 0.33
+const BANK_OPACITY := 0.5
 ## Seconds the smoke takes to clear once a song starts (then it is freed and costs nothing while playing), and to
 ## fill the stage again in the menus. Untuned.
 const CLEAR_SECONDS := 15.0
