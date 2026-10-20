@@ -79,6 +79,7 @@ var rings_enabled := true
 var _sky_materials := {}
 ## 1 right after a combo milestone, falling to 0
 var _combo_pulse := 0.0
+var _dust := Dust.new()
 ## A good cut sends a ring of the saber's light out from the player along the scene's lights
 ## (player_light.gdshaderinc): how far each saber's ring has gone in metres, negative when there is none.
 var _cut_waves := Vector2(-1.0, -1.0)
@@ -144,6 +145,7 @@ const PLATFORM_LIGHTS := preload("res://game/env/platform_lights.tres")
 
 func _ready() -> void:
 	classic_sky_material.render_priority = SKY_RENDER_PRIORITY
+	$Level.add_child(_dust)
 	for laser: Node3D in diagonal_lasers + _waving_lasers():
 		_classic_rig[laser] = laser.global_transform
 	_classic_rig[square_lasers_holder] = square_lasers_holder.transform
@@ -362,6 +364,7 @@ func show_scenery_for_mixed_reality() -> void:
 	neon_grid_rig.visible = environment == "neon_grid" and not Settings.mixed_reality
 	night_city_rig.visible = environment == "night_city" and not Settings.mixed_reality
 	stage_smoke.visible = Settings.smoke and not Settings.mixed_reality
+	_dust.visible = not Settings.mixed_reality
 
 func set_background() -> void:
 	var width_scale := 2 * Settings.LANE_DISTANCE_X / 3.
@@ -398,12 +401,14 @@ func set_background() -> void:
 		($Level/DiagonalLasers/laser10).hide()
 		track_lights_holder.hide()
 		($Level/StageSmoke).hide()
+		_dust.hide()
 		set_all_off()
 		turn_light_on(EventInfo.TYPE_FLOOR_LIGHTS, Color.WHITE)
 		disabled = true
 	else:
 		ring_holder.visible = rings_enabled
 		stage_smoke.visible = Settings.smoke and not Settings.mixed_reality
+		_dust.visible = not Settings.mixed_reality
 		diagonal_lasers_holder.show()
 		square_lasers_holder.show()
 		left_waving_lasers_holder.show()
