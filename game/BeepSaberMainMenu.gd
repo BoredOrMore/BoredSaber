@@ -928,7 +928,7 @@ func _sync_difficulty_picker() -> void:
 	level_stats.max_lines_visible = 2 if characteristic_row.visible else 3
 	# each of the map's difficulties keeps the mapper's slot but shows the difficulty it plays at
 	# (MapStats.level_of); slots the map lacks are hidden, and slots that play at the same level
-	# add the mapper's label so no name shows twice
+	# are numbered in the map's order ("Hard 1", "Hard 2") so no name shows twice
 	var levels := {}
 	var level_counts := {}
 	for i in LEVELS.size():
@@ -937,6 +937,7 @@ func _sync_difficulty_picker() -> void:
 			var diff := map.difficulty_beatmaps[index]
 			levels[i] = MapStats.level_of(map, diff, MapStats.get_stats(map, diff))
 			level_counts[levels[i]] = level_counts.get(levels[i], 0) + 1
+	var level_seen := {}
 	for i in LEVELS.size():
 		var button := level_row.get_child(i) as Button
 		var index := _find_difficulty(map, _characteristic_of(picked), i) if picked else -1
@@ -948,7 +949,8 @@ func _sync_difficulty_picker() -> void:
 			var level: Array = Constants.DIFFICULTY_LEVELS[levels[i]]
 			button.text = level[0]
 			if level_counts[levels[i]] > 1:
-				button.text += "\n" + map.difficulty_beatmaps[index].get_display_name()
+				level_seen[levels[i]] = level_seen.get(levels[i], 0) + 1
+				button.text += " %d" % level_seen[levels[i]]
 			button.add_theme_color_override(&"font_color", level[1])
 			button.add_theme_color_override(&"font_pressed_color", level[1])
 		button.visible = index >= 0 or not picked

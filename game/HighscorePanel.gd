@@ -78,7 +78,7 @@ func _get_difficulty_name(map_info: MapInfo, diff_rank: int) -> String:
 					 )
 	for beat_map in map_info.difficulty_beatmaps:
 		if beat_map.difficulty_rank == (diff_rank & Constants.DIFFICULTY_MASK):
-			return beat_map.difficulty + ", " + game_type
+			return MapStats.level_name(map_info, beat_map) + ", " + game_type
 	return ('Rank %d' % (diff_rank & Constants.DIFFICULTY_MASK)) + " " + game_type
 
 func _on_Exit_Button_pressed() -> void:

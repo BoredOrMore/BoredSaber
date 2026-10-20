@@ -311,8 +311,12 @@ static func length_filter() -> Array:
 static func in_filter(value: float, filter: Array) -> bool:
 	return value >= float(filter[2]) and (float(filter[3]) <= 0.0 or value < float(filter[3]))
 
+## Name of the level a difficulty plays at (Easy..Expert+), the one name players see for a difficulty.
+static func level_name(info: MapInfo, difficulty: DifficultyInfo) -> String:
+	return Constants.DIFFICULTY_LEVELS[level_of(info, difficulty, get_stats(info, difficulty))][0]
+
 ## Formats a difficulty in plain words: "3:24 · Notes 0.72 s ahead · Swings every 0.45 s" (per hand) over
-## "Swing flow: Twisty · Map's label: Hard", and "Workout: 3 sets · 28 side steps · 12 squats" when walls make
+## "Swing flow: Twisty", and "Workout: 3 sets · 28 side steps · 12 squats" when walls make
 ## the player move.
 static func describe(info: MapInfo, difficulty: DifficultyInfo, stats: Dictionary) -> String:
 	var seconds := int(stats.get("seconds", 0.0))
@@ -323,8 +327,7 @@ static func describe(info: MapInfo, difficulty: DifficultyInfo, stats: Dictionar
 		text += " · Swings\u00A0every\u00A0%.2f\u00A0s" % gap
 	text += "\n"
 	if stats.has("flow"):
-		text += "Swing\u00A0flow:\u00A0%s · " % Constants.FLOW_LEVELS[flow_level(float(stats.flow))][0]
-	text += "Map's\u00A0label:\u00A0%s" % difficulty.get_display_name()
+		text += "Swing\u00A0flow:\u00A0%s" % Constants.FLOW_LEVELS[flow_level(float(stats.flow))][0]
 	var level := workout_level(stats)
 	if level > 0:
 		text += "\n%s: %d %s" % [Constants.WORKOUT_LEVELS[level], stats.sets, "set" if stats.sets == 1 else "sets"]

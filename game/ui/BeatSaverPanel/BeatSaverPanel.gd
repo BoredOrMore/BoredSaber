@@ -505,11 +505,8 @@ func _details_text(song: BeatSaverSongInfo) -> String:
 	text += "\n"
 	for diff: Variant in Utils.get_array(song.versions[0] as Dictionary, "diffs", []):
 		var d := diff as Dictionary
-		var map_label := Utils.get_str(d, "difficulty", "").replace("ExpertPlus", "Expert+")
 		var level: Array = Constants.DIFFICULTY_LEVELS[song.level_of(d)]
 		var line: String = level[0]
-		if map_label != level[0]:
-			line += " [color=#%s]· map says %s[/color]" % [muted, map_label]
 		if Utils.get_str(d, "characteristic", "Standard") != "Standard":
 			line += " · %s" % Utils.get_str(d, "characteristic", "")
 		if song.bpm > 0.0:
