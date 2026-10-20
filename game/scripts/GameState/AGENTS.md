@@ -15,6 +15,8 @@ All flow logic (start, fail, end, pause, resume) lives in `game/BeepSaber_Game.g
 - `Paused.gd` - `GameStatePaused`: pause menu, HUD kept, track hidden, sabers sheathed; stops the song.
 - `MapComplete.gd` - `GameStateMapComplete`: end score + this map's highscores.
 - `NewHighscore.gd` - `GameStateNewHighScore`: like MapComplete plus the name selector; `GUEST_NAME`.
+- `BodyTest.gd` - `GameStateBodyTest`: hides menus, sabers and pointers, runs a `game/BodyTest.gd` node and
+  returns to MapSelection when it emits `finished`.
 
 ## Transition mechanics
 
@@ -33,6 +35,8 @@ Transitions (callers wired in `BeepSaber_Game.tscn:340-362`):
 |---|---|---|
 | boot | MapSelection | `BeepSaber_Game._ready` (`:313`) |
 | MapSelection | Settings | menu `settings_requested` -> `_settings_button` (`:616-618`) |
+| MapSelection | BodyTest | menu `body_test_requested` (More tab) -> `_body_test_button` |
+| BodyTest | MapSelection | test `finished` (done + trigger, or B/Y/menu) -> `GameStateBodyTest._on_finished` |
 | Settings | MapSelection | settings panel `apply` -> `_on_settings_Panel_apply` (`:620-622`) |
 | MapSelection / Paused / end screens | Playing | `start_map` (`:93-152`); restart -> `_restart_button` (`:552-555`) |
 | Playing | Paused | B/Y or menu just pressed (`Playing.gd:29-32`); app focus/visibility lost (`:351-358`, `:298-300`) |

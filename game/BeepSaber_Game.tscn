@@ -335,6 +335,7 @@ main_menu_ref = NodePath("../MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu")
 [connection signal="difficulty_changed" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="_on_BeepSaberMainMenu_difficulty_changed"]
 [connection signal="settings_requested" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="_settings_button"]
 [connection signal="get_songs_requested" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="_open_beatsaver"]
+[connection signal="body_test_requested" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="_body_test_button"]
 [connection signal="start_map" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="start_map"]
 [connection signal="mainmenu" from="EndScore" to="." method="_main_menu_button"]
 [connection signal="repeat" from="EndScore" to="." method="_restart_button"]

@@ -13,6 +13,7 @@ var gamestate_newhighscore := GameStateNewHighScore.new()
 var gamestate_paused := GameStatePaused.new()
 var gamestate_playing := GameStatePlaying.new()
 var gamestate_settings := GameStateSettings.new()
+var gamestate_bodytest := GameStateBodyTest.new()
 
 ## Where the record table stands in the song menu: 53 degrees left of the player (eyes at (0, 1.6, 1)), 1.6 m away and
 ## facing them, its inner edge just clear of the menu panel's (37 degrees). Scale 1.5: text 1.5 degrees.
@@ -707,6 +708,10 @@ func _on_BeepSaberMainMenu_difficulty_changed(map_info: MapInfo, diff_rank: int)
 func _settings_button() -> void:
 	settings_panel._update_backgrounds()
 	_transition_game_state(gamestate_settings)
+
+## Starts the body test from the song menu's More tab.
+func _body_test_button() -> void:
+	_transition_game_state(gamestate_bodytest)
 
 func _on_settings_Panel_apply() -> void:
 	set_colors_from_settings()
