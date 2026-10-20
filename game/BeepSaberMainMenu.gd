@@ -10,6 +10,8 @@ class_name MainMenu
 signal difficulty_changed(map_info: MapInfo, diff_rank: int)
 # emitted when the settings button is pressed
 signal settings_requested()
+## The player wants to download songs: the BeatSaver page opens in place of the menu.
+signal get_songs_requested()
 signal start_map(info: MapInfo, difficulty: DifficultyInfo, health: bool)
 
 const FAVORITE_MASK := 0x4000000000000000
@@ -616,6 +618,10 @@ func _show_tab(tab: int) -> void:
 	$MorePanel.visible = tab == Tab.MORE
 	for i in $Tabs.get_child_count():
 		($Tabs.get_child(i) as Button).set_pressed_no_signal(i == tab)
+
+## Asks the game to open the BeatSaver page.
+func _on_get_songs_pressed() -> void:
+	get_songs_requested.emit()
 
 const READ_PERMISSION = "android.permission.READ_EXTERNAL_STORAGE"
 

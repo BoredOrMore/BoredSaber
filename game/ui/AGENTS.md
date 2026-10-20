@@ -15,7 +15,9 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   pills for `CheckButton`). Every panel `.tscn` sets `theme = ExtResource(...)` on its root.
 - `BeatSaverPanel/`: browse/search/download maps from beatsaver.com (class `BeatSaverPanel`).
 - `BeatSageUI/` (+ `BeatSageRequest/`): generate a map from a YouTube URL via beatsage.com (class `BeatSagePanel`).
-- `MapDownloadPanel/`: picker between BeatSaver and BeatSage; `MapSourceButton` is its image+text button.
+- `MapDownloadPanel/`: picker between BeatSaver and BeatSage; `MapSourceButton` is its image+text button. Not in the game
+  scene: with BeatSage hidden it was a one-choice step, so the menu's "Get more songs" opens BeatSaver directly
+  (`BeepSaber_Game._open_beatsaver`), in front of the player in place of the song menu.
 - `UI_AudioEngine/`: autoload; `attach_children(node)` wires hover/click sounds to every `Button` below `node`.
 - `YouTubeUI/` (+ `YouTubeAPI/`): YouTube search used by BeatSage.
 - In `game/`: `BeepSaberMainMenu.gd/.tscn` (class `MainMenu`: song list, difficulty, Song/Modifiers/Settings/More tabs above the right column),

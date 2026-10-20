@@ -114,8 +114,16 @@ layout_mode = 0
 offset_left = 24.0
 offset_top = 176.0
 offset_right = 760.0
-offset_bottom = 660.0
+offset_bottom = 596.0
 fixed_icon_size = Vector2i(72, 72)
+
+[node name="GetSongs_Button" type="Button" parent="." unique_id=1531123590]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 608.0
+offset_right = 760.0
+offset_bottom = 660.0
+text = "Get more songs"
 
 [node name="cover" type="TextureRect" parent="." unique_id=925358881]
 layout_mode = 0
@@ -461,3 +469,4 @@ scroll_without_pointer = true
 [connection signal="toggled" from="FavoritesFilter" to="." method="_on_favorites_filter_toggled"]
 [connection signal="toggled" from="WorkoutFilter" to="." method="_on_workout_filter_toggled"]
 [connection signal="pressed" from="ModifiersPanel/Margin/Rows/Header/Reset_Button" to="." method="_on_reset_button_pressed"]
+[connection signal="pressed" from="GetSongs_Button" to="." method="_on_get_songs_pressed"]

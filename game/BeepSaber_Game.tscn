@@ -27,7 +27,6 @@
 [ext_resource type="PackedScene" uid="uid://6du64wi28yi6" path="res://game/Bomb/Bomb.tscn" id="24"]
 [ext_resource type="PackedScene" uid="uid://cb8ftj7lpxrfy" path="res://game/ui/YouTubeUI/YouTubeUI.tscn" id="26"]
 [ext_resource type="PackedScene" uid="uid://cjirr6sfxfhhd" path="res://game/scripts/ScenePool/ScenePool.tscn" id="27"]
-[ext_resource type="PackedScene" uid="uid://dkqqtux44xxe7" path="res://game/ui/MapDownloadPanel/MapDownloadPanel.tscn" id="28"]
 [ext_resource type="PackedScene" uid="uid://bmdbiqndkvcm6" path="res://game/ui/BeatSageUI/BeatSageUI.tscn" id="29"]
 [ext_resource type="PackedScene" uid="uid://cgfj82g2xp1ne" path="res://OQ_Toolkit/OQ_UI2D/OQ_UI2DLogWindow.tscn" id="31"]
 [ext_resource type="Script" uid="uid://cnh3j4w1c5ulx" path="res://game/scripts/SongUploader/song_uploader.gd" id="33_l0uxg"]
@@ -264,14 +263,7 @@ beepsaber_game = NodePath("../..")
 transform = Transform3D(0.373265, 0, 0, 0, 0.323257, 0.186633, 0, -0.186633, 0.323257, 0, -0.407229, 0.0410669)
 
 [node name="MapSourceDialogs" type="Node3D" parent="." unique_id=522587209]
-transform = Transform3D(0.346575, 0, -0.938022, 0, 1, 0, 0.938022, 0, 0.346575, 2.43, 1.498, 0.468)
-
-[node name="MapDownload_Canvas" parent="MapSourceDialogs" unique_id=1041831894 instance=ExtResource("3")]
-transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0)
-
-[node name="MapDownloadPanel" parent="MapSourceDialogs/MapDownload_Canvas" unique_id=1071474997 node_paths=PackedStringArray("beat_saver_panel", "beat_sage_panel") instance=ExtResource("28")]
-beat_saver_panel = NodePath("../../BeatSaver_Canvas/BeatSaverPanel")
-beat_sage_panel = NodePath("../../BeatSage_Canvas/BeatSageUI")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -1)
 
 [node name="BeatSaver_Canvas" parent="MapSourceDialogs" unique_id=1832345664 instance=ExtResource("3")]
 transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0, 0)
@@ -295,7 +287,7 @@ visible = false
 keyboard = NodePath("../../../Keyboard_online_search")
 
 [node name="Keyboard_online_search" parent="." unique_id=789403462 instance=ExtResource("21")]
-transform = Transform3D(0.838233, 0.349429, -2.22632, 0, 2.37535, 0.372819, 2.25358, -0.129972, 0.828095, 2.09772, 0.833935, 0.302276)
+transform = Transform3D(2.40442, 0, 0, 0, 2.37659, 0.364816, 0, -0.364816, 2.37659, -0.00735812, 0.350501, -0.67319)
 visible = false
 
 [node name="Points_label_driver" parent="." unique_id=1605321739 instance=ExtResource("22")]
@@ -342,6 +334,7 @@ main_menu_ref = NodePath("../MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu")
 [connection signal="profile_changed" from="XROrigin3D/RightController" to="." method="_on_right_controller_profile_changed"]
 [connection signal="difficulty_changed" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="_on_BeepSaberMainMenu_difficulty_changed"]
 [connection signal="settings_requested" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="_settings_button"]
+[connection signal="get_songs_requested" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="_open_beatsaver"]
 [connection signal="start_map" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="start_map"]
 [connection signal="mainmenu" from="EndScore" to="." method="_main_menu_button"]
 [connection signal="repeat" from="EndScore" to="." method="_restart_button"]

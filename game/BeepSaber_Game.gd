@@ -54,6 +54,7 @@ var current_health := Constants.HEALTH_START
 
 @onready var map_source_dialogs := $MapSourceDialogs as Node3D
 @onready var online_search_keyboard := $Keyboard_online_search as OQ_UI2DKeyboard
+@onready var beatsaver_canvas := $MapSourceDialogs/BeatSaver_Canvas as OQ_UI2DCanvas
 
 @onready var cube_template := preload("res://game/BeepCube/BeepCube.tscn").instantiate() as BeepCube
 
@@ -97,6 +98,8 @@ const NAME_KEYBOARD_TRANSFORM := Transform3D(Vector3(2.4, 0, 0), Vector3(0, 1.96
 	Vector3(0, 0.95, -0.55))
 ## The shared keyboard's scene transform, put back when the score screen closes it.
 var _keyboard_home: Transform3D
+## The song menu showed the record table when the BeatSaver page opened over it.
+var _menu_highscores_shown := false
 ## The keyboard is open from the score screen's name card.
 var _editing_name := false
 const DANGER_WALL_MATERIAL := preload("res://game/Wall/danger_wall.tres")
@@ -233,15 +236,27 @@ func _show_debug_info() -> void:
 		log_canvas._hide()
 	log_window.set_process(Settings.show_debug_info)
 
+## Closes any download page; they open in front of the player, in place of the menu, when asked for.
 func show_MapSourceDialogs(showing: bool = true) -> void:
 	map_source_dialogs.visible = showing
 	for c in map_source_dialogs.get_children():
 		if c is OQ_UI2DCanvas:
 			(c as OQ_UI2DCanvas)._hide()
-	if showing:
-		var first_dialog := map_source_dialogs.get_child(0)
-		if first_dialog is OQ_UI2DCanvas:
-			(first_dialog as OQ_UI2DCanvas)._show()
+
+## Opens the BeatSaver page where the song menu was; closing it brings the menu back.
+func _open_beatsaver() -> void:
+	_menu_highscores_shown = highscore_canvas.visible
+	main_menu._hide()
+	highscore_canvas._hide()
+	beatsaver_canvas._show()
+
+## Brings the song menu back once the BeatSaver page closes in the song menu.
+func _on_beatsaver_visibility_changed() -> void:
+	if not beatsaver_canvas.visible and gamestate == gamestate_mapselection:
+		online_search_keyboard._hide()
+		main_menu._show()
+		if _menu_highscores_shown:
+			highscore_canvas._show()
 
 # call this method to submit a new highscore to the database
 ## Renames the record that was saved under the default name, and makes the name the new default.
@@ -409,6 +424,7 @@ func _ready() -> void:
 	highscore_keyboard.text_input_cancel.connect(_on_name_edit_cancelled)
 	highscore_keyboard._text_edit.text_changed.connect(_on_name_typed)
 	UI_AudioEngine.attach_children(online_search_keyboard)
+	beatsaver_canvas.visibility_changed.connect(_on_beatsaver_visibility_changed)
 	
 	_transition_game_state(gamestate_mapselection)
 	
