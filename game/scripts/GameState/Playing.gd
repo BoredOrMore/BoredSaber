@@ -24,6 +24,7 @@ func _ready(game: BeepSaber_Game) -> void:
 	_lead_in_shown = -1
 
 func _physics_process(game: BeepSaber_Game) -> void:
+	DebugView.cycle_tick()
 	if game.failing:
 		return
 	for controller: BeepSaberController in [game.left_controller, game.right_controller]:

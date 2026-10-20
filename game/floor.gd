@@ -14,6 +14,9 @@ var C_RIGHT := Color()
 @onready var l_sprite := $SubViewport/ColorRect/burn_l/sprite as Panel
 @onready var r_sprite := $SubViewport/ColorRect/burn_r/sprite as Panel
 @onready var timer_clear := $TimerClear as Timer
+const PLAYER_LIGHT := preload("res://game/env/PlayerLight.gdshader")
+## metres; the square around the player where the sabers light the floor
+const PLAYER_LIGHT_SIZE := 4.0
 const mixed_reality_burn_alpha := 0.3
 # keep drawing this long after the last mark so it can fade out, then stop
 const FADE_OUT_SECONDS := 1.5
@@ -27,6 +30,16 @@ func _ready() -> void:
 	sub_viewport.transparent_bg = Settings.mixed_reality
 	material.albedo_texture = sub_viewport.get_texture()
 	material.emission_texture = sub_viewport.get_texture()
+	var pools := MeshInstance3D.new()
+	var plane := PlaneMesh.new()
+	plane.size = Vector2.ONE * PLAYER_LIGHT_SIZE
+	pools.mesh = plane
+	pools.material_override = ShaderMaterial.new()
+	(pools.material_override as ShaderMaterial).shader = PLAYER_LIGHT
+	pools.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# just above the platform and the burn marks
+	pools.position.y = 0.003
+	add_child(pools)
 	
 	if OS.get_name() == &"Web":
 		sub_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE

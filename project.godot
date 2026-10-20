@@ -189,6 +189,18 @@ combo_glow={
 "type": "float",
 "value": 0.0
 }
+cut_waves={
+"type": "vec2",
+"value": Vector2(-1, -1)
+}
+left_saber_color={
+"type": "color",
+"value": Color(0, 0, 0, 1)
+}
+right_saber_color={
+"type": "color",
+"value": Color(0, 0, 0, 1)
+}
 debug_view={
 "type": "int",
 "value": 0
@@ -201,6 +213,8 @@ openxr/target_api_version="1.0.0"
 openxr/reference_space=2
 openxr/environment_blend_mode=0
 openxr/startup_alert=false
+openxr/foveation_level=2
+openxr/foveation_dynamic=false
 openxr/extensions/hand_tracking=true
 shaders/enabled=true
 openxr/extensions/meta/passthrough=true

@@ -137,6 +137,7 @@ func note_cut(saber: LightSaber, position: Vector3, _rotation: float, beat_accur
 		travel_distance_factor: float, arc_head: bool, arc_tail: bool, chain_head: bool) -> void:
 	
 	if cut_angle_accuracy >= 1e-10: # and cut_distance_accuracy >= 1e-10:
+		GlobalReferences.main_game_scene.event_driver.cut_wave(saber.type)
 		if Settings.swing_scoring:
 			if chain_head:
 				saber.add_chain_head_score(position, _rotation, cut_distance_accuracy * Constants.SWING_ACCURACY_SCORE)
@@ -157,17 +158,22 @@ func note_cut(saber: LightSaber, position: Vector3, _rotation: float, beat_accur
 ## A note lost to a miss or a bad cut still counts toward max_points; best is what it could have given
 ## (0 uses a normal note's best). Bombs are not notes.
 func bad_cut(position: Vector3, _rotation: float, description: String, best: float = 0.0) -> void:
+	GlobalReferences.main_game_scene.event_driver.mistake_dip()
 	if description != "bomb":
 		_count_note(best if best > 0.0 else note_best_score())
 	if description == "bomb":
+		GlobalReferences.main_game_scene.play_mistake_sound(true)
 		reset_combo(false)
 		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_BOMB, true)
 	elif description == "wrong saber" or description == "miss":
+		if description == "wrong saber":
+			GlobalReferences.main_game_scene.play_mistake_sound(false)
 		reset_combo(true)
 		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_MISS, true)
 		if description == "miss":
 			description = ""
 	else:
+		GlobalReferences.main_game_scene.play_mistake_sound(false)
 		reset_combo(true)
 		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_BAD_CUT, true)
 	points_awarded.emit(position, _rotation, description if Settings.explain else "x")

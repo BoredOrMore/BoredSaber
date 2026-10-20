@@ -79,6 +79,17 @@ var rings_enabled := true
 var _sky_materials := {}
 ## 1 right after a combo milestone, falling to 0
 var _combo_pulse := 0.0
+var _dust := Dust.new()
+## A good cut sends a ring of the saber's light out from the player along the scene's lights
+## (player_light.gdshaderinc): how far each saber's ring has gone in metres, negative when there is none.
+var _cut_waves := Vector2(-1.0, -1.0)
+## metres per second, and how far a ring runs before it stops
+const CUT_WAVE_SPEED := 30.0
+const CUT_WAVE_REACH := 80.0
+## a mistake dims the air by this much for a moment
+var _mistake_dip := 0.0
+const MISTAKE_DIP := 0.5
+const MISTAKE_DIP_SECONDS := 0.6
 ## 0 at x1 to 1 at x8, and where it is heading
 var _combo_level := 0.0
 var _combo_target := 0.0
@@ -112,13 +123,19 @@ var _combo_target := 0.0
 @onready var square_lasers_material := ($Level/SquareLasers/Bar7 as MeshInstance3D).material_override as ShaderMaterial
 @onready var left_waving_lasers_material := ($Level/LeftWavingLasers/laser1/Bar7 as MeshInstance3D).material_override as ShaderMaterial
 @onready var right_waving_lasers_material := ($Level/RightWavingLasers/laser1/Bar7 as MeshInstance3D).material_override as ShaderMaterial
-@onready var track_lights_material := ($Level/TrackLights/Bar1 as MeshInstance3D).material_override as StandardMaterial3D
+@onready var track_lights_material := ($Level/TrackLights/Bar1 as MeshInstance3D).material_override as ShaderMaterial
 @onready var floor_mesh := ($Level/floor as MeshInstance3D).mesh as PlaneMesh
 @onready var floor_material := ($Level/floor as MeshInstance3D).material_override as StandardMaterial3D
 @onready var track_lights_right := $Level/TrackLights/Bar1 as MeshInstance3D
 @onready var track_lights_left := $Level/TrackLights/Bar2 as MeshInstance3D
 @onready var end_path := $Level/Endpath as MeshInstance3D
 @onready var stage_smoke := $Level/StageSmoke as StageSmoke
+## the player's platform border (game/floor.tscn): always lit, white-hot with the right note colour at its edges,
+## whatever the map's light show does, so the player always sees where they stand
+const PLATFORM_LIGHTS := preload("res://game/env/platform_lights.tres")
+@onready var classic_rig := $Level/ClassicRig as ClassicRig
+@onready var neon_grid_rig := $Level/NeonGridRig as NeonGridRig
+@onready var night_city_rig := $Level/NightCityRig as NightCityRig
 
 @onready var ring_anim_player := $Level/rings/AnimationPlayer as AnimationPlayer
 @onready var left_laser_anim_player := $Level/LeftWavingLasers/AnimationPlayer as AnimationPlayer
@@ -128,6 +145,12 @@ var _combo_target := 0.0
 
 func _ready() -> void:
 	classic_sky_material.render_priority = SKY_RENDER_PRIORITY
+	$Level.add_child(_dust)
+	for laser: Node3D in diagonal_lasers + _waving_lasers():
+		_classic_rig[laser] = laser.global_transform
+	_classic_rig[square_lasers_holder] = square_lasers_holder.transform
+	for bar in _square_bars():
+		_classic_rig[bar] = bar.global_transform
 	track_lights_holder.hide()
 	
 	set_background_texture()
@@ -153,9 +176,10 @@ func set_background_texture() -> void:
 			classic_sky_material.set_shader_parameter("bg_base", ImageTexture.create_from_image(img))
 			return
 		Settings.background_texture = Settings.default_values["background_texture"]
-	var texture : Resource = null
-	texture = load(Settings.background_texture)
-	classic_sky_material.set_shader_parameter("bg_base", texture)
+	# a saved picture that no longer ships (the old photographs) falls back to the default sky
+	if not ResourceLoader.exists(Settings.background_texture):
+		Settings.background_texture = Settings.default_values["background_texture"]
+	classic_sky_material.set_shader_parameter("bg_base", load(Settings.background_texture))
 
 ## The environment a map plays in: the player's pick, or with "auto" the one map_environment finds.
 static func pick_environment(map: MapInfo) -> String:
@@ -199,8 +223,168 @@ func set_environment(id: String) -> void:
 	sphere_material = sky
 	($Level/Sphere as MeshInstance3D).material_override = sky
 	rings_enabled = id == "classic"
+	_apply_rig(id)
+	_set_reverb(id)
 	show_scenery_for_mixed_reality()
 	set_background()
+
+## Each environment hangs the same five light groups (so a map's light show still drives them) on its own rig, so
+## the stages don't all look alike: Classic keeps Beat Saber's layout; Neon Grid fans its diagonal lasers out from
+## one point on the horizon, lines its waving lasers along the grid's edges and hangs the square bars far above
+## the horizon; Night City sweeps its waving lasers like searchlights from far beside the track and crosses its
+## diagonal beams from rooftop height; Pulse Void mounts its lights on its rings: the diagonal lasers run as rails
+## from the nearest ring to the farthest, and the waving lasers stand on the rings' upper sides. Every beam starts at its fixture and turns around it (game/AGENTS.md). Positions in metres, untuned.
+const RIG_FAN_ORIGIN := Vector3(0.0, NeonGridRig.STAGE_TOP, NeonGridRig.STAGE_CENTRE.z)
+const RIG_FAN_SPREAD_DEG := 70.0
+const RIG_GRID_EDGE_X := NeonGridRig.POLE_X
+## Neon Grid's square bars: the horizontal ones become light rails between neighbouring lamp poles, along the
+## track; the vertical ones are left out there, as the poles are shorter than a bar.
+const RAIL_BASIS := Basis(Vector3(1.0, 0.0, 0.0), Vector3(0.0, 1.0, 0.0), Vector3(0.0, 0.0, 0.3))
+## Night City's signs (the horizontal square bars) hang this far up the buildings' inner faces, just off them
+const SIGN_HEIGHT := 5.0
+const SIGN_OFFSET := 0.2
+## Pulse Void's diagonal lasers run straight along the tunnel from the nearest ring to the farthest, between
+## VOID_LOW_DEG and VOID_HIGH_DEG on each side (0 is level with the rings' centre, 90 the top), above the floor and
+## clear of the track
+const VOID_LOW_DEG := -5.0
+const VOID_HIGH_DEG := 85.0
+## where the waving lasers stand on their rings, in degrees above level
+const VOID_WAVING_DEG := 20.0
+const RIG_WAVING_Y := -1.26
+## each laser's and the square bars' Classic transform, put back before another rig is hung
+var _classic_rig := {}
+
+## The waving lasers' fixtures, left side first.
+func _waving_lasers() -> Array[Node3D]:
+	var out: Array[Node3D] = []
+	for holder: Node3D in [left_waving_lasers_holder, right_waving_lasers_holder]:
+		for child in holder.get_children():
+			if child is Node3D and not child is AnimationPlayer:
+				out.append(child as Node3D)
+	return out
+
+## The square bars: the horizontal ones (children of the holder) first, then the vertical ones of each side.
+func _square_bars() -> Array[Node3D]:
+	var out: Array[Node3D] = []
+	for node in square_lasers_holder.find_children("*", "MeshInstance3D", true, false):
+		out.append(node as Node3D)
+	return out
+
+## Aims a laser fixture from a point along a direction, keeping its beam length (local z scale).
+static func _aim(laser: Node3D, from: Vector3, direction: Vector3) -> void:
+	var length := laser.global_transform.basis.z.length()
+	var aim := Basis.looking_at(direction.normalized(), Vector3.UP if absf(direction.normalized().y) < 0.99 else Vector3.FORWARD)
+	laser.global_transform = Transform3D(Basis(aim.x, aim.y, aim.z * length), from)
+
+## Each environment sounds like its space: a reverb on the cut sounds' SFX bus and, lightly, on the Music bus, as
+## [room size, damping, pre-delay in ms, SFX wet, Music wet]. Classic a concert hall; Neon Grid open ground, nearly
+## dry; Night City the street's echo off the buildings 19 m away (pre-delay: there and back at 343 m/s); Pulse Void
+## a vast, bright void. The dry sound stays at full level, so cuts keep their timing. Untuned.
+const REVERB := {
+	"classic": [0.8, 0.5, 40.0, 0.25, 0.08],
+	"neon_grid": [0.4, 0.7, 80.0, 0.12, 0.04],
+	"night_city": [0.6, 0.6, 110.0, 0.2, 0.06],
+	"pulse_void": [0.95, 0.2, 20.0, 0.3, 0.1],
+}
+## the lowest part of the spectrum (0 to 1) left out of the reverb, so the bass stays clean
+const REVERB_HIPASS := 0.2
+
+static func _set_reverb(id: String) -> void:
+	var preset: Array = REVERB.get(id, REVERB["classic"])
+	for target: Array in [[&"SFX", 3], [&"Music", 4]]:
+		var bus := AudioServer.get_bus_index(target[0])
+		var reverb: AudioEffectReverb = null
+		for i in AudioServer.get_bus_effect_count(bus):
+			if AudioServer.get_bus_effect(bus, i) is AudioEffectReverb:
+				reverb = AudioServer.get_bus_effect(bus, i) as AudioEffectReverb
+		if not reverb:
+			reverb = AudioEffectReverb.new()
+			AudioServer.add_bus_effect(bus, reverb)
+		reverb.room_size = preset[0]
+		reverb.damping = preset[1]
+		reverb.predelay_msec = preset[2]
+		reverb.hipass = REVERB_HIPASS
+		reverb.dry = 1.0
+		reverb.wet = preset[target[1]]
+
+## Aims a laser fixture at `from` toward `to` and sets its beam to end there.
+static func _span(laser: Node3D, from: Vector3, to: Vector3) -> void:
+	_aim(laser, from, to - from)
+	# the beam runs from the fixture to twice its centre's distance along local -z
+	var reach := -2.0 * (laser.get_child(0) as Node3D).position.z
+	var b := laser.global_transform.basis
+	laser.global_transform.basis = Basis(b.x, b.y, b.z.normalized() * from.distance_to(to) / reach)
+
+## Hangs the lights on the environment's rig (see RIG_FAN_ORIGIN).
+func _apply_rig(id: String) -> void:
+	for node: Node3D in _classic_rig:
+		if node == square_lasers_holder:
+			node.transform = _classic_rig[node]
+		else:
+			node.global_transform = _classic_rig[node]
+			if node is MeshInstance3D:
+				# a square bar a rig left out
+				node.visible = true
+	var waving := _waving_lasers()
+	@warning_ignore("integer_division")
+	var half := waving.size() / 2
+	match id:
+		"neon_grid":
+			for i in diagonal_lasers.size():
+				var a := deg_to_rad(lerpf(-RIG_FAN_SPREAD_DEG, RIG_FAN_SPREAD_DEG, float(i) / (diagonal_lasers.size() - 1)))
+				_aim(diagonal_lasers[i], RIG_FAN_ORIGIN, Vector3(sin(a), cos(a), -0.15))
+			for i in waving.size():
+				var side := -1.0 if i < half else 1.0
+				waving[i].global_position = Vector3(side * RIG_GRID_EDGE_X, NeonGridRig.POLE_HEIGHT, NeonGridRig.POLE_Z[i % half])
+			var rail := 0
+			var gaps := NeonGridRig.POLE_Z.size() - 1
+			for bar in _square_bars():
+				if bar.get_parent() != square_lasers_holder:
+					bar.visible = false
+					continue
+				var side := -1.0 if rail < gaps else 1.0
+				var z := (NeonGridRig.POLE_Z[rail % gaps] + NeonGridRig.POLE_Z[rail % gaps + 1]) * 0.5
+				bar.global_transform = Transform3D(RAIL_BASIS, Vector3(side * RIG_GRID_EDGE_X, NeonGridRig.POLE_HEIGHT, z))
+				rail += 1
+		"night_city":
+			# diagonal lasers cross from the roofs' inner edges, one every 6 m along each row of buildings
+			for i in diagonal_lasers.size():
+				var pairs := diagonal_lasers.size() >> 1
+				var side := -1.0 if i < pairs else 1.0
+				var z := -18.0 - 8.0 * (i % pairs)
+				var roof := maxf(NightCityRig.roof_at(side, z), 1.0)
+				_aim(diagonal_lasers[i], Vector3(side * NightCityRig.INNER_FACE_X, roof, z), Vector3(-side * 0.35, 1.0, 0.1))
+			# searchlights stand in the middle of each roof
+			for i in waving.size():
+				var side := -1.0 if i < half else 1.0
+				var b: Vector3 = NightCityRig.buildings(side)[i % half]
+				waving[i].global_position = Vector3(side * (NightCityRig.INNER_FACE_X + NightCityRig.DEPTH_X * 0.5), b.z + 0.3, b.x)
+			# signs: the horizontal bars run along the buildings' inner faces; the vertical ones are left out
+			var sign_i := 0
+			for bar in _square_bars():
+				if bar.get_parent() != square_lasers_holder:
+					bar.visible = false
+					continue
+				var side := -1.0 if sign_i % 2 == 0 else 1.0
+				var b: Vector3 = NightCityRig.buildings(side)[(sign_i >> 1) % NightCityRig.LEFT.size()]
+				bar.global_transform = Transform3D(RAIL_BASIS,
+					Vector3(side * (NightCityRig.INNER_FACE_X - SIGN_OFFSET), SIGN_HEIGHT + float(sign_i >> 1), b.x))
+				sign_i += 1
+		"pulse_void":
+			var pairs := diagonal_lasers.size() >> 1
+			for i in diagonal_lasers.size():
+				var j := i % pairs
+				var a := deg_to_rad(lerpf(VOID_LOW_DEG, VOID_HIGH_DEG, float(j) / maxi(pairs - 1, 1)))
+				if i < pairs:
+					# left side: mirrored
+					a = PI - a
+				_span(diagonal_lasers[i], PulseVoid.ring_point(0, a), PulseVoid.ring_point(PulseVoid.RING_COUNT - 1, a))
+			for i in waving.size():
+				var a := deg_to_rad(VOID_WAVING_DEG)
+				waving[i].global_position = PulseVoid.ring_point(1 + 3 * (i % half), PI - a if i < half else a)
+			# the rings carry the square lasers' light (PulseRing.gdshader), so the bars would only float in the void
+			for bar in _square_bars():
+				bar.visible = false
 
 ## Shows the environment's own scenery (Neon Grid's floor, Pulse Void's rings, the smoke) except in mixed reality,
 ## where opaque scenery would cover the player's room: there only the track, notes and light beams are drawn
@@ -208,7 +392,11 @@ func set_environment(id: String) -> void:
 func show_scenery_for_mixed_reality() -> void:
 	neon_grid.visible = environment == "neon_grid" and not Settings.mixed_reality
 	pulse_void.visible = environment == "pulse_void" and not Settings.mixed_reality
+	classic_rig.visible = environment == "classic" and not Settings.mixed_reality
+	neon_grid_rig.visible = environment == "neon_grid" and not Settings.mixed_reality
+	night_city_rig.visible = environment == "night_city" and not Settings.mixed_reality
 	stage_smoke.visible = Settings.smoke and not Settings.mixed_reality
+	_dust.visible = not Settings.mixed_reality
 
 func set_background() -> void:
 	var width_scale := 2 * Settings.LANE_DISTANCE_X / 3.
@@ -222,8 +410,10 @@ func set_background() -> void:
 	($Level/floor/line3).global_transform.origin.x = 2 * Settings.LANE_DISTANCE_X
 	($Level/floor/line4).global_transform.origin.x = -2 * Settings.LANE_DISTANCE_X
 	($Level/floor).scale.z = 1
-	for laser in diagonal_lasers:
-		laser.transform.origin.x = 4.5 * width_scale * sign(laser.transform.origin.x)
+	# the Classic rig spreads its diagonal lasers with the track's width; other rigs place them on their structure
+	if environment == "classic":
+		for laser in diagonal_lasers:
+			laser.transform.origin.x = 4.5 * width_scale * sign(laser.transform.origin.x)
 	
 	if Settings.background == "simple":
 		ring_holder.hide()
@@ -243,12 +433,14 @@ func set_background() -> void:
 		($Level/DiagonalLasers/laser10).hide()
 		track_lights_holder.hide()
 		($Level/StageSmoke).hide()
+		_dust.hide()
 		set_all_off()
 		turn_light_on(EventInfo.TYPE_FLOOR_LIGHTS, Color.WHITE)
 		disabled = true
 	else:
 		ring_holder.visible = rings_enabled
 		stage_smoke.visible = Settings.smoke and not Settings.mixed_reality
+		_dust.visible = not Settings.mixed_reality
 		diagonal_lasers_holder.show()
 		square_lasers_holder.show()
 		left_waving_lasers_holder.show()
@@ -274,6 +466,13 @@ func set_background() -> void:
 
 func _process(delta: float) -> void:
 	_combo_pulse = maxf(_combo_pulse - delta / COMBO_PULSE_SECONDS, 0.0)
+	_mistake_dip = maxf(_mistake_dip - delta / MISTAKE_DIP_SECONDS, 0.0)
+	for i in 2:
+		if _cut_waves[i] >= 0.0:
+			_cut_waves[i] += CUT_WAVE_SPEED * delta
+			if _cut_waves[i] > CUT_WAVE_REACH:
+				_cut_waves[i] = -1.0
+	RenderingServer.global_shader_parameter_set(&"cut_waves", _cut_waves)
 	_combo_level = move_toward(_combo_level, _combo_target,
 			delta / (COMBO_RISE_SECONDS if _combo_target > _combo_level else COMBO_FALL_SECONDS))
 	if menu_focus:
@@ -296,7 +495,7 @@ func _update_haze() -> void:
 	if track_lights_holder.visible:
 		haze += floor_material.albedo_color * HAZE_LIGHT_WEIGHT
 	var pulse := _combo_pulse * _combo_pulse
-	haze *= 1.0 + COMBO_HAZE_BOOST * _combo_level + COMBO_PULSE * pulse
+	haze *= (1.0 + COMBO_HAZE_BOOST * _combo_level + COMBO_PULSE * pulse) * (1.0 - MISTAKE_DIP * _mistake_dip)
 	if menu_focus:
 		haze *= MENU_HAZE_BOOST
 	var grey := haze.r * 0.299 + haze.g * 0.587 + haze.b * 0.114
@@ -308,6 +507,14 @@ func _update_haze() -> void:
 ## Sets how lit up the scene is for the combo multiplier (1, 2, 4 or 8).
 func set_combo_multiplier(multiplier: int) -> void:
 	_combo_target = log(maxf(multiplier, 1)) / log(8.0)
+
+## Starts a ring of light from the player for a good cut with the saber of this type (0 left, 1 right).
+func cut_wave(saber_type: int) -> void:
+	_cut_waves[saber_type] = 0.0
+
+## Dims the air for a moment, for a miss, a bad cut or a bomb.
+func mistake_dip() -> void:
+	_mistake_dip = 1.0
 
 ## Brightens the air for a moment, for a combo milestone.
 func combo_pulse() -> void:
@@ -375,6 +582,7 @@ func update_left_color(color: Color) -> void:
 
 func update_right_color(color: Color) -> void:
 	right_color = color
+	PLATFORM_LIGHTS.set_shader_parameter(&"light_color", color)
 	if menu_focus:
 		_apply_menu_lights()
 		return
@@ -473,7 +681,7 @@ func turn_light_off(type: int) -> void:
 			right_waving_lasers_material.set_shader_parameter(&"light_color", Color.BLACK)
 		EventInfo.TYPE_FLOOR_LIGHTS:
 			track_lights_holder.visible = false
-			track_lights_material.albedo_color = Color.BLACK
+			track_lights_material.set_shader_parameter(&"light_color", Color.BLACK)
 			floor_material.albedo_color = Color.BLACK
 	
 func turn_light_on(type: int, color: Color) -> void:
@@ -495,7 +703,7 @@ func turn_light_on(type: int, color: Color) -> void:
 			right_waving_lasers_material.set_shader_parameter(&"light_color", color)
 		EventInfo.TYPE_FLOOR_LIGHTS:
 			track_lights_holder.visible = true
-			track_lights_material.albedo_color = color
+			track_lights_material.set_shader_parameter(&"light_color", color)
 			floor_material.albedo_color = color
 
 func flash_light_on(type: int, color: Color) -> void:

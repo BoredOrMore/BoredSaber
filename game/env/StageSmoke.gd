@@ -1,13 +1,14 @@
 extends Node3D
 class_name StageSmoke
-## Smoke around the stage, as in Beat Saber: a thin drifting layer just above the floor and big soft puffs beside
-## and behind the track, all lit by the scene lights. On the Pico 4 the smoke cost about 1.7 ms of GPU a frame with two
-## floor layers and ten puffs, so it is down to one layer and the six puffs that take the least of the screen. Kept below knee height or away from the note lanes, and faded out
-## close to the player. Drawn before the other see-through things, so lights and walls show on top. During a song the
-## smoke clears and is freed; the menus bring it back (dissipate/refill, from EventDriver.set_menu_focus). All values untuned.
+## Fog on the stage: a thin drifting layer just above the floor and four wide fog sheets standing across the view at
+## increasing depth (FogSheet.gdshader), dense at the bottom and rolling sideways, so the fog has layers and mass
+## instead of floating puffs; all lit by the scene lights and faded out close to the player. Drawn before the other
+## see-through things, so lights and walls show on top. During a song it clears and is freed; the menus bring it back
+## (dissipate/refill, from EventDriver.set_menu_focus). The height fog on the scenery (height_fog.gdshaderinc) stays
+## during play. All values untuned.
 
 const FLOOR_SMOKE := preload("res://game/env/FloorSmoke.gdshader")
-const SMOKE_BANK := preload("res://game/env/SmokeBank.gdshader")
+const FOG_SHEET := preload("res://game/env/FogSheet.gdshader")
 const RENDER_PRIORITY := -4
 const NOISE_SIZE := 256
 const FLOOR_SIZE := Vector2(14.0, 30.0)
@@ -17,19 +18,21 @@ const FLOOR_SUBDIVIDE := Vector2i(13, 29)
 ## height, opacity, and drift of each noise copy in metres per second, for each floor layer; one layer about as thick
 ## as the two there were
 const FLOOR_LAYERS := [
-	[0.12, 0.6, Vector2(0.05, 0.12), Vector2(-0.08, 0.05)],
+	[0.12, 0.9, Vector2(0.05, 0.12), Vector2(-0.08, 0.05)],
 ]
-## x, y, z and size of each puff, beside the track further ahead (the ones close to the player filled most of the
-## screen when looking sideways)
-const BANKS: Array[Vector4] = [
-	Vector4(-5.0, 1.2, -11.0, 4.5), Vector4(5.2, 1.0, -12.0, 4.5),
-	Vector4(-4.8, 1.6, -19.0, 5.0), Vector4(5.0, 1.4, -20.0, 5.0),
-	Vector4(-4.5, 2.4, -28.0, 6.0), Vector4(4.8, 2.6, -29.0, 6.0),
+## Fog sheets standing across the view, nearest first: x, y, z of the centre and width, height. Each one wider
+## and taller than the one before, so the layers read as depth; their bottoms reach below the floor.
+const SHEETS: Array[Rect2] = [
+	Rect2(Vector2(0.0, -14.0), Vector2(40.0, 5.0)),
+	Rect2(Vector2(0.0, -24.0), Vector2(50.0, 6.5)),
+	Rect2(Vector2(0.0, -36.0), Vector2(62.0, 8.0)),
+	Rect2(Vector2(0.0, -52.0), Vector2(80.0, 10.0)),
 ]
-const BANK_OPACITY := 0.33
+const SHEET_BOTTOM := -1.0
+const SHEET_OPACITY := 0.35
 ## Seconds the smoke takes to clear once a song starts (then it is freed and costs nothing while playing), and to
 ## fill the stage again in the menus. Untuned.
-const CLEAR_SECONDS := 15.0
+const CLEAR_SECONDS := 3.0
 const FILL_SECONDS := 4.0
 
 var _noise: NoiseTexture2D
@@ -85,7 +88,7 @@ func _free_smoke() -> void:
 	_materials.clear()
 	_full_opacity.clear()
 
-## Builds the floor layer and the puffs at full smoke.
+## Builds the floor layer and the fog sheets at full density.
 func _spawn() -> void:
 	var noise := _noise
 	var plane := PlaneMesh.new()
@@ -112,21 +115,20 @@ func _spawn() -> void:
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	multimesh.mesh = QuadMesh.new()
-	multimesh.instance_count = BANKS.size()
-	for i in BANKS.size():
-		var bank := BANKS[i]
-		multimesh.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3.ONE * bank.w), Vector3(bank.x, bank.y, bank.z)))
-	var bank_material := ShaderMaterial.new()
-	bank_material.shader = SMOKE_BANK
-	bank_material.render_priority = RENDER_PRIORITY
-	bank_material.set_shader_parameter(&"noise", noise)
-	bank_material.set_shader_parameter(&"opacity", BANK_OPACITY)
-	_materials.append(bank_material)
-	_full_opacity.append(BANK_OPACITY)
-	var banks := MultiMeshInstance3D.new()
-	banks.multimesh = multimesh
-	banks.material_override = bank_material
-	banks.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	# the puffs turn to face the player, so they can reach outside the squares' own bounds
-	banks.custom_aabb = AABB(Vector3(-12.0, -2.0, -40.0), Vector3(24.0, 10.0, 44.0))
-	add_child(banks)
+	multimesh.instance_count = SHEETS.size()
+	for i in SHEETS.size():
+		var sheet := SHEETS[i]
+		multimesh.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3(sheet.size.x, sheet.size.y, 1.0)),
+			Vector3(sheet.position.x, SHEET_BOTTOM + sheet.size.y * 0.5, sheet.position.y)))
+	var sheet_material := ShaderMaterial.new()
+	sheet_material.shader = FOG_SHEET
+	sheet_material.render_priority = RENDER_PRIORITY
+	sheet_material.set_shader_parameter(&"noise", noise)
+	sheet_material.set_shader_parameter(&"opacity", SHEET_OPACITY)
+	_materials.append(sheet_material)
+	_full_opacity.append(SHEET_OPACITY)
+	var sheets := MultiMeshInstance3D.new()
+	sheets.multimesh = multimesh
+	sheets.material_override = sheet_material
+	sheets.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(sheets)

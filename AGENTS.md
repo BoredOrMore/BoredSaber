@@ -173,9 +173,14 @@ channel), so brightness comes from contrast and the size of bright areas, not fr
    surfaces (floor, sky, haze, walls' glass) stay dark and low in saturation.
 4. Limited palette: the two note colours, the danger colour, and neutrals (cool or warm grey, white).
    No extra hues; the menus use a near-neutral house light (`EventDriver.HOUSE_COLOR`).
-5. Light has a source and a path: every beam starts at a fixture and turns around it (`game/AGENTS.md`),
-   shows only through haze, and fades with distance and along its length; far things lose contrast
-   toward the haze colour (aerial perspective).
+5. Light has a source and a path: build the structure first (frames, walls, plates, buildings), then mount
+   every light on it in one of three ways: (a) a fixture on a surface shooting a beam out (with a bright
+   spot where the beam leaves it), (b) a strip or panel flush on a surface, outlining it, or (c) a bar or
+   beam spanning from one object to another. Nothing floats unsupported. Fixtures repeat in rows along their
+   surface for rhythm and depth. A beam turns around its fixture (`game/AGENTS.md`), shows only through
+   haze, and fades with distance and along its length; far things lose contrast toward the haze colour
+   (aerial perspective). Keep each environment's signature view clear: structure goes to the sides and below the
+   horizon, never in front of it (a backdrop behind Neon Grid's horizon read as clutter).
 6. Haze reveals, it doesn't paint: the air stays mostly neutral and is tinted only a little by nearby
    lights (`EventDriver.HAZE_LIGHT_WEIGHT`).
 7. Fixtures move like machines: pan and tilt around the fixture with ease in and out at plausible

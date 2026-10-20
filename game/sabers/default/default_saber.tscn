@@ -1,30 +1,59 @@
-[gd_scene load_steps=17 format=3 uid="uid://bw3rjal5qlu0p"]
+[gd_scene load_steps=22 format=3 uid="uid://bw3rjal5qlu0p"]
 
 [ext_resource type="Material" uid="uid://chqutrqmle57g" path="res://game/LightSaber.material" id="1"]
 [ext_resource type="AudioStream" uid="uid://bkuquwclng0k" path="res://game/data/lightsaber.ogg" id="2"]
 [ext_resource type="Script" path="res://game/sabers/default/default_saber.gd" id="3"]
-[ext_resource type="Texture2D" uid="uid://drc5tdiltfqnk" path="res://game/BeepCube/BeepCubeEmission.png" id="3_b1nd4"]
-[ext_resource type="AudioStream" uid="uid://db2atyh66c0qv" path="res://game/data/beepcube_cut.ogg" id="4"]
+[ext_resource type="AudioStream" path="res://game/data/cut_sounds.tres" id="4"]
 [ext_resource type="PackedScene" uid="uid://buhdimf18mwbo" path="res://game/sabers/default/tail.tscn" id="6_wpbvo"]
+[ext_resource type="Shader" path="res://game/sabers/default/SaberHilt.gdshader" id="hilt_shader"]
 
 [sub_resource type="CapsuleMesh" id="1"]
 resource_local_to_scene = true
 radius = 0.0005
 height = 1.2
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_vuh23"]
-albedo_color = Color(0, 0, 0, 1)
-emission_enabled = true
-emission = Color(0.207843, 0.207843, 0.207843, 1)
-emission_energy_multiplier = 0.85
-emission_texture = ExtResource("3_b1nd4")
-uv1_scale = Vector3(0, 1.725, 1)
-uv1_offset = Vector3(-1.25, 0.32, -0.195)
+[sub_resource type="ShaderMaterial" id="hilt_grip_mat"]
+render_priority = 0
+shader = ExtResource("hilt_shader")
+shader_parameter/ridges = 1.0
 
-[sub_resource type="CylinderMesh" id="2"]
-top_radius = 0.015
-bottom_radius = 0.015
-height = 0.15
+[sub_resource type="ShaderMaterial" id="hilt_metal_mat"]
+render_priority = 0
+shader = ExtResource("hilt_shader")
+shader_parameter/metal = Color(0.3, 0.31, 0.34, 1)
+
+[sub_resource type="ShaderMaterial" id="hilt_ring_mat"]
+resource_local_to_scene = true
+render_priority = 0
+shader = ExtResource("hilt_shader")
+shader_parameter/glow = 1.0
+
+[sub_resource type="CylinderMesh" id="hilt_grip"]
+top_radius = 0.016
+bottom_radius = 0.016
+height = 0.12
+radial_segments = 16
+rings = 1
+
+[sub_resource type="CylinderMesh" id="hilt_collar"]
+top_radius = 0.021
+bottom_radius = 0.017
+height = 0.03
+radial_segments = 16
+rings = 1
+
+[sub_resource type="CylinderMesh" id="hilt_pommel"]
+top_radius = 0.017
+bottom_radius = 0.02
+height = 0.02
+radial_segments = 16
+rings = 1
+
+[sub_resource type="TorusMesh" id="hilt_ring"]
+inner_radius = 0.013
+outer_radius = 0.02
+rings = 16
+ring_segments = 6
 
 [sub_resource type="Animation" id="4"]
 resource_name = "Hide"
@@ -466,11 +495,35 @@ layers = 3
 material_override = ExtResource("1")
 mesh = SubResource("1")
 
-[node name="Hilt_Mesh" type="MeshInstance3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.03, 0)
+[node name="Hilt" type="Node3D" parent="."]
+
+[node name="Grip" type="MeshInstance3D" parent="Hilt"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.04, 0)
 layers = 3
-material_override = SubResource("StandardMaterial3D_vuh23")
-mesh = SubResource("2")
+cast_shadow = 0
+material_override = SubResource("hilt_grip_mat")
+mesh = SubResource("hilt_grip")
+
+[node name="Collar" type="MeshInstance3D" parent="Hilt"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.035, 0)
+layers = 3
+cast_shadow = 0
+material_override = SubResource("hilt_metal_mat")
+mesh = SubResource("hilt_collar")
+
+[node name="Pommel" type="MeshInstance3D" parent="Hilt"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.11, 0)
+layers = 3
+cast_shadow = 0
+material_override = SubResource("hilt_metal_mat")
+mesh = SubResource("hilt_pommel")
+
+[node name="Ring" type="MeshInstance3D" parent="Hilt"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.05, 0)
+layers = 3
+cast_shadow = 0
+material_override = SubResource("hilt_ring_mat")
+mesh = SubResource("hilt_ring")
 
 [node name="AudioStreamPlayer3D" type="AudioStreamPlayer3D" parent="."]
 volume_db = -6.0
@@ -491,6 +544,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.2554, 0)
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.759516, 0)
 stream = ExtResource("4")
 attenuation_model = 3
+max_polyphony = 4
 bus = &"SFX"
 
 [node name="tail" parent="." instance=ExtResource("6_wpbvo")]

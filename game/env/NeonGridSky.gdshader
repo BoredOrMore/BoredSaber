@@ -35,6 +35,19 @@ const float SUN_SCALE = 2.0;
 const float RING_SCALE = 1.5;
 const float BAND_SCALE = 0.25;
 const float SIDE_SCALE = 0.25;
+// The horizon line and mountain rims (ring lights) and the sun (centre lights) are the shapes these lights trace:
+// where a mask is strongest (the middle of a line, the sun's body) the light burns toward white, its colour stays
+// in the falloff (AGENTS.md "Light", rule 2). RING_GAIN and SUN_GAIN make them read as neon outlines and a sun
+// that clearly beats with its lights, now that Neon Grid keeps the view clear of other fixtures. Untuned.
+const float RING_GAIN = 1.6;
+const float SUN_GAIN = 1.4;
+const float CORE_WHITE = 0.7;
+
+// A light's colour where it traces a shape: toward white where the mask (0..1) is strongest.
+vec3 traced(vec3 tint, float mask) {
+	float peak = max(tint.r, max(tint.g, tint.b));
+	return mix(tint, vec3(peak), CORE_WHITE * smoothstep(0.5, 1.0, mask));
+}
 
 void fragment() {
 	if ((debug_view & 16) != 0) {
@@ -46,8 +59,8 @@ void fragment() {
 		mediump vec2 soft = texture(soft_masks, band_uv).rg;
 		mediump vec3 side_light = mix(bg_3_tint.rgb * bg_3_intensity, bg_2_tint.rgb * bg_2_intensity, step(0.5, UV.x));
 		ALBEDO = env_haze.rgb * (sharp.r * HAZE_SCALE)
-				+ bg_4_tint.rgb * (bg_4_intensity * sharp.g * SUN_SCALE)
-				+ bg_1_tint.rgb * (bg_1_intensity * sharp.b * RING_SCALE)
+				+ traced(bg_4_tint.rgb, sharp.g) * (bg_4_intensity * sharp.g * SUN_SCALE * SUN_GAIN)
+				+ traced(bg_1_tint.rgb, sharp.b) * (bg_1_intensity * sharp.b * RING_SCALE * RING_GAIN)
 				+ bg_0_tint.rgb * (bg_0_intensity * soft.r * BAND_SCALE)
 				+ side_light * (soft.g * SIDE_SCALE);
 		ALBEDO = shadow_tone(ALBEDO);

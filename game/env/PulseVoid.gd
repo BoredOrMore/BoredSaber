@@ -1,3 +1,4 @@
+class_name PulseVoid
 extends Node3D
 ## Pulse Void: rings of light around the track that beat with the music. One MultiMesh draws every ring, and a
 ## spectrum analyzer on the Music bus, added only while this environment shows, gives each ring its band.
@@ -6,7 +7,8 @@ extends Node3D
 const PULSE_RING := preload("res://game/env/PulseRing.gdshader")
 const SEGMENTS := 96
 const RING_COUNT := 16
-const FIRST_Z := -8.0
+## the first ring goes round the player (who stands at z 1), so the tunnel starts where they stand
+const FIRST_Z := 1.0
 const RING_GAP := 3.5
 ## the rings' centre height and radius in metres; wide enough to stay clear of every note and wall
 const CENTER_Y := 1.5
@@ -22,6 +24,12 @@ const BANDS: Array[Vector2] = [
 const FLOOR_DB := -60.0
 ## how fast a ring dims after a beat, in level per second; it brightens at once
 const RELEASE := 3.0
+
+## A point on ring `ring` (0 is the nearest) at `angle` radians from +x, counter-clockwise as the player sees it,
+## where EventDriver mounts a light. At the ring's resting radius; the ring grows only 4% with the music.
+static func ring_point(ring: int, angle: float) -> Vector3:
+	var radius := RADIUS + ring * RADIUS_STEP
+	return Vector3(cos(angle) * radius, CENTER_Y + sin(angle) * radius, FIRST_Z - ring * RING_GAP)
 
 ## takes the left and right laser lights from EventDriver
 var ring_material: ShaderMaterial

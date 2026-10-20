@@ -23,3 +23,5 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.right_saber.set_swingcast_enabled(false)
 	game.set_colors_from_settings()
 	game.menu.update_view()
+	# back from a song (finished or failed): the song's preview fades in again
+	game.menu.play_selected_preview()

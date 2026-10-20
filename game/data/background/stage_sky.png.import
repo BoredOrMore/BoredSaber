@@ -2,18 +2,10 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b2c80subxsk6a"
-path.s3tc="res://.godot/imported/fractal2.jpg-b764a060beacb9d18dc571dc64071cd1.s3tc.ctex"
-path.etc2="res://.godot/imported/fractal2.jpg-b764a060beacb9d18dc571dc64071cd1.etc2.ctex"
-metadata={
-"imported_formats": ["s3tc_bptc", "etc2_astc"],
-"vram_texture": true
-}
 
 [deps]
 
-source_file="res://game/data/background/fractal2.jpg"
-dest_files=["res://.godot/imported/fractal2.jpg-b764a060beacb9d18dc571dc64071cd1.s3tc.ctex", "res://.godot/imported/fractal2.jpg-b764a060beacb9d18dc571dc64071cd1.etc2.ctex"]
+source_file="res://game/data/background/stage_sky.png"
 
 [params]
 

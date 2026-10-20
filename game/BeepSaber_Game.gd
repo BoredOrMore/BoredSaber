@@ -105,6 +105,11 @@ var _menu_highscores_shown := false
 ## The keyboard is open from the score screen's name card.
 var _editing_name := false
 const DANGER_WALL_MATERIAL := preload("res://game/Wall/danger_wall.tres")
+## Mistake sounds (tools/make_hit_sounds.py): a dull buzz for a bad cut or the wrong saber, a boom for a bomb.
+## Misses stay silent, as in Beat Saber.
+const BAD_CUT_SOUND := preload("res://game/data/bad_cut.wav")
+const BOMB_HIT_SOUND := preload("res://game/data/bomb_hit.wav")
+var _mistake_player: AudioStreamPlayer
 const BOMB_GLOW_MATERIAL := preload("res://game/Bomb/bomb_glow.tres")
 # how long a rumble that was on when the song failed takes to fade out
 const FAIL_RUMBLE_FADE_SECONDS := 0.6
@@ -266,6 +271,8 @@ func _on_beatsaver_visibility_changed() -> void:
 		main_menu._show()
 		if _menu_highscores_shown:
 			highscore_canvas._show()
+		# the BeatSaver preview stops; the selected song's preview comes back
+		menu.play_selected_preview(0.0, true)
 
 # call this method to submit a new highscore to the database
 ## Renames the record that was saved under the default name, and makes the name the new default.
@@ -389,6 +396,10 @@ func _enter_tree() -> void:
 	Settings.changed.connect(on_settings_changed)
 
 func _ready() -> void:
+	_mistake_player = AudioStreamPlayer.new()
+	_mistake_player.bus = &"SFX"
+	_mistake_player.max_polyphony = 2
+	add_child(_mistake_player)
 	# pre-allocate scenes in our scene pools
 	GlobalReferences.cube_pool = $BeepCubePool
 	GlobalReferences.link_pool = $ChainLinkPool
@@ -519,6 +530,11 @@ func set_colors_from_settings() -> void:
 	update_right_color(Settings.color_right)
 	event_driver.set_background()
 
+## Plays the sound for a bad cut or wrong saber, or for a bomb hit.
+func play_mistake_sound(bomb: bool) -> void:
+	_mistake_player.stream = BOMB_HIT_SOUND if bomb else BAD_CUT_SOUND
+	_mistake_player.play()
+
 ## Colours walls and bombs with the song's danger colour.
 static func _update_danger_color(danger: Color) -> void:
 	(DANGER_WALL_MATERIAL as ShaderMaterial).set_shader_parameter(&"danger_color", danger)
@@ -532,6 +548,7 @@ func update_left_color(color: Color) -> void:
 	Arc.left_material_magnet.set_shader_parameter(&"color", color)
 	goggles_shader.set_shader_parameter(&"left_color", color)
 	event_driver.update_left_color(color)
+	RenderingServer.global_shader_parameter_set(&"left_saber_color", color)
 	standing_ground.update_left_color(color)
 
 func update_right_color(color: Color) -> void:
@@ -542,6 +559,7 @@ func update_right_color(color: Color) -> void:
 	Arc.right_material_magnet.set_shader_parameter(&"color", color)
 	goggles_shader.set_shader_parameter(&"right_color", color)
 	event_driver.update_right_color(color)
+	RenderingServer.global_shader_parameter_set(&"right_saber_color", color)
 	standing_ground.update_right_color(color)
 
 func _clear_track() -> void:
