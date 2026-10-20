@@ -55,6 +55,11 @@ constraints apply here unchanged.
   scoring, floor burn raycast, `left_saber`/`right_saber` shader globals.
 - `settings_Panel.gd/.tscn` — settings UI (`SettingsPanel`, `apply` signal saves config).
 - `BeepSaberMainMenu.gd/.tscn` — song list, playlists, filters, modifiers; emits `start_map`.
+- `BodyTest.gd` — body test prototype (More tab > Body Test): guard and low-stance holds, punch, squat and side-step drills that speed up
+  until the player misses 3 of 8, to measure move timings for the planned Workout mode. Logs every rep as
+  `BODYTEST,` lines and a CSV in `<APPDATA_PATH>bodytest/` (the `reach` row puts reach and eye height in the
+  last two columns, `guard` the left and right fist-to-eye distance in `time_ms`/`peak_speed`, `low_stance` the eye
+  drop in the last column). Thresholds are untuned starting values.
 - `EndScore`, `HighscorePanel`, `Pause_Panel` — end, highscore and pause panels.
 - `PercentIndicator` — accuracy ring; `HealthRails` — health strips on the floor along the track edges (bar or 4 life pips); `Points_label_driver` + `points_label` — pool of 8
   floating score/miss labels (miss "X" uses `MissMark.gdshader`).

@@ -12,6 +12,8 @@ signal difficulty_changed(map_info: MapInfo, diff_rank: int)
 signal settings_requested()
 ## The player wants to download songs: the BeatSaver page opens in place of the menu.
 signal get_songs_requested()
+## The player wants to run the body test: the menu closes while it runs.
+signal body_test_requested()
 signal start_map(info: MapInfo, difficulty: DifficultyInfo, health: bool)
 
 const FAVORITE_MASK := 0x4000000000000000
@@ -940,6 +942,10 @@ func _on_PlaylistSelector_item_selected(id: int) -> void:
 		_:
 			vr.log_warning("Unsupported playlist option %s" % id)
 			_set_cur_playlist(_all_songs)
+
+## Starts the body test.
+func _on_body_test_pressed() -> void:
+	body_test_requested.emit()
 
 func _on_licenses_pressed() -> void:
 	var license := FileAccess.open("res://LICENSE", FileAccess.READ).get_as_text()
