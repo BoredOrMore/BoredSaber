@@ -1,17 +1,16 @@
 extends MeshInstance3D
 class_name ComboHud
 ## The combo count and multiplier on the left of the HUD (the Multiplier_Label node), with feedback that makes a
-## combo feel like something: the count pops on each hit, the ring around the multiplier fills hit by hit as in
-## Beat Saber and flashes when the multiplier goes up, and a broken combo shakes and turns MISS_COLOR for a moment.
+## combo feel like something: the ring around the multiplier fills hit by hit as in Beat Saber and flashes when the
+## multiplier goes up, and a broken combo shakes and turns MISS_COLOR for a moment. The count itself holds still on
+## ordinary hits: the HUD sits near the edge of view, where steady motion distracts (Apple visionOS: avoid busy
+## motion at the edges), so only multiplier raises and milestones bounce.
 ## Kept moderate on purpose: too much feedback makes a game feel and play worse, not better (Kao 2020, "The effects
 ## of juiciness in an action RPG"), and big flashes are tiring in a headset.
 
 ## a combo of 50, then every 100: the game also brightens the air and buzzes the controllers
 signal milestone_reached(combo: int)
 
-## how much the combo count grows on a hit, and how long it takes to settle back (untuned)
-const HIT_POP := 0.12
-const HIT_POP_SECONDS := 0.12
 ## how much the multiplier grows when it goes up, and how long it and the ring's flash take to settle (untuned)
 const RAISE_POP := 0.35
 const RAISE_SECONDS := 0.35
@@ -39,7 +38,6 @@ const UP_PITCHES := {2: 1.0, 4: 1.26, 8: 1.5}
 const BREAK_SOUND_MIN_COMBO := 10
 
 var _base_position: Vector3
-var _text_size: float
 var _text_material: BaseMaterial3D
 var _text_color: Color
 var _ring_material: ShaderMaterial
@@ -51,7 +49,6 @@ var _segments := 2.0
 var _filled := 0.0
 var _filled_target := 0.0
 var _shake_left := 0.0
-var _pop_tween: Tween
 var _raise_tween: Tween
 var _tint_tween: Tween
 var _milestone_label: MeshInstance3D
@@ -65,7 +62,6 @@ var _break_sound: AudioStreamPlayer
 
 func _ready() -> void:
 	_base_position = position
-	_text_size = (mesh as TextMesh).pixel_size
 	# own copies, so tinting this text leaves the score's alone
 	_text_material = material_override.duplicate() as BaseMaterial3D
 	material_override = _text_material
@@ -164,10 +160,6 @@ func _on_combo_hit() -> void:
 		_show_milestone(Scoreboard.combo)
 		_milestone_sound.play()
 		milestone_reached.emit(Scoreboard.combo)
-	if _pop_tween:
-		_pop_tween.kill()
-	_pop_tween = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_pop_tween.tween_property(mesh, ^"pixel_size", _text_size, HIT_POP_SECONDS).from(_text_size * (1.0 + HIT_POP))
 
 func _show_milestone(combo: int) -> void:
 	_milestone_mesh.text = "%d COMBO" % combo
