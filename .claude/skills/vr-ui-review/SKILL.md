@@ -38,8 +38,8 @@ For each visible piece in each state, compute its world centre and size:
 - World position = parent transform applied to the child offset, through every parent
   (`Transform3D(...)` in `.tscn` is row-major basis then origin; columns are the local axes).
 - Canvas size in metres = control size px / 1024 × node scale.
-- Angle from straight ahead for a player at the origin, eyes ~1.6 m, facing -z:
-  yaw = atan2(x, -z), pitch = atan2(y - 1.6, -z).
+- Angle from straight ahead for the player at `XROrigin3D` (0, 0, 1), eyes (0, 1.6, 1), facing -z:
+  with dx = x, dy = y - 1.6, dz = z - 1: yaw = atan2(dx, -dz), pitch = atan2(dy, hypot(dx, dz)).
 
 Flag:
 
@@ -51,7 +51,7 @@ Flag:
       behind (the hidden name text box: keyboard text at z -0.83 behind the score panel at z -0.78).
 - [ ] A side panel not facing the player.
 - [ ] Targets under ~3° (≈ 5.2 cm at 1 m), text smaller in angle than the main menu's 28 px at
-      scale 2.4 and 1 m.
+      scale 2.4 and 2 m (≈ 1.9°).
 - [ ] Hit areas that don't match the drawn shape; interactive elements overlapping or touching.
 - [ ] Text floating above its background; many depth levels to refocus between.
 - [ ] Sustained pulsing (worst near 0.2 Hz) or busy motion at the edges of view.

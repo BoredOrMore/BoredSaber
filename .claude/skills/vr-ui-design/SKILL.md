@@ -25,8 +25,8 @@ what they press, what happens next, how they leave. For each step answer:
 
 ## 2. Placement in 3D
 
-Positions are metres in the main scene; the player's eyes are around y = 1.5-1.7 at the origin,
-facing -z. Panels are `OQ_UI2DCanvas` quads: 1024 px = 1 m at scale 1 (`vr.UI_PIXELS_TO_METER`),
+Positions are metres in the main scene. The player stands at `XROrigin3D` (0, 0, 1), not at the
+scene origin: eyes around (0, 1.6, 1), facing -z. Panels are `OQ_UI2DCanvas` quads: 1024 px = 1 m at scale 1 (`vr.UI_PIXELS_TO_METER`),
 then multiplied by the node `transform` scale.
 
 - Keep reading and pressing within about ±30° left/right, 20° up and 12° down of straight ahead;
@@ -39,7 +39,7 @@ then multiplied by the node `transform` scale.
 - Centre important content; content at the sides means turning the head again and again [Apple
   spatial layout, Meta comfort]. Anchor UI in the world, never to the head, and keep the main
   controls on one panel rather than many floating windows [Apple spatial layout, Meta comfort].
-- A side panel must face the player (yaw toward the origin) and stay inside the comfort zone. A
+- A side panel must face the player (yaw toward (0, 1.6, 1)) and stay inside the comfort zone. A
   table 2.3 m left turned 60° was out of sight.
 - **Depth:** two panels at similar depth must not overlap in the view. Compute world positions:
   a child offset is rotated and scaled by every parent transform. (The keyboard's text box sat 5 cm
@@ -66,7 +66,7 @@ then multiplied by the node `transform` scale.
   px at canvas scale 2.
 - Rounded buttons and chips with the label centred and padded; flat, no heavy outlines [Apple
   WWDC23 "Design for spatial input"].
-- Text: the theme's 28 px on the main menu canvas (scale 2.4 at 1 m ≈ 6.6 cm ≈ 3.8°) is the
+- Text: the theme's 28 px on the main menu canvas (scale 2.4 at 2 m from the eyes ≈ 6.6 cm ≈ 1.9°) is the
   playtested baseline; don't make body text smaller in angle than that. Muted text needs more size.
   In a reading study on Oculus Go and Quest (Kojić et al., "User Experience of Reading in Virtual
   Reality", QoMEX 2020) players set short labels larger than paragraphs (about 30 against 17
