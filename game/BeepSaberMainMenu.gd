@@ -41,19 +41,16 @@ const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 @onready var level_row := $DifficultyPicker/LevelRow as HBoxContainer
 @onready var level_stats := $DifficultyPicker/LevelStats as Label
 @onready var delete_button := $MorePanel/Delete_Button as ConfirmButton
-@onready var fail_row := $FailRow as HBoxContainer
-@onready var damage_row := $DamageRow as HBoxContainer
-@onready var bombs_control := $ModifiersPanel/Margin/Rows/Toggles/Bombs as CheckButton
-@onready var arrows_control := $ModifiersPanel/Margin/Rows/Toggles/Arrows as CheckButton
-@onready var flip_control := $ModifiersPanel/Margin/Rows/Flip as OptionButton
-@onready var handedness_control := $ModifiersPanel/Margin/Rows/Handedness as OptionButton
-@onready var claws_control := $ModifiersPanel/Margin/Rows/Toggles/Claws as CheckButton
-@onready var size_control := $ModifiersPanel/Margin/Rows/Size as OptionButton
-@onready var width_control := $ModifiersPanel/Margin/Rows/Width as OptionButton
-@onready var speed_control := $ModifiersPanel/Margin/Rows/Speed as OptionButton
+@onready var fail_row := $Modifiers/FailRow as HBoxContainer
+@onready var damage_row := $Modifiers/DamageRow as HBoxContainer
+@onready var toggle_row := $Modifiers/ToggleRow as HBoxContainer
+@onready var speed_row := $Modifiers/SpeedRow as HBoxContainer
+@onready var modifiers_hint := $Modifiers/Hint as Label
+@onready var more_mods_button := $Modifiers/MoreMods_Button as Button
+@onready var more_mods_rows := $MoreModsPanel/Rows as VBoxContainer
 @onready var favorite_button := $Favorite_Button as Button
 @onready var player_name_button := $PlayerName_Button as Button
-@onready var reset_button := $ModifiersPanel/Margin/Rows/ResetRow/Reset_Button as Button
+@onready var reset_button := $Modifiers/Header/Reset_Button as Button
 
 @onready var song_preview := $song_prev as AudioStreamPlayer
 var song_preview_transition_time := 1.0
@@ -638,18 +635,28 @@ func _drop_down(control: OptionButton, list: Array, value: Variant, defaultIndex
 			index = i
 	control.selected = index
 	
+## Shows the saved modifiers on every chip, what changed on Reset and More modifiers, and a hint.
 func _update_mod_controls() -> void:
 	_sync_difficulty_rows()
-	arrows_control.button_pressed = Settings.arrows_enabled
-	
-	_drop_down(flip_control, Constants.FLIPS, Settings.flip, 0)
-	_drop_down(handedness_control, Constants.HANDEDNESSES, Settings.handedness, 0)
-	_drop_down(width_control, Constants.WIDTHS, Settings.width, 0)
-	_drop_down(size_control, Constants.SIZES, Settings.block_size, 1)
-	_drop_down(speed_control, Constants.SPEEDS, Settings.music_speed, 1)
-	
-	bombs_control.button_pressed = Settings.bombs_enabled
-	claws_control.button_pressed = Settings.claws
+	for chip: Button in toggle_row.get_children():
+		var toggle: Array = TOGGLE_CHIPS[chip.get_index()]
+		chip.set_pressed_no_signal(Settings.get(toggle[1] as StringName) == toggle[2])
+	for row: Array in _option_rows:
+		var chips: Array = row[0]
+		for i in chips.size():
+			(chips[i] as Button).set_pressed_no_signal(Settings.get(row[1] as StringName) == row[2][i])
+	_claws_chip.set_pressed_no_signal(Settings.claws)
+	var changed := _changed_modifiers()
+	reset_button.visible = changed.size() > 0
+	reset_button.text = "%d changed · Reset" % changed.size()
+	var rare := _changed_modifiers(true)
+	more_mods_button.text = MORE_MODS_TEXT + (HighscorePanel.RUN_PARTS_SEPARATOR + ", ".join(rare) if rare.size() > 0 else "")
+	# one line holds one hint: why Damage is greyed out comes first
+	modifiers_hint.text = ""
+	if not Settings.walls_enabled:
+		modifiers_hint.text = NO_WALLS_HINT
+	if not (Settings.health_mode and Settings.fail_mode == Constants.FAIL_MODE_BAR):
+		modifiers_hint.text = DAMAGE_HINT
 
 func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(Constants.APPDATA_PATH+"Backgrounds/")
@@ -658,6 +665,7 @@ func _ready() -> void:
 	Settings.changed.connect(on_settings_changed)
 	
 	_build_difficulty_rows()
+	_build_modifier_chips()
 	_build_difficulty_picker()
 	_build_tabs()
 	_show_player_name()
@@ -763,10 +771,10 @@ func _on_Exit_Button_pressed() -> void:
 
 ## Tabs above the right column, in order. Settings is not one: it opens its own screen, so it is the gear
 ## button beside them (a control looks like what it does).
-enum Tab { SONG, MODIFIERS, MORE }
-const TAB_LABELS := ["Song", "Modifiers", "More"]
+enum Tab { SONG, MORE }
+const TAB_LABELS := ["Song", "More"]
 
-## Fills the tab row; Song shows the details, the others a panel above Play.
+## Fills the tab row; Song shows the details and modifiers, More a panel above Play.
 func _build_tabs() -> void:
 	var group := ButtonGroup.new()
 	for i in TAB_LABELS.size():
@@ -782,8 +790,8 @@ func _on_settings_button_pressed() -> void:
 
 ## Shows the tab's panel over the song details (Song shows the details) and lights up its tab.
 func _show_tab(tab: int) -> void:
-	$ModifiersPanel.visible = tab == Tab.MODIFIERS
 	$MorePanel.visible = tab == Tab.MORE
+	$MoreModsPanel.hide()
 	for i in $Tabs.get_child_count():
 		($Tabs.get_child(i) as Button).set_pressed_no_signal(i == tab)
 
@@ -963,22 +971,25 @@ func update_view() -> void:
 		difficulty_changed.emit(null, -1)
 	_sync_difficulty_picker()
 	_update_play_button()
-	_set_reset_icon()
+	_update_mod_controls()
 
 ## Fills the fail and damage rows with one toggle button per option, so they're a single press away;
 ## the damage row starts with a "Damage" label.
 func _build_difficulty_rows() -> void:
 	var fail_group := ButtonGroup.new()
 	for i in Constants.FAIL_OPTIONS.size():
-		fail_row.add_child(_make_row_button(Constants.FAIL_OPTIONS[i][2], fail_group, _on_fail_option_pressed.bind(i)))
+		var chip := _make_row_button(Constants.FAIL_OPTIONS[i][2], fail_group, _on_fail_option_pressed.bind(i))
+		fail_row.add_child(chip)
+		_set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 	var damage_label := Label.new()
 	damage_label.text = "Damage"
-	damage_label.add_theme_font_size_override(&"font_size", 24)
-	damage_label.custom_minimum_size.x = 130
+	damage_label.custom_minimum_size.x = ROW_LABEL_WIDTH
 	damage_row.add_child(damage_label)
 	var damage_group := ButtonGroup.new()
 	for i in Constants.DAMAGE_SCALES.size():
-		damage_row.add_child(_make_row_button(Constants.DAMAGE_SCALES[i][1], damage_group, _on_damage_option_pressed.bind(i)))
+		var chip := _make_row_button(Constants.DAMAGE_SCALES[i][1], damage_group, _on_damage_option_pressed.bind(i))
+		damage_row.add_child(chip)
+		_set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 	_sync_difficulty_rows()
 
 ## Difficulty levels in button order: [difficulty name in the map, button label].
@@ -1012,11 +1023,7 @@ func _build_difficulty_picker() -> void:
 		# five buttons share the column: narrow side padding (read once in the tree, from the menu theme),
 		# and the text never widens the row past the panel
 		button.clip_text = true
-		for style: StringName in [&"normal", &"hover", &"pressed", &"hover_pressed", &"disabled", &"focus"]:
-			var box := button.get_theme_stylebox(style).duplicate() as StyleBox
-			box.content_margin_left = LEVEL_BUTTON_PADDING
-			box.content_margin_right = LEVEL_BUTTON_PADDING
-			button.add_theme_stylebox_override(style, box)
+		_set_padding(button, LEVEL_BUTTON_PADDING)
 	_sync_difficulty_picker()
 
 ## The characteristic a difficulty belongs to; maps without one are Standard.
@@ -1118,9 +1125,20 @@ func _make_row_button(text: String, group: ButtonGroup, on_pressed: Callable) ->
 	button.toggle_mode = true
 	button.button_group = group
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.add_theme_font_size_override(&"font_size", 24)
 	button.pressed.connect(on_pressed)
 	return button
+
+## Gives button, already in the tree so it reads the menu theme, narrower padding in every state, so a row
+## of chips fits the column; vertical padding changes only when given.
+static func _set_padding(button: Button, side: float, vertical := -1.0) -> void:
+	for style: StringName in [&"normal", &"hover", &"pressed", &"hover_pressed", &"disabled", &"focus"]:
+		var box := button.get_theme_stylebox(style).duplicate() as StyleBox
+		box.content_margin_left = side
+		box.content_margin_right = side
+		if vertical >= 0.0:
+			box.content_margin_top = vertical
+			box.content_margin_bottom = vertical
+		button.add_theme_stylebox_override(style, box)
 
 ## Shows the saved fail mode and damage scale in the rows; damage only matters for the health bar.
 func _sync_difficulty_rows() -> void:
@@ -1140,43 +1158,12 @@ func _sync_difficulty_rows() -> void:
 func _on_fail_option_pressed(index: int) -> void:
 	Settings.health_mode = Constants.FAIL_OPTIONS[index][0]
 	Settings.fail_mode = Constants.FAIL_OPTIONS[index][1]
-	_sync_difficulty_rows()
 	update_view()
 
 ## Stores the picked damage scale.
 func _on_damage_option_pressed(index: int) -> void:
 	Settings.damage_scale = Constants.DAMAGE_SCALES[index][0]
-	_sync_difficulty_rows()
 	update_view()
-
-func _on_claws_toggled(value: bool) -> void:
-	Settings.claws = value
-	update_view()
-
-func _on_bombs_toggled(value: bool) -> void:
-	Settings.bombs_enabled = value
-	update_view()
-	
-func _on_arrows_toggled(value: bool) -> void:
-	Settings.arrows_enabled = value
-	update_view()
-	
-func _are_mods_default() -> bool:
-	if not Settings.health_mode or Settings.fail_mode != Constants.FAIL_MODE_BAR or Settings.damage_scale != 1.0 or not Settings.bombs_enabled or not Settings.arrows_enabled:
-		return false
-	if Settings.claws or Settings.block_size != 100:
-		return false
-	if Settings.width != 100 or Settings.flip != 0 or Settings.music_speed != 100:
-		return false
-	if Settings.handedness != 0:
-		return false
-	return true
-	
-func _set_reset_icon() -> void:
-	if _are_mods_default():
-		reset_button.hide()
-	else:
-		reset_button.show()
 
 ## Shows whether the selected song is a favourite: a filled yellow star, or an outline to add it.
 func _set_favorite_icon(value: bool) -> void:
@@ -1204,39 +1191,114 @@ func _on_favorite_button_pressed() -> void:
 	_sort_songs()
 	update_view()
 	
-func _on_width_item_selected(index: int) -> void:
-	Settings.width = Constants.WIDTHS[index][0]
-	update_view()
-
-func _on_size_item_selected(index: int) -> void:
-	Settings.block_size = Constants.SIZES[index][0]
-	update_view()
-
-func _on_speed_item_selected(index: int) -> void:
-	Settings.music_speed = Constants.SPEEDS[index][0]
-	update_view()
-
-func _on_flip_item_selected(index: int) -> void:
-	Settings.flip = Constants.FLIPS[index][0]
-	update_view()
-
-func _on_handedness_item_selected(index: int) -> void:
-	Settings.handedness = Constants.HANDEDNESSES[index][0]
-	update_view()
-
+## Puts every modifier back to its default.
 func _on_reset_button_pressed() -> void:
 	Settings.health_mode = true
 	Settings.fail_mode = Constants.FAIL_MODE_BAR
 	Settings.damage_scale = 1.0
+	Settings.walls_enabled = true
 	Settings.bombs_enabled = true
 	Settings.arrows_enabled = true
+	Settings.disable_map_color = false
 	Settings.claws = false
 	Settings.block_size = 100
-	Settings.width = 100 
+	Settings.width = 100
 	Settings.flip = 0
 	Settings.music_speed = 100
 	Settings.handedness = 0
-	_update_mod_controls()
 	update_view()
 
-	pass # Replace with function body.
+## Chip side padding, and the width of the Damage row's leading label.
+const CHIP_PADDING := 6.0
+## Top and bottom padding of chips, so the theme's 28 px text fits a 48 px row (3.2° at the menu's 2 m).
+const CHIP_VERTICAL_PADDING := 7.0
+const ROW_LABEL_WIDTH := 110.0
+const MORE_MODS_TEXT := "More modifiers"
+const DAMAGE_HINT := "Damage counts only with Health"
+const NO_WALLS_HINT := "No walls: 5% less score"
+## On/off chips on the Song tab: [label, Settings key, value of the key while the chip is on].
+const TOGGLE_CHIPS := [["Walls", &"walls_enabled", true], ["Bombs", &"bombs_enabled", true],
+	["Arrows", &"arrows_enabled", true], ["Map colors", &"disable_map_color", false]]
+## The rarer modifiers in More modifiers: [title, Settings key, option table in Constants, chip labels, columns,
+## default value]. Each option table row starts with the value and its name in the record table.
+const MORE_MOD_ROWS := [
+	["Blocks", &"block_size", Constants.SIZES, ["Small", "Normal", "Big", "Giant"], 4, 100],
+	["Width", &"width", Constants.WIDTHS, ["100%", "125%", "150%", "175%", "200%"], 5, 100],
+	["Mirror", &"flip", Constants.FLIPS, ["Off", "Left-Right", "Up-Down", "Both ways"], 2, 0],
+	["Sabers", &"handedness", Constants.HANDEDNESSES, ["Normal", "Any color", "Left only", "Right only"], 2, 0],
+]
+## Speed chips and each More modifiers row: [chip buttons, Settings key, value of each chip].
+var _option_rows: Array[Array] = []
+var _claws_chip: Button
+
+## Fills the Song tab's on/off and Speed chips and the More modifiers view.
+func _build_modifier_chips() -> void:
+	for toggle: Array in TOGGLE_CHIPS:
+		var chip := _make_row_button(str(toggle[0]), null, func() -> void: pass)
+		chip.toggled.connect(func(on: bool) -> void:
+			Settings.set(toggle[1] as StringName, on == toggle[2])
+			update_view())
+		toggle_row.add_child(chip)
+		_set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
+	_add_option_chips(speed_row, &"music_speed", Constants.SPEEDS, Constants.SPEEDS.map(func(o: Array) -> String: return "%d%%" % o[0]))
+	for row: Array in MORE_MOD_ROWS:
+		var title := Label.new()
+		title.text = str(row[0])
+		more_mods_rows.add_child(title)
+		var grid := GridContainer.new()
+		grid.columns = int(row[4])
+		grid.add_theme_constant_override(&"h_separation", 4)
+		grid.add_theme_constant_override(&"v_separation", 6)
+		more_mods_rows.add_child(grid)
+		_add_option_chips(grid, row[1] as StringName, row[2] as Array, row[3] as Array)
+	_claws_chip = _make_row_button(Constants.CLAWS_LABEL, null, func() -> void: pass)
+	_claws_chip.toggled.connect(func(on: bool) -> void:
+		Settings.claws = on
+		update_view())
+	more_mods_rows.add_child(_claws_chip)
+	_set_padding(_claws_chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
+	_set_padding(reset_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
+	_set_padding(more_mods_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
+
+## Adds one chip per option of an option table to parent, picking the option's value for key when pressed.
+func _add_option_chips(parent: Container, key: StringName, options: Array, labels: Array) -> void:
+	var group := ButtonGroup.new()
+	var chips: Array[Button] = []
+	var values := options.map(func(o: Array) -> Variant: return o[0])
+	for i in options.size():
+		var value: Variant = values[i]
+		var chip := _make_row_button(str(labels[i]), group, func() -> void:
+			Settings.set(key, value)
+			update_view())
+		parent.add_child(chip)
+		_set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
+		chips.append(chip)
+	_option_rows.append([chips, key, values])
+
+## Names of the modifiers that differ from the default; with rare_only, only those in More modifiers, by their
+## names in the record table.
+func _changed_modifiers(rare_only := false) -> PackedStringArray:
+	var names := PackedStringArray()
+	if not rare_only:
+		if not Settings.health_mode or Settings.fail_mode != Constants.FAIL_MODE_BAR:
+			names.append("Fail")
+		if not is_equal_approx(Settings.damage_scale, 1.0):
+			names.append("Damage")
+		for toggle: Array in TOGGLE_CHIPS:
+			if Settings.get(toggle[1] as StringName) != toggle[2]:
+				names.append(str(toggle[0]))
+		if Settings.music_speed != 100:
+			names.append("Speed")
+	for row: Array in MORE_MOD_ROWS:
+		var value: Variant = Settings.get(row[1] as StringName)
+		if value != row[5]:
+			for option: Array in row[2]:
+				if option[0] == value:
+					names.append(str(option[1]))
+	if Settings.claws:
+		names.append(Constants.CLAWS_LABEL)
+	return names
+
+## Opens More modifiers over the song details, or goes back to them.
+func _show_more_modifiers(open: bool) -> void:
+	$MoreModsPanel.visible = open

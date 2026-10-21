@@ -21,7 +21,6 @@ signal apply()
 @onready var swing_scoring_control := $Tabs/Gameplay/VBox/swing_scoring as CheckButton
 @onready var show_collisions := $Tabs/Advanced/VBox/show_collisions as CheckButton
 @onready var ui_volume_slider := $Tabs/Audio/VBox/UI_VolumeRow/ui_volume_slider as HSlider
-@onready var disable_map_color_control := $Tabs/Gameplay/VBox/disable_map_color as CheckButton
 @onready var left_saber_posx_control := $Tabs/Advanced/VBox/left_saber_offset/pos_row/posx as SpinBox
 @onready var left_saber_posy_control := $Tabs/Advanced/VBox/left_saber_offset/pos_row/posy as SpinBox
 @onready var left_saber_posz_control := $Tabs/Advanced/VBox/left_saber_offset/pos_row/posz as SpinBox
@@ -161,7 +160,6 @@ func set_controls_from_settings() -> void:
 	not_music_dl_control.button_pressed = Settings.not_music_dl
 	swing_scoring_control.button_pressed = Settings.swing_scoring
 	ui_volume_slider.value = Settings.ui_volume
-	disable_map_color_control.button_pressed = Settings.disable_map_color
 	environment_control.select(maxi(_environment_ids().find(Settings.environment), 0))
 	left_saber_posx_control.value = Settings.left_saber_offset_pos.x
 	left_saber_posy_control.value = Settings.left_saber_offset_pos.y
@@ -337,9 +335,6 @@ func _on_measure_height_pressed() -> void:
 	player_height_offset_control.value = clampf(snappedf(Constants.EYE_HEIGHT - eyes, 0.01),
 			player_height_offset_control.min_value, player_height_offset_control.max_value)
 
-func _on_disable_map_color_toggled(toggled_on: bool) -> void:
-	Settings.disable_map_color = toggled_on
-	
 func _force_update_show_coll_shapes(node: Node) -> void:
 	# toggle enable to make engine show collision shapes
 	if node is CollisionShape3D:

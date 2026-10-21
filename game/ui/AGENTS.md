@@ -19,7 +19,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   The menu's "Get more songs" opens it directly (`BeepSaber_Game._open_beatsaver`), in front of the player in place
   of the song menu. (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
 - `UI_AudioEngine/`: autoload; `attach_children(node)` wires hover/click sounds to every `Button` below `node`.
-- In `game/`: `BeepSaberMainMenu.gd/.tscn` (class `MainMenu`: song list, difficulty, Song/Modifiers/More tabs and a Settings gear above the right column),
+- In `game/`: `BeepSaberMainMenu.gd/.tscn` (class `MainMenu`: song list, Song/More tabs and a Settings gear above the right column; the Song tab holds
+  difficulty and the modifier chips, rarer ones behind "More modifiers"),
   `settings_Panel.gd/.tscn` (class `SettingsPanel`, tabs Gameplay/Visuals/Audio/Advanced), `HighscorePanel`,
   `Pause_Panel` (signals `continue_button`/`restart_button`/`mainmenu_button`), `EndScore` (3D `MeshInstance3D`, not a
   canvas), `vr_slider.gd` (thumbstick/drag scrolling), `UI_Panel.gdshader` (rounded 3D panel used by `EndScore.tscn`

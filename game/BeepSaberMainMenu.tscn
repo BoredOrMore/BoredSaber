@@ -5,6 +5,7 @@
 [ext_resource type="Script" uid="uid://cbe53qn50sjl7" path="res://game/BeepSaberMainMenu.gd" id="3"]
 [ext_resource type="Texture2D" uid="uid://cviyxvrpvyr0g" path="res://u/assets/game/data/beepsaber_logo.png" id="3_wpmn0"]
 [ext_resource type="PackedScene" uid="uid://dtipmx5ep1dkk" path="res://game/vr_slider.tscn" id="6"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/arrow-left.svg" id="icon_arrow-left"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/download.svg" id="icon_download"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/log-out.svg" id="icon_log-out"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/play.svg" id="icon_play"]
@@ -21,12 +22,9 @@
 [sub_resource type="StyleBoxFlat" id="1"]
 bg_color = Color(0.086, 0.094, 0.114, 1)
 
-[sub_resource type="Theme" id="panel_text"]
-default_font_size = 24
-
 [node name="BeepSaberMainMenu" type="Panel" unique_id=1329467298]
 offset_right = 1280.0
-offset_bottom = 776.0
+offset_bottom = 872.0
 theme = ExtResource("1")
 theme_override_styles/panel = SubResource("1")
 script = ExtResource("3")
@@ -109,7 +107,7 @@ layout_mode = 0
 offset_left = 24.0
 offset_top = 224.0
 offset_right = 760.0
-offset_bottom = 596.0
+offset_bottom = 692.0
 fixed_icon_size = Vector2i(72, 72)
 
 [node name="EmptyList" type="Label" parent="."]
@@ -118,7 +116,7 @@ layout_mode = 0
 offset_left = 24.0
 offset_top = 224.0
 offset_right = 760.0
-offset_bottom = 596.0
+offset_bottom = 692.0
 theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -127,9 +125,9 @@ autowrap_mode = 3
 [node name="GetSongs_Button" type="Button" parent="." unique_id=1531123590]
 layout_mode = 0
 offset_left = 24.0
-offset_top = 608.0
+offset_top = 704.0
 offset_right = 760.0
-offset_bottom = 660.0
+offset_bottom = 756.0
 text = "Get more songs"
 icon = ExtResource("icon_download")
 script = ExtResource("icon_button")
@@ -138,18 +136,18 @@ script = ExtResource("icon_button")
 layout_mode = 0
 offset_left = 784.0
 offset_top = 88.0
-offset_right = 984.0
-offset_bottom = 288.0
+offset_right = 904.0
+offset_bottom = 208.0
 texture = ExtResource("3_wpmn0")
 expand_mode = 1
 stretch_mode = 5
 
 [node name="SongInfo_Label" type="Label" parent="." unique_id=347010549]
 layout_mode = 0
-offset_left = 1000.0
+offset_left = 920.0
 offset_top = 88.0
 offset_right = 1256.0
-offset_bottom = 228.0
+offset_bottom = 156.0
 theme_override_font_sizes/font_size = 24
 autowrap_mode = 3
 clip_text = true
@@ -157,10 +155,10 @@ text_overrun_behavior = 3
 
 [node name="Favorite_Button" type="Button" parent="." unique_id=1448413959]
 layout_mode = 0
-offset_left = 1000.0
-offset_top = 236.0
+offset_left = 920.0
+offset_top = 160.0
 offset_right = 1256.0
-offset_bottom = 288.0
+offset_bottom = 208.0
 theme_override_font_sizes/font_size = 22
 toggle_mode = true
 text = "Add to favorites"
@@ -170,9 +168,9 @@ script = ExtResource("icon_button")
 [node name="DifficultyPicker" type="VBoxContainer" parent="." unique_id=1422990200]
 layout_mode = 0
 offset_left = 784.0
-offset_top = 300.0
+offset_top = 216.0
 offset_right = 1256.0
-offset_bottom = 486.0
+offset_bottom = 376.0
 theme_override_constants/separation = 4
 mouse_filter = 2
 alignment = 1
@@ -195,28 +193,12 @@ autowrap_mode = 3
 text_overrun_behavior = 3
 max_lines_visible = 3
 
-[node name="FailRow" type="HBoxContainer" parent="." unique_id=1730492217]
-layout_mode = 0
-offset_left = 784.0
-offset_top = 488.0
-offset_right = 1256.0
-offset_bottom = 536.0
-theme_override_constants/separation = 4
-
-[node name="DamageRow" type="HBoxContainer" parent="." unique_id=1730492218]
-layout_mode = 0
-offset_left = 784.0
-offset_top = 542.0
-offset_right = 1256.0
-offset_bottom = 590.0
-theme_override_constants/separation = 4
-
 [node name="Play_Button" type="Button" parent="." unique_id=1531123587]
 layout_mode = 0
 offset_left = 784.0
-offset_top = 656.0
+offset_top = 784.0
 offset_right = 1256.0
-offset_bottom = 752.0
+offset_bottom = 848.0
 theme_type_variation = &"PrimaryButton"
 theme_override_font_sizes/font_size = 40
 text = "Play"
@@ -226,18 +208,18 @@ script = ExtResource("icon_button")
 [node name="PlayerLabel" type="Label" parent="."]
 layout_mode = 0
 offset_left = 24.0
-offset_top = 672.0
+offset_top = 768.0
 offset_right = 152.0
-offset_bottom = 752.0
+offset_bottom = 848.0
 text = "Name"
 vertical_alignment = 1
 
 [node name="PlayerName_Button" type="Button" parent="."]
 layout_mode = 0
 offset_left = 156.0
-offset_top = 672.0
+offset_top = 768.0
 offset_right = 760.0
-offset_bottom = 752.0
+offset_bottom = 848.0
 text = "Player"
 icon = ExtResource("edit_icon")
 text_overrun_behavior = 3
@@ -261,88 +243,93 @@ offset_bottom = 80.0
 icon = ExtResource("icon_settings")
 script = ExtResource("icon_button")
 
-[node name="ModifiersPanel" type="Panel" parent="."]
+[node name="Modifiers" type="VBoxContainer" parent="."]
+layout_mode = 0
+offset_left = 784.0
+offset_top = 380.0
+offset_right = 1256.0
+offset_bottom = 776.0
+theme_override_constants/separation = 4
+
+[node name="Sep" type="HSeparator" parent="Modifiers"]
+layout_mode = 2
+
+[node name="Header" type="HBoxContainer" parent="Modifiers"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+
+[node name="Label" type="Label" parent="Modifiers/Header"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Modifiers"
+vertical_alignment = 1
+
+[node name="Reset_Button" type="Button" parent="Modifiers/Header" unique_id=1815398217]
+layout_mode = 2
+icon = ExtResource("icon_undo-2")
+script = ExtResource("icon_button")
+
+[node name="ToggleRow" type="HBoxContainer" parent="Modifiers"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="SpeedLabel" type="Label" parent="Modifiers"]
+layout_mode = 2
+text = "Speed"
+
+[node name="SpeedRow" type="HBoxContainer" parent="Modifiers"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="FailRow" type="HBoxContainer" parent="Modifiers" unique_id=1730492217]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="DamageRow" type="HBoxContainer" parent="Modifiers" unique_id=1730492218]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Hint" type="Label" parent="Modifiers"]
+custom_minimum_size = Vector2(0, 34)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
+vertical_alignment = 1
+text_overrun_behavior = 3
+
+[node name="MoreMods_Button" type="Button" parent="Modifiers"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+clip_text = true
+text_overrun_behavior = 3
+
+[node name="MoreModsPanel" type="Panel" parent="."]
 visible = false
 layout_mode = 0
 offset_left = 784.0
 offset_top = 88.0
 offset_right = 1256.0
-offset_bottom = 650.0
+offset_bottom = 776.0
 
-[node name="Margin" type="MarginContainer" parent="ModifiersPanel"]
+[node name="Rows" type="VBoxContainer" parent="MoreModsPanel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme = SubResource("panel_text")
-theme_override_constants/margin_left = 16
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_right = 16
-theme_override_constants/margin_bottom = 16
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+theme_override_constants/separation = 6
 
-[node name="Rows" type="VBoxContainer" parent="ModifiersPanel/Margin"]
+[node name="Back_Button" type="Button" parent="MoreModsPanel/Rows"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="Toggles" type="GridContainer" parent="ModifiersPanel/Margin/Rows"]
-layout_mode = 2
-theme_override_constants/h_separation = 8
-theme_override_constants/v_separation = 8
-
-[node name="Bombs" type="CheckButton" parent="ModifiersPanel/Margin/Rows/Toggles" unique_id=232093017]
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Bombs"
-
-[node name="Arrows" type="CheckButton" parent="ModifiersPanel/Margin/Rows/Toggles" unique_id=2103954553]
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Arrows"
-
-[node name="Claws" type="CheckButton" parent="ModifiersPanel/Margin/Rows/Toggles" unique_id=419381851]
-custom_minimum_size = Vector2(0, 44)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Short Sabers"
-
-[node name="Sep1" type="HSeparator" parent="ModifiersPanel/Margin/Rows"]
-layout_mode = 2
-
-[node name="Size" type="OptionButton" parent="ModifiersPanel/Margin/Rows" unique_id=496871731]
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
-
-[node name="Width" type="OptionButton" parent="ModifiersPanel/Margin/Rows" unique_id=593606118]
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
-
-[node name="Sep2" type="HSeparator" parent="ModifiersPanel/Margin/Rows"]
-layout_mode = 2
-
-[node name="Flip" type="OptionButton" parent="ModifiersPanel/Margin/Rows" unique_id=376088449]
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
-
-[node name="Speed" type="OptionButton" parent="ModifiersPanel/Margin/Rows" unique_id=1987793820]
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
-
-[node name="Handedness" type="OptionButton" parent="ModifiersPanel/Margin/Rows" unique_id=1664220508]
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
-
-[node name="ResetRow" type="HBoxContainer" parent="ModifiersPanel/Margin/Rows"]
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
-
-[node name="Reset_Button" type="Button" parent="ModifiersPanel/Margin/Rows/ResetRow" unique_id=1815398217]
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Reset modifiers"
-icon = ExtResource("icon_undo-2")
+text = "Back"
+icon = ExtResource("icon_arrow-left")
 script = ExtResource("icon_button")
 
 [node name="MorePanel" type="Panel" parent="."]
@@ -351,7 +338,7 @@ layout_mode = 0
 offset_left = 784.0
 offset_top = 88.0
 offset_right = 1256.0
-offset_bottom = 650.0
+offset_bottom = 776.0
 
 [node name="LoadPlaylists_Button" type="Button" parent="MorePanel" unique_id=793107135]
 layout_mode = 0
@@ -451,14 +438,6 @@ one_shot = true
 scroll_node_path = NodePath("../SongsMenu")
 scroll_without_pointer = true
 
-[connection signal="toggled" from="ModifiersPanel/Margin/Rows/Toggles/Bombs" to="." method="_on_bombs_toggled"]
-[connection signal="toggled" from="ModifiersPanel/Margin/Rows/Toggles/Arrows" to="." method="_on_arrows_toggled"]
-[connection signal="toggled" from="ModifiersPanel/Margin/Rows/Toggles/Claws" to="." method="_on_claws_toggled"]
-[connection signal="item_selected" from="ModifiersPanel/Margin/Rows/Size" to="." method="_on_size_item_selected"]
-[connection signal="item_selected" from="ModifiersPanel/Margin/Rows/Width" to="." method="_on_width_item_selected"]
-[connection signal="item_selected" from="ModifiersPanel/Margin/Rows/Flip" to="." method="_on_flip_item_selected"]
-[connection signal="item_selected" from="ModifiersPanel/Margin/Rows/Speed" to="." method="_on_speed_item_selected"]
-[connection signal="item_selected" from="ModifiersPanel/Margin/Rows/Handedness" to="." method="_on_handedness_item_selected"]
 [connection signal="pressed" from="Play_Button" to="." method="_on_Play_Button_pressed"]
 [connection signal="confirmed" from="MorePanel/Delete_Button" to="." method="_on_delete_confirmed"]
 [connection signal="confirmed" from="MorePanel/Exit_Button" to="." method="_on_Exit_Button_pressed"]
@@ -477,5 +456,7 @@ scroll_without_pointer = true
 [connection signal="pressed" from="Favorite_Button" to="." method="_on_favorite_button_pressed"]
 [connection signal="toggled" from="FavoritesFilter" to="." method="_on_favorites_filter_toggled"]
 [connection signal="toggled" from="WorkoutFilter" to="." method="_on_workout_filter_toggled"]
-[connection signal="pressed" from="ModifiersPanel/Margin/Rows/ResetRow/Reset_Button" to="." method="_on_reset_button_pressed"]
+[connection signal="pressed" from="Modifiers/Header/Reset_Button" to="." method="_on_reset_button_pressed"]
+[connection signal="pressed" from="Modifiers/MoreMods_Button" to="." method="_show_more_modifiers" binds= [true]]
+[connection signal="pressed" from="MoreModsPanel/Rows/Back_Button" to="." method="_show_more_modifiers" binds= [false]]
 [connection signal="pressed" from="GetSongs_Button" to="." method="_on_get_songs_pressed"]
