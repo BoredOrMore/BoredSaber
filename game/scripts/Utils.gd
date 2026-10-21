@@ -185,7 +185,7 @@ static func update_bus_speed(bus_name: String) -> void:
 			if speed == 1.:
 				AudioServer.remove_bus_effect(bus, i)
 			else:
-				(effect as AudioEffectPitchShift).pitch_scale = 1./Settings.music_speed
+				(effect as AudioEffectPitchShift).pitch_scale = 1./speed
 			return
 	if speed == 1.:
 		return
