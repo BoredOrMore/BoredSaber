@@ -72,6 +72,24 @@ var rings_in := false
 var left_color: Color
 var right_color: Color
 
+## The room each environment gives the song-end stingers (fail, clear) on the Stinger bus: properties of its
+## reverb (effect 0) and delay (effect 1). Cuts, misses and menu sounds stay dry on other buses. Untuned guesses
+## at the sound plan: Classic a medium tunnel (RT60 ~0.6-0.9 s), Neon Grid open and near dry with one faint far
+## echo, Night City slapback off the buildings (80-200 ms), Pulse Void dark and longer (~1.2-1.5 s) but low wet.
+## audiobuslayout.tres holds Classic's, the starting environment.
+const STINGER_ROOMS := {
+	"classic": [{&"room_size": 0.45, &"damping": 0.5, &"wet": 0.25},
+			{&"tap1_active": false, &"tap2_active": false}],
+	"neon_grid": [{&"room_size": 0.2, &"damping": 0.5, &"wet": 0.05},
+			{&"tap1_active": true, &"tap1_delay_ms": 380.0, &"tap1_level_db": -20.0, &"tap1_pan": 0.0,
+			&"tap2_active": false}],
+	"night_city": [{&"room_size": 0.25, &"damping": 0.5, &"wet": 0.08},
+			{&"tap1_active": true, &"tap1_delay_ms": 110.0, &"tap1_level_db": -10.0, &"tap1_pan": -0.3,
+			&"tap2_active": true, &"tap2_delay_ms": 190.0, &"tap2_level_db": -16.0, &"tap2_pan": 0.3}],
+	"pulse_void": [{&"room_size": 0.7, &"damping": 0.8, &"wet": 0.15},
+			{&"tap1_active": false, &"tap2_active": false}],
+}
+
 ## The scenery around the track, one of the ids in Settings.ENVIRONMENTS other than "auto".
 var environment := "classic"
 ## Only Classic has the tunnel rings; the others open the view.
@@ -223,9 +241,20 @@ func set_environment(id: String) -> void:
 	sphere_material = sky
 	($Level/Sphere as MeshInstance3D).material_override = sky
 	rings_enabled = id == "classic"
+	_apply_stinger_room(id)
 	_apply_rig(id)
 	show_scenery_for_mixed_reality()
 	set_background()
+
+## Sets the Stinger bus's reverb and delay to the environment's room (STINGER_ROOMS).
+func _apply_stinger_room(id: String) -> void:
+	var bus := AudioServer.get_bus_index(&"Stinger")
+	assert(bus >= 0, "audiobuslayout.tres has no Stinger bus")
+	var room: Array = STINGER_ROOMS[id]
+	for effect in room.size():
+		var target := AudioServer.get_bus_effect(bus, effect)
+		for property: StringName in room[effect]:
+			target.set(property, room[effect][property])
 
 ## Each environment hangs the same five light groups (so a map's light show still drives them) on its own rig, so
 ## the stages don't all look alike: Classic keeps Beat Saber's layout; Neon Grid fans its diagonal lasers out from

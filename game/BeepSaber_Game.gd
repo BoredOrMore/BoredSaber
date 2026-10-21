@@ -366,7 +366,8 @@ func _ready() -> void:
 	_mistake_player.max_polyphony = 2
 	add_child(_mistake_player)
 	_song_end_player = AudioStreamPlayer.new()
-	_song_end_player.bus = &"SFX"
+	# the only sounds with the environment's room (event_driver.gd STINGER_ROOMS)
+	_song_end_player.bus = &"Stinger"
 	add_child(_song_end_player)
 	_low_health_player = AudioStreamPlayer.new()
 	_low_health_player.bus = &"SFX"

@@ -3,7 +3,8 @@
 
 All of them share one palette so they read as one family with the combo sounds (tools/make_combo_sounds.py):
 the same bell (a sine plus a faster-decaying partial at 2.76x), the same root C6 and the same soft noise.
-Confirm and "on" go up, back and "off" go down (Brewster's earcons). Every file is dry: no room or reverb.
+Confirm and "on" go up, back and "off" go down (Brewster's earcons). Every file is dry: fail and clear get the
+environment's room at play time from the Stinger bus (game/event_driver.gd STINGER_ROOMS).
 
 miss: a soft airy swipe, quiet on purpose; the combo break and the health bar already say it hurt.
 low_health: one heartbeat (lub-dub) that loops, played while the health bar is in danger.
