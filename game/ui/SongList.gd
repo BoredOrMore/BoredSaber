@@ -25,10 +25,12 @@ var _bottom := Control.new()
 var _selected := -1
 var _glide: Tween
 
-## Rows in the list.
+## Rows in the list. Rows past it are kept hidden for the next list: rebuilding the list (every search key,
+## filter or sort) reuses them instead of freeing and creating buttons, which dropped frames.
 var item_count: int:
 	get:
-		return _rows.get_child_count()
+		return _count
+var _count := 0
 
 func _ready() -> void:
 	horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -42,31 +44,44 @@ func _ready() -> void:
 	add_child(_content)
 	resized.connect(_pad_ends)
 
-## Adds a row and returns its index.
+## Adds a row (reusing a hidden one when there is one) and returns its index.
 func add_item(text: String, icon: Texture2D) -> int:
-	var row := Button.new()
+	var index := _count
+	_count += 1
+	var row: Button
+	if index < _rows.get_child_count():
+		row = _row(index)
+		row.visible = true
+		for state: StringName in [&"font_color", &"font_hover_color", &"font_focus_color", &"font_pressed_color", &"font_hover_pressed_color"]:
+			row.remove_theme_color_override(state)
+	else:
+		row = _new_row(index)
 	row.text = text
 	row.icon = icon
+	_style_row(index)
+	return index
+
+## A new row button, added to the rows; pressing it selects row index.
+func _new_row(index: int) -> Button:
+	var row := Button.new()
 	row.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	row.clip_text = true
 	row.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	row.custom_minimum_size.y = ROW_HEIGHT
 	row.add_theme_constant_override(&"icon_max_width", COVER_SIZE)
 	row.add_theme_constant_override(&"h_separation", get_theme_constant(&"h_separation", &"ItemList"))
-	var index := _rows.get_child_count()
 	row.pressed.connect(func() -> void:
 		select(index)
 		item_selected.emit(index))
 	_rows.add_child(row)
 	UI_AudioEngine.attach_button(row)
-	_style_row(index)
-	return index
+	return row
 
-## Removes every row.
+## Empties the list: its rows hide, kept for reuse.
 func clear() -> void:
 	for row in _rows.get_children():
-		_rows.remove_child(row)
-		row.queue_free()
+		(row as Button).visible = false
+	_count = 0
 	_selected = -1
 	# a new list starts with its first row at the top, not after the empty space
 	_show_first_row.call_deferred()
