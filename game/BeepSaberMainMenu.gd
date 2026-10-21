@@ -47,7 +47,6 @@ const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 @onready var damage_row := $Modifiers/DamageRow as HBoxContainer
 @onready var toggle_row := $Modifiers/ToggleRow as HBoxContainer
 @onready var speed_row := $Modifiers/SpeedRow as HBoxContainer
-@onready var modifiers_hint := $Modifiers/Hint as Label
 @onready var more_mods_button := $Modifiers/MoreMods_Button as Button
 @onready var more_mods_rows := $MoreModsPanel/Rows as VBoxContainer
 @onready var favorite_button := $Favorite_Button as Button
@@ -677,7 +676,7 @@ func _drop_down(control: OptionButton, list: Array, value: Variant, defaultIndex
 			index = i
 	control.selected = index
 	
-## Shows the saved modifiers on every chip, what changed on Reset and More modifiers, and a hint.
+## Shows the saved modifiers on every chip, and what changed on Reset and More modifiers.
 func _update_mod_controls() -> void:
 	_sync_difficulty_rows()
 	for chip: Button in toggle_row.get_children():
@@ -693,12 +692,6 @@ func _update_mod_controls() -> void:
 	reset_button.text = "%d changed · Reset" % changed.size()
 	var rare := _changed_modifiers(true)
 	more_mods_button.text = MORE_MODS_TEXT + (HighscorePanel.RUN_PARTS_SEPARATOR + ", ".join(rare) if rare.size() > 0 else "")
-	# one line holds one hint: why Damage is greyed out comes first
-	modifiers_hint.text = ""
-	if not Settings.walls_enabled:
-		modifiers_hint.text = NO_WALLS_HINT
-	if not (Settings.health_mode and Settings.fail_mode == Constants.FAIL_MODE_BAR):
-		modifiers_hint.text = DAMAGE_HINT
 
 func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(Constants.APPDATA_PATH+"Backgrounds/")
@@ -1252,8 +1245,6 @@ const CHIP_PADDING := 6.0
 const CHIP_VERTICAL_PADDING := 7.0
 const ROW_LABEL_WIDTH := 110.0
 const MORE_MODS_TEXT := "More modifiers"
-const DAMAGE_HINT := "Damage counts only with Health"
-const NO_WALLS_HINT := "No walls: 5% less score"
 ## On/off chips on the Song tab: [label, Settings key, value of the key while the chip is on].
 const TOGGLE_CHIPS := [["Walls", &"walls_enabled", true], ["Bombs", &"bombs_enabled", true],
 	["Arrows", &"arrows_enabled", true], ["Map colors", &"disable_map_color", false]]

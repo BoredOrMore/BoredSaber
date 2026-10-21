@@ -283,13 +283,6 @@ custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Hint" type="Label" parent="Modifiers"]
-custom_minimum_size = Vector2(0, 34)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
-vertical_alignment = 1
-text_overrun_behavior = 3
-
 [node name="MoreMods_Button" type="Button" parent="Modifiers"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
