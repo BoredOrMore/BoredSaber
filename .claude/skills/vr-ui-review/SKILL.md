@@ -76,6 +76,9 @@ The cloud sessions have no headset and can't reach beatsaver.com, so render the 
    Run it with the Linux Godot under Xvfb:
    `DISPLAY=:99 timeout 100 <godot> --path . --rendering-driver opengl3 --resolution 1280x720 res://<scene>.tscn`.
    Keep the scene out of the commit unless the user asks for it.
+   Use the worst real content, not the bundled sample song: pull the busiest maps from the headset
+   (`adb pull /sdcard/Android/data/<package>/files/Songs/<folder>` into the desktop `user://` Songs folder), the
+   ones with the most characteristics and difficulties and the longest names.
 2. Render every state the panel has, not only the happy one: empty, loading, error, long content
    (the longest title, mapper and tag list you can find), a selected item, progress at 0 % and 100 %,
    already-downloaded or saved.
@@ -84,6 +87,8 @@ The cloud sessions have no headset and can't reach beatsaver.com, so render the 
    active choice not in `UI_ACCENT`, any developer word, a clickable thing with no hover highlight,
    italics or Light/Thin weights, text under the main menu's size in angle.
 4. Code checks that a render won't show:
+   - `tests/test_menu_layout.tscn` passes (overlaps, gaps under 4 px, controls spilling out of their box); a
+     new panel or state gets added to it with its worst-case content;
    - visuals that change without pointer input (progress, cover loaded, list refreshed) call
      `canvas._input_update()`, or the headset shows a stale frame (`game/ui/AGENTS.md`);
    - nodes inside a canvas are found with `find_child` or exported `NodePath`s, since the canvas

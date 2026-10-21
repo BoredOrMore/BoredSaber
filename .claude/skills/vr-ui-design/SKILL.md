@@ -78,6 +78,13 @@ then multiplied by the node `transform` scale.
 - Design for the longest real content, not the sample: long song titles and mapper names, 0 results,
   6 difficulties. A button label that doesn't fit gets shortened or split onto two lines on purpose,
   never wrapped by the engine mid-word; one line per idea in lists, with "…" for overflow.
+- Inside a panel nothing may overlap or touch (4 px gap or more). Controls placed with offsets don't move out of
+  each other's way, but buttons and containers grow to fit their content: a button is as tall as its text or icon
+  plus the theme's padding (a 36 px icon makes a 60 px button, 40 px text a 72 px one), and a container centred
+  in its box grows both ways. Size every box for its worst-case content, top-align boxes whose content varies
+  (or put the neighbours in one container), and give an overlay panel the full height of what it covers. The
+  song menu once had the difficulty picker over the favourite button, chips over Play, and the modifiers
+  column peeking out under the More tab.
 
 ## 4. Controls that explain themselves
 
