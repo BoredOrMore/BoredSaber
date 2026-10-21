@@ -8,16 +8,17 @@ class_name SlashBlock
 signal slashed()
 
 ## Where it floats, from the player's spot (z = PLAYER_Z, facing -z): YAW to the dominant hand's side, HORIZONTAL
-## metres away, BELOW_EYES under the eyes (0.85 m high for 1.6 m eyes), 43 degrees down, 1.1 m from the eyes. The
-## player has to turn to it, and no saber reaches it while using the song menu: blades 1.25 m long, from hands
-## 0.3-0.5 m in front of the body, pointed anywhere on the menu and flicked 25 degrees up or down, stay 0.19 m
-## clear of it (the old spot under Play, 25 degrees right, had no clearance). 75 degrees is past the 55 degree
-## comfortable head turn on purpose: the body turns for one swing. Mirrored for left-handed players.
+## metres away, BELOW_EYES under the eyes (0.85 m high for 1.6 m eyes): 33 degrees down, 1.37 m from the eyes and
+## 1.1 m from the shoulder, so a relaxed swing with the arm out cuts it with the middle of the blade (at 0.8 m the
+## player had to pull the arm in). The player has to turn to it, and no saber reaches it while using the song menu:
+## blades 1.25 m long, from hands 0.3-0.5 m in front of the body, pointed anywhere on the menu and flicked 25
+## degrees up or down, stay 0.42 m clear of it. 75 degrees is past the 55 degree comfortable head turn on purpose:
+## the body turns for one swing. Mirrored for left-handed players.
 const YAW_DEGREES := 75.0
-const HORIZONTAL := 0.8
+const HORIZONTAL := 1.15
 const BELOW_EYES := 0.75
 const PLAYER_Z := 1.0
-## Edge of the note in metres (the game's notes are 0.4 m): 16 degrees across at its distance.
+## Edge of the note in metres (the game's notes are 0.4 m): 12.5 degrees across at its distance.
 const NOTE_SIZE := 0.3
 ## Eye height used when no headset camera is there (desktop runs).
 const FALLBACK_EYES := 1.6
