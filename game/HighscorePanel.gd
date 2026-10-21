@@ -14,8 +14,9 @@ func _ready() -> void:
 	_clear_list()
 	_song_info_panel.visible = show_song_info
 	
-## The current player's rows stand out in UI_ACCENT.
-func load_highscores(map_info: MapInfo, diff_rank: int) -> void:
+## Rows stand out in UI_ACCENT: on the score screen only the run just played (latest, the record add_highscore
+## returned; none when it didn't make the list), elsewhere (latest null) the current player's rows.
+func load_highscores(map_info: MapInfo, diff_rank: int, latest: Variant = null) -> void:
 	
 	# clear the high score list
 	_clear_list()
@@ -40,7 +41,9 @@ func load_highscores(map_info: MapInfo, diff_rank: int) -> void:
 		new_row.get_child(0).text = "%d." % idx
 		new_row.get_child(1).text = record.player_name
 		new_row.get_child(2).text = "%d" % record.score
-		if record.player_name == Settings.player_name:
+		var mine: bool = record.player_name == Settings.player_name if latest == null else (
+				not (latest as Dictionary).is_empty() and record.epoch_time == latest.epoch_time and record.score == latest.score)
+		if mine:
 			for label: Label in new_row.get_children():
 				label.add_theme_color_override(&"font_color", Constants.UI_ACCENT)
 		
