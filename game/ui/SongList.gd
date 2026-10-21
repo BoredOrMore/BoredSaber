@@ -8,12 +8,12 @@ class_name SongList
 ## A row was pressed (not emitted by select()).
 signal item_selected(index: int)
 
-## Row height, cover size and padding, in px: 48 px rows are 3.2 degrees at the menu's 2 m, with the theme's
-## 28 px text; a 40 px cover with 4 px above and below fills the row.
-const ROW_HEIGHT := 48.0
-const COVER_SIZE := 40
-const ROW_PADDING := 4.0
-const ROW_SEPARATION := 4
+## Row height, cover size and padding, in px: the list's original look (72 px covers, the theme's 28 px text, rows
+## 82 px apart), which the player preferred to smaller rows that fit more songs.
+const ROW_HEIGHT := 76.0
+const COVER_SIZE := 72
+const ROW_PADDING := 2.0
+const ROW_SEPARATION := 6
 ## How long scrolling to a row takes (eased, so the list never snaps).
 const GLIDE_SECONDS := 0.18
 
