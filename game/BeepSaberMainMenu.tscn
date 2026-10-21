@@ -157,9 +157,9 @@ text_overrun_behavior = 3
 [node name="Favorite_Button" type="Button" parent="." unique_id=1448413959]
 layout_mode = 0
 offset_left = 912.0
-offset_top = 153.0
+offset_top = 155.0
 offset_right = 1256.0
-offset_bottom = 201.0
+offset_bottom = 205.0
 theme_override_font_sizes/font_size = 22
 toggle_mode = true
 text = "Add to favorites"
@@ -169,7 +169,7 @@ script = ExtResource("icon_button")
 [node name="DifficultyPicker" type="VBoxContainer" parent="." unique_id=1422990200]
 layout_mode = 0
 offset_left = 784.0
-offset_top = 208.0
+offset_top = 209.0
 offset_right = 1256.0
 offset_bottom = 380.0
 theme_override_constants/separation = 4
@@ -201,7 +201,7 @@ offset_top = 792.0
 offset_right = 1256.0
 offset_bottom = 848.0
 theme_type_variation = &"PrimaryButton"
-theme_override_font_sizes/font_size = 40
+theme_override_font_sizes/font_size = 32
 text = "Play"
 icon = ExtResource("icon_play")
 script = ExtResource("icon_button")
@@ -240,7 +240,7 @@ offset_left = 784.0
 offset_top = 384.0
 offset_right = 1256.0
 offset_bottom = 788.0
-theme_override_constants/separation = 4
+theme_override_constants/separation = 3
 
 [node name="Sep" type="HSeparator" parent="Modifiers"]
 layout_mode = 2
@@ -305,7 +305,7 @@ layout_mode = 0
 offset_left = 784.0
 offset_top = 88.0
 offset_right = 1256.0
-offset_bottom = 776.0
+offset_bottom = 788.0
 
 [node name="Rows" type="VBoxContainer" parent="MoreModsPanel"]
 layout_mode = 1
@@ -331,7 +331,7 @@ layout_mode = 0
 offset_left = 784.0
 offset_top = 88.0
 offset_right = 1256.0
-offset_bottom = 776.0
+offset_bottom = 788.0
 
 [node name="LoadPlaylists_Button" type="Button" parent="MorePanel" unique_id=793107135]
 layout_mode = 0
@@ -394,9 +394,9 @@ autowrap_mode = 3
 [node name="version" type="Label" parent="MorePanel" unique_id=537676885]
 layout_mode = 0
 offset_left = 16.0
-offset_top = 516.0
+offset_top = 520.0
 offset_right = 456.0
-offset_bottom = 546.0
+offset_bottom = 550.0
 theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
 theme_override_font_sizes/font_size = 22
 horizontal_alignment = 2

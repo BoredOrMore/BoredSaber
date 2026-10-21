@@ -1305,6 +1305,8 @@ func _build_modifier_chips() -> void:
 	_show_environment()
 	_set_padding(reset_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 	_set_padding(more_mods_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
+	# the star and its label in a 48 px button: the theme's 12 px padding would make it 60 px, into the picker
+	_set_padding(favorite_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 
 ## Adds one chip per option of an option table to parent, picking the option's value for key when pressed.
 func _add_option_chips(parent: Container, key: StringName, options: Array, labels: Array) -> void:

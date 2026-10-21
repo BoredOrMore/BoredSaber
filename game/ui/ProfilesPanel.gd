@@ -13,7 +13,7 @@ const EDIT_ICON := preload("res://game/ui/edit.svg")
 const TRASH_ICON := preload("res://game/ui/icons/trash-2.svg")
 ## Height of a player row and its buttons: 4 degrees at the panel's 1.9 m.
 const ROW_HEIGHT := 56.0
-const ROW_SEPARATION := 6
+const ROW_SEPARATION := 4
 const NOTE_TEXT := "Height and left-handed in Settings are kept per player."
 const ADD_TEXT := "Add player"
 const FULL_TEXT := "%d players max"
