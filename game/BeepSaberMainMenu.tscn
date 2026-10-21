@@ -136,18 +136,18 @@ script = ExtResource("icon_button")
 layout_mode = 0
 offset_left = 784.0
 offset_top = 88.0
-offset_right = 904.0
-offset_bottom = 208.0
+offset_right = 896.0
+offset_bottom = 200.0
 texture = ExtResource("3_wpmn0")
 expand_mode = 1
 stretch_mode = 5
 
 [node name="SongInfo_Label" type="Label" parent="." unique_id=347010549]
 layout_mode = 0
-offset_left = 920.0
+offset_left = 912.0
 offset_top = 88.0
 offset_right = 1256.0
-offset_bottom = 156.0
+offset_bottom = 152.0
 theme_override_font_sizes/font_size = 24
 autowrap_mode = 3
 clip_text = true
@@ -155,10 +155,10 @@ text_overrun_behavior = 3
 
 [node name="Favorite_Button" type="Button" parent="." unique_id=1448413959]
 layout_mode = 0
-offset_left = 920.0
-offset_top = 160.0
+offset_left = 912.0
+offset_top = 156.0
 offset_right = 1256.0
-offset_bottom = 208.0
+offset_bottom = 204.0
 theme_override_font_sizes/font_size = 22
 toggle_mode = true
 text = "Add to favorites"
@@ -168,7 +168,7 @@ script = ExtResource("icon_button")
 [node name="DifficultyPicker" type="VBoxContainer" parent="." unique_id=1422990200]
 layout_mode = 0
 offset_left = 784.0
-offset_top = 216.0
+offset_top = 212.0
 offset_right = 1256.0
 offset_bottom = 376.0
 theme_override_constants/separation = 4
