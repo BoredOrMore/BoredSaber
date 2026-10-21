@@ -37,6 +37,11 @@ const WRONG_RUMBLE_STRENGTH := 0.3
 const WRONG_RUMBLE_SECONDS := 0.2
 const CUT_SOUND := preload("res://game/data/cut_1.wav")
 const WRONG_SOUND := preload("res://game/data/bad_cut.wav")
+## The small note of the other colour: its edge in metres (40% of the big one), and the big note's corner its
+## centre sits on (x -1 left / 1 right, y 1 top / -1 bottom): top left, toward the middle of the menu. Its top
+## stays 7 degrees under the menu's bottom edge.
+const OTHER_NOTE_SIZE := 0.12
+const OTHER_NOTE_CORNER := Vector2(-1.0, 1.0)
 ## The game's note model and look.
 const NOTE_SCENE := preload("res://game/BeepCube/BeepCube.tscn")
 
@@ -46,6 +51,7 @@ var sabers: Array[LightSaber] = []
 var _note_saber := 1
 var _color := Color.WHITE
 var _material: ShaderMaterial
+var _other_material: ShaderMaterial
 var _half_size := Vector3.ONE * 0.15
 var _sound := AudioStreamPlayer3D.new()
 var _shown := false
@@ -54,15 +60,14 @@ var _touching: Array[LightSaber] = []
 
 func _ready() -> void:
 	collision_mask = 0
-	# borrow the note mesh with its material from the game's note scene
-	var note := NOTE_SCENE.instantiate()
-	var mesh := note.get_node(^"BeepCubeMesh") as MeshInstance3D
-	note.remove_child(mesh)
-	note.free()
-	add_child(mesh)
+	var mesh := _add_note_mesh(NOTE_SIZE)
 	_material = mesh.material_override as ShaderMaterial
-	mesh.scale *= NOTE_SIZE / (mesh.get_aabb().size.x * mesh.scale.x)
 	_half_size = Vector3.ONE * NOTE_SIZE / 2.0
+	# the other colour, small, perched on a top corner: shows the song's colour pair; it can't be cut (sabers
+	# only test the big note's box, no sound or rumble from it) and has no pointer target
+	var other := _add_note_mesh(OTHER_NOTE_SIZE)
+	other.position = Vector3(OTHER_NOTE_CORNER.x * NOTE_SIZE / 2.0, OTHER_NOTE_CORNER.y * NOTE_SIZE / 2.0, 0.0)
+	_other_material = other.material_override as ShaderMaterial
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
 	box.size = _half_size * 2.0
@@ -71,14 +76,28 @@ func _ready() -> void:
 	add_child(_sound)
 	set_shown(false)
 
+## A copy of the game's note model (with its own material) at the given edge length, added under this node.
+func _add_note_mesh(edge: float) -> MeshInstance3D:
+	var note := NOTE_SCENE.instantiate()
+	var mesh := note.get_node(^"BeepCubeMesh") as MeshInstance3D
+	note.remove_child(mesh)
+	note.free()
+	add_child(mesh)
+	mesh.scale *= edge / (mesh.get_aabb().size.x * mesh.scale.x)
+	return mesh
+
 ## Colours the note for the selected song: the player's dominant hand's colour from colors ([left, right], the
-## map's or the player's per the Map colors chip), with a down arrow, or a dot while Arrows is off.
+## map's or the player's per the Map colors chip), with a down arrow, or a dot while Arrows is off; the small note
+## gets the other hand's colour.
 func set_note(colors: Array[Color]) -> void:
 	_note_saber = 0 if Settings.left_handed else 1
 	_color = colors[_note_saber]
 	_material.set_shader_parameter(&"color", _color)
 	_material.set_shader_parameter(&"is_dot", not Settings.arrows_enabled)
 	_material.set_shader_parameter(&"arrows_enabled", Settings.arrows_enabled)
+	_other_material.set_shader_parameter(&"color", colors[1 - _note_saber])
+	_other_material.set_shader_parameter(&"is_dot", not Settings.arrows_enabled)
+	_other_material.set_shader_parameter(&"arrows_enabled", Settings.arrows_enabled)
 
 ## Shows the note (placed for the player's eye height at that moment, facing them) or hides it and its hit area.
 func set_shown(shown: bool) -> void:
