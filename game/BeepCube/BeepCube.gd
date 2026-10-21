@@ -8,6 +8,11 @@ signal cutted(correct_saber: bool)
 # haptic strength for the sloppiest correct cut (a clean one is 1.0) and for a wrong-saber hit
 const MIN_CUT_RUMBLE := 0.3
 const WRONG_SABER_RUMBLE := 0.2
+## How close to the block's centre a cut has to pass, in metres at block size 100: full centre points within
+## CUT_CENTRE_FULL, falling to none at CUT_CENTRE_REACH, the block's edge (half its 0.375 m hit box). It ended at
+## 0.1 m before, so 54% of headset cuts that hit the block cleanly got no centre points.
+const CUT_CENTRE_FULL := 0.02
+const CUT_CENTRE_REACH := 0.19
 
 @onready var mi := $BeepCubeMesh as MeshInstance3D
 @onready var collision_big := $BeepCube_Big/CollisionBig as CollisionShape3D
@@ -148,7 +153,8 @@ func cut(saber: LightSaber, cut_speed: Vector3, cut_plane: Plane, controller: Be
 		var cut_angle_accuracy := clampf((base_cut_angle_accuracy-0.7)/0.3, 0.0, 1.0)
 		if is_dot or not Settings.arrows_enabled: #ignore angle if is a dot
 			cut_angle_accuracy = 1.0
-		var cut_distance_accuracy := clampf((0.1 - absf(cut_distance*distance_scale))/0.1, 0.0, 1.0)
+		var cut_distance_accuracy := clampf((CUT_CENTRE_REACH - absf(cut_distance*distance_scale))
+				/ (CUT_CENTRE_REACH - CUT_CENTRE_FULL), 0.0, 1.0)
 		var travel_distance_factor := controller.movement_aabb.get_longest_axis_size()
 		travel_distance_factor = clampf((travel_distance_factor-0.5)/0.5, 0.0, 1.0)
 		# allows a bit of save margin where the beat is considered 100% correct
