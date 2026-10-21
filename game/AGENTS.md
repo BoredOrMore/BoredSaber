@@ -55,10 +55,11 @@ constraints apply here unchanged.
   scoring, floor burn raycast, `left_saber`/`right_saber` shader globals.
 - `settings_Panel.gd/.tscn` — settings UI (`SettingsPanel`, `apply` signal saves config).
 - `BeepSaberMainMenu.gd/.tscn` — song list, playlists, filters, modifiers; emits `start_map`.
-- `SlashBlock.gd` — a note (the game's cube model, in the selected song's colours per the Map colors chip) under the
-  song menu's old Play spot, 0.9 m out: cutting it down with the dominant hand's saber (tip >= 2 m/s, untuned) or
-  pointer + trigger plays the selected song (`MainMenu.play_selected`); a wrong cut buzzes. The game shows it only
-  while a song is picked and nothing covers the menu (`BeepSaber_Game._update_slash_block`).
+- `SlashBlock.gd` — a note (the game's cube model, in the selected song's colours per the Map colors chip, with a
+  small note of the other colour on a top corner) 75 degrees to the dominant hand's side, where no saber reaches
+  while using the song menu: cutting it down with that hand's saber (tip >= 2 m/s, untuned) or pointer + trigger
+  breaks it in two (`CutPiece`) and plays the selected song (`MainMenu.play_selected`); a wrong cut buzzes. The
+  game shows it only while a song is picked and nothing covers the menu (`BeepSaber_Game._update_slash_block`).
 - `BodyTest.gd` — body test prototype (More tab > Body Test): guard and low-stance holds, punch, squat and side-step drills that speed up
   until the player misses 3 of 8, then charged moves (power punch from guard, squat + uppercut, squat + stand up)
   held 1-8 s before GO, to measure move timings and stance holds for the planned Workout mode. Logs every rep as
