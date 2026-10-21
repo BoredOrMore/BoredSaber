@@ -15,12 +15,11 @@ var gamestate_playing := GameStatePlaying.new()
 var gamestate_settings := GameStateSettings.new()
 var gamestate_bodytest := GameStateBodyTest.new()
 
-## Where the record table stands in the song menu: 62 degrees left of the player (eyes at (0, 1.6, 1)), 1.6 m away and
-## facing them. The table is 1.38 m wide (940 px at scale 1.5), 23 degrees each side of its centre, so its inner edge
-## (39 degrees) clears the menu panel's left edge (37 degrees). Scale 1.5: text 1.5 degrees.
+## Where the record table stands in the song menu: 53 degrees left of the player (eyes at (0, 1.6, 1)), 1.6 m away and
+## facing them, its inner edge just clear of the menu panel's (37 degrees). Scale 1.5: text 1.5 degrees.
 const HIGHSCORES_MENU_TRANSFORM := Transform3D(
-	Basis(Vector3(0.69999, 0, -1.32665), Vector3(0, 1.5, 0), Vector3(1.32665, 0, 0.69999)),
-	Vector3(-1.4151, 1.5, 0.25334))
+	Basis(Vector3(0.90272, 0, -1.19795), Vector3(0, 1.5, 0), Vector3(1.19795, 0, 0.90272)),
+	Vector3(-1.27782, 1.5, 0.0371))
 var gamestate: GameState = gamestate_bootup
 var current_health := Constants.HEALTH_START
 
