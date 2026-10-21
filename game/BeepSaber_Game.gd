@@ -46,6 +46,7 @@ var current_health := Constants.HEALTH_START
 ## Where the record table stands on the score screen: next to the score panel (its place in the scene).
 @onready var highscores_score_transform := highscore_canvas.transform
 @onready var highscore_keyboard := $Keyboard_highscore as OQ_UI2DKeyboard
+@onready var slash_block := $SlashBlock as SlashBlock
 @onready var endscore := $EndScore as EndScore
 
 @onready var points_label_driver := $Points_label_driver as PointsLabelDriver
@@ -378,6 +379,9 @@ func _ready() -> void:
 		xr_origin.add_child(preload("res://OQ_Toolkit/OQ_ARVROrigin/Feature_VRSimulator.tscn").instantiate())
 	
 	UI_AudioEngine.attach_children(highscore_keyboard)
+	slash_block.sabers = [left_saber, right_saber]
+	highscore_keyboard.visibility_changed.connect(_update_slash_block)
+	main_menu.visibility_changed.connect(_update_slash_block)
 	UI_AudioEngine.attach_children(online_search_keyboard)
 	beatsaver_canvas.visibility_changed.connect(_on_beatsaver_visibility_changed)
 	
@@ -666,17 +670,28 @@ func _on_BeepSaberMainMenu_difficulty_changed(map_info: MapInfo, diff_rank: int)
 	highscore_canvas._show()
 	highscore_panel.load_highscores(map_info,diff_rank)
 
+## Shows the block to slash while the song menu is open with a song picked and nothing (keyboard, "Who's
+## playing?") in front of it.
+func _update_slash_block() -> void:
+	# the menu reports its first song while it loads, before this scene is ready
+	if not is_node_ready():
+		return
+	slash_block.set_shown(gamestate == gamestate_mapselection and main_menu.visible and not main_menu.disable_collision
+			and not highscore_keyboard.visible and menu.has_song_picked())
+
 ## Opens "Who's playing?" in front of the song menu; the menu behind takes no pointer input until it closes.
 func _open_profiles() -> void:
 	profiles_panel.refresh()
 	profiles_canvas._show()
 	main_menu.disable_collision = true
+	_update_slash_block()
 
 ## Closes "Who's playing?" and shows the (maybe new) current player's records in the menu.
 func _close_profiles() -> void:
 	profiles_canvas._hide()
 	main_menu.disable_collision = false
 	menu.update_view()
+	_update_slash_block()
 
 func _settings_button() -> void:
 	settings_panel._update_backgrounds()

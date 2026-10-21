@@ -17,6 +17,8 @@ signal body_test_requested()
 ## The player button was pressed: "Who's playing?" opens in front of the menu.
 signal profiles_requested()
 signal start_map(info: MapInfo, difficulty: DifficultyInfo, health: bool)
+## A song was picked or dropped, or a song stopped loading: the game shows or hides the block to slash.
+signal play_ready_changed()
 
 const FAVORITE_MASK := 0x4000000000000000
 const STAR_ICON := preload("res://game/ui/icons/star.svg")
@@ -304,7 +306,7 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 				_select_song(i, false)
 		if current_selected == -1:
 			songs_menu.deselect_all()
-	_update_play_button()
+	_update_play_status()
 
 ## One set of song list filters, so the counts can try a choice without saving it.
 class SongFilter:
@@ -776,44 +778,92 @@ func on_settings_changed(key: StringName) -> void:
 			workout_filter.set_pressed_no_signal(Settings.song_filter_workout)
 			_refilter()
 
-func _on_Play_Button_pressed() -> void:
-	if current_selected >= 0:
+## Plays the selected song (the block in front of the player was slashed).
+func play_selected() -> void:
+	if not has_song_picked():
+		return
+	var map := _currently_selected_songlist_ref[current_selected]
+	Settings.last_map = map.filepath
+	_preview_generation += 1
+	_on_stop_prev_timeout(PLAY_FADE_SECONDS)
+	Settings.save()
+	play_status.text = LOADING_TEXT
+	play_details.text = ""
+	_loading = true
+	# loading blocks the main thread, so let the status redraw first
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_load_map_and_start(map)
+	_loading = false
+	# a load error (show_play_error) keeps its message for a while
+	if play_status.text == LOADING_TEXT:
+		_update_play_status()
+
+## Status where Play was: what slashing the block will play, or why there is no block.
+const SLASH_TEXT := "Slash to play"
+const PICK_TEXT := "Pick a song to play"
+const LOADING_TEXT := "Loading song…"
+const LOAD_ERROR_TEXT := "Can't load this song. Pick another one."
+## Seconds the load error stays before the status comes back.
+const LOAD_ERROR_SECONDS := 3.0
+var _loading := false
+## Two lines where Play was: what to do and the song, then its difficulty and changed modifiers (24 px: one 28 px
+## line held only "Slash to play · <song>").
+@onready var play_status := $PlayStatus/Lines/Label as Label
+@onready var play_details := $PlayStatus/Lines/Details as Label
+
+## True while a song in the list is selected.
+func has_song_picked() -> bool:
+	return not _loading and current_selected >= 0 and current_selected < _currently_selected_songlist_ref.size()
+
+## "Slash to play · <song> · <difficulty> · <changed modifiers>", or "Pick a song to play".
+func _update_play_status() -> void:
+	if _loading:
+		return
+	play_details.text = ""
+	if not has_song_picked():
+		play_status.text = PICK_TEXT
+	else:
 		var map := _currently_selected_songlist_ref[current_selected]
-		Settings.last_map = map.filepath
-		_preview_generation += 1
-		_on_stop_prev_timeout(PLAY_FADE_SECONDS)
-		Settings.save()
-		var play_button := $Play_Button as Button
-		play_button.text = "Loading..."
-		play_button.disabled = true
-		# loading blocks the main thread, so let the button redraw first
-		await get_tree().process_frame
-		await get_tree().process_frame
-		_load_map_and_start(map)
-		play_button.disabled = false
-		if play_button.text == "Loading...":
-			play_button.text = PLAY_TEXT
+		play_status.text = HighscorePanel.RUN_PARTS_SEPARATOR.join([SLASH_TEXT, map.song_name])
+		var parts := PackedStringArray()
+		if _map_difficulty >= 0 and _map_difficulty < map.difficulty_beatmaps.size():
+			parts.append(MapStats.level_name(map, map.difficulty_beatmaps[_map_difficulty]))
+		parts.append_array(_modifier_labels())
+		play_details.text = HighscorePanel.RUN_PARTS_SEPARATOR.join(parts)
+	play_ready_changed.emit()
 
-## Play button text while a song is picked, and while none is, when the button is off.
-const PLAY_TEXT := "Play"
-const NO_SONG_TEXT := "Pick a song"
+## The changed modifiers in the record table's words ("No Fail", "Speed 125%", "Mirror Left-Right"...).
+func _modifier_labels() -> PackedStringArray:
+	var labels := PackedStringArray()
+	if not Settings.health_mode or Settings.fail_mode != Constants.FAIL_MODE_BAR:
+		for option: Array in Constants.FAIL_OPTIONS:
+			if option[0] == Settings.health_mode and (not Settings.health_mode or option[1] == Settings.fail_mode):
+				labels.append(str(option[2]))
+	if not is_equal_approx(Settings.damage_scale, 1.0):
+		labels.append("Damage %d%%" % roundi(Settings.damage_scale * 100.0))
+	if not Settings.walls_enabled:
+		labels.append(Constants.NO_WALLS_LABEL)
+	if not Settings.bombs_enabled:
+		labels.append(Constants.NO_BOMBS_LABEL)
+	if not Settings.arrows_enabled:
+		labels.append(Constants.NO_ARROWS_LABEL)
+	if Settings.disable_map_color:
+		labels.append(NO_MAP_COLORS_LABEL)
+	for speed: Array in Constants.SPEEDS:
+		if speed[0] == Settings.music_speed and Settings.music_speed != 100:
+			labels.append(str(speed[1]))
+	labels.append_array(_changed_modifiers(true))
+	return labels
 
-## Turns Play off, saying why, while no song is picked.
-func _update_play_button() -> void:
-	var play_button := $Play_Button as Button
-	var picked := current_selected >= 0 and current_selected < _currently_selected_songlist_ref.size()
-	play_button.disabled = not picked
-	if not picked:
-		play_button.text = NO_SONG_TEXT
-	elif play_button.text == NO_SONG_TEXT:
-		play_button.text = PLAY_TEXT
+const NO_MAP_COLORS_LABEL := "No map colors"
 
-## Tells the player on the Play button that the selected map couldn't be loaded.
+## Tells the player on the status line that the selected song couldn't be loaded.
 func show_play_error() -> void:
-	var play_button := $Play_Button as Button
-	play_button.text = "Can't load map"
-	await get_tree().create_timer(3.0).timeout
-	play_button.text = PLAY_TEXT
+	play_status.text = LOAD_ERROR_TEXT
+	play_details.text = ""
+	await get_tree().create_timer(LOAD_ERROR_SECONDS).timeout
+	_update_play_status()
 
 func _on_Exit_Button_pressed() -> void:
 	get_tree().quit()
@@ -1013,7 +1063,7 @@ func update_view() -> void:
 	else:	
 		difficulty_changed.emit(null, -1)
 	_sync_difficulty_picker()
-	_update_play_button()
+	_update_play_status()
 	_update_mod_controls()
 
 ## Fills the fail and damage rows with one toggle button per option, so they're a single press away;

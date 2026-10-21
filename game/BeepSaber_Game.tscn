@@ -36,6 +36,7 @@
 [ext_resource type="Script" path="res://game/HealthRails.gd" id="38_rails"]
 [ext_resource type="Script" path="res://game/ComboHud.gd" id="39_combo"]
 [ext_resource type="PackedScene" path="res://game/ui/ProfilesPanel.tscn" id="40_profiles"]
+[ext_resource type="Script" path="res://game/SlashBlock.gd" id="41_slash"]
 
 [sub_resource type="Environment" id="1"]
 background_mode = 2
@@ -285,6 +286,10 @@ transform = Transform3D(1.3486, 0, 1.47691, 0, 2, 0, -1.47691, 0, 1.3486, -1.476
 offset_right = 600.0
 show_song_info = false
 
+[node name="SlashBlock" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.96, 0.1)
+script = ExtResource("41_slash")
+
 [node name="Profiles_canvas" parent="." instance=ExtResource("3")]
 transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 1, 0, 1.6, -0.9)
 visible = false
@@ -327,6 +332,8 @@ main_menu_ref = NodePath("../MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu")
 [connection signal="get_songs_requested" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="_open_beatsaver"]
 [connection signal="body_test_requested" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="_body_test_button"]
 [connection signal="profiles_requested" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="_open_profiles"]
+[connection signal="play_ready_changed" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="_update_slash_block"]
+[connection signal="slashed" from="SlashBlock" to="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" method="play_selected"]
 [connection signal="close_requested" from="Profiles_canvas/ProfilesPanel" to="." method="_close_profiles"]
 [connection signal="start_map" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="start_map"]
 [connection signal="mainmenu" from="EndScore" to="." method="_main_menu_button"]
