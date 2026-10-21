@@ -97,6 +97,10 @@ var _pieces: Array[CutPiece] = []
 var _half_size := Vector3.ONE * 0.15
 var _sound := AudioStreamPlayer3D.new()
 var _shown := false
+## The note was near the middle of the view at the last check (for the log marker).
+var _in_view := false
+## Within this cosine of straight ahead counts as looking at the note (about 40 degrees).
+const IN_VIEW_COS := 0.77
 ## A saber already inside the note: it counts once, when it enters.
 var _touching: Array[LightSaber] = []
 
@@ -182,6 +186,13 @@ func _process(delta: float) -> void:
 		return
 	_light_time += delta
 	_set_light(lerpf(LIGHT_MIN, 1.0, 0.5 + 0.5 * sin(TAU * GLOW_PULSE_HZ * _light_time)))
+	# a marker in the log, to line performance measurements up with looking at the note
+	if vr.vrCamera:
+		var to_note := (global_position - vr.vrCamera.global_position).normalized()
+		var in_view := -vr.vrCamera.global_transform.basis.z.dot(to_note) > IN_VIEW_COS
+		if in_view != _in_view:
+			_in_view = in_view
+			print("Slash note %s" % ("in view" if in_view else "out of view"))
 
 ## Light strength 0..1 (1: brightest breath; above 1 only in the cut's flash).
 func _set_light(strength: float) -> void:
