@@ -1174,7 +1174,8 @@ func _make_row_button(text: String, group: ButtonGroup, on_pressed: Callable) ->
 ## of chips fits the column; vertical padding changes only when given.
 static func _set_padding(button: Button, side: float, vertical := -1.0) -> void:
 	for style: StringName in [&"normal", &"hover", &"pressed", &"hover_pressed", &"disabled", &"focus"]:
-		var box := button.get_theme_stylebox(style).duplicate() as StyleBox
+		# the menu theme's Button look, also for an OptionButton (whose own focus style is the engine's)
+		var box := button.get_theme_stylebox(style, &"Button").duplicate() as StyleBox
 		box.content_margin_left = side
 		box.content_margin_right = side
 		if vertical >= 0.0:
@@ -1307,6 +1308,7 @@ func _build_modifier_chips() -> void:
 		environment_picker.set_item_icon(environment_picker.item_count - 1, _environment_thumb(environment[0]))
 	environment_picker.item_selected.connect(func(item: int) -> void: Settings.environment = Settings.ENVIRONMENTS[item][0])
 	environment_row.add_child(environment_picker)
+	_set_padding(environment_picker, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 	_show_environment()
 	_set_padding(reset_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 	_set_padding(more_mods_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
@@ -1354,7 +1356,7 @@ func _changed_modifiers(rare_only := false) -> PackedStringArray:
 const ENVIRONMENT_THUMBS := "res://game/env/thumbs/%s.png"
 ## how wide the pictures show in the open list, and on the closed dropdown, which must stay one row high
 const ENVIRONMENT_THUMB_WIDTH := 128
-const ENVIRONMENT_THUMB_WIDTH_CLOSED := 48
+const ENVIRONMENT_THUMB_WIDTH_CLOSED := 36
 ## The environment dropdown on the Song tab, under Damage (Settings.ENVIRONMENTS).
 var environment_picker: OptionButton
 
