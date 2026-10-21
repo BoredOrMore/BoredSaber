@@ -20,6 +20,9 @@ const PLAYER_Z := 1.0
 const NOTE_SIZE := 0.3
 ## Eye height used when no headset camera is there (desktop runs).
 const FALLBACK_EYES := 1.6
+## Share of the note's size, around its centre, a saber has to cross (the player's pick: grazing an edge doesn't
+## count). The pointer's hit area stays the whole note, as drawn.
+const SABER_HITBOX_SHARE := 0.7
 ## Slowest saber tip that counts as a cut, in m/s. Untuned: check on the headset that a deliberate swing
 ## cuts and resting a saber against the note doesn't.
 const MIN_TIP_SPEED := 2.0
@@ -107,7 +110,7 @@ func ui_raycast_exit() -> void:
 func _physics_process(_delta: float) -> void:
 	if not _shown:
 		return
-	var box := AABB(-_half_size, _half_size * 2.0)
+	var box := AABB(-_half_size * SABER_HITBOX_SHARE, _half_size * 2.0 * SABER_HITBOX_SHARE)
 	var to_local := global_transform.affine_inverse()
 	for saber in sabers:
 		var inside: bool = saber.is_extended() and (
