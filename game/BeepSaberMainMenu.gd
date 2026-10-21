@@ -48,6 +48,7 @@ const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 @onready var toggle_row := $Modifiers/ToggleRow as HBoxContainer
 @onready var speed_row := $Modifiers/SpeedRow as HBoxContainer
 @onready var more_mods_button := $Modifiers/MoreMods_Button as Button
+@onready var environment_row := $Modifiers/EnvironmentRow as HBoxContainer
 @onready var more_mods_rows := $MoreModsPanel/Rows as VBoxContainer
 @onready var favorite_button := $Favorite_Button as Button
 @onready var profile_button := $Profile_Button as Button
@@ -1294,10 +1295,8 @@ func _build_modifier_chips() -> void:
 		update_view())
 	more_mods_rows.add_child(_claws_chip)
 	_set_padding(_claws_chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-	var environment_title := Label.new()
-	environment_title.text = "Environment"
-	more_mods_rows.add_child(environment_title)
 	environment_picker = OptionButton.new()
+	environment_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	environment_picker.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	environment_picker.add_theme_constant_override(&"icon_max_width", ENVIRONMENT_THUMB_WIDTH_CLOSED)
 	environment_picker.get_popup().add_theme_constant_override(&"icon_max_width", ENVIRONMENT_THUMB_WIDTH)
@@ -1305,7 +1304,7 @@ func _build_modifier_chips() -> void:
 		environment_picker.add_item(environment[1])
 		environment_picker.set_item_icon(environment_picker.item_count - 1, _environment_thumb(environment[0]))
 	environment_picker.item_selected.connect(func(item: int) -> void: Settings.environment = Settings.ENVIRONMENTS[item][0])
-	more_mods_rows.add_child(environment_picker)
+	environment_row.add_child(environment_picker)
 	_show_environment()
 	_set_padding(reset_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 	_set_padding(more_mods_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
@@ -1354,8 +1353,11 @@ const ENVIRONMENT_THUMBS := "res://game/env/thumbs/%s.png"
 ## how wide the pictures show in the open list, and on the closed dropdown, which must stay one row high
 const ENVIRONMENT_THUMB_WIDTH := 128
 const ENVIRONMENT_THUMB_WIDTH_CLOSED := 48
-## The environment dropdown at the bottom of More modifiers (Settings.ENVIRONMENTS).
+## The environment dropdown on the Song tab, under Damage (Settings.ENVIRONMENTS).
 var environment_picker: OptionButton
+
+## "Follow map" with a song selected names the environment that song will get, short enough for the Song tab.
+const MAP_ENVIRONMENT_TEXT := "Map's: %s"
 
 ## Shows the saved pick; "Follow map" also names the environment the selected song will get.
 func _show_environment() -> void:
@@ -1366,7 +1368,7 @@ func _show_environment() -> void:
 	var follow: String = Settings.ENVIRONMENTS[0][1]
 	var resolved := EventDriver.map_environment(_shown_map)
 	if _shown_map:
-		follow += " (%s)" % Settings.ENVIRONMENTS[ids.find(resolved)][1]
+		follow = MAP_ENVIRONMENT_TEXT % Settings.ENVIRONMENTS[ids.find(resolved)][1]
 	environment_picker.set_item_text(0, follow)
 	environment_picker.set_item_icon(0, _environment_thumb(resolved))
 

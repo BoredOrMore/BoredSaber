@@ -196,7 +196,7 @@ max_lines_visible = 3
 [node name="Play_Button" type="Button" parent="." unique_id=1531123587]
 layout_mode = 0
 offset_left = 784.0
-offset_top = 784.0
+offset_top = 792.0
 offset_right = 1256.0
 offset_bottom = 848.0
 theme_type_variation = &"PrimaryButton"
@@ -236,9 +236,9 @@ script = ExtResource("icon_button")
 [node name="Modifiers" type="VBoxContainer" parent="."]
 layout_mode = 0
 offset_left = 784.0
-offset_top = 380.0
+offset_top = 384.0
 offset_right = 1256.0
-offset_bottom = 776.0
+offset_bottom = 788.0
 theme_override_constants/separation = 4
 
 [node name="Sep" type="HSeparator" parent="Modifiers"]
@@ -282,6 +282,15 @@ theme_override_constants/separation = 4
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_constants/separation = 4
+
+[node name="EnvironmentRow" type="HBoxContainer" parent="Modifiers"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Label" type="Label" parent="Modifiers/EnvironmentRow"]
+layout_mode = 2
+text = "Environment"
 
 [node name="MoreMods_Button" type="Button" parent="Modifiers"]
 custom_minimum_size = Vector2(0, 48)

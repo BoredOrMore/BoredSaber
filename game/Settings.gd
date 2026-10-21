@@ -30,7 +30,7 @@ const COLOR_PRESETS := [
 const NOTE_STYLES := [ ["solid", "Solid"], ["neon", "Neon"] ]
 ## with Darker Notes on, note bodies are no brighter than this HSV value; hue and saturation stay
 const NOTE_DARK_VALUE := 0.7
-## the scenery around the track, picked in the song menu's More modifiers; "auto" follows the environment each map was made for
+## the scenery around the track, picked on the song menu's Song tab; "auto" follows the environment each map was made for
 ## (EventDriver.pick_environment)
 const ENVIRONMENTS := [ ["auto", "Follow map"], ["classic", "Classic"], ["neon_grid", "Neon Grid"], ["pulse_void", "Pulse Void"], ["night_city", "Night City"] ]
 ## Stage lights: a light show that follows the music, lights off, or lights off with the stage pieces hidden too.
