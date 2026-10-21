@@ -1,26 +1,29 @@
 extends ScrollContainer
 class_name SongList
-## The song menu's list: one row per song (cover and name) in the ItemList look, where the selected row is
-## SELECTED_SCALE times as big and its neighbours shrink step by step down to MIN_SCALE.
+## The song menu's list: one row per song (cover and name) in the ItemList look, every row the same size; the
+## selected one only changes its background (resizing rows made players dizzy). Empty space above the first row
+## and below the last lets any row scroll to the middle (center_on), gliding over GLIDE_SECONDS.
 ## It keeps the few ItemList calls the menu uses (add_item, select, item_count...).
 
 ## A row was pressed (not emitted by select()).
 signal item_selected(index: int)
 
-## Size of the selected row relative to normal, how much smaller each row away from it gets, and the smallest
-## size (the player's pick; at 0.8 the text is 22 px, under the menu's 28 px baseline): 150, 130, 110, 90, 80%.
-## With nothing selected every row is normal.
-const SELECTED_SCALE := 1.5
-const STEP_SCALE := 0.2
-const MIN_SCALE := 0.8
-## Normal row height, cover size and font size, in px (the theme's 28 px text and 72 px covers).
-const ROW_HEIGHT := 76.0
-const COVER_SIZE := 72.0
-const FONT_SIZE := 28.0
-const ROW_SEPARATION := 6
+## Row height, cover size and padding, in px: 48 px rows are 3.2 degrees at the menu's 2 m, with the theme's
+## 28 px text; a 40 px cover with 4 px above and below fills the row.
+const ROW_HEIGHT := 48.0
+const COVER_SIZE := 40
+const ROW_PADDING := 4.0
+const ROW_SEPARATION := 4
+## How long scrolling to a row takes (eased, so the list never snaps).
+const GLIDE_SECONDS := 0.18
 
+## Content: empty space, the rows, empty space.
+var _content := VBoxContainer.new()
+var _top := Control.new()
 var _rows := VBoxContainer.new()
+var _bottom := Control.new()
 var _selected := -1
+var _glide: Tween
 
 ## Rows in the list.
 var item_count: int:
@@ -30,9 +33,14 @@ var item_count: int:
 func _ready() -> void:
 	horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_theme_stylebox_override(&"panel", get_theme_stylebox(&"panel", &"ItemList"))
-	_rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_content.add_theme_constant_override(&"separation", 0)
 	_rows.add_theme_constant_override(&"separation", ROW_SEPARATION)
-	add_child(_rows)
+	_content.add_child(_top)
+	_content.add_child(_rows)
+	_content.add_child(_bottom)
+	add_child(_content)
+	resized.connect(_pad_ends)
 
 ## Adds a row and returns its index.
 func add_item(text: String, icon: Texture2D) -> int:
@@ -42,12 +50,11 @@ func add_item(text: String, icon: Texture2D) -> int:
 	row.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	row.clip_text = true
 	row.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.custom_minimum_size.y = ROW_HEIGHT
+	row.add_theme_constant_override(&"icon_max_width", COVER_SIZE)
 	row.add_theme_constant_override(&"h_separation", get_theme_constant(&"h_separation", &"ItemList"))
 	var index := _rows.get_child_count()
 	row.pressed.connect(func() -> void:
-		# the rows resize around the new selection; keep the pressed row where the pointer is
-		_hold_in_place.call_deferred(index, row.position.y - scroll_vertical)
 		select(index)
 		item_selected.emit(index))
 	_rows.add_child(row)
@@ -61,13 +68,17 @@ func clear() -> void:
 		_rows.remove_child(row)
 		row.queue_free()
 	_selected = -1
+	# a new list starts with its first row at the top, not after the empty space
+	_show_first_row.call_deferred()
 
-## Marks a row selected (-1: none) and sizes the rows around it.
+## Marks a row selected (-1: none); the list doesn't move, so a row picked with the pointer stays under it.
 func select(index: int) -> void:
+	var previous := _selected
 	_selected = index
-	for i in item_count:
-		_style_row(i)
-	_redraw.call_deferred()
+	for i in [previous, index]:
+		if i >= 0 and i < item_count:
+			_style_row(i)
+	_redraw()
 
 func deselect_all() -> void:
 	select(-1)
@@ -81,70 +92,67 @@ func set_item_custom_fg_color(index: int, color: Color) -> void:
 	for state: StringName in [&"font_color", &"font_hover_color", &"font_focus_color", &"font_pressed_color", &"font_hover_pressed_color"]:
 		row.add_theme_color_override(state, color)
 
-## Scrolls the selected row into view once the rows have their new sizes.
+## Glides the selected row to the middle when it is out of view (a song selected by search or a rebuilt list).
 func ensure_current_is_visible() -> void:
-	if _selected >= 0:
-		_scroll_to.call_deferred(_selected, false)
+	if _selected < 0:
+		return
+	var top := _row_top(_selected) - scroll_vertical
+	if top < 0.0 or top + ROW_HEIGHT > _view_height():
+		center_on(_selected)
 
-## Scrolls so the row sits in the middle of the list (the scroll bar stops at the ends), once the rows have
-## their new sizes.
+## Glides the list so the row sits in its middle.
 func center_on(index: int) -> void:
-	_scroll_to.call_deferred(index, true)
+	if _glide:
+		_glide.kill()
+	var target := _row_top(index) + (ROW_HEIGHT - _view_height()) / 2.0
+	_glide = create_tween().set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_glide.tween_method(func(value: float) -> void:
+		scroll_vertical = roundi(value)
+		_redraw(), float(scroll_vertical), target, GLIDE_SECONDS)
 
-## Waits a frame for the rows to take their sizes, then scrolls to the row.
-func _scroll_to(index: int, center: bool) -> void:
-	await get_tree().process_frame
-	if index >= item_count:
-		return
-	var row := _row(index)
-	if center:
-		scroll_vertical = int(row.position.y + (row.size.y - size.y) / 2.0)
-	else:
-		_show_whole(row)
+func _show_first_row() -> void:
+	scroll_vertical = roundi(_top.custom_minimum_size.y)
 	_redraw()
-
-## Waits a frame for the rows to take their sizes, then scrolls so the row's top is back at top (px from the
-## list's top), as far as the scroll bar allows and the row stays whole in view.
-func _hold_in_place(index: int, top: float) -> void:
-	await get_tree().process_frame
-	if index >= item_count:
-		return
-	scroll_vertical = int(_row(index).position.y - top)
-	# unless the bigger row would stick out of the list: then only as far as it takes to show it whole
-	_show_whole(_row(index))
-	_redraw()
-
-## Scrolls the least that shows the whole row (the list's top wins when it is taller than the list).
-func _show_whole(row: Control) -> void:
-	if row.position.y + row.size.y - scroll_vertical > size.y:
-		scroll_vertical = int(row.position.y + row.size.y - size.y)
-	if row.position.y < scroll_vertical:
-		scroll_vertical = int(row.position.y)
 
 func _row(index: int) -> Button:
 	return _rows.get_child(index) as Button
 
-## Gives a row the ItemList look (selected, hover, plain) and its size for its distance from the selection.
+## Where a row starts in the scrolled content (every row has the same height).
+func _row_top(index: int) -> float:
+	return _top.custom_minimum_size.y + index * (ROW_HEIGHT + ROW_SEPARATION)
+
+## Height of the list's visible part.
+func _view_height() -> float:
+	var panel := get_theme_stylebox(&"panel")
+	return size.y - panel.content_margin_top - panel.content_margin_bottom
+
+## Room above the first row and below the last for either to sit in the middle.
+func _pad_ends() -> void:
+	var pad := maxf(0.0, (_view_height() - ROW_HEIGHT) / 2.0)
+	_top.custom_minimum_size.y = pad
+	_bottom.custom_minimum_size.y = pad
+
+## Gives a row the ItemList look: selected, hover or plain, with the row's padding.
 func _style_row(index: int) -> void:
 	var row := _row(index)
-	var selected := get_theme_stylebox(&"selected", &"ItemList")
+	var selected := get_theme_stylebox(&"selected", &"ItemList").duplicate() as StyleBox
+	var hover := get_theme_stylebox(&"hovered", &"ItemList").duplicate() as StyleBox
 	var plain := StyleBoxEmpty.new()
+	for box: StyleBox in [selected, hover, plain]:
+		box.content_margin_top = ROW_PADDING
+		box.content_margin_bottom = ROW_PADDING
 	plain.content_margin_left = selected.content_margin_left
 	plain.content_margin_right = selected.content_margin_right
 	row.add_theme_stylebox_override(&"normal", selected if index == _selected else plain)
-	row.add_theme_stylebox_override(&"hover", selected if index == _selected else get_theme_stylebox(&"hovered", &"ItemList"))
+	row.add_theme_stylebox_override(&"hover", selected if index == _selected else hover)
 	row.add_theme_stylebox_override(&"pressed", selected)
 	row.add_theme_stylebox_override(&"hover_pressed", selected)
 	row.add_theme_stylebox_override(&"focus", StyleBoxEmpty.new())
-	var row_scale := 1.0
-	if _selected >= 0:
-		row_scale = maxf(MIN_SCALE, SELECTED_SCALE - STEP_SCALE * absi(index - _selected))
-	row.custom_minimum_size.y = roundf(ROW_HEIGHT * row_scale)
-	row.add_theme_font_size_override(&"font_size", roundi(FONT_SIZE * row_scale))
-	row.add_theme_constant_override(&"icon_max_width", roundi(COVER_SIZE * row_scale))
 
-## Redraws the canvas: sizes and scrolling change after the pointer input that caused them.
+## Redraws the canvas: selection and scrolling change between pointer inputs.
 func _redraw() -> void:
+	if not is_inside_tree():
+		return
 	var canvas := get_viewport().get_parent() as OQ_UI2DCanvas
 	if canvas:
 		canvas._input_update()
