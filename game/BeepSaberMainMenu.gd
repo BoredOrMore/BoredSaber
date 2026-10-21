@@ -14,6 +14,8 @@ signal settings_requested()
 signal get_songs_requested()
 ## The player wants to run the body test: the menu closes while it runs.
 signal body_test_requested()
+## The player button was pressed: "Who's playing?" opens in front of the menu.
+signal profiles_requested()
 signal start_map(info: MapInfo, difficulty: DifficultyInfo, health: bool)
 
 const FAVORITE_MASK := 0x4000000000000000
@@ -49,7 +51,7 @@ const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 @onready var more_mods_button := $Modifiers/MoreMods_Button as Button
 @onready var more_mods_rows := $MoreModsPanel/Rows as VBoxContainer
 @onready var favorite_button := $Favorite_Button as Button
-@onready var player_name_button := $PlayerName_Button as Button
+@onready var profile_button := $Profile_Button as Button
 @onready var reset_button := $Modifiers/Header/Reset_Button as Button
 
 @onready var song_preview := $song_prev as AudioStreamPlayer
@@ -899,9 +901,7 @@ func _on_LoadPlaylists_Button_pressed() -> void:
 
 ## The shared keyboard is typing a song search.
 const KEYBOARD_SEARCH := &"search"
-## The shared keyboard is typing the player name.
-const KEYBOARD_NAME := &"name"
-## What the shared keyboard is open for here; empty when it was opened elsewhere (the new-record name).
+## What the shared keyboard is open for here; empty when it was opened elsewhere (a player name).
 var _keyboard_for := &""
 ## The text the song list is sorted by, shown in the status row above it; empty when not searching.
 var _search_text := ""
@@ -912,27 +912,23 @@ func _on_Search_Button_button_up() -> void:
 	keyboard.visible=true
 	keyboard._text_edit.grab_focus()
 
-## Opens the keyboard with the current player name, which new records are saved under.
-func _on_PlayerName_Button_pressed() -> void:
-	_keyboard_for = KEYBOARD_NAME
-	keyboard._text_edit.placeholder_text = "Type your name"
-	keyboard._text_edit.text = Settings.player_name
-	keyboard._text_edit.set_caret_column(Settings.player_name.length())
-	keyboard._on_TextEdit_text_changed()
-	keyboard.visible=true
-	keyboard._text_edit.grab_focus()
+## Opens "Who's playing?".
+func _on_profile_button_pressed() -> void:
+	profiles_requested.emit()
 
-## Shows the name new records are saved under.
+## Shows the current player on the player button.
 func _show_player_name() -> void:
-	player_name_button.text = BeepSaber_Game._default_player_name()
+	profile_button.text = Settings.player_name
 
-func _text_input_enter(text:String = "") -> void:
-	if _keyboard_for == KEYBOARD_NAME and not text.strip_edges().is_empty():
-		Settings.player_name = text.strip_edges()
+func _text_input_enter(_text:String = "") -> void:
+	if _keyboard_for.is_empty():
+		return
 	_keyboard_for = &""
 	keyboard.visible=false
 
 func _text_input_cancel() -> void:
+	if _keyboard_for.is_empty():
+		return
 	var was_searching := _keyboard_for == KEYBOARD_SEARCH
 	_keyboard_for = &""
 	keyboard.visible=false

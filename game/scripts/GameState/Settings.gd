@@ -3,6 +3,7 @@ class_name GameStateSettings
 
 func _ready(game: BeepSaber_Game) -> void:
 	game.main_menu._hide()
+	game.profiles_canvas._hide()
 	game.settings_canvas._show()
 	game.show_MapSourceDialogs(true)
 	game.endscore._hide()

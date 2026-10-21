@@ -35,6 +35,7 @@
 [ext_resource type="PackedScene" uid="uid://cl1dig23jiq45" path="res://game/Arc/Arc.tscn" id="37_arcp"]
 [ext_resource type="Script" path="res://game/HealthRails.gd" id="38_rails"]
 [ext_resource type="Script" path="res://game/ComboHud.gd" id="39_combo"]
+[ext_resource type="PackedScene" path="res://game/ui/ProfilesPanel.tscn" id="40_profiles"]
 
 [sub_resource type="Environment" id="1"]
 background_mode = 2
@@ -284,6 +285,13 @@ transform = Transform3D(1.3486, 0, 1.47691, 0, 2, 0, -1.47691, 0, 1.3486, -1.476
 offset_right = 600.0
 show_song_info = false
 
+[node name="Profiles_canvas" parent="." instance=ExtResource("3")]
+transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 1, 0, 1.6, -0.9)
+visible = false
+
+[node name="ProfilesPanel" parent="Profiles_canvas" node_paths=PackedStringArray("keyboard") instance=ExtResource("40_profiles")]
+keyboard = NodePath("../../Keyboard_highscore")
+
 [node name="BeepCubePool" parent="." unique_id=834836976 instance=ExtResource("27")]
 scene = ExtResource("33_nc705")
 
@@ -318,6 +326,8 @@ main_menu_ref = NodePath("../MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu")
 [connection signal="settings_requested" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="_settings_button"]
 [connection signal="get_songs_requested" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="_open_beatsaver"]
 [connection signal="body_test_requested" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="_body_test_button"]
+[connection signal="profiles_requested" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="_open_profiles"]
+[connection signal="close_requested" from="Profiles_canvas/ProfilesPanel" to="." method="_close_profiles"]
 [connection signal="start_map" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="start_map"]
 [connection signal="mainmenu" from="EndScore" to="." method="_main_menu_button"]
 [connection signal="repeat" from="EndScore" to="." method="_restart_button"]

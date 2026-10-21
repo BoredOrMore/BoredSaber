@@ -1,6 +1,5 @@
 [gd_scene format=3 uid="uid://glii0poslcve"]
 
-[ext_resource type="Texture2D" path="res://game/ui/edit.svg" id="edit_icon"]
 [ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="1"]
 [ext_resource type="Script" uid="uid://cbe53qn50sjl7" path="res://game/BeepSaberMainMenu.gd" id="3"]
 [ext_resource type="Texture2D" uid="uid://cviyxvrpvyr0g" path="res://u/assets/game/data/beepsaber_logo.png" id="3_wpmn0"]
@@ -15,6 +14,7 @@
 [ext_resource type="Texture2D" path="res://game/ui/icons/star.svg" id="icon_star"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/trash-2.svg" id="icon_trash-2"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/undo-2.svg" id="icon_undo-2"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/user.svg" id="icon_user"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/x.svg" id="icon_x"]
 [ext_resource type="Script" path="res://game/ui/IconButton.gd" id="icon_button"]
 [ext_resource type="Script" path="res://game/ui/ConfirmButton.gd" id="confirm_button"]
@@ -107,7 +107,7 @@ layout_mode = 0
 offset_left = 24.0
 offset_top = 224.0
 offset_right = 760.0
-offset_bottom = 692.0
+offset_bottom = 780.0
 fixed_icon_size = Vector2i(72, 72)
 
 [node name="EmptyList" type="Label" parent="."]
@@ -116,7 +116,7 @@ layout_mode = 0
 offset_left = 24.0
 offset_top = 224.0
 offset_right = 760.0
-offset_bottom = 692.0
+offset_bottom = 780.0
 theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -125,9 +125,9 @@ autowrap_mode = 3
 [node name="GetSongs_Button" type="Button" parent="." unique_id=1531123590]
 layout_mode = 0
 offset_left = 24.0
-offset_top = 704.0
+offset_top = 792.0
 offset_right = 760.0
-offset_bottom = 756.0
+offset_bottom = 848.0
 text = "Get more songs"
 icon = ExtResource("icon_download")
 script = ExtResource("icon_button")
@@ -205,34 +205,24 @@ text = "Play"
 icon = ExtResource("icon_play")
 script = ExtResource("icon_button")
 
-[node name="PlayerLabel" type="Label" parent="."]
-layout_mode = 0
-offset_left = 24.0
-offset_top = 768.0
-offset_right = 152.0
-offset_bottom = 848.0
-text = "Name"
-vertical_alignment = 1
-
-[node name="PlayerName_Button" type="Button" parent="."]
-layout_mode = 0
-offset_left = 156.0
-offset_top = 768.0
-offset_right = 760.0
-offset_bottom = 848.0
-text = "Player"
-icon = ExtResource("edit_icon")
-text_overrun_behavior = 3
-alignment = 0
-icon_alignment = 2
-
 [node name="Tabs" type="HBoxContainer" parent="."]
 layout_mode = 0
 offset_left = 784.0
 offset_top = 24.0
-offset_right = 1176.0
+offset_right = 1008.0
 offset_bottom = 80.0
 theme_override_constants/separation = 4
+
+[node name="Profile_Button" type="Button" parent="."]
+layout_mode = 0
+offset_left = 1016.0
+offset_top = 24.0
+offset_right = 1176.0
+offset_bottom = 80.0
+clip_text = true
+text_overrun_behavior = 3
+icon = ExtResource("icon_user")
+script = ExtResource("icon_button")
 
 [node name="Settings_Button" type="Button" parent="."]
 layout_mode = 0
@@ -446,7 +436,7 @@ joystick_scroll = false
 [connection signal="pressed" from="MorePanel/Licenses" to="." method="_on_licenses_pressed"]
 [connection signal="pressed" from="MorePanel/BodyTest_Button" to="." method="_on_body_test_pressed"]
 [connection signal="button_up" from="Search_Button" to="." method="_on_Search_Button_button_up"]
-[connection signal="pressed" from="PlayerName_Button" to="." method="_on_PlayerName_Button_pressed"]
+[connection signal="pressed" from="Profile_Button" to="." method="_on_profile_button_pressed"]
 [connection signal="item_selected" from="SongsMenu" to="." method="_select_song"]
 [connection signal="item_selected" from="PlaylistSelector" to="." method="_on_PlaylistSelector_item_selected"]
 [connection signal="item_selected" from="ReactionFilter" to="." method="_on_reaction_filter_item_selected"]

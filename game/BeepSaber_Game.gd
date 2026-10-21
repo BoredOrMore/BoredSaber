@@ -39,6 +39,8 @@ var current_health := Constants.HEALTH_START
 @onready var pause_countdown := $Pause_countdown as OQ_UI2DLabel
 @onready var settings_canvas := $Settings_canvas as OQ_UI2DCanvas
 @onready var settings_panel := settings_canvas.ui_control as SettingsPanel
+@onready var profiles_canvas := $Profiles_canvas as OQ_UI2DCanvas
+@onready var profiles_panel := profiles_canvas.ui_control as ProfilesPanel
 @onready var highscore_canvas := $Highscores_Canvas as OQ_UI2DCanvas
 @onready var highscore_panel := highscore_canvas.ui_control as HighscorePanel
 ## Where the record table stands on the score screen: next to the score panel (its place in the scene).
@@ -662,6 +664,18 @@ func _on_BeepSaberMainMenu_difficulty_changed(map_info: MapInfo, diff_rank: int)
 	highscore_canvas.transform = HIGHSCORES_MENU_TRANSFORM
 	highscore_canvas._show()
 	highscore_panel.load_highscores(map_info,diff_rank)
+
+## Opens "Who's playing?" in front of the song menu; the menu behind takes no pointer input until it closes.
+func _open_profiles() -> void:
+	profiles_panel.refresh()
+	profiles_canvas._show()
+	main_menu.disable_collision = true
+
+## Closes "Who's playing?" and shows the (maybe new) current player's records in the menu.
+func _close_profiles() -> void:
+	profiles_canvas._hide()
+	main_menu.disable_collision = false
+	menu.update_view()
 
 func _settings_button() -> void:
 	settings_panel._update_backgrounds()

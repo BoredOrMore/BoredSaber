@@ -103,7 +103,7 @@ often than unlabelled ones in UserTesting's study).
   (ISC, `game/ui/icons/` with its `LICENSE`; copy only the icons used, stroke `#e6e8ee`, 36 px).
   Current meanings: search, star favourite, download get songs, play play/continue, refresh-cw
   rescan songs, trash-2 delete, log-out exit, house main menu, rotate-ccw restart song, undo-2 reset
-  settings, locate-fixed recenter, check done, x close/clear, arrow-left back. Older
+  settings, locate-fixed recenter, check done, x close/clear, arrow-left back, user player (who's playing). Older
   `game/ui/*.svg` (`heart.svg` health, `target.svg` precision, `edit.svg`) match its style.
 - A button with icon and label uses `IconButton` (`game/ui/IconButton.gd`) so the icon sits next
   to the centred word, not at the far edge.

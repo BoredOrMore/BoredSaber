@@ -3,6 +3,8 @@ class_name GameStateMapSelection
 
 func _ready(game: BeepSaber_Game) -> void:
 	game.main_menu._show()
+	game.profiles_canvas._hide()
+	game.main_menu.disable_collision = false
 	game.settings_canvas._hide()
 	game.show_MapSourceDialogs(true)
 	game.endscore._hide()

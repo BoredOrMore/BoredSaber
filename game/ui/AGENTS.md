@@ -15,6 +15,10 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   pills for `CheckButton`). Every panel `.tscn` sets `theme = ExtResource(...)` on its root. The one main
   button of a screen sets `theme_type_variation = &"PrimaryButton"` (accent border, blue fill); 3D
   `UIRaycastButton`s use `set_primary(true)`.
+- `ProfilesPanel.gd/.tscn` (class `ProfilesPanel`): "Who's playing?", opened by the player button beside the menu's gear
+  (`BeepSaber_Game._open_profiles`) on its own canvas 10 cm in front of the menu, which takes no pointer input meanwhile.
+  Picks, adds (max `Settings.MAX_PLAYERS`), renames (records too, `Highscores.rename_player`) and deletes players;
+  names are typed on the menu's keyboard (`Keyboard_highscore`), which the menu ignores while its `_keyboard_for` is empty.
 - `BeatSaverPanel/`: browse/search/download maps from beatsaver.com (class `BeatSaverPanel`).
   The menu's "Get more songs" opens it directly (`BeepSaber_Game._open_beatsaver`), in front of the player in place
   of the song menu. (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
