@@ -3,7 +3,7 @@ class_name NightCityRig
 ## The Night City environment's structure, which its lights are mounted on (AGENTS.md "Light", rule 5): dark
 ## buildings in a row on each side of the track, their inner faces 19 m out, so the skyline straight ahead stays
 ## clear. Searchlights (the waving lasers) stand on the roofs, the diagonal lasers cross from the roofs' inner
-## edges, and the square bars hang on the inner faces as signs. Dark boxes in one MultiMesh with the scenery's
+## edges, and the square bars trim the roof edges facing the track. Dark boxes in one MultiMesh with the scenery's
 ## fog shader. Sizes in metres, untuned.
 
 const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")

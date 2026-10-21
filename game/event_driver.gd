@@ -239,9 +239,10 @@ const RIG_GRID_EDGE_X := NeonGridRig.POLE_X
 ## Neon Grid's square bars: the horizontal ones become light rails between neighbouring lamp poles, along the
 ## track; the vertical ones are left out there, as the poles are shorter than a bar.
 const RAIL_BASIS := Basis(Vector3(1.0, 0.0, 0.0), Vector3(0.0, 1.0, 0.0), Vector3(0.0, 0.0, 0.3))
-## Night City's signs (the horizontal square bars) hang this far up the buildings' inner faces, just off them
-const SIGN_HEIGHT := 5.0
-const SIGN_OFFSET := 0.2
+## Night City's square bars trim the buildings' roof edges facing the track, as architectural accent light: this far
+## below the roof and off the inner face
+const ROOF_TRIM_DROP := 0.15
+const ROOF_TRIM_OFFSET := 0.2
 ## Pulse Void's diagonal lasers run straight along the tunnel from the nearest ring to the farthest, between
 ## VOID_LOW_DEG and VOID_HIGH_DEG on each side (0 is level with the rings' centre, 90 the top), above the floor and
 ## clear of the track
@@ -327,7 +328,7 @@ func _apply_rig(id: String) -> void:
 				var side := -1.0 if i < half else 1.0
 				var b: Vector3 = NightCityRig.buildings(side)[i % half]
 				waving[i].global_position = Vector3(side * (NightCityRig.INNER_FACE_X + NightCityRig.DEPTH_X * 0.5), b.z + 0.3, b.x)
-			# signs: the horizontal bars run along the buildings' inner faces; the vertical ones are left out
+			# roof trim: the horizontal bars run along the top of the buildings' inner faces; the vertical ones are left out
 			var sign_i := 0
 			for bar in _square_bars():
 				if bar.get_parent() != square_lasers_holder:
@@ -336,7 +337,7 @@ func _apply_rig(id: String) -> void:
 				var side := -1.0 if sign_i % 2 == 0 else 1.0
 				var b: Vector3 = NightCityRig.buildings(side)[(sign_i >> 1) % NightCityRig.LEFT.size()]
 				bar.global_transform = Transform3D(RAIL_BASIS,
-					Vector3(side * (NightCityRig.INNER_FACE_X - SIGN_OFFSET), SIGN_HEIGHT + float(sign_i >> 1), b.x))
+					Vector3(side * (NightCityRig.INNER_FACE_X - ROOF_TRIM_OFFSET), b.z - ROOF_TRIM_DROP, b.x))
 				sign_i += 1
 		"pulse_void":
 			var pairs := diagonal_lasers.size() >> 1
