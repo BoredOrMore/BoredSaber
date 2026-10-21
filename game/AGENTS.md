@@ -86,7 +86,8 @@ constraints apply here unchanged.
 - `sabers/` — saber visuals listed in `Settings.SABER_VISUALS`: `default/` (`DefaultSaber`,
   `SaberTail`), `particles/` (`particles_saber.gd` extends `DefaultSaber`, clash sounds).
 - `data/` — static assets: `background/` panoramas and backdrop meshes, `maps/` bundled `Songs/` and
-  `Playlists.json`, UI theme, logo, button texture, cut/click/saber sounds, shared shaders/meshes.
+  `Playlists.json`, UI theme, logo, button texture, cut/click/saber sounds, miss/health/fail/clear/menu
+  sounds (`tools/make_feedback_sounds.py`), shared shaders/meshes.
 
 ## Invariants and gotchas
 

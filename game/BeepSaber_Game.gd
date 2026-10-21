@@ -101,10 +101,20 @@ var _new_record := {}
 var _menu_highscores_shown := false
 const DANGER_WALL_MATERIAL := preload("res://game/Wall/danger_wall.tres")
 ## Mistake sounds (tools/make_hit_sounds.py): a dull buzz for a bad cut or the wrong saber, a boom for a bomb.
-## Misses stay silent, as in Beat Saber.
+## A miss gets a soft swipe (tools/make_feedback_sounds.py), quieter than a bad cut.
 const BAD_CUT_SOUND := preload("res://game/data/bad_cut.wav")
 const BOMB_HIT_SOUND := preload("res://game/data/bomb_hit.wav")
+const MISS_SOUND := preload("res://game/data/miss.wav")
 var _mistake_player: AudioStreamPlayer
+## Song-end and danger sounds (tools/make_feedback_sounds.py): a falling stinger for a fail, a rising chord for
+## a cleared song, and a heartbeat that loops while health is low.
+const FAIL_SOUND := preload("res://game/data/fail.wav")
+const CLEAR_SOUND := preload("res://game/data/clear.wav")
+const LOW_HEALTH_SOUND := preload("res://game/data/low_health.wav")
+## Health at or below this share of the bar plays the heartbeat; in 4 Lives mode that is the last life.
+const LOW_HEALTH_FRACTION := 0.25
+var _song_end_player: AudioStreamPlayer
+var _low_health_player: AudioStreamPlayer
 const BOMB_GLOW_MATERIAL := preload("res://game/Bomb/bomb_glow.tres")
 # how long a rumble that was on when the song failed takes to fade out
 const FAIL_RUMBLE_FADE_SECONDS := 0.6
@@ -202,11 +212,24 @@ func update_health(delta: float, mistake: bool = false) -> void:
 		health_rails.update_health(current_health / Constants.HEALTH_MAX)
 		if current_health <= 0 and gamestate == gamestate_playing and not failing:
 			_fail_song()
+		_update_low_health_sound()
+
+## Loops the heartbeat while a map plays with health at or below LOW_HEALTH_FRACTION, and stops it otherwise.
+func _update_low_health_sound() -> void:
+	var low := (Settings.health_mode and gamestate == gamestate_playing and not failing
+			and current_health <= Constants.HEALTH_MAX * LOW_HEALTH_FRACTION)
+	if low and not _low_health_player.playing:
+		_low_health_player.play()
+	elif not low and _low_health_player.playing:
+		_low_health_player.stop()
 
 ## Shows "Failed" while the song winds down and the track freezes, then the score screen.
 func _fail_song() -> void:
 	failing = true
 	Scoreboard.paused = true
+	_update_low_health_sound()
+	_song_end_player.stream = FAIL_SOUND
+	_song_end_player.play()
 	left_saber.set_swingcast_enabled(false)
 	right_saber.set_swingcast_enabled(false)
 	pause_countdown.set_label_text("Failed")
@@ -229,6 +252,7 @@ func _fail_song() -> void:
 # the provided 'next_state'.
 func _transition_game_state(next_state: GameState) -> void:
 	gamestate = next_state
+	_update_low_health_sound()
 	# the scene only lights up for the combo while a map is on
 	if gamestate != gamestate_playing and gamestate != gamestate_paused:
 		event_driver.set_combo_multiplier(1)
@@ -341,6 +365,13 @@ func _ready() -> void:
 	_mistake_player.bus = &"SFX"
 	_mistake_player.max_polyphony = 2
 	add_child(_mistake_player)
+	_song_end_player = AudioStreamPlayer.new()
+	_song_end_player.bus = &"SFX"
+	add_child(_song_end_player)
+	_low_health_player = AudioStreamPlayer.new()
+	_low_health_player.bus = &"SFX"
+	_low_health_player.stream = LOW_HEALTH_SOUND
+	add_child(_low_health_player)
 	# pre-allocate scenes in our scene pools
 	GlobalReferences.cube_pool = $BeepCubePool
 	GlobalReferences.link_pool = $ChainLinkPool
@@ -474,6 +505,11 @@ func play_mistake_sound(bomb: bool) -> void:
 	_mistake_player.stream = BOMB_HIT_SOUND if bomb else BAD_CUT_SOUND
 	_mistake_player.play()
 
+## Plays the soft sound for a note that flew past uncut.
+func play_miss_sound() -> void:
+	_mistake_player.stream = MISS_SOUND
+	_mistake_player.play()
+
 ## Colours walls and bombs with the song's danger colour.
 static func _update_danger_color(danger: Color) -> void:
 	(DANGER_WALL_MATERIAL as ShaderMaterial).set_shader_parameter(&"danger_color", danger)
@@ -574,6 +610,8 @@ func _on_song_ended() -> void:
 		current_percent = -1
 	else:
 		current_percent = Scoreboard.accuracy()
+		_song_end_player.stream = CLEAR_SOUND
+		_song_end_player.play()
 	endscore.show_score(
 		Scoreboard.points,
 		highscore,

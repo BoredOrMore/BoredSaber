@@ -173,6 +173,8 @@ func bad_cut(position: Vector3, _rotation: float, description: String, best: flo
 	elif description == "wrong saber" or description == "miss":
 		if description == "wrong saber":
 			GlobalReferences.main_game_scene.play_mistake_sound(false)
+		else:
+			GlobalReferences.main_game_scene.play_miss_sound()
 		reset_combo(true)
 		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_MISS, true)
 		if description == "miss":
