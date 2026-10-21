@@ -424,8 +424,11 @@ func _ready() -> void:
 	var poll := Timer.new()
 	poll.wait_time = 2.0
 	poll.timeout.connect(func() -> void:
-		if gamestate == gamestate_mapselection and Benchmark.requested():
-			_start_benchmark())
+		if gamestate != gamestate_mapselection:
+			return
+		var mode: Variant = Benchmark.requested()
+		if mode != null:
+			_start_benchmark(mode))
 	add_child(poll)
 	poll.start()
 	
@@ -724,14 +727,14 @@ func _on_BeepSaberMainMenu_difficulty_changed(map_info: MapInfo, diff_rank: int)
 ## Shows the note to slash, in the selected song's colours, while the song menu is open with a song picked and
 ## nothing (keyboard, "Who's playing?") in front of it.
 ## Runs the menu benchmark (Benchmark) unless one is running.
-func _start_benchmark() -> void:
+func _start_benchmark(mode := "") -> void:
 	if has_node(^"Benchmark") or gamestate != gamestate_mapselection:
 		return
 	var bench := Benchmark.new()
 	bench.name = &"Benchmark"
 	bench.game = self
 	add_child(bench)
-	bench.run()
+	bench.run(mode)
 
 func _update_slash_block() -> void:
 	# the menu reports its first song while it loads, before this scene is ready
