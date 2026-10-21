@@ -14,7 +14,7 @@ All flow logic (start, fail, end, pause, resume) lives in `game/BeepSaber_Game.g
   `_physics_process` handles pause input, the lead-in countdown and spawning (`_process_map`).
 - `Paused.gd` - `GameStatePaused`: pause menu, HUD kept, track hidden, sabers sheathed; stops the song.
 - `MapComplete.gd` - `GameStateMapComplete`: end score + this map's highscores.
-- `NewHighscore.gd` - `GameStateNewHighScore`: like MapComplete plus the name selector; `GUEST_NAME`.
+- `NewHighscore.gd` - `GameStateNewHighScore`: like MapComplete, for a run that made the board ("Saved as <player>").
 - `BodyTest.gd` - `GameStateBodyTest`: hides menus, sabers and pointers, runs a `game/BodyTest.gd` node and
   returns to MapSelection when it emits `finished`.
 
@@ -43,7 +43,6 @@ Transitions (callers wired in `BeepSaber_Game.tscn:340-362`):
 | Paused | Playing | `continue_button` -> `_unpause_button` (`:584-601`) |
 | Paused / end screens | MapSelection | `mainmenu*` -> `_main_menu_button` (`:557-559`), clears the track |
 | Playing | NewHighscore / MapComplete | `SongPlayer.finished` or fail -> `_on_song_ended` (`:503-545`) |
-| NewHighscore | MapComplete | name picked or typed -> `_submit_highscore` (`:213-218`) |
 
 ## Flows
 
@@ -61,7 +60,7 @@ Transitions (callers wired in `BeepSaber_Game.tscn:340-362`):
   fades rumble, then calls `_on_song_ended` (`:174-193`). While `failing`, Playing ignores pause input and stops
   spawning (`Playing.gd:27-28`) and `_pause_if_playing` does nothing (`:357`).
 - Song end: increments play count, and a new highscore is saved at once under `_default_player_name()` before
-  NewHighscore opens (`BeepSaber_Game.gd:535-543`); picking a name only renames that record.
+  NewHighscore opens (`BeepSaber_Game.gd:535-543`). The player is picked in the song menu, not on the score screen.
 
 ## Input per state
 

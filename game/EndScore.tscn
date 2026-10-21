@@ -159,11 +159,6 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.76, 0, 0.005)
 material_override = SubResource("StandardMaterial3D_card")
 mesh = SubResource("TextMesh_card")
 
-[node name="Button" parent="NameCard" instance=ExtResource("4_n4s7s")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.58, 0, 0.005)
-size = Vector2(0.38, 0.09)
-text = "Type name"
-
 [node name="Details" type="MeshInstance3D" parent="."]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.62, 0.2, 0.01)
 material_override = SubResource("StandardMaterial3D_cwpr4")
@@ -237,4 +232,3 @@ shape = SubResource("BoxShape3D_iqqq6")
 
 [connection signal="released" from="Repeat" to="." method="_on_Repeat_button_up"]
 [connection signal="released" from="MainMenu" to="." method="_on_MainMenu_button_up"]
-[connection signal="released" from="NameCard/Button" to="." method="_on_NameButton_button_up"]

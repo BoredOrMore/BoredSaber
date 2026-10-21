@@ -330,4 +330,3 @@ main_menu_ref = NodePath("../MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu")
 [connection signal="new_scene_instanced" from="BombPool" to="." method="_on_ScenePool_new_scene_instanced"]
 [connection signal="new_scene_instanced" from="WallPool" to="." method="_on_ScenePool_new_scene_instanced"]
 [connection signal="new_scene_instanced" from="ArcPool" to="." method="_on_ScenePool_new_scene_instanced"]
-[connection signal="text_input_enter" from="Keyboard_highscore" to="." method="_submit_highscore"]

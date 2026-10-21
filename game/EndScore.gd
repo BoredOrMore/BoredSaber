@@ -3,8 +3,6 @@ class_name EndScore
 
 signal mainmenu
 signal repeat
-## the name card's button: type a name for the record just saved
-signal name_edit_requested
 
 ## Fewest seconds between two ticks while the score counts up (about 18 a second at most).
 const TICK_MIN_INTERVAL := 0.055
@@ -49,7 +47,6 @@ var _rank_up_player := AudioStreamPlayer.new()
 @onready var collision := $RaycastArea/CollisionShape3D as CollisionShape3D
 @onready var _name_card := $NameCard as MeshInstance3D
 @onready var _name_label := ($NameCard/Label as MeshInstance3D).mesh as TextMesh
-@onready var _name_button := $NameCard/Button as UIRaycastButton
 ## The song was played to the end, so Main Menu (pick the next song) is the main action; after a fail it is Retry.
 var _finished := false
 var _card_material: ShaderMaterial
@@ -104,7 +101,6 @@ func _show() -> void:
 	collision.disabled = false
 	($Repeat as UIRaycastButton).collision_layer = CollisionLayerConstants.Ui_mask
 	($MainMenu as UIRaycastButton).collision_layer = CollisionLayerConstants.Ui_mask
-	_name_button.collision_layer = CollisionLayerConstants.Ui_mask
 	show()
 
 func _hide() -> void:
@@ -112,7 +108,6 @@ func _hide() -> void:
 	collision.disabled = true
 	($Repeat as UIRaycastButton).collision_layer = 0
 	($MainMenu as UIRaycastButton).collision_layer = 0
-	_name_button.collision_layer = 0
 	_tick_player.stop()
 	_ding_player.stop()
 	_ding_high_player.stop()
@@ -244,32 +239,21 @@ func _show_rank(label: RichTextLabel, rank: String) -> void:
 func set_buttons_disabled(disabled: bool) -> void:
 	($Repeat/Collision as CollisionShape3D).disabled = disabled
 	($MainMenu/Collision as CollisionShape3D).disabled = disabled
-	($NameCard/Button/Collision as CollisionShape3D).disabled = disabled or not _name_button.visible
 
-## Shows a line on the name card, with a button when button_text is set (primary makes it the main action).
-func show_name_card(text: String, button_text := "", primary := false) -> void:
+## Shows a line on the name card.
+func show_name_card(text: String) -> void:
 	_name_card.visible = true
 	_name_label.text = text
-	_name_button.visible = not button_text.is_empty()
-	($NameCard/Button/Collision as CollisionShape3D).disabled = not _name_button.visible
-	if _name_button.visible:
-		_name_button.text = button_text
-		_name_button.set_primary(primary)
-	# one main action: a name to type for a new record comes before going back
-	($MainMenu as UIRaycastButton).set_primary(_finished and not (_name_button.visible and primary))
+	($MainMenu as UIRaycastButton).set_primary(_finished)
 
 func hide_name_card() -> void:
 	_name_card.visible = false
-	($NameCard/Button/Collision as CollisionShape3D).disabled = true
 
 ## Lights the name card's border once.
 func glow_name_card() -> void:
 	if _name_card.visible:
 		create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN) \
 			.tween_property(_card_material, ^"shader_parameter/highlight", 0.0, CARD_GLOW_SECONDS).from(1.0)
-
-func _on_NameButton_button_up() -> void:
-	name_edit_requested.emit()
 
 func _on_Repeat_button_up() -> void:
 	repeat.emit()

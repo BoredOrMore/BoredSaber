@@ -4,9 +4,9 @@ class_name GameStateNewHighScore
 func _ready(game: BeepSaber_Game) -> void:
 	# populate highscore panel with records
 	game.highscore_panel.load_highscores(
-		Map.current_info,Map.current_difficulty.difficulty_rank,game._new_record)
+		Map.current_info,Map.current_difficulty.difficulty_rank)
 	
-	# the record is already saved under the default name; the name card's button only renames it
+	# the record is already saved under the current player's name
 	game.endscore.set_buttons_disabled(false)
 	
 	game.main_menu._hide()

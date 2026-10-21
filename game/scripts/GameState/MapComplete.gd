@@ -4,7 +4,7 @@ class_name GameStateMapComplete
 func _ready(game: BeepSaber_Game) -> void:
 	# show this map's records next to the score, as after a new record
 	game.highscore_panel.load_highscores(
-		Map.current_info,Map.current_difficulty.difficulty_rank,game._new_record)
+		Map.current_info,Map.current_difficulty.difficulty_rank)
 	game.endscore.set_buttons_disabled(false)
 	game.main_menu._hide()
 	game.settings_canvas._hide()
