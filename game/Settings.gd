@@ -234,10 +234,17 @@ var fail_mode: int:
 	set(value):
 		fail_mode = value
 		set_and_emit(&"fail_mode", value)
+## The current player, one of players.
 var player_name: String:
 	set(value):
 		player_name = value
 		set_and_emit(&"player_name", value)
+## The players on this headset, each {"name": String, "player_height_offset": float, "left_handed": bool}. The
+## current one's height and handedness are the top-level settings while it plays (_store_current_player()).
+var players: Array:
+	set(value):
+		players = value
+		set_and_emit(&"players", value)
 var damage_scale: float:
 	set(value):
 		damage_scale = value
@@ -293,6 +300,14 @@ func _ready() -> void:
 	else:
 		restore_defaults()
 		save()
+	# first launch with profiles: the saved name becomes the only player
+	if players.is_empty():
+		players = [_new_player(player_name.strip_edges() if not player_name.strip_edges().is_empty() else "Player")]
+		player_name = players[0].name
+		_store_current_player()
+	changed.connect(func(key: StringName) -> void:
+		if key == &"player_height_offset" or key == &"left_handed":
+			_store_current_player())
 
 const platform_default_values = {
 	Web = {
@@ -359,7 +374,8 @@ var default_values = {
 	beatsaver_filter_length = 0,
 	beatsaver_filter_reaction = 0,
 	claws = false,
-	preloaded_songs = false
+	preloaded_songs = false,
+	players = [],
 }
 
 func cast_or_default(key: String, to_type: int = -1) -> Variant:
@@ -387,13 +403,87 @@ func save() -> void:
 		vr.log_file_error(error, CONFIG_PATH, "save() in Settings.gd")
 		return
 
-## Puts every setting back to its default; the library's sample songs aren't a setting, so they aren't copied again.
+## Puts every setting back to its default; the library's sample songs aren't a setting, so they aren't copied again,
+## and the players stay (the current one gets the default height and handedness).
 func restore_defaults() -> void:
 	var samples_copied := preloaded_songs
+	var kept_players := players.duplicate(true)
+	var kept_name := player_name
 	config.clear()
 	save()
 	reload()
 	preloaded_songs = samples_copied
+	if not kept_players.is_empty():
+		players = kept_players
+		player_name = kept_name
+		_store_current_player()
+	save()
+
+## Most players one headset keeps.
+const MAX_PLAYERS := 6
+
+## A player with the default height and handedness.
+func _new_player(new_name: String) -> Dictionary:
+	return {"name": new_name, "player_height_offset": default_values.player_height_offset, "left_handed": default_values.left_handed}
+
+## The players entry called new_name (ignoring case), or an empty Dictionary.
+func find_player(new_name: String) -> Dictionary:
+	for player: Dictionary in players:
+		if (player.name as String).to_lower() == new_name.strip_edges().to_lower():
+			return player
+	return {}
+
+## Copies the current height and handedness into the current player's entry, and saves the list.
+func _store_current_player() -> void:
+	var player := find_player(player_name)
+	if player.is_empty():
+		return
+	player.player_height_offset = player_height_offset
+	player.left_handed = left_handed
+	players = players
+
+## Why new_name can't name a player (empty, or taken by another player than old_name), or "" when it can.
+func player_name_problem(new_name: String, old_name := "") -> String:
+	new_name = new_name.strip_edges()
+	if new_name.is_empty():
+		return "Type a name"
+	var other := find_player(new_name)
+	if not other.is_empty() and (other.name as String).to_lower() != old_name.to_lower():
+		return "%s is already a player" % other.name
+	return ""
+
+## Makes the named player the current one, with their height and handedness.
+func switch_player(new_name: String) -> void:
+	var player := find_player(new_name)
+	assert(not player.is_empty(), "no player %s" % new_name)
+	player_name = player.name
+	player_height_offset = player.player_height_offset
+	left_handed = player.left_handed
+	save()
+
+## Adds a player with default height and handedness and makes them the current one.
+func add_player(new_name: String) -> void:
+	assert(player_name_problem(new_name) == "" and players.size() < MAX_PLAYERS)
+	players.append(_new_player(new_name.strip_edges()))
+	switch_player(new_name)
+
+## Renames a player (and the current name, if it's them). Their records are renamed by HighscoreTable.
+func rename_player(old_name: String, new_name: String) -> void:
+	var player := find_player(old_name)
+	assert(not player.is_empty() and player_name_problem(new_name, old_name) == "")
+	var was_current := (player.name as String) == player_name
+	player.name = new_name.strip_edges()
+	players = players
+	if was_current:
+		player_name = player.name
+	save()
+
+## Removes a player who isn't the current one; their records stay.
+func delete_player(old_name: String) -> void:
+	var player := find_player(old_name)
+	assert(not player.is_empty() and (player.name as String) != player_name)
+	players.erase(player)
+	players = players
 	save()
 	
 func get_saber_visuals() -> String:

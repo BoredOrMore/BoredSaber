@@ -128,6 +128,25 @@ func rename_record(record: Dictionary, player_name: String) -> void:
 	record.player_name = player_name
 	save_hs_table()
 
+## Gives every record of old_name the name new_name (a player was renamed).
+func rename_player(old_name: String, new_name: String) -> void:
+	for song_records: Dictionary in _hs_table.values():
+		for diff_record: Array in song_records.values():
+			for record: Dictionary in diff_record:
+				if record.player_name == old_name:
+					record.player_name = new_name
+	save_hs_table()
+
+## How many records carry player_name.
+func count_records(player_name: String) -> int:
+	var count := 0
+	for song_records: Dictionary in _hs_table.values():
+		for diff_record: Array in song_records.values():
+			for record: Dictionary in diff_record:
+				if record.player_name == player_name:
+					count += 1
+	return count
+
 # return : the list of records for the given map + difficulty
 func get_records(map_info: MapInfo, diff_rank: int) -> Array:
 	var hs_key := map_info.get_key()
