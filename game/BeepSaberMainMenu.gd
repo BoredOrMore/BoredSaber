@@ -1052,6 +1052,8 @@ func _build_difficulty_picker() -> void:
 		tab.add_theme_font_size_override(&"font_size", 20)
 		tab.clip_text = true
 		characteristic_row.add_child(tab)
+		# narrow padding like the level buttons, so "Standard" and "No Arrows" fit four or five to a row
+		_set_padding(tab, LEVEL_BUTTON_PADDING)
 	var level_group := ButtonGroup.new()
 	for i in LEVELS.size():
 		var button := _make_row_button(LEVELS[i][1], level_group, _on_level_pressed.bind(i))
