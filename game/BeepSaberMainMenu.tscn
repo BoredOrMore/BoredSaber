@@ -17,6 +17,7 @@
 [ext_resource type="Texture2D" path="res://game/ui/icons/user.svg" id="icon_user"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/x.svg" id="icon_x"]
 [ext_resource type="Script" path="res://game/ui/IconButton.gd" id="icon_button"]
+[ext_resource type="Script" path="res://game/ui/SongList.gd" id="song_list"]
 [ext_resource type="Script" path="res://game/ui/ConfirmButton.gd" id="confirm_button"]
 
 [sub_resource type="StyleBoxFlat" id="1"]
@@ -102,13 +103,13 @@ text = "Clear filters"
 icon = ExtResource("icon_x")
 script = ExtResource("icon_button")
 
-[node name="SongsMenu" type="ItemList" parent="." unique_id=1448329630]
+[node name="SongsMenu" type="ScrollContainer" parent="." unique_id=1448329630]
 layout_mode = 0
 offset_left = 24.0
 offset_top = 224.0
 offset_right = 760.0
 offset_bottom = 780.0
-fixed_icon_size = Vector2i(72, 72)
+script = ExtResource("song_list")
 
 [node name="EmptyList" type="Label" parent="."]
 visible = false

@@ -38,7 +38,7 @@ const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 @onready var _bg_img_loader := preload("res://game/scripts/BackgroundImgLoader.gd").new()
 
 @onready var cover := $cover as TextureRect
-@onready var songs_menu := $SongsMenu as ItemList
+@onready var songs_menu := $SongsMenu as SongList
 @onready var characteristic_row := $DifficultyPicker/CharacteristicRow as HBoxContainer
 @onready var level_row := $DifficultyPicker/LevelRow as HBoxContainer
 @onready var level_stats := $DifficultyPicker/LevelStats as Label
@@ -94,13 +94,6 @@ const STICK_REPEAT_INTERVAL := 0.12
 var _stick_time := -1.0
 var _stick_next := 0.0
 
-## Scrolls the song list so the song sits in the middle of it: the selection walks down to the middle, then
-## stays there while the list moves (the scroll bar stops it at either end).
-func _center_song(index: int) -> void:
-	var first := songs_menu.get_item_rect(0)
-	var row := songs_menu.get_item_rect(index)
-	songs_menu.get_v_scroll_bar().value = row.position.y - first.position.y + (row.size.y - songs_menu.size.y) / 2.0
-
 ## Moves the song selection with the stronger thumbstick of the two hands while the song menu takes input.
 func _step_with_stick(delta: float) -> void:
 	var canvas := get_viewport().get_parent() as OQ_UI2DCanvas
@@ -126,7 +119,7 @@ func _step_with_stick(delta: float) -> void:
 		if next != current_selected:
 			songs_menu.select(next)
 			_select_song(next, false)
-			_center_song(next)
+			songs_menu.center_on(next)
 			canvas._input_update()
 		_stick_next += STICK_REPEAT_DELAY if _stick_next == 0.0 else STICK_REPEAT_INTERVAL
 	_stick_time += delta
