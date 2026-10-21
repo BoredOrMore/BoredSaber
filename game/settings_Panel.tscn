@@ -401,6 +401,22 @@ text = "Saber trail"
 layout_mode = 2
 text = "Cut pieces"
 
+[node name="environment_grid" type="GridContainer" parent="Tabs/Visuals/VBox"]
+theme_override_constants/h_separation = 16
+layout_mode = 2
+columns = 2
+
+[node name="Label" type="Label" parent="Tabs/Visuals/VBox/environment_grid"]
+custom_minimum_size = Vector2(320, 0)
+theme_override_styles/normal = SubResource("row_label")
+layout_mode = 2
+text = "Environment"
+
+[node name="environment" type="OptionButton" parent="Tabs/Visuals/VBox/environment_grid"]
+size_flags_horizontal = 3
+layout_mode = 2
+text_overrun_behavior = 3
+
 [node name="background_mode_grid" type="GridContainer" parent="Tabs/Visuals/VBox"]
 theme_override_constants/h_separation = 16
 layout_mode = 2

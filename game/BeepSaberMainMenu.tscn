@@ -211,14 +211,6 @@ offset_right = 1256.0
 offset_bottom = 590.0
 theme_override_constants/separation = 4
 
-[node name="EnvironmentRow" type="HBoxContainer" parent="."]
-layout_mode = 0
-offset_left = 784.0
-offset_top = 596.0
-offset_right = 1256.0
-offset_bottom = 644.0
-theme_override_constants/separation = 4
-
 [node name="Play_Button" type="Button" parent="." unique_id=1531123587]
 layout_mode = 0
 offset_left = 784.0

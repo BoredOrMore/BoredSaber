@@ -43,8 +43,6 @@ const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 @onready var delete_button := $MorePanel/Delete_Button as ConfirmButton
 @onready var fail_row := $FailRow as HBoxContainer
 @onready var damage_row := $DamageRow as HBoxContainer
-@onready var environment_row := $EnvironmentRow as HBoxContainer
-var environment_picker: OptionButton
 @onready var bombs_control := $ModifiersPanel/Margin/Rows/Toggles/Bombs as CheckButton
 @onready var arrows_control := $ModifiersPanel/Margin/Rows/Toggles/Arrows as CheckButton
 @onready var flip_control := $ModifiersPanel/Margin/Rows/Flip as OptionButton
@@ -200,7 +198,7 @@ func _load_playlists() -> void:
 		Settings.save()
 	
 	_discover_all_songs(Constants.APPDATA_PATH+"Songs/")
-	SongTags.look_up_missing(self, _all_songs, _show_environment)
+	SongTags.look_up_missing(self, _all_songs, func() -> void: pass)
 	
 	_sort_songs()
 	MapStats.count_all_async(_all_songs, _on_map_stats_counted)
@@ -525,7 +523,6 @@ func _select_song(id: int, with_preview: bool = true) -> void:
 	]
 	
 	_set_favorite_icon(PlayCount.is_favorite(map))
-	_show_environment()
 	
 	# load cover in background to avoid freezing UI
 	_bg_img_loader.load_texture(map.filepath, map.cover_image_filename, _on_cover_loaded, true, -1)
@@ -661,7 +658,6 @@ func _ready() -> void:
 	Settings.changed.connect(on_settings_changed)
 	
 	_build_difficulty_rows()
-	_build_environment_row()
 	_build_difficulty_picker()
 	_build_tabs()
 	_show_player_name()
@@ -712,8 +708,6 @@ func on_settings_changed(key: StringName) -> void:
 			# reaction times depend on the Speed modifier
 			if MapStats.difficulty_filter(Settings.song_filter_reaction) != 0:
 				_refilter()
-		&"environment":
-			_show_environment()
 		&"song_filter_reaction", &"song_filter_length":
 			reaction_filter.select(MapStats.difficulty_filter(Settings.song_filter_reaction))
 			length_filter.select(MapStats.length_filter(Settings.song_filter_length)[0])
@@ -986,51 +980,6 @@ func _build_difficulty_rows() -> void:
 	for i in Constants.DAMAGE_SCALES.size():
 		damage_row.add_child(_make_row_button(Constants.DAMAGE_SCALES[i][1], damage_group, _on_damage_option_pressed.bind(i)))
 	_sync_difficulty_rows()
-
-## A small picture of each environment, by id, shown in the environment dropdown when the file exists.
-const ENVIRONMENT_THUMBS := "res://game/env/thumbs/%s.png"
-## how wide the pictures show in the open list, and on the closed dropdown, which must stay one row high
-const ENVIRONMENT_THUMB_WIDTH := 128
-const ENVIRONMENT_THUMB_WIDTH_CLOSED := 48
-
-## The environment picker beside the song: a "Environment" label and a dropdown of Settings.ENVIRONMENTS.
-func _build_environment_row() -> void:
-	var label := Label.new()
-	label.text = "Environment"
-	label.add_theme_font_size_override(&"font_size", 24)
-	label.custom_minimum_size.x = 150
-	environment_row.add_child(label)
-	environment_picker = OptionButton.new()
-	environment_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	environment_picker.add_theme_font_size_override(&"font_size", 24)
-	environment_picker.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	environment_picker.get_popup().add_theme_font_size_override(&"font_size", 24)
-	environment_picker.add_theme_constant_override(&"icon_max_width", ENVIRONMENT_THUMB_WIDTH_CLOSED)
-	environment_picker.get_popup().add_theme_constant_override(&"icon_max_width", ENVIRONMENT_THUMB_WIDTH)
-	for environment: Array in Settings.ENVIRONMENTS:
-		environment_picker.add_item(environment[1])
-		environment_picker.set_item_icon(environment_picker.item_count - 1, _environment_thumb(environment[0]))
-	environment_picker.item_selected.connect(func(item: int) -> void: Settings.environment = Settings.ENVIRONMENTS[item][0])
-	environment_row.add_child(environment_picker)
-	_show_environment()
-
-## Shows the saved pick; "Follow map" also names the environment the selected song will get.
-func _show_environment() -> void:
-	if not environment_picker:
-		return
-	var ids: Array = Settings.ENVIRONMENTS.map(func(e: Array) -> String: return e[0])
-	environment_picker.select(maxi(ids.find(Settings.environment), 0))
-	var follow: String = Settings.ENVIRONMENTS[0][1]
-	var resolved := EventDriver.map_environment(_shown_map)
-	if _shown_map:
-		follow += " (%s)" % Settings.ENVIRONMENTS[ids.find(resolved)][1]
-	environment_picker.set_item_text(0, follow)
-	environment_picker.set_item_icon(0, _environment_thumb(resolved))
-
-## The picture of an environment, or null when there is none.
-static func _environment_thumb(id: String) -> Texture2D:
-	var path := ENVIRONMENT_THUMBS % id
-	return load(path) as Texture2D if ResourceLoader.exists(path) else null
 
 ## Difficulty levels in button order: [difficulty name in the map, button label].
 const LEVELS := [["Easy", "Easy"], ["Normal", "Normal"], ["Hard", "Hard"], ["Expert", "Expert"], ["ExpertPlus", "Expert+"]]
