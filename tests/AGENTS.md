@@ -17,7 +17,9 @@ Engine-level checks that run without a headset or XR runtime: map `Info.dat` par
   tabs, five numbered levels, two stats lines, six players with a delete question) and fails when a visible control
   spills out of its parent or the panel, or two controls placed with offsets are closer than `MIN_GAP` (4 px). A
   control wholly under an open overlay (`OVERLAYS`: More, More modifiers) counts as hidden. Content inside a
-  `ScrollContainer` is allowed to run past it. Run it after any change to these panels or the theme.
+  `ScrollContainer` is allowed to run past it. Run it after any change to these panels or the theme. It also drags the song
+  list with pointer events pushed into a `SubViewport` (as the game's canvases receive them): 1:1, no pick after a
+  drag, a short press still picks.
 
 ## Running
 

@@ -21,7 +21,12 @@ func check(ok: bool, what: String) -> void:
 		failures += 1
 		printerr("FAIL: ", what)
 
+## Holds the panels, as each game canvas's SubViewport does; pointer events are pushed into it.
+var _port := SubViewport.new()
+
 func _ready() -> void:
+	_port.size = Vector2i(1600, 1100)
+	add_child(_port)
 	var keyboard := (load("res://OQ_Toolkit/OQ_UI2D/OQ_UI2DKeyboard.tscn") as PackedScene).instantiate() as OQ_UI2DKeyboard
 	keyboard.visible = false
 	add_child(keyboard)
@@ -34,9 +39,8 @@ func _ready() -> void:
 	var player := AudioStreamPlayer.new()
 	add_child(player)
 	menu.main_song_player_ref = player
-	add_child(menu)
+	_port.add_child(menu)
 	menu.set_physics_process(false)
-	(menu.get_node("song_vr_slider") as Node).process_mode = Node.PROCESS_MODE_DISABLED
 	await _settle()
 	check(menu.songs_menu.item_count > 0, "the song menu lists the bundled song")
 	if menu.songs_menu.item_count > 0:
@@ -63,6 +67,7 @@ func _ready() -> void:
 	_check_layout(menu, "song tab")
 
 	_check_list_rows(menu.songs_menu)
+	await _check_list_drag(menu)
 	menu._show_filters(true)
 	await _settle()
 	_check_layout(menu, "filters")
@@ -76,7 +81,7 @@ func _ready() -> void:
 	var beatsaver := (load("res://game/ui/BeatSaverPanel/BeatSaverPanel.tscn") as PackedScene).instantiate() as BeatSaverPanel
 	beatsaver.main_menu_ref = menu
 	beatsaver.keyboard = keyboard
-	add_child(beatsaver)
+	_port.add_child(beatsaver)
 	await _settle()
 	check((beatsaver.size - menu.size * MENU_TO_BEATSAVER_PX).abs().x < 1.0 and (beatsaver.size - menu.size * MENU_TO_BEATSAVER_PX).abs().y < 1.0, "the download page is the song menu's size in the world (got %s px)" % beatsaver.size)
 	_check_layout(beatsaver, "download page")
@@ -89,7 +94,7 @@ func _ready() -> void:
 	for i in Settings.MAX_PLAYERS:
 		Settings.players.append({"name": "%d %s" % [i, LONG_NAME], "player_height_offset": 0.0, "left_handed": false})
 	Settings.player_name = Settings.players[0].name
-	add_child(profiles)
+	_port.add_child(profiles)
 	profiles._ask_delete(Settings.players[1].name)
 	await _settle()
 	_check_layout(profiles, "who's playing, six players, one asking to delete")
@@ -121,6 +126,50 @@ func _check_list_rows(list: SongList) -> void:
 	var row_height := list._row(0).size.y
 	check(shown >= MIN_VISIBLE_ROWS and is_equal_approx(row_height, SongList.ROW_HEIGHT),
 			"song list shows %d whole rows of %d px (wants %d of %d px)" % [shown, row_height, MIN_VISIBLE_ROWS, SongList.ROW_HEIGHT])
+
+## A press that moves under 12 px picks the row; a pointer drag on the song list moves it 1:1 and picks nothing.
+func _check_list_drag(menu: MainMenu) -> void:
+	var list := menu.songs_menu
+	list.scroll_vertical = 0
+	list.deselect_all()
+	await _settle()
+	var at := list._row(0).get_global_rect().get_center()
+	_pointer(at, null)
+	await _settle()
+	_pointer(at, true)
+	_pointer(at + Vector2(0, 5), null)
+	_pointer(at + Vector2(0, 5), false)
+	await _settle()
+	check(list._selected == 0 and list.scroll_vertical == 0, "a press that moves under 12 px picks the row and doesn't scroll (picked %d, scrolled %d)" % [list._selected, list.scroll_vertical])
+	list.deselect_all()
+	_pointer(at, true)
+	_pointer(at + Vector2(0, -6), null)
+	_pointer(at + Vector2(0, -126), null)
+	# hold still before letting go: no flick
+	await get_tree().create_timer(vr_slider_momentum() + 0.1).timeout
+	_pointer(at + Vector2(0, -126), false)
+	await _settle()
+	# 6 px is under the threshold, then the list follows the pointer from the press: 126 px
+	check(absi(list.scroll_vertical - 126) <= 2 and list._selected == -1,
+			"a drag moves the list 1:1 (moved %d of 126 px) and picks no song" % list.scroll_vertical)
+
+## How long a flick keeps going (the song list's vr_slider).
+func vr_slider_momentum() -> float:
+	return preload("res://game/vr_slider.gd").MOMENTUM_SECONDS
+
+## Sends a pointer press (true), release (false) or move (null) to the menu's viewport, as the VR pointer does.
+func _pointer(at: Vector2, pressed: Variant) -> void:
+	var event: InputEventMouse
+	if pressed == null:
+		event = InputEventMouseMotion.new()
+	else:
+		var button := InputEventMouseButton.new()
+		button.button_index = MOUSE_BUTTON_LEFT
+		button.pressed = pressed
+		event = button
+	event.position = at
+	event.global_position = at
+	_port.push_input(event)
 
 ## A few frames so containers take their sizes.
 func _settle() -> void:
