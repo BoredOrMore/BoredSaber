@@ -35,6 +35,14 @@ var history_tail := history_size - 1
 
 # entry: [time,position,pointing,preswing_angle,accuracy]
 var score_queue := Array() 
+## Scoring research: once a cut's swing is over, its parts go to the log as a "cut_parts" line. pre and follow are
+## what the score uses (fixed 0.2 s windows); pre_swing and follow_swing follow the whole motion instead, back to
+## where the swing started and on to where it stopped, ending where the saber turns back by SWING_TURN_BACK_DEG or
+## after SWING_LOG_LIMIT_MS. Logging only: the score is unchanged.
+const SWING_LOG_LIMIT_MS := 1000
+const SWING_TURN_BACK_DEG := 10.0
+# entry: [time, pointing, accuracy, preswing, followthrough]
+var _cut_log := Array()
 
 func _update_size_and_angle():
 	if type == 0:
@@ -177,6 +185,39 @@ func _update_score(score_entry) -> void:
 	var other_component := score_entry[5] as float
 	var followthrough := get_followthrough_angle(score_entry[0], pointing)
 	Scoreboard.add_swing_score(position, lane_rotation, other_component, preswing, followthrough)
+	_cut_log.append([score_entry[0], pointing, other_component, preswing, followthrough])
+
+## The saber's history between two times, oldest first.
+func _history_between(from_ms: int, to_ms: int) -> Array:
+	var out := []
+	var i := history_tail
+	for _n in history_size:
+		var entry: Array = history[i] if i < history.size() else []
+		if entry.size() == 0 or int(entry[0]) < from_ms:
+			break
+		if int(entry[0]) <= to_ms:
+			out.push_front(entry)
+		i = (i - 1 + history_size) % history_size
+	return out
+
+## The widest angle from pointing reached along entries, stopping where the saber turns back.
+static func _swing_until_turn(pointing: Vector3, entries: Array) -> float:
+	var widest := 0.0
+	for entry: Array in entries:
+		var angle := rad_to_deg(acos(clampf(pointing.dot(entry[1] as Vector3), -1.0, 1.0)))
+		if angle < widest - SWING_TURN_BACK_DEG:
+			break
+		widest = maxf(widest, angle)
+	return widest
+
+func _log_cut(entry: Array) -> void:
+	var time: int = entry[0]
+	var pointing: Vector3 = entry[1]
+	var before := _history_between(time - SWING_LOG_LIMIT_MS, time)
+	before.reverse()
+	print("cut_parts hand=%d acc=%.1f pre=%.0f pre_swing=%.0f follow=%.0f follow_swing=%.0f" % [type, entry[2], entry[3],
+			_swing_until_turn(pointing, before), entry[4],
+			_swing_until_turn(pointing, _history_between(time + 1, time + SWING_LOG_LIMIT_MS))])
 	
 func _update_scores() -> void:
 	var start_time = Time.get_ticks_msec() - followthrough_time
@@ -184,6 +225,9 @@ func _update_scores() -> void:
 		if score_queue[i][0] <= start_time:
 			_update_score(score_queue[i])
 			score_queue.remove_at(i)
+	var log_before := Time.get_ticks_msec() - SWING_LOG_LIMIT_MS
+	while not _cut_log.is_empty() and int(_cut_log[0][0]) <= log_before:
+		_log_cut(_cut_log.pop_front())
 			
 func _physics_process(delta: float) -> void:
 	position = offset_pos + extra_offset_pos
