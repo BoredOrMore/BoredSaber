@@ -9,8 +9,6 @@ extends Node
 var scroll_node: Control
 var v_scroll: VScrollBar
 var is_mouse_in := false
-var relpos := 0.0
-var scrollpos := 0.0
 
 # JOYSTICK_SCROLL_THRESHOLD
 # Range: 0.0 to 1.0
@@ -65,18 +63,104 @@ func _ready() -> void:
 	scroll_node.connect(&"mouse_exited", Callable(self, &"_mouse_exited"))
 
 func _process(delta: float) -> void:
-	var newpos := -vr.rightController.rotation_degrees.x - (vr.rightController.transform.origin.y * 20.0)
-	if is_mouse_in:
-		if vr.rightController.trigger_pressed():
-			# Scroll via "click & drag"
-			_scroll_by((relpos - newpos) * 20.0)
-		elif joystick_scroll:
-			_joystick_scroll(delta)
+	if is_mouse_in and joystick_scroll and _press_pos == NOT_PRESSED:
+		_joystick_scroll(delta)
 	elif scroll_without_pointer and scroll_node.is_visible_in_tree() and _canvas_shown():
 		_joystick_scroll(delta)
 	else:
 		_hold_time = 0.0
-	relpos = newpos
+
+## Pointer drag: the list follows the pointer 1:1 (either hand, it's the canvas's pointer) once it moved past
+## DRAG_THRESHOLD px from the press, so a shorter move stays a click; a drag never clicks what it started on,
+## and a flick keeps the list moving for MOMENTUM_SECONDS, easing to a stop. The scroll bar's range keeps the
+## first and last rows from being dragged past.
+const DRAG_THRESHOLD := 12.0
+const MOMENTUM_SECONDS := 0.3
+## Shortest time a drag step counts for (one frame at the Pico 4's 72 Hz), so steps that arrive together don't
+## make a flick look impossibly fast.
+const MIN_STEP_SECONDS := 1.0 / 72.0
+## How much of each new speed sample the flick speed takes (smooths a jittery pointer).
+const VELOCITY_SMOOTHING := 0.5
+## Where the cancelling release goes: far outside every control, so nothing under the press acts on it.
+const FAR_AWAY := Vector2(-100000.0, -100000.0)
+const NOT_PRESSED := Vector2.INF
+var _press_pos := NOT_PRESSED
+var _press_value := 0.0
+var _dragging := false
+## Flick speed in scroll px per second, and when the last drag step was.
+var _velocity := 0.0
+var _last_step_usec := 0
+var _momentum: Tween
+
+func _input(event: InputEvent) -> void:
+	var button := event as InputEventMouseButton
+	if button and button.button_index == MOUSE_BUTTON_LEFT and button.position != FAR_AWAY:
+		if button.pressed:
+			if _over_list(button.position):
+				_press_pos = button.position
+				_press_value = v_scroll.value
+				_dragging = false
+				_velocity = 0.0
+				_last_step_usec = Time.get_ticks_usec()
+				if _momentum:
+					_momentum.kill()
+		elif _press_pos != NOT_PRESSED:
+			if _dragging:
+				# the press was already cancelled; this release belongs to the drag
+				get_viewport().set_input_as_handled()
+				_fling()
+			_press_pos = NOT_PRESSED
+			_dragging = false
+		return
+	var motion := event as InputEventMouseMotion
+	if motion == null or _press_pos == NOT_PRESSED:
+		return
+	var dy := motion.position.y - _press_pos.y
+	if not _dragging and absf(dy) > DRAG_THRESHOLD:
+		_dragging = true
+		_cancel_press.call_deferred()
+	if _dragging:
+		var before := v_scroll.value
+		v_scroll.value = _press_value - dy
+		var now := Time.get_ticks_usec()
+		var seconds := maxf((now - _last_step_usec) / 1000000.0, MIN_STEP_SECONDS)
+		_velocity = lerpf(_velocity, (v_scroll.value - before) / seconds, VELOCITY_SMOOTHING)
+		_last_step_usec = now
+		_redraw()
+
+## True for a point on the list, not on its scroll bar (which drags itself).
+func _over_list(point: Vector2) -> bool:
+	if not scroll_node.is_visible_in_tree() or not _canvas_shown():
+		return false
+	var rect := scroll_node.get_global_rect()
+	if v_scroll.visible:
+		rect.size.x -= v_scroll.size.x
+	return rect.has_point(point)
+
+## Lets go of whatever the press went down on (a row, a button) away from it, so it doesn't act.
+func _cancel_press() -> void:
+	var release := InputEventMouseButton.new()
+	release.button_index = MOUSE_BUTTON_LEFT
+	release.pressed = false
+	release.position = FAR_AWAY
+	release.global_position = FAR_AWAY
+	get_viewport().push_input(release)
+
+## Keeps a flicked list moving: the distance a linearly slowing scroll covers in MOMENTUM_SECONDS.
+func _fling() -> void:
+	# a pause before letting go is no flick
+	if (Time.get_ticks_usec() - _last_step_usec) / 1000000.0 > MOMENTUM_SECONDS:
+		return
+	var target := v_scroll.value + _velocity * MOMENTUM_SECONDS / 2.0
+	_momentum = create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_momentum.tween_method(func(value: float) -> void:
+		v_scroll.value = value
+		_redraw(), v_scroll.value, target, MOMENTUM_SECONDS)
+
+func _redraw() -> void:
+	var canvas := scroll_node.get_viewport().get_parent() as OQ_UI2DCanvas
+	if canvas != null:
+		canvas._input_update()
 
 ## False while the 3D canvas showing this list is hidden (a Control inside a canvas's SubViewport stays
 ## "visible" when the canvas is hidden).

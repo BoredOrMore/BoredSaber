@@ -70,8 +70,11 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
 
 ## Scrolling
 
-`vr_slider.gd` targets an `ItemList` or `ScrollContainer` via `scroll_node_path`. Pointer over list + trigger held =
-drag scroll; otherwise thumbstick (stronger of both hands) with threshold, speed lerp and hold acceleration consts at
+`vr_slider.gd` targets an `ItemList` or `ScrollContainer` via `scroll_node_path`. Pointer drag (either hand): the list
+follows the pointer 1:1 once it moves `DRAG_THRESHOLD` (12 px) from the press, a shorter move stays a click, a drag
+never clicks what it started on (a release far away cancels the press), and a flick coasts `MOMENTUM_SECONDS`. An
+`ItemList` still selects on press, so the BeatSaver list picks the row a drag starts on. Otherwise thumbstick
+(stronger of both hands) with threshold, speed lerp and hold acceleration consts at
 the top. `scroll_without_pointer = true` scrolls even when not hovered. The song list sets `joystick_scroll = false`:
 there the thumbstick moves the selection instead (`MainMenu._step_with_stick`, centred by `SongList.center_on`).
 Above the list one row holds Search (icon), Filters (opens `FiltersPanel` over the list), the sort and Get songs. BeatSaver loads the next page past 90% scroll (`BeatSaverPanel.gd:447-465`).
