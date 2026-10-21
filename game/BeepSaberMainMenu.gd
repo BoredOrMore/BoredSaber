@@ -292,9 +292,12 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 	for map in songs:
 		@warning_ignore("return_value_discarded")
 		var favorite := PlayCount.is_favorite(map)
-		songs_menu.add_item("%s%s - %s%s" % ["\u2605 " if favorite else "", map.song_author_name, map.song_name, "" if map.have_song else NO_MUSIC_SUFFIX], default_song_icon)
+		var list_cover: Texture2D = _list_covers.get(map.filepath, default_song_icon)
+		songs_menu.add_item("%s%s - %s%s" % ["\u2605 " if favorite else "", map.song_author_name, map.song_name, "" if map.have_song else NO_MUSIC_SUFFIX], list_cover)
 		songs_menu.set_item_custom_fg_color(map_index, Color.YELLOW if favorite else Color.WHITE)
-		_bg_img_loader.load_texture(map.filepath, map.cover_image_filename, _on_cover_loaded.bind(_list_generation), false, map_index)
+		if not _list_covers.has(map.filepath):
+			_bg_img_loader.load_texture(map.filepath, map.cover_image_filename, _on_cover_loaded.bind(_list_generation, map.filepath),
+					false, map_index, LIST_COVER_SIZE)
 		map_index += 1
 		
 	if current_map != null:
@@ -478,19 +481,25 @@ var default_song_icon := preload("res://game/data/beepsaber_logo.png")
 
 ## Bumped every time the song list is rebuilt, so covers still loading for an older list are dropped.
 var _list_generation := 0
+## The list's covers by song folder, shrunk to LIST_COVER_SIZE px: rebuilding the list (every search key, every
+## filter) reuses them instead of decoding and uploading every full-size cover again, which dropped frames.
+var _list_covers := {}
+## Longest side of a list cover in px: twice the 72 px it is drawn at, for a sharp but small texture.
+const LIST_COVER_SIZE := 144
 
 # callback from ImageUtils when background image loading is complete. if image
 # failed to load, tex will be null
-func _on_cover_loaded(img_tex: Texture2D, is_main_cover: bool, list_idx: int, generation := -1) -> void:
+func _on_cover_loaded(img_tex: Texture2D, is_main_cover: bool, list_idx: int, generation := -1, map_path := "") -> void:
 	if img_tex != null:
 		if is_main_cover:
 			cover.call_deferred("set_texture", img_tex)
 		else:
-			_set_list_cover.call_deferred(list_idx, img_tex, generation)
+			_set_list_cover.call_deferred(list_idx, img_tex, generation, map_path)
 
 ## Puts a loaded cover on its row, unless the list was rebuilt since the load started (the row may be
 ## another song now, or gone).
-func _set_list_cover(list_idx: int, img_tex: Texture2D, generation: int) -> void:
+func _set_list_cover(list_idx: int, img_tex: Texture2D, generation: int, map_path: String) -> void:
+	_list_covers[map_path] = img_tex
 	if generation == _list_generation and list_idx < songs_menu.item_count:
 		songs_menu.set_item_icon(list_idx, img_tex)
 

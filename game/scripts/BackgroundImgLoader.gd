@@ -8,6 +8,8 @@ class ImgLoadRequest:
 	var callback_func: Callable
 	var is_main_cover: bool
 	var index: int
+	## Longest side the texture is shrunk to (0: full size).
+	var max_size: int
 	var thread := Thread.new()
 
 var _img_load_request_queue := LinkedList.new()
@@ -21,8 +23,12 @@ var _max_img_load_threads: int
 func _init(num_threads: int = 10) -> void:
 	_max_img_load_threads = num_threads
 
-func load_texture(path: String, file: String, callback_func: Callable, is_main_cover: bool, index: int) -> void:
+## Loads path + file into a texture on a thread and calls callback_func(texture, is_main_cover, index); with
+## max_size above 0 a bigger image is shrunk to that longest side first (a list's cover needs a fraction of the
+## pixels, and uploads and draws faster).
+func load_texture(path: String, file: String, callback_func: Callable, is_main_cover: bool, index: int, max_size := 0) -> void:
 	var new_req := ImgLoadRequest.new()
+	new_req.max_size = max_size
 	new_req.path = path
 	new_req.file = file
 	new_req.callback_func = callback_func
@@ -56,6 +62,9 @@ func _load_img_threaded(req: ImgLoadRequest) -> void:
 		else:
 			img = Image.load_from_file(req.path + req.file)
 		if img != null and not img.is_empty():
+			if req.max_size > 0 and maxi(img.get_width(), img.get_height()) > req.max_size:
+				var scale := float(req.max_size) / maxi(img.get_width(), img.get_height())
+				img.resize(maxi(1, roundi(img.get_width() * scale)), maxi(1, roundi(img.get_height() * scale)), Image.INTERPOLATE_BILINEAR)
 			tex = ImageTexture.create_from_image(img)
 	
 	# perform callback in the form of my_callback(texture, filepath, ...);
