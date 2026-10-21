@@ -79,48 +79,11 @@ static func set_colors_from_custom_data() -> void:
 		Map.color_right = Settings.color_right
 		Map.color_obstacle = Constants.DANGER_COLOR
 		return
-	
-	var set_colors := func(data: Dictionary, color_name: String) -> bool:
-		var left_name := color_name % "Left"
-		var right_name := color_name % "Right"
-		if (
-			data.has(left_name) and data.has(right_name)
-			and data[left_name] is Dictionary and data[right_name] is Dictionary
-		):
-			@warning_ignore("unsafe_cast")
-			var left := data[left_name] as Dictionary
-			@warning_ignore("unsafe_cast")
-			var right := data[right_name] as Dictionary
-			Map.color_left = Color(
-				Utils.get_float(left, "r", Settings.color_left.r),
-				Utils.get_float(left, "g", Settings.color_left.g),
-				Utils.get_float(left, "b", Settings.color_left.b)
-			)
-			Map.color_right = Color(
-				Utils.get_float(right, "r", Settings.color_right.r),
-				Utils.get_float(right, "g", Settings.color_right.g),
-				Utils.get_float(right, "b", Settings.color_right.b)
-			)
-			return true
-		return false
+	var colors := note_colors(current_info, current_difficulty)
+	Map.color_left = colors[0]
+	Map.color_right = colors[1]
 	var info_data := current_info.custom_data
 	var diff_data := current_difficulty.custom_data
-	var custom_colors_found := false
-	if set_colors.call(info_data, "_envColor%sBoost"): custom_colors_found = true
-	if set_colors.call(diff_data, "_envColor%sBoost"): custom_colors_found = true
-	if set_colors.call(info_data, "envColor%sBoost"): custom_colors_found = true
-	if set_colors.call(diff_data, "envColor%sBoost"): custom_colors_found = true
-	if set_colors.call(info_data, "_envColor%s"): custom_colors_found = true
-	if set_colors.call(diff_data, "_envColor%s"): custom_colors_found = true
-	if set_colors.call(info_data, "envColor%s"): custom_colors_found = true
-	if set_colors.call(diff_data, "envColor%s"): custom_colors_found = true
-	if set_colors.call(info_data, "_color%s"): custom_colors_found = true
-	if set_colors.call(diff_data, "_color%s"): custom_colors_found = true
-	if set_colors.call(info_data, "color%s"): custom_colors_found = true
-	if set_colors.call(diff_data, "color%s"): custom_colors_found = true
-	if not custom_colors_found:
-		Map.color_left = Settings.color_left
-		Map.color_right = Settings.color_right
 	Map.color_obstacle = Constants.DANGER_COLOR
 	for data: Dictionary in [info_data, diff_data]:
 		for key: String in ["_obstacleColor", "obstacleColor"]:
@@ -132,6 +95,38 @@ static func set_colors_from_custom_data() -> void:
 					Utils.get_float(color, "g", Constants.DANGER_COLOR.g),
 					Utils.get_float(color, "b", Constants.DANGER_COLOR.b)
 				)
+
+## The note colours [left, right] a map difficulty asks for in its custom data (the last one found, in the order
+## below), or the player's when it asks for none or Map colors is off.
+static func note_colors(info: MapInfo, difficulty: DifficultyInfo) -> Array[Color]:
+	var colors: Array[Color] = [Settings.color_left, Settings.color_right]
+	if Settings.disable_map_color:
+		return colors
+	var read_colors := func(data: Dictionary, color_name: String) -> void:
+		var left_name := color_name % "Left"
+		var right_name := color_name % "Right"
+		if (
+			data.has(left_name) and data.has(right_name)
+			and data[left_name] is Dictionary and data[right_name] is Dictionary
+		):
+			@warning_ignore("unsafe_cast")
+			var left := data[left_name] as Dictionary
+			@warning_ignore("unsafe_cast")
+			var right := data[right_name] as Dictionary
+			colors[0] = Color(
+				Utils.get_float(left, "r", Settings.color_left.r),
+				Utils.get_float(left, "g", Settings.color_left.g),
+				Utils.get_float(left, "b", Settings.color_left.b)
+			)
+			colors[1] = Color(
+				Utils.get_float(right, "r", Settings.color_right.r),
+				Utils.get_float(right, "g", Settings.color_right.g),
+				Utils.get_float(right, "b", Settings.color_right.b)
+			)
+	for color_name: String in ["_envColor%sBoost", "envColor%sBoost", "_envColor%s", "envColor%s", "_color%s", "color%s"]:
+		read_colors.call(info.custom_data, color_name)
+		read_colors.call(difficulty.custom_data, color_name)
+	return colors
 
 static func load_map_info(load_path: String) -> MapInfo:
 	var info_dict := {}
