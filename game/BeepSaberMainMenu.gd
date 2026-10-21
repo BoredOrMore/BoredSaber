@@ -28,12 +28,13 @@ const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 @export var song_uploader_ref: SongUploader
 
 @onready var playlist_selector := $PlaylistSelector as OptionButton
-@onready var reaction_filter := $ReactionFilter as OptionButton
-@onready var favorites_filter := $FavoritesFilter as Button
-@onready var workout_filter := $WorkoutFilter as Button
-@onready var length_filter := $LengthFilter as OptionButton
-@onready var filter_status := $FilterStatus as Label
-@onready var clear_filters_button := $ClearFilters_Button as Button
+@onready var filters_button := $Filters_Button as Button
+@onready var reaction_filter := $FiltersPanel/Rows/DifficultyRow/ReactionFilter as OptionButton
+@onready var favorites_filter := $FiltersPanel/Rows/FavoritesFilter as Button
+@onready var workout_filter := $FiltersPanel/Rows/WorkoutFilter as Button
+@onready var length_filter := $FiltersPanel/Rows/LengthRow/LengthFilter as OptionButton
+@onready var filter_status := $FiltersPanel/Rows/FilterStatus as Label
+@onready var clear_filters_button := $FiltersPanel/Rows/ClearFilters_Button as Button
 @onready var empty_list_label := $EmptyList as Label
 @onready var _bg_img_loader := preload("res://game/scripts/BackgroundImgLoader.gd").new()
 
@@ -365,6 +366,10 @@ class SongFilter:
 const NO_MUSIC_SUFFIX := " (no music)"
 ## A filter choice with how many songs it would list, e.g. "Up to Hard (18)".
 const FILTER_COUNT_LABEL := "%s (%d)"
+## The Filters button above the list: the song count, or with filters or a search on how many show and why.
+const FILTERS_TEXT := "Filters · %d %s"
+const FILTERS_SHOWN_TEXT := "%d of %d · %s"
+const FILTERS_ON_TEXT := ["%d filter", "%d filters"]
 const FAVORITES_LABEL := "Favorites"
 const WORKOUT_LABEL := "Workout"
 ## Status above the list while filters hide songs; with none it only gives the total (SONG_TOTAL_TEXT).
@@ -412,6 +417,11 @@ func _show_filter_counts(filter: SongFilter, songs: Array[MapInfo], shown: int) 
 	if not _search_text.is_empty():
 		status += SEARCH_STATUS_TEXT % _search_text
 	filter_status.text = status
+	filters_button.text = FILTERS_TEXT % [total, noun]
+	if not filter.is_off() or not _search_text.is_empty():
+		var on := int(filter.reaction != 0) + int(filter.length != 0) + int(filter.favorites) + int(filter.workout)
+		var what: String = (FILTERS_ON_TEXT[0 if on == 1 else 1] % on) if _search_text.is_empty() else ("\"%s\"" % _search_text)
+		filters_button.text = FILTERS_SHOWN_TEXT % [shown, total, what]
 	clear_filters_button.visible = not filter.is_off() or not _search_text.is_empty()
 	empty_list_label.visible = shown == 0
 	empty_list_label.text = NO_SONGS_TEXT if total == 0 else NO_MATCH_TEXT
@@ -712,9 +722,9 @@ func _ready() -> void:
 	UI_AudioEngine.attach_children(self)
 	
 	playlist_selector.clear()
-	playlist_selector.add_item("All Songs")
-	playlist_selector.add_item("Recently Added")
-	playlist_selector.add_item("Most Played")
+	playlist_selector.add_item("All songs")
+	playlist_selector.add_item("Newest")
+	playlist_selector.add_item("Most played")
 	_drop_down(reaction_filter, MapStats.difficulty_filters(), MapStats.difficulty_filter(Settings.song_filter_reaction), 0)
 	_drop_down(length_filter, Constants.LENGTH_FILTERS, Settings.song_filter_length, 0)
 	favorites_filter.set_pressed_no_signal(Settings.song_filter_favorites)
@@ -1375,6 +1385,10 @@ func _show_environment() -> void:
 static func _environment_thumb(id: String) -> Texture2D:
 	var path := ENVIRONMENT_THUMBS % id
 	return load(path) as Texture2D if ResourceLoader.exists(path) else null
+
+## Opens the song filters over the list, or goes back to it.
+func _show_filters(open: bool) -> void:
+	$FiltersPanel.visible = open
 
 ## Opens More modifiers over the song details, or goes back to them.
 func _show_more_modifiers(open: bool) -> void:
