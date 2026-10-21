@@ -106,8 +106,8 @@ const BAD_CUT_SOUND := preload("res://game/data/bad_cut.wav")
 const BOMB_HIT_SOUND := preload("res://game/data/bomb_hit.wav")
 const MISS_SOUND := preload("res://game/data/miss.wav")
 var _mistake_player: AudioStreamPlayer
-## Song-end and danger sounds (tools/make_feedback_sounds.py): a falling stinger for a fail, a rising chord for
-## a cleared song, and a heartbeat that loops while health is low.
+## Song-end and danger sounds: the sabers powering down into a low thump for a fail (tools/make_sa3_sounds.py),
+## a rising chord for a cleared song and a heartbeat that loops while health is low (tools/make_feedback_sounds.py).
 const FAIL_SOUND := preload("res://game/data/fail.wav")
 const CLEAR_SOUND := preload("res://game/data/clear.wav")
 const LOW_HEALTH_SOUND := preload("res://game/data/low_health.wav")

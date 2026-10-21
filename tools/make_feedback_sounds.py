@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Synthesises the miss, low-health, fail, clear and menu sounds, so the game needs no sound files from elsewhere.
+"""Synthesises the miss, low-health, clear and menu sounds, so the game needs no sound files from elsewhere.
 
 All of them share one palette so they read as one family with the combo sounds (tools/make_combo_sounds.py):
 the same bell (a sine plus a faster-decaying partial at 2.76x), the same root C6 and the same soft noise.
-Confirm and "on" go up, back and "off" go down (Brewster's earcons). Every file is dry: fail and clear get the
-environment's room at play time from the Stinger bus (game/event_driver.gd STINGER_ROOMS).
+Confirm and "on" go up, back and "off" go down (Brewster's earcons). Every file is dry: clear (and fail,
+from tools/make_sa3_sounds.py) get the environment's room at play time from the Stinger bus
+(game/event_driver.gd STINGER_ROOMS).
 
 miss: a soft airy swipe, quiet on purpose; the combo break and the health bar already say it hurt.
 low_health: one heartbeat (lub-dub) that loops, played while the health bar is in danger.
-fail: a slow falling minor arpeggio over a low drop, for the song winding down.
 clear: a rising major chord, slower and lower than the combo milestone so the two don't blur.
 ui_hover: a very soft high tick, at most 30 ms, for the laser landing on a button.
 ui_back: two low bell notes falling, for back and close buttons.
@@ -27,7 +27,7 @@ OUT = Path(__file__).resolve().parent.parent / "game" / "data"
 RATE = 44100
 C6 = 1046.5
 # semitone ratios from C
-E, G, AB, F = 2 ** (4 / 12), 2 ** (7 / 12), 2 ** (8 / 12), 2 ** (5 / 12)
+E, G = 2 ** (4 / 12), 2 ** (7 / 12)
 
 
 def bell(freq: float, seconds: float, decay: float) -> list[float]:
@@ -113,14 +113,6 @@ mix_at(heart, glide(90.0, 45.0, 0.16, 0.05), 0.0, 1.0)
 mix_at(heart, glide(80.0, 40.0, 0.14, 0.04), 0.2, 0.7)
 del heart[int(0.8 * RATE):]
 save("low_health.wav", heart, -10.0)
-
-# fail: C6 Ab5 F5 C5 falling with long tails, over an octave-and-a-half power-down
-fail: list[float] = []
-for k, ratio in enumerate([1.0, AB / 2, F / 2, 0.5]):
-    mix_at(fail, bell(C6 * ratio, 1.0, 0.35), k * 0.14, 1.0 - 0.1 * k)
-mix_at(fail, glide(440.0, 160.0, 1.4, 0.6), 0.0, 0.5)
-mix_at(fail, noise(1.4, 0.98, 3), 0.0, 0.6)
-save("fail.wav", fail, -8.0)
 
 # clear: C5 G5 C6 E6 G6 rising, slower than the milestone, all ringing together at the end
 clear: list[float] = []
