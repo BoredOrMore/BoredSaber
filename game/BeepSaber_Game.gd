@@ -416,6 +416,18 @@ func _ready() -> void:
 	main_menu.visibility_changed.connect(_update_slash_block)
 	UI_AudioEngine.attach_children(online_search_keyboard)
 	beatsaver_canvas.visibility_changed.connect(_on_beatsaver_visibility_changed)
+	# from Settings: back to the song menu, which is what it measures
+	settings_panel.benchmark_requested.connect(func() -> void:
+		_on_settings_Panel_apply()
+		_start_benchmark())
+	# tools/bench.sh starts a run over adb by dropping the benchmark flag file
+	var poll := Timer.new()
+	poll.wait_time = 2.0
+	poll.timeout.connect(func() -> void:
+		if gamestate == gamestate_mapselection and Benchmark.requested():
+			_start_benchmark())
+	add_child(poll)
+	poll.start()
 	
 	_transition_game_state(gamestate_mapselection)
 	
@@ -711,6 +723,16 @@ func _on_BeepSaberMainMenu_difficulty_changed(map_info: MapInfo, diff_rank: int)
 
 ## Shows the note to slash, in the selected song's colours, while the song menu is open with a song picked and
 ## nothing (keyboard, "Who's playing?") in front of it.
+## Runs the menu benchmark (Benchmark) unless one is running.
+func _start_benchmark() -> void:
+	if has_node(^"Benchmark") or gamestate != gamestate_mapselection:
+		return
+	var bench := Benchmark.new()
+	bench.name = &"Benchmark"
+	bench.game = self
+	add_child(bench)
+	bench.run()
+
 func _update_slash_block() -> void:
 	# the menu reports its first song while it loads, before this scene is ready
 	if not is_node_ready():

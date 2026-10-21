@@ -2,6 +2,8 @@ extends Panel
 class_name SettingsPanel
 
 signal apply()
+## "Measure the menu" was pressed (Benchmark).
+signal benchmark_requested()
 @export var beepsaber_game : BeepSaber_Game
 
 @onready var saber_control := $Tabs/Visuals/VBox/SaberTypeRow/saber as OptionButton
@@ -253,6 +255,12 @@ func _add_debug_view_switches() -> void:
 		show_debug_control.get_parent().add_child(switch)
 		show_debug_control.get_parent().move_child(switch, index)
 		_debug_view_switches.append(switch)
+	var measure := Button.new()
+	measure.text = "Measure the menu (%d min, wear the headset)" % ceili(Benchmark.total_seconds() / 60.0)
+	measure.pressed.connect(benchmark_requested.emit)
+	index += 1
+	show_debug_control.get_parent().add_child(measure)
+	show_debug_control.get_parent().move_child(measure, index)
 	_show_debug_view_switches()
 
 func _show_debug_view_switches() -> void:
