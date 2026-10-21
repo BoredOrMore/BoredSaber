@@ -54,14 +54,6 @@ const TEXT_SIZE := 72
 const TEXT_OUTLINE := 14
 const TEXT_PIXEL := 0.001
 const TEXT_GAP := 0.07
-## A soft glow behind the note in its colour, white-hot in the middle (root AGENTS.md "Light": hot core, coloured
-## falloff, no screen reads): one additive quad GLOW_SIZE across, breathing GLOW_PULSE_HZ (well away from 0.2 Hz)
-## between GLOW_MIN and full strength. A cut flashes it out to GLOW_BURST_SCALE over GLOW_BURST_SECONDS.
-const GLOW_SIZE := 0.75
-const GLOW_PULSE_HZ := 1.0
-const GLOW_MIN := 0.6
-const GLOW_BURST_SCALE := 2.0
-const GLOW_BURST_SECONDS := 0.25
 ## Push that throws the two halves of a cut note apart (the game's notes use the same).
 const SPLIT_IMPULSE := 2.0
 ## The game's note model and look.
@@ -77,10 +69,6 @@ var _other_material: ShaderMaterial
 var _note_mesh: MeshInstance3D
 var _other_mesh: MeshInstance3D
 var _label := Label3D.new()
-var _glow := MeshInstance3D.new()
-var _glow_material := StandardMaterial3D.new()
-var _glow_time := 0.0
-var _burst: Tween
 ## The halves a cut note breaks into (the game's CutPiece).
 var _pieces: Array[CutPiece] = []
 var _half_size := Vector3.ONE * 0.15
@@ -109,7 +97,6 @@ func _ready() -> void:
 	# above the small note too, so the words don't run into it
 	_label.position = Vector3(0.0, (NOTE_SIZE + OTHER_NOTE_SIZE) / 2.0 + TEXT_GAP, 0.0)
 	add_child(_label)
-	_add_glow()
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
 	box.size = _half_size * 2.0
@@ -117,38 +104,6 @@ func _ready() -> void:
 	add_child(shape)
 	add_child(_sound)
 	set_shown(false)
-
-## The glow quad: a radial gradient, white-hot core fading to the note colour and out, drawn additively behind
-## the note and turned to face the camera.
-func _add_glow() -> void:
-	var gradient := Gradient.new()
-	gradient.offsets = PackedFloat32Array([0.0, 0.25, 1.0])
-	gradient.colors = PackedColorArray([Color(1, 1, 1, 0.9), Color(1, 1, 1, 0.45), Color(1, 1, 1, 0.0)])
-	var texture := GradientTexture2D.new()
-	texture.gradient = gradient
-	texture.fill = GradientTexture2D.FILL_RADIAL
-	texture.fill_from = Vector2(0.5, 0.5)
-	texture.fill_to = Vector2(1.0, 0.5)
-	_glow_material.albedo_texture = texture
-	_glow_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_glow_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_glow_material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	_glow_material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	_glow_material.no_depth_test = false
-	var quad := QuadMesh.new()
-	quad.size = Vector2.ONE * GLOW_SIZE
-	_glow.mesh = quad
-	_glow.material_override = _glow_material
-	_glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(_glow)
-
-## Breathes the glow while the note is up.
-func _process(delta: float) -> void:
-	if not _shown:
-		return
-	_glow_time += delta
-	var strength := lerpf(GLOW_MIN, 1.0, 0.5 + 0.5 * sin(TAU * GLOW_PULSE_HZ * _glow_time))
-	_glow_material.albedo_color = Color(_color, strength)
 
 ## A copy of the game's note model (with its own material) at the given edge length, added under this node.
 func _add_note_mesh(edge: float) -> MeshInstance3D:
@@ -190,13 +145,6 @@ func set_shown(shown: bool) -> void:
 	_note_mesh.visible = shown
 	_other_mesh.visible = shown
 	_label.visible = shown
-	if shown:
-		if _burst:
-			_burst.kill()
-		_glow.scale = Vector3.ONE
-		_glow.visible = true
-	elif not _burst or not _burst.is_running():
-		_glow.visible = false
 	collision_layer = CollisionLayerConstants.Ui_mask if shown else 0
 	_material.set_shader_parameter(&"color", _color)
 
@@ -263,12 +211,7 @@ func _slash(controller: BeepSaberController, cut_normal: Vector3) -> void:
 		piece.start_cut_plane(local_normal * side, 0.0)
 		piece.mesh.scale = _note_mesh.scale
 		piece.apply_central_impulse(normal * side * SPLIT_IMPULSE)
-	# the glow flashes out and fades with the halves
-	_glow.visible = true
-	_burst = create_tween().set_parallel()
-	_burst.tween_property(_glow, ^"scale", Vector3.ONE * GLOW_BURST_SCALE, GLOW_BURST_SECONDS)
-	_burst.tween_property(_glow_material, ^"albedo_color", Color(_color, 0.0), GLOW_BURST_SECONDS).from(Color(_color, 1.0))
-	_burst.chain().tween_callback(func() -> void: _glow.visible = false)
+
 	_sound.stream = CUT_SOUND
 	_sound.play()
 	if controller:
