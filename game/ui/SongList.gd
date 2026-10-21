@@ -1,15 +1,18 @@
 extends ScrollContainer
 class_name SongList
 ## The song menu's list: one row per song (cover and name) in the ItemList look, where the selected row is
-## SELECTED_SCALE times as big and its neighbours shrink step by step to normal size at the list's edges.
+## SELECTED_SCALE times as big and its neighbours shrink step by step down to MIN_SCALE.
 ## It keeps the few ItemList calls the menu uses (add_item, select, item_count...).
 
 ## A row was pressed (not emitted by select()).
 signal item_selected(index: int)
 
-## Size of the selected row, and of a row at the list's edge, relative to normal.
-const SELECTED_SCALE := 1.25
-const EDGE_SCALE := 1.0
+## Size of the selected row relative to normal, how much smaller each row away from it gets, and the smallest
+## size (the player's pick; at 0.8 the text is 22 px, under the menu's 28 px baseline): 150, 130, 110, 90, 80%.
+## With nothing selected every row is normal.
+const SELECTED_SCALE := 1.5
+const STEP_SCALE := 0.2
+const MIN_SCALE := 0.8
 ## Normal row height, cover size and font size, in px (the theme's 28 px text and 72 px covers).
 const ROW_HEIGHT := 76.0
 const COVER_SIZE := 72.0
@@ -43,6 +46,8 @@ func add_item(text: String, icon: Texture2D) -> int:
 	row.add_theme_constant_override(&"h_separation", get_theme_constant(&"h_separation", &"ItemList"))
 	var index := _rows.get_child_count()
 	row.pressed.connect(func() -> void:
+		# the rows resize around the new selection; keep the pressed row where the pointer is
+		_hold_in_place.call_deferred(index, row.position.y - scroll_vertical)
 		select(index)
 		item_selected.emit(index))
 	_rows.add_child(row)
@@ -95,8 +100,26 @@ func _scroll_to(index: int, center: bool) -> void:
 	if center:
 		scroll_vertical = int(row.position.y + (row.size.y - size.y) / 2.0)
 	else:
-		ensure_control_visible(row)
+		_show_whole(row)
 	_redraw()
+
+## Waits a frame for the rows to take their sizes, then scrolls so the row's top is back at top (px from the
+## list's top), as far as the scroll bar allows and the row stays whole in view.
+func _hold_in_place(index: int, top: float) -> void:
+	await get_tree().process_frame
+	if index >= item_count:
+		return
+	scroll_vertical = int(_row(index).position.y - top)
+	# unless the bigger row would stick out of the list: then only as far as it takes to show it whole
+	_show_whole(_row(index))
+	_redraw()
+
+## Scrolls the least that shows the whole row (the list's top wins when it is taller than the list).
+func _show_whole(row: Control) -> void:
+	if row.position.y + row.size.y - scroll_vertical > size.y:
+		scroll_vertical = int(row.position.y + row.size.y - size.y)
+	if row.position.y < scroll_vertical:
+		scroll_vertical = int(row.position.y)
 
 func _row(index: int) -> Button:
 	return _rows.get_child(index) as Button
@@ -113,11 +136,9 @@ func _style_row(index: int) -> void:
 	row.add_theme_stylebox_override(&"pressed", selected)
 	row.add_theme_stylebox_override(&"hover_pressed", selected)
 	row.add_theme_stylebox_override(&"focus", StyleBoxEmpty.new())
-	var row_scale := EDGE_SCALE
+	var row_scale := 1.0
 	if _selected >= 0:
-		# rows from the selected one to the list's edge (half the visible rows) step down to EDGE_SCALE
-		var edge_rows := maxf(1.0, size.y / 2.0 / (ROW_HEIGHT + ROW_SEPARATION))
-		row_scale = lerpf(SELECTED_SCALE, EDGE_SCALE, clampf(absi(index - _selected) / edge_rows, 0.0, 1.0))
+		row_scale = maxf(MIN_SCALE, SELECTED_SCALE - STEP_SCALE * absi(index - _selected))
 	row.custom_minimum_size.y = roundf(ROW_HEIGHT * row_scale)
 	row.add_theme_font_size_override(&"font_size", roundi(FONT_SIZE * row_scale))
 	row.add_theme_constant_override(&"icon_max_width", roundi(COVER_SIZE * row_scale))

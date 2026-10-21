@@ -16,7 +16,7 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   button of a screen sets `theme_type_variation = &"PrimaryButton"` (accent border, blue fill); 3D
   `UIRaycastButton`s use `set_primary(true)`.
 - `SongList.gd` (class `SongList`): the song menu's list, a `ScrollContainer` of row buttons in the `ItemList` look with
-  the ItemList calls the menu uses; the selected row is 125% and its neighbours step down to 100% at the list's edge.
+  the ItemList calls the menu uses; the selected row is 150% and each row away is 20 points smaller, down to 80%; a pressed row stays under the pointer.
 - `ProfilesPanel.gd/.tscn` (class `ProfilesPanel`): "Who's playing?", opened by the player button beside the menu's gear
   (`BeepSaber_Game._open_profiles`) on its own canvas 10 cm in front of the menu, which takes no pointer input meanwhile.
   Picks, adds (max `Settings.MAX_PLAYERS`), renames (records too, `Highscores.rename_player`) and deletes players;
