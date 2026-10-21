@@ -54,6 +54,23 @@ const TEXT_SIZE := 72
 const TEXT_OUTLINE := 14
 const TEXT_PIXEL := 0.001
 const TEXT_GAP := 0.07
+## Light from the note (root AGENTS.md "Light": it comes from the note's surface, hot core and coloured falloff,
+## no screen reads, no real light): the note's own glow (its shader's emission) breathes GLOW_PULSE_HZ (well away
+## from 0.2 Hz) between EMISSION_MIN and EMISSION_MAX; one additive halo HALO_SIZE across behind it; RAY_COUNT
+## faint short rays from its edges, RAY_LENGTH long, still. All of it breathes together between LIGHT_MIN and full.
+## A cut flashes it all to full for FLASH_SECONDS, then it fades with the halves over FADE_SECONDS.
+const GLOW_PULSE_HZ := 1.0
+const EMISSION_MIN := 0.18
+const EMISSION_MAX := 0.45
+const HALO_SIZE := 0.55
+const HALO_ALPHA := 0.8
+const RAY_COUNT := 6
+const RAY_LENGTH := 0.16
+const RAY_WIDTH := 0.025
+const RAY_ALPHA := 0.35
+const LIGHT_MIN := 0.6
+const FLASH_SECONDS := 0.1
+const FADE_SECONDS := 0.3
 ## Push that throws the two halves of a cut note apart (the game's notes use the same).
 const SPLIT_IMPULSE := 2.0
 ## The game's note model and look.
@@ -69,6 +86,12 @@ var _other_material: ShaderMaterial
 var _note_mesh: MeshInstance3D
 var _other_mesh: MeshInstance3D
 var _label := Label3D.new()
+## The light: halo and rays, with their materials, and the time for the breathing.
+var _light := Node3D.new()
+var _halo_material := StandardMaterial3D.new()
+var _ray_material := StandardMaterial3D.new()
+var _light_time := 0.0
+var _flash: Tween
 ## The halves a cut note breaks into (the game's CutPiece).
 var _pieces: Array[CutPiece] = []
 var _half_size := Vector3.ONE * 0.15
@@ -97,6 +120,7 @@ func _ready() -> void:
 	# above the small note too, so the words don't run into it
 	_label.position = Vector3(0.0, (NOTE_SIZE + OTHER_NOTE_SIZE) / 2.0 + TEXT_GAP, 0.0)
 	add_child(_label)
+	_add_light()
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
 	box.size = _half_size * 2.0
@@ -104,6 +128,66 @@ func _ready() -> void:
 	add_child(shape)
 	add_child(_sound)
 	set_shown(false)
+
+## The halo (a radial gradient on a camera-facing quad behind the note) and the rays (linear gradients fading
+## outward from the note's edges, in its plane), all additive and unshaded.
+func _add_light() -> void:
+	add_child(_light)
+	var halo_gradient := Gradient.new()
+	halo_gradient.offsets = PackedFloat32Array([0.0, 0.3, 1.0])
+	halo_gradient.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0.4), Color(1, 1, 1, 0)])
+	var halo_texture := GradientTexture2D.new()
+	halo_texture.gradient = halo_gradient
+	halo_texture.fill = GradientTexture2D.FILL_RADIAL
+	halo_texture.fill_from = Vector2(0.5, 0.5)
+	halo_texture.fill_to = Vector2(1.0, 0.5)
+	_setup_additive(_halo_material, halo_texture)
+	_halo_material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	var halo := MeshInstance3D.new()
+	var halo_quad := QuadMesh.new()
+	halo_quad.size = Vector2.ONE * HALO_SIZE
+	halo.mesh = halo_quad
+	halo.material_override = _halo_material
+	_light.add_child(halo)
+	var ray_gradient := Gradient.new()
+	ray_gradient.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0)])
+	var ray_texture := GradientTexture2D.new()
+	ray_texture.gradient = ray_gradient
+	ray_texture.fill_from = Vector2(0.5, 1.0)
+	ray_texture.fill_to = Vector2(0.5, 0.0)
+	_setup_additive(_ray_material, ray_texture)
+	var ray_quad := QuadMesh.new()
+	ray_quad.size = Vector2(RAY_WIDTH, RAY_LENGTH)
+	for i in RAY_COUNT:
+		# evenly round the note, none straight up into the words
+		var angle := TAU * i / RAY_COUNT
+		var outward := Vector3(cos(angle), sin(angle), 0.0)
+		var ray := MeshInstance3D.new()
+		ray.mesh = ray_quad
+		ray.material_override = _ray_material
+		ray.position = outward * (NOTE_SIZE * 0.55 + RAY_LENGTH / 2.0)
+		ray.rotation.z = angle - PI / 2.0
+		_light.add_child(ray)
+
+static func _setup_additive(material: StandardMaterial3D, texture: Texture2D) -> void:
+	material.albedo_texture = texture
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	material.cull_mode = BaseMaterial3D.CULL_DISABLED
+
+## Breathes the light while the note is up.
+func _process(delta: float) -> void:
+	if not _shown:
+		return
+	_light_time += delta
+	_set_light(lerpf(LIGHT_MIN, 1.0, 0.5 + 0.5 * sin(TAU * GLOW_PULSE_HZ * _light_time)))
+
+## Light strength 0..1 (1: brightest breath; above 1 only in the cut's flash).
+func _set_light(strength: float) -> void:
+	_material.set_shader_parameter(&"sub_emission_energy", lerpf(EMISSION_MIN, EMISSION_MAX, strength))
+	_halo_material.albedo_color = Color(_color, HALO_ALPHA * minf(strength, 1.0))
+	_ray_material.albedo_color = Color(_color, RAY_ALPHA * minf(strength, 1.0))
 
 ## A copy of the game's note model (with its own material) at the given edge length, added under this node.
 func _add_note_mesh(edge: float) -> MeshInstance3D:
@@ -145,6 +229,13 @@ func set_shown(shown: bool) -> void:
 	_note_mesh.visible = shown
 	_other_mesh.visible = shown
 	_label.visible = shown
+	if shown:
+		if _flash:
+			_flash.kill()
+		_light.scale = Vector3.ONE
+		_light.visible = true
+	elif not _flash or not _flash.is_running():
+		_light.visible = false
 	collision_layer = CollisionLayerConstants.Ui_mask if shown else 0
 	_material.set_shader_parameter(&"color", _color)
 
@@ -211,6 +302,17 @@ func _slash(controller: BeepSaberController, cut_normal: Vector3) -> void:
 		piece.start_cut_plane(local_normal * side, 0.0)
 		piece.mesh.scale = _note_mesh.scale
 		piece.apply_central_impulse(normal * side * SPLIT_IMPULSE)
+	# the light flashes, then fades out with the halves
+	_light.visible = true
+	_halo_material.albedo_color = Color(_color, 1.0)
+	_ray_material.albedo_color = Color(_color, 1.0)
+	_flash = create_tween()
+	_flash.tween_property(_light, ^"scale", Vector3.ONE * 1.5, FLASH_SECONDS)
+	_flash.set_parallel(false)
+	_flash.tween_method(func(fade: float) -> void:
+		_halo_material.albedo_color = Color(_color, fade)
+		_ray_material.albedo_color = Color(_color, fade * RAY_ALPHA / HALO_ALPHA), 1.0, 0.0, FADE_SECONDS)
+	_flash.tween_callback(func() -> void: _light.visible = false)
 
 	_sound.stream = CUT_SOUND
 	_sound.play()
