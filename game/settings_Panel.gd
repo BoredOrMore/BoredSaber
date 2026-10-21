@@ -61,6 +61,12 @@ var right_saber_col_state := false
 
 func _ready() -> void:
 	UI_AudioEngine.attach_children(self)
+	# switching player changes these two behind the panel's back
+	Settings.changed.connect(func(key: StringName) -> void:
+		if key == &"left_handed":
+			left_handed_control.set_pressed_no_signal(Settings.left_handed)
+		elif key == &"player_height_offset":
+			player_height_offset_control.set_value_no_signal(Settings.player_height_offset))
 	
 	if OS.get_name() in ["Android", "Web"]:
 		spectator_hud_control.hide()
