@@ -33,6 +33,28 @@ const NOTE_DARK_VALUE := 0.7
 ## the scenery around the track, picked on the song menu's Song tab; "auto" follows the environment each map was made for
 ## (EventDriver.pick_environment)
 const ENVIRONMENTS := [ ["auto", "Follow map"], ["classic", "Classic"], ["neon_grid", "Neon Grid"], ["pulse_void", "Pulse Void"], ["night_city", "Night City"] ]
+## Graphics presets in Settings > Visuals: the effects each sets (Settings key: value). Glow was the only one
+## measured to cost much on the headset (about 6 of a 13.9 ms frame); Low also hides the slash note's light.
+const GRAPHICS_PRESETS := {
+	"Low": {&"glare": false, &"smoke": false, &"saber_tail": false, &"cube_cuts_falloff": false, &"background": "static"},
+	"Normal": {&"glare": true, &"smoke": true, &"saber_tail": true, &"cube_cuts_falloff": true, &"background": "dynamic"},
+}
+const GRAPHICS_CUSTOM := "Custom"
+
+## The preset the effects match, or GRAPHICS_CUSTOM when changed one by one.
+func graphics_preset() -> String:
+	for preset: String in GRAPHICS_PRESETS:
+		var values: Dictionary = GRAPHICS_PRESETS[preset]
+		if values.keys().all(func(key: StringName) -> bool: return get(key) == values[key]):
+			return preset
+	return GRAPHICS_CUSTOM
+
+## Sets every effect of a preset.
+func set_graphics_preset(preset: String) -> void:
+	var values: Dictionary = GRAPHICS_PRESETS[preset]
+	for key: StringName in values:
+		set(key, values[key])
+
 ## Stage lights: a light show that follows the music, lights off, or lights off with the stage pieces hidden too.
 const BACKGROUND_MODES := [ ["dynamic", "Light show"],
 		["simple", "Off, no stage"],

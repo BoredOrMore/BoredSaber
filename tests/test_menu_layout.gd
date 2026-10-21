@@ -99,6 +99,26 @@ func _ready() -> void:
 	await _settle()
 	_check_layout(profiles, "who's playing, six players, one asking to delete")
 
+	profiles.queue_free()
+
+	# Visuals with the Graphics chips: Low, then one effect changed (Custom)
+	var settings := (load("res://game/settings_Panel.tscn") as PackedScene).instantiate() as SettingsPanel
+	# no controllers here for its sliders' thumbstick scrolling
+	settings.process_mode = Node.PROCESS_MODE_DISABLED
+	_port.add_child(settings)
+	await _settle()
+	Settings.set_graphics_preset("Low")
+	await _settle()
+	check(settings._graphics_chips["Low"].button_pressed and not settings.glare_control.button_pressed,
+			"Graphics Low lights its chip and turns Glow off")
+	Settings.glare = true
+	await _settle()
+	check(settings._graphics_chips[Settings.GRAPHICS_CUSTOM].button_pressed, "changing an effect by hand shows Custom")
+	(settings.get_node(^"Tabs") as TabContainer).current_tab = settings.get_node(^"Tabs/Visuals").get_index()
+	await _settle()
+	_check_layout(settings.get_node(^"Tabs/Visuals/VBox") as Control, "settings visuals, Custom")
+	settings.queue_free()
+
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 

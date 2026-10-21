@@ -74,6 +74,7 @@ func _ready() -> void:
 			background_mode_control.selected = i
 	background_mode_control.connect("item_selected", _on_background_mode_selected)
 	_add_debug_view_switches()
+	_add_graphics_row()
 
 	for i in len(Settings.NOTE_STYLES):
 		note_style_control.add_item(Settings.NOTE_STYLES[i][1])
@@ -262,6 +263,74 @@ func _add_debug_view_switches() -> void:
 	show_debug_control.get_parent().add_child(measure)
 	show_debug_control.get_parent().move_child(measure, index)
 	_show_debug_view_switches()
+
+## What each graphics chip means, under the chips.
+const GRAPHICS_HINTS := {
+	"Low": "Smoother, less glow",
+	"Normal": "Every effect on",
+	Settings.GRAPHICS_CUSTOM: "Effects below changed one by one",
+}
+
+var _graphics_chips := {}
+var _graphics_hint := Label.new()
+
+## "Graphics: Low | Normal" chips at the top of Visuals, setting the effects below; a third chip, Custom, can't
+## be picked and lights up when the effects match neither.
+func _add_graphics_row() -> void:
+	var visuals := $Tabs/Visuals/VBox as VBoxContainer
+	var row_label := $Tabs/Visuals/VBox/ColorPresetRow/color_preset_label as Label
+	var row := HBoxContainer.new()
+	var label := Label.new()
+	label.text = "Graphics"
+	label.custom_minimum_size = row_label.custom_minimum_size
+	label.add_theme_stylebox_override(&"normal", row_label.get_theme_stylebox(&"normal"))
+	row.add_child(label)
+	var group := ButtonGroup.new()
+	for preset: String in Settings.GRAPHICS_PRESETS.keys() + [Settings.GRAPHICS_CUSTOM]:
+		var chip := Button.new()
+		chip.text = preset
+		chip.toggle_mode = true
+		chip.button_group = group
+		chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		if preset == Settings.GRAPHICS_CUSTOM:
+			# lit when it applies, but the pointer can't pick it (a disabled button wouldn't light up)
+			chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			chip.focus_mode = Control.FOCUS_NONE
+		else:
+			chip.pressed.connect(Settings.set_graphics_preset.bind(preset))
+		row.add_child(chip)
+		_graphics_chips[preset] = chip
+	visuals.add_child(row)
+	visuals.move_child(row, 0)
+	# the song menu's chip padding, so the three fit beside the row label
+	for chip: Button in _graphics_chips.values():
+		MainMenu._set_padding(chip, MainMenu.CHIP_PADDING)
+	_graphics_hint.add_theme_stylebox_override(&"normal", row_label.get_theme_stylebox(&"normal"))
+	_graphics_hint.add_theme_color_override(&"font_color", Constants.UI_TEXT_MUTED)
+	_graphics_hint.add_theme_font_size_override(&"font_size", 22)
+	visuals.add_child(_graphics_hint)
+	visuals.move_child(_graphics_hint, 1)
+	UI_AudioEngine.attach_children(row)
+	Settings.changed.connect(func(key: StringName) -> void:
+		if key in Settings.GRAPHICS_PRESETS["Low"]:
+			_sync_graphics())
+	_sync_graphics()
+
+## Lights the chip of the preset the effects match and shows the effects' switches as set (a preset sets them).
+func _sync_graphics() -> void:
+	var preset := Settings.graphics_preset()
+	for name: String in _graphics_chips:
+		(_graphics_chips[name] as Button).set_pressed_no_signal(name == preset)
+	_graphics_hint.text = GRAPHICS_HINTS[preset]
+	# Custom only reads as a choice while it applies
+	(_graphics_chips[Settings.GRAPHICS_CUSTOM] as Button).modulate.a = 1.0 if preset == Settings.GRAPHICS_CUSTOM else 0.4
+	glare_control.set_pressed_no_signal(Settings.glare)
+	smoke_control.set_pressed_no_signal(Settings.smoke)
+	saber_tail_control.set_pressed_no_signal(Settings.saber_tail)
+	cut_blocks.set_pressed_no_signal(Settings.cube_cuts_falloff)
+	for i in Settings.BACKGROUND_MODES.size():
+		if Settings.BACKGROUND_MODES[i][0] == Settings.background:
+			background_mode_control.selected = i
 
 func _show_debug_view_switches() -> void:
 	for switch in _debug_view_switches:

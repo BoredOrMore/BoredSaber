@@ -167,7 +167,7 @@ func _restore() -> void:
 	if openxr and _foveation >= 0:
 		openxr.foveation_level = _foveation
 	game.xr_origin.rotation.y = 0.0
-	game.slash_block._light.visible = game.slash_block._note_mesh.visible
+	game.slash_block._light.visible = game.slash_block._note_mesh.visible and game.slash_block._light_on()
 	if game.highscore_keyboard.visible:
 		game.highscore_keyboard._on_cancel()
 
