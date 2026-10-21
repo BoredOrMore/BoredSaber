@@ -4,7 +4,7 @@ extends MeshInstance3D
 ## stands, each a quad whose four corners share its start point. One draw call. Untuned.
 
 const DUST := preload("res://game/env/Dust.gdshader")
-const COUNT := 400
+const COUNT := 260
 ## metres; the player stands at (0, 0, 1)
 const BOX := Vector3(8.0, 3.5, 8.0)
 const CENTRE := Vector3(0.0, 1.75, 1.0)
