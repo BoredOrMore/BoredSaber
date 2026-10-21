@@ -78,9 +78,48 @@ var all_song_hashes: Array[String]
 signal song_list_changed()
 
 # stop the preview player if the main song player is going
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if main_song_player_ref.playing:
 		song_preview.stop()
+	_step_with_stick(delta)
+
+## Thumbstick song stepping: pushed past STICK_THRESHOLD up or down, the selection moves one song; held, it
+## repeats after STICK_REPEAT_DELAY every STICK_REPEAT_INTERVAL seconds. The preview starts once it is let go.
+const STICK_THRESHOLD := 0.5
+const STICK_REPEAT_DELAY := 0.4
+const STICK_REPEAT_INTERVAL := 0.12
+## Seconds the stick has been pushed, -1 while it rests; and when the next step is due.
+var _stick_time := -1.0
+var _stick_next := 0.0
+
+## Moves the song selection with the stronger thumbstick of the two hands while the song menu takes input.
+func _step_with_stick(delta: float) -> void:
+	var canvas := get_viewport().get_parent() as OQ_UI2DCanvas
+	var takes_input := canvas != null and canvas.is_visible_in_tree() and not canvas.disable_collision \
+			and not keyboard.visible and songs_menu.item_count > 0
+	var y := 0.0
+	if takes_input:
+		var y_left := vr.leftController.get_vector2("primary").y
+		var y_right := vr.rightController.get_vector2("primary").y
+		y = y_left if absf(y_left) > absf(y_right) else y_right
+	if absf(y) < STICK_THRESHOLD:
+		if _stick_time >= 0.0:
+			_stick_time = -1.0
+			if takes_input:
+				play_selected_preview(0.0, true)
+		return
+	if _stick_time < 0.0:
+		_stick_time = 0.0
+		_stick_next = 0.0
+	if _stick_time >= _stick_next:
+		# pushing down (negative y) moves down the list
+		var next := clampi(current_selected + (1 if y < 0.0 else -1), 0, songs_menu.item_count - 1)
+		if next != current_selected:
+			songs_menu.select(next)
+			_select_song(next, false)
+			canvas._input_update()
+		_stick_next += STICK_REPEAT_DELAY if _stick_next == 0.0 else STICK_REPEAT_INTERVAL
+	_stick_time += delta
 
 func refresh_playlist() -> void:
 	var id := playlist_selector.get_selected_id()

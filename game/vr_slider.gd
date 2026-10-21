@@ -3,6 +3,9 @@ extends Node
 @export var scroll_node_path: NodePath
 ## Scroll with the thumbstick even when no pointer is over the list (for the screen's main list).
 @export var scroll_without_pointer := false
+## Scroll with the thumbstick at all; off when the screen uses the stick for something else (the song list
+## moves its selection with it).
+@export var joystick_scroll := true
 var scroll_node: Control
 var v_scroll: VScrollBar
 var is_mouse_in := false
@@ -67,7 +70,7 @@ func _process(delta: float) -> void:
 		if vr.rightController.trigger_pressed():
 			# Scroll via "click & drag"
 			_scroll_by((relpos - newpos) * 20.0)
-		else:
+		elif joystick_scroll:
 			_joystick_scroll(delta)
 	elif scroll_without_pointer and scroll_node.is_visible_in_tree() and _canvas_shown():
 		_joystick_scroll(delta)
