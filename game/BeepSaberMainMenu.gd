@@ -812,6 +812,14 @@ var _loading := false
 @onready var play_status := $PlayStatus/Lines/Label as Label
 @onready var play_details := $PlayStatus/Lines/Details as Label
 
+## The selected song and difficulty, or nulls when none is picked.
+func selected_map() -> MapInfo:
+	return _currently_selected_songlist_ref[current_selected] if has_song_picked() else null
+
+func selected_difficulty() -> DifficultyInfo:
+	var map := selected_map()
+	return map.difficulty_beatmaps[_map_difficulty] if map and _map_difficulty >= 0 and _map_difficulty < map.difficulty_beatmaps.size() else null
+
 ## True while a song in the list is selected.
 func has_song_picked() -> bool:
 	return not _loading and current_selected >= 0 and current_selected < _currently_selected_songlist_ref.size()

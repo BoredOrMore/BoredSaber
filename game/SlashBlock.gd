@@ -1,93 +1,146 @@
 extends UIRaycastTarget
 class_name SlashBlock
-## The cyan block in front of the player in the song menu: slashing it with either saber, or pointing at it and
-## pulling the trigger, plays the selected song. The song menu shows what it will play ("Slash to play · ...").
+## A note in front of the player in the song menu, below where Play was: cutting it the right way (its arrow,
+## with the saber of its colour) plays the selected song, as does pointing at it and pulling the trigger. The song
+## menu shows what it will play ("Slash to play · ...").
 
-## The block was slashed or clicked.
+## The note was cut the right way, or clicked.
 signal slashed()
 
-## Edge length in metres: 16 degrees at DISTANCE, an easy target.
-const SIZE := 0.25
-## Where it floats: this far in front of the player's spot (z = PLAYER_Z, facing -z) and this far below their
-## eyes, 35 degrees down: 0.96 m high for 1.6 m eyes, its top just under the song menu's bottom edge (-25 degrees).
-const DISTANCE := 0.9
-const BELOW_EYES := 0.64
+## Where it floats, from the player's spot (z = PLAYER_Z, facing -z): YAW to the right, under the song menu's
+## old Play button (24 degrees), HORIZONTAL metres away, BELOW_EYES under the eyes: 39 degrees down, so its top
+## stays 3.7 degrees under the menu's bottom edge (-24.8 degrees) and it hides nothing on the menu.
+const YAW_DEGREES := 20.0
+const HORIZONTAL := 0.9
+const BELOW_EYES := 0.72
 const PLAYER_Z := 1.0
+## Edge of the note in metres (the game's notes are 0.4 m): smaller so its top stays under the menu's edge;
+## still 19 degrees across at its distance.
+const NOTE_SIZE := 0.3
 ## Eye height used when no headset camera is there (desktop runs).
 const FALLBACK_EYES := 1.6
-## Slowest saber tip that counts as a slash, in m/s. Untuned: check on the headset that a deliberate swing
-## cuts and resting a saber against the block doesn't.
+## Slowest saber tip that counts as a cut, in m/s. Untuned: check on the headset that a deliberate swing
+## cuts and resting a saber against the note doesn't.
 const MIN_TIP_SPEED := 2.0
-## Hover makes the block brighter by mixing toward white (root AGENTS.md "Light": hot core, no values over 1).
+## Least cosine between the swing and the arrow that counts as the right way: 60 degrees either side, Beat
+## Saber's allowance.
+const MIN_DIRECTION_DOT := 0.5
+## Hover makes the note brighter by mixing toward white (root AGENTS.md "Light": hot core, no values over 1).
 const HOVER_WHITE := 0.35
 const RUMBLE_STRENGTH := 0.75
 const RUMBLE_SECONDS := 0.1
+const WRONG_RUMBLE_STRENGTH := 0.3
+const WRONG_RUMBLE_SECONDS := 0.2
 const CUT_SOUND := preload("res://game/data/cut_1.wav")
+const WRONG_SOUND := preload("res://game/data/bad_cut.wav")
+## The game's note model and look.
+const NOTE_SCENE := preload("res://game/BeepCube/BeepCube.tscn")
 
 ## The sabers that can cut it, set by the game.
 var sabers: Array[LightSaber] = []
-var _material := StandardMaterial3D.new()
+## The saber type (LightSaber.type: 0 left, 1 right) whose colour the note has, and that colour.
+var _note_saber := 1
+var _color := Color.WHITE
+var _material: ShaderMaterial
+var _half_size := Vector3.ONE * 0.15
 var _sound := AudioStreamPlayer3D.new()
 var _shown := false
+## A saber already inside the note: it counts once, when it enters.
+var _touching: Array[LightSaber] = []
 
 func _ready() -> void:
 	collision_mask = 0
+	# borrow the note mesh with its material from the game's note scene
+	var note := NOTE_SCENE.instantiate()
+	var mesh := note.get_node(^"BeepCubeMesh") as MeshInstance3D
+	note.remove_child(mesh)
+	note.free()
+	add_child(mesh)
+	_material = mesh.material_override as ShaderMaterial
+	mesh.scale *= NOTE_SIZE / (mesh.get_aabb().size.x * mesh.scale.x)
+	_half_size = Vector3.ONE * NOTE_SIZE / 2.0
 	var shape := CollisionShape3D.new()
 	var box := BoxShape3D.new()
-	box.size = Vector3.ONE * SIZE
+	box.size = _half_size * 2.0
 	shape.shape = box
 	add_child(shape)
-	var cube := BoxMesh.new()
-	cube.size = Vector3.ONE * SIZE
-	var mesh := MeshInstance3D.new()
-	mesh.mesh = cube
-	_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_material.albedo_color = Constants.UI_ACCENT
-	mesh.material_override = _material
-	add_child(mesh)
-	_sound.stream = CUT_SOUND
 	add_child(_sound)
 	set_shown(false)
 
-## Shows the block (placed for the player's eye height at that moment) or hides it and its hit area.
+## Colours the note for the selected song: the player's dominant hand's colour from colors ([left, right], the
+## map's or the player's per the Map colors chip), with a down arrow, or a dot while Arrows is off.
+func set_note(colors: Array[Color]) -> void:
+	_note_saber = 0 if Settings.left_handed else 1
+	_color = colors[_note_saber]
+	_material.set_shader_parameter(&"color", _color)
+	_material.set_shader_parameter(&"is_dot", not Settings.arrows_enabled)
+	_material.set_shader_parameter(&"arrows_enabled", Settings.arrows_enabled)
+
+## Shows the note (placed for the player's eye height at that moment, facing them) or hides it and its hit area.
 func set_shown(shown: bool) -> void:
 	if shown and not _shown:
 		var eyes := vr.vrCamera.global_position.y if vr.vrCamera else FALLBACK_EYES
-		global_position = Vector3(0.0, eyes - BELOW_EYES, PLAYER_Z - DISTANCE)
+		var yaw := deg_to_rad(YAW_DEGREES)
+		global_position = Vector3(HORIZONTAL * sin(yaw), eyes - BELOW_EYES, PLAYER_Z - HORIZONTAL * cos(yaw))
+		# its front (+z) toward the player, arrow still pointing straight down
+		rotation = Vector3(0.0, -yaw, 0.0)
+		_touching.clear()
 	_shown = shown
 	visible = shown
 	collision_layer = CollisionLayerConstants.Ui_mask if shown else 0
-	_material.albedo_color = Constants.UI_ACCENT
+	_material.set_shader_parameter(&"color", _color)
 
-## Pointer over the block: brighter; trigger: a slash.
+## Pointer over the note: brighter; trigger: plays.
 func ui_raycast_hit_event(_pos: Vector3, click: bool, _release: bool) -> void:
 	if not _shown:
 		return
-	_material.albedo_color = Constants.UI_ACCENT.lerp(Color.WHITE, HOVER_WHITE)
+	_material.set_shader_parameter(&"color", _color.lerp(Color.WHITE, HOVER_WHITE))
 	if click:
 		_slash(null)
 
 func ui_raycast_exit() -> void:
-	_material.albedo_color = Constants.UI_ACCENT
+	_material.set_shader_parameter(&"color", _color)
 
-## A saber blade or tip path crossing the block while the tip is fast enough is a slash.
+## A saber blade or tip path entering the note while the tip is fast enough is a cut: the right one plays,
+## a wrong one (other saber, or not along the arrow) buzzes and leaves the note there.
 func _physics_process(_delta: float) -> void:
 	if not _shown:
 		return
-	var box := AABB(global_position - Vector3.ONE * SIZE / 2.0, Vector3.ONE * SIZE)
+	var box := AABB(-_half_size, _half_size * 2.0)
+	var to_local := global_transform.affine_inverse()
 	for saber in sabers:
-		if not saber.is_extended() or saber.last_dt <= 0.0:
+		var inside: bool = saber.is_extended() and (
+				box.intersects_segment(to_local * saber.controller.global_position, to_local * saber.saber_end)
+				or box.intersects_segment(to_local * saber.saber_end_past, to_local * saber.saber_end))
+		if not inside:
+			_touching.erase(saber)
 			continue
-		if (saber.saber_end - saber.saber_end_past).length() / saber.last_dt < MIN_TIP_SPEED:
+		if saber in _touching or saber.last_dt <= 0.0:
 			continue
-		if box.intersects_segment(saber.controller.global_position, saber.saber_end) \
-				or box.intersects_segment(saber.saber_end_past, saber.saber_end):
+		var velocity := (saber.saber_end - saber.saber_end_past) / saber.last_dt
+		if velocity.length() < MIN_TIP_SPEED:
+			continue
+		_touching.append(saber)
+		if _right_cut(saber, velocity):
 			_slash(saber.controller)
 			return
+		_sound.stream = WRONG_SOUND
+		_sound.play()
+		saber.controller.simple_rumble(WRONG_RUMBLE_STRENGTH, WRONG_RUMBLE_SECONDS)
 
-## Hides the block with a cut sound and a rumble on the hand that cut it, and asks for the song.
+## The note's saber (either one with Any saber, any colour) swinging along its arrow (down), or any way for a dot.
+func _right_cut(saber: LightSaber, velocity: Vector3) -> bool:
+	if saber.type != _note_saber and Settings.handedness != Constants.HANDEDNESS_IGNORE:
+		return false
+	if not Settings.arrows_enabled:
+		return true
+	var local := velocity.rotated(Vector3.UP, -rotation.y)
+	return Vector3(local.x, local.y, 0.0).normalized().dot(Vector3.DOWN) >= MIN_DIRECTION_DOT
+
+## Hides the note with a cut sound and a rumble on the hand that cut it, and asks for the song.
 func _slash(controller: BeepSaberController) -> void:
 	set_shown(false)
+	_sound.stream = CUT_SOUND
 	_sound.play()
 	if controller:
 		controller.simple_rumble(RUMBLE_STRENGTH, RUMBLE_SECONDS)

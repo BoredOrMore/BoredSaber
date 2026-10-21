@@ -709,12 +709,15 @@ func _on_BeepSaberMainMenu_difficulty_changed(map_info: MapInfo, diff_rank: int)
 	highscore_canvas._show()
 	highscore_panel.load_highscores(map_info,diff_rank)
 
-## Shows the block to slash while the song menu is open with a song picked and nothing (keyboard, "Who's
-## playing?") in front of it.
+## Shows the note to slash, in the selected song's colours, while the song menu is open with a song picked and
+## nothing (keyboard, "Who's playing?") in front of it.
 func _update_slash_block() -> void:
 	# the menu reports its first song while it loads, before this scene is ready
 	if not is_node_ready():
 		return
+	var difficulty := menu.selected_difficulty()
+	if difficulty:
+		slash_block.set_note(Map.note_colors(menu.selected_map(), difficulty))
 	slash_block.set_shown(gamestate == gamestate_mapselection and main_menu.visible and not main_menu.disable_collision
 			and not highscore_keyboard.visible and menu.has_song_picked())
 
