@@ -270,53 +270,71 @@ const GRAPHICS_HINTS := {
 	"Normal": "Every effect on",
 	Settings.GRAPHICS_CUSTOM: "Effects below changed one by one",
 }
+const RESOLUTION_HINTS := {
+	"Normal": "The headset's usual sharpness",
+	"Sharp": "Sharper, still smooth",
+	"Full": "Sharpest, may stutter in busy songs",
+}
+const RESOLUTION_NEEDS_LOW := "Needs Graphics: Low"
 
 var _graphics_chips := {}
 var _graphics_hint := Label.new()
+var _resolution_chips := {}
+var _resolution_hint := Label.new()
 
-## "Graphics: Low | Normal" chips at the top of Visuals, setting the effects below; a third chip, Custom, can't
-## be picked and lights up when the effects match neither.
+## At the top of Visuals: "Graphics: Low | Normal" chips setting the effects below (a third chip, Custom, can't be
+## picked and lights up when the effects match neither), then "Resolution: Normal | Sharp | Full", only on Low.
 func _add_graphics_row() -> void:
+	_graphics_chips = _add_chip_row(0, "Graphics", Settings.GRAPHICS_PRESETS.keys() + [Settings.GRAPHICS_CUSTOM],
+			Settings.set_graphics_preset, _graphics_hint)
+	var custom := _graphics_chips[Settings.GRAPHICS_CUSTOM] as Button
+	# lit when it applies, but the pointer can't pick it (a disabled button wouldn't light up)
+	custom.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	custom.focus_mode = Control.FOCUS_NONE
+	_resolution_chips = _add_chip_row(2, "Resolution", Settings.RESOLUTIONS.map(func(r: Array) -> String: return r[0]),
+			func(resolution: String) -> void: Settings.resolution = resolution, _resolution_hint)
+	Settings.changed.connect(func(key: StringName) -> void:
+		if key == &"resolution" or key in Settings.GRAPHICS_PRESETS["Low"]:
+			_sync_graphics())
+	_sync_graphics()
+
+## A row of chips under a row label at index in Visuals, each calling pick with its name, and hint under it;
+## returns the chips by name.
+func _add_chip_row(index: int, title: String, names: Array, pick: Callable, hint: Label) -> Dictionary:
 	var visuals := $Tabs/Visuals/VBox as VBoxContainer
 	var row_label := $Tabs/Visuals/VBox/ColorPresetRow/color_preset_label as Label
 	var row := HBoxContainer.new()
 	var label := Label.new()
-	label.text = "Graphics"
+	label.text = title
 	label.custom_minimum_size = row_label.custom_minimum_size
 	label.add_theme_stylebox_override(&"normal", row_label.get_theme_stylebox(&"normal"))
 	row.add_child(label)
 	var group := ButtonGroup.new()
-	for preset: String in Settings.GRAPHICS_PRESETS.keys() + [Settings.GRAPHICS_CUSTOM]:
+	var chips := {}
+	for chip_name: String in names:
 		var chip := Button.new()
-		chip.text = preset
+		chip.text = chip_name
 		chip.toggle_mode = true
 		chip.button_group = group
 		chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		if preset == Settings.GRAPHICS_CUSTOM:
-			# lit when it applies, but the pointer can't pick it (a disabled button wouldn't light up)
-			chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			chip.focus_mode = Control.FOCUS_NONE
-		else:
-			chip.pressed.connect(Settings.set_graphics_preset.bind(preset))
+		chip.pressed.connect(pick.bind(chip_name))
 		row.add_child(chip)
-		_graphics_chips[preset] = chip
+		chips[chip_name] = chip
 	visuals.add_child(row)
-	visuals.move_child(row, 0)
-	# the song menu's chip padding, so the three fit beside the row label
-	for chip: Button in _graphics_chips.values():
+	visuals.move_child(row, index)
+	# the song menu's chip padding, so three fit beside the row label
+	for chip: Button in chips.values():
 		MainMenu._set_padding(chip, MainMenu.CHIP_PADDING)
-	_graphics_hint.add_theme_stylebox_override(&"normal", row_label.get_theme_stylebox(&"normal"))
-	_graphics_hint.add_theme_color_override(&"font_color", Constants.UI_TEXT_MUTED)
-	_graphics_hint.add_theme_font_size_override(&"font_size", 22)
-	visuals.add_child(_graphics_hint)
-	visuals.move_child(_graphics_hint, 1)
+	hint.add_theme_stylebox_override(&"normal", row_label.get_theme_stylebox(&"normal"))
+	hint.add_theme_color_override(&"font_color", Constants.UI_TEXT_MUTED)
+	hint.add_theme_font_size_override(&"font_size", 22)
+	visuals.add_child(hint)
+	visuals.move_child(hint, index + 1)
 	UI_AudioEngine.attach_children(row)
-	Settings.changed.connect(func(key: StringName) -> void:
-		if key in Settings.GRAPHICS_PRESETS["Low"]:
-			_sync_graphics())
-	_sync_graphics()
+	return chips
 
-## Lights the chip of the preset the effects match and shows the effects' switches as set (a preset sets them).
+## Lights the chips of the preset the effects match and of the resolution (greyed off Low), and shows the effects'
+## switches as set (a preset sets them).
 func _sync_graphics() -> void:
 	var preset := Settings.graphics_preset()
 	for name: String in _graphics_chips:
@@ -324,6 +342,12 @@ func _sync_graphics() -> void:
 	_graphics_hint.text = GRAPHICS_HINTS[preset]
 	# Custom only reads as a choice while it applies
 	(_graphics_chips[Settings.GRAPHICS_CUSTOM] as Button).modulate.a = 1.0 if preset == Settings.GRAPHICS_CUSTOM else 0.4
+	var low := preset == "Low"
+	for name: String in _resolution_chips:
+		var chip := _resolution_chips[name] as Button
+		chip.disabled = not low
+		chip.set_pressed_no_signal(name == (Settings.resolution if low else "Normal"))
+	_resolution_hint.text = RESOLUTION_HINTS.get(Settings.resolution, "") if low else RESOLUTION_NEEDS_LOW
 	glare_control.set_pressed_no_signal(Settings.glare)
 	smoke_control.set_pressed_no_signal(Settings.smoke)
 	saber_tail_control.set_pressed_no_signal(Settings.saber_tail)

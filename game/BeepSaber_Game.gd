@@ -390,7 +390,8 @@ func _ready() -> void:
 		xr_origin,
 		xr_camera,
 		left_controller,
-		right_controller
+		right_controller,
+		Settings.render_scale()
 	)
 	
 	vr.pose_recentered.connect(recenter)
@@ -469,6 +470,13 @@ func set_background_texture() -> void:
 func on_settings_changed(key: StringName) -> void:
 	# ensures proper initialization of tree for proper first frame setting loading
 	await get_tree().process_frame
+	# the render scale follows the Low preset's resolution (Settings.render_scale)
+	# (not while the benchmark sets scales itself)
+	if (key == &"resolution" or key in Settings.GRAPHICS_PRESETS["Low"]) and not has_node(^"Benchmark"):
+		var openxr := XRServer.find_interface("OpenXR") as OpenXRInterface
+		if openxr and openxr.is_initialized() and openxr.render_target_size_multiplier != Settings.render_scale():
+			openxr.render_target_size_multiplier = Settings.render_scale()
+			print("render scale ", Settings.render_scale())
 	match key:
 		&"left_handed":
 			if Settings.left_handed:

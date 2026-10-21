@@ -40,6 +40,19 @@ const GRAPHICS_PRESETS := {
 	"Normal": {&"glare": true, &"smoke": true, &"saber_tail": true, &"cube_cuts_falloff": true, &"background": "dynamic"},
 }
 const GRAPHICS_CUSTOM := "Custom"
+## Render scales (OpenXR render target size multiplier) the Low preset may use: [name, scale]. Measured on the
+## headset: Low at 1.44x takes about 11 of the 13.9 ms frame in a song; Normal is over budget already at 1.2x, so
+## everything but Low renders at 1x.
+const RESOLUTIONS := [["Normal", 1.0], ["Sharp", 1.2], ["Full", 1.44]]
+
+## The render scale in use: the picked resolution on Low, 1 otherwise.
+func render_scale() -> float:
+	if graphics_preset() != "Low":
+		return 1.0
+	for entry: Array in RESOLUTIONS:
+		if entry[0] == resolution:
+			return entry[1]
+	return 1.0
 
 ## The preset the effects match, or GRAPHICS_CUSTOM when changed one by one.
 func graphics_preset() -> String:
@@ -236,6 +249,11 @@ var environment: String:
 	set(value):
 		environment = value
 		set_and_emit(&"environment", value)
+## The resolution picked for the Low preset (a RESOLUTIONS name), kept while on another preset.
+var resolution: String:
+	set(value):
+		resolution = value
+		set_and_emit(&"resolution", value)
 var note_style: String:
 	set(value):
 		note_style = value
@@ -380,6 +398,7 @@ var default_values = {
 	background = "dynamic",
 	environment = "auto",
 	note_style = "solid",
+	resolution = "Normal",
 	darker_notes = false,
 	background_texture = "res://game/data/background/stage_sky.png",
 	health_mode = true,

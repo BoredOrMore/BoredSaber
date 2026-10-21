@@ -111,9 +111,13 @@ func _ready() -> void:
 	await _settle()
 	check(settings._graphics_chips["Low"].button_pressed and not settings.glare_control.button_pressed,
 			"Graphics Low lights its chip and turns Glow off")
+	settings._resolution_chips["Full"].pressed.emit()
+	check(Settings.render_scale() == 1.44 and not settings._resolution_chips["Full"].disabled, "Resolution Full on Low renders at 1.44x")
 	Settings.glare = true
 	await _settle()
 	check(settings._graphics_chips[Settings.GRAPHICS_CUSTOM].button_pressed, "changing an effect by hand shows Custom")
+	check(Settings.render_scale() == 1.0 and settings._resolution_chips["Full"].disabled and Settings.resolution == "Full",
+			"off Low the resolution chips grey out and render at 1x, keeping Full for Low")
 	(settings.get_node(^"Tabs") as TabContainer).current_tab = settings.get_node(^"Tabs/Visuals").get_index()
 	await _settle()
 	_check_layout(settings.get_node(^"Tabs/Visuals/VBox") as Control, "settings visuals, Custom")
