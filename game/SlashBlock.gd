@@ -7,12 +7,13 @@ class_name SlashBlock
 ## The note was cut the right way, or clicked.
 signal slashed()
 
-## Where it floats, from the player's spot (z = PLAYER_Z, facing -z): YAW to the right, under the song menu's
-## old Play button (24 degrees), HORIZONTAL metres away, BELOW_EYES under the eyes: 39 degrees down, so its top
-## stays 3.7 degrees under the menu's bottom edge (-24.8 degrees) and it hides nothing on the menu.
-const YAW_DEGREES := 20.0
+## Where it floats, from the player's spot (z = PLAYER_Z, facing -z): YAW to the right, past the song menu's old
+## Play button (24 degrees), HORIZONTAL metres away, BELOW_EYES under the eyes: 42 degrees down, its top 8 degrees
+## under the menu's bottom edge (-24.8 degrees). The player moved it there from 20 degrees right, 39 down; it is a
+## little past the 40 degree comfortable limit for looking down, fine for one short swing.
+const YAW_DEGREES := 28.0
 const HORIZONTAL := 0.9
-const BELOW_EYES := 0.72
+const BELOW_EYES := 0.82
 const PLAYER_Z := 1.0
 ## Edge of the note in metres (the game's notes are 0.4 m): smaller so its top stays under the menu's edge;
 ## still 19 degrees across at its distance.
