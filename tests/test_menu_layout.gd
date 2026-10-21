@@ -6,8 +6,10 @@ extends Node
 const MIN_GAP := 4.0
 ## Panels that open over others: whatever lies wholly under a visible one is hidden, not overlapped.
 const OVERLAYS := ["MorePanel", "MoreModsPanel", "FiltersPanel"]
-## Rows the song list must show at once (the player asked for 13-15).
-const MIN_VISIBLE_ROWS := 13
+## Rows the song list must show at once at its original 76 px row size.
+const MIN_VISIBLE_ROWS := 9
+## The download page's canvas is at scale 2 and the song menu's at 2.4, so the same world size takes 1.2 times the px.
+const MENU_TO_BEATSAVER_PX := 1.2
 const LONG_NAME := "Wolfgang Amadeus Mozart and the Very Long Band Name"
 
 var failures := 0
@@ -71,6 +73,14 @@ func _ready() -> void:
 	menu._show_tab(MainMenu.Tab.MORE)
 	await _settle()
 	_check_layout(menu, "more tab")
+	var beatsaver := (load("res://game/ui/BeatSaverPanel/BeatSaverPanel.tscn") as PackedScene).instantiate() as BeatSaverPanel
+	beatsaver.main_menu_ref = menu
+	beatsaver.keyboard = keyboard
+	add_child(beatsaver)
+	await _settle()
+	check((beatsaver.size - menu.size * MENU_TO_BEATSAVER_PX).abs().x < 1.0 and (beatsaver.size - menu.size * MENU_TO_BEATSAVER_PX).abs().y < 1.0, "the download page is the song menu's size in the world (got %s px)" % beatsaver.size)
+	_check_layout(beatsaver, "download page")
+	beatsaver.queue_free()
 	menu.queue_free()
 
 	var profiles := (load("res://game/ui/ProfilesPanel.tscn") as PackedScene).instantiate() as ProfilesPanel

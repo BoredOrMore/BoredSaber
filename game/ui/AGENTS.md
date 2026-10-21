@@ -16,15 +16,15 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   button of a screen sets `theme_type_variation = &"PrimaryButton"` (accent border, blue fill); 3D
   `UIRaycastButton`s use `set_primary(true)`.
 - `SongList.gd` (class `SongList`): the song menu's list, a `ScrollContainer` of row buttons in the `ItemList` look with
-  the ItemList calls the menu uses; every row 48 px (the selected one only changes its background); empty space at both ends lets
+  the ItemList calls the menu uses; every row 76 px with a 72 px cover, 82 px apart (the selected one only changes its background); empty space at both ends lets
   `center_on` glide any row to the middle (the thumbstick uses it); a pressed row stays under the pointer.
 - `ProfilesPanel.gd/.tscn` (class `ProfilesPanel`): "Who's playing?", opened by the player button beside the menu's gear
   (`BeepSaber_Game._open_profiles`) on its own canvas 10 cm in front of the menu, which takes no pointer input meanwhile.
   Picks, adds (max `Settings.MAX_PLAYERS`), renames (records too, `Highscores.rename_player`) and deletes players;
   names are typed on the menu's keyboard (`Keyboard_highscore`), which the menu ignores while its `_keyboard_for` is empty.
 - `BeatSaverPanel/`: browse/search/download maps from beatsaver.com (class `BeatSaverPanel`).
-  The menu's "Get more songs" opens it directly (`BeepSaber_Game._open_beatsaver`), in front of the player in place
-  of the song menu. (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
+  The menu's "Get songs" opens it directly (`BeepSaber_Game._open_beatsaver`), in front of the player in place
+  of the song menu, at the same size and place (1536x1046 px at scale 2 = the menu's 1280x872 at 2.4). (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
 - `UI_AudioEngine/`: autoload; `attach_children(node)` wires hover/click sounds to every `Button` below `node`.
 - In `game/`: `BeepSaberMainMenu.gd/.tscn` (class `MainMenu`: song list, Song/More tabs and a Settings gear above the right column; the Song tab holds
   difficulty and the modifier chips, rarer ones behind "More modifiers"),
