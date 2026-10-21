@@ -1,6 +1,6 @@
 # Headless tests
 
-Engine-level checks that run without a headset or XR runtime. Only map `Info.dat` parsing is covered today.
+Engine-level checks that run without a headset or XR runtime: map `Info.dat` parsing and the menu layout.
 
 ## File map
 
@@ -11,6 +11,13 @@ Engine-level checks that run without a headset or XR runtime. Only map `Info.dat
   - v4: writes a minimal v4 `Info.dat` (`V4_INFO`) to `user://test_maps/v4/`, loads it, and checks version
     prefix `4.`, BPM 128 from `audio.bpm`, `previewStartTime`, and one difficulty.
 - Not covered: difficulty files (`Map.load_beatmap`, notes/arcs/chains), threading, gameplay, XR.
+
+- `test_menu_layout.tscn` / `.gd` - lays out the song menu (Song tab, More modifiers, More tab) and "Who's playing?"
+  headless with worst-case content (every modifier changed, a long player name and title, eight characteristic
+  tabs, five numbered levels, two stats lines, six players with a delete question) and fails when a visible control
+  spills out of its parent or the panel, or two controls placed with offsets are closer than `MIN_GAP` (4 px). A
+  control wholly under an open overlay (`OVERLAYS`: More, More modifiers) counts as hidden. Content inside a
+  `ScrollContainer` is allowed to run past it. Run it after any change to these panels or the theme.
 
 ## Running
 

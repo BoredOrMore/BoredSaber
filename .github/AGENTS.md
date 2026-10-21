@@ -23,7 +23,7 @@ for Pico 4 on every push, pull request and manual dispatch. `.github/debug.keyst
 5. Configure Android export (`:56-70`): copies the keystore to `~/debug.keystore` and writes
    `~/.config/godot/editor_settings-4.6.tres` with SDK, Java and debug keystore paths.
 6. `--headless --path . --import` (`:72-73`).
-7. Run tests: `res://tests/test_map_info.tscn`; non-zero exit fails the job (`:75-76`).
+7. Run tests: `res://tests/test_map_info.tscn` and `res://tests/test_menu_layout.tscn`; non-zero exit fails the job (`:75-76`).
 8. Export (`:78-85`): `--install-android-build-template --export-debug "Pico 4" build/BoredSaber-Pico4.apk`,
    then checks the APK exists and contains `lib/arm64-v8a/libgodotopenxrvendors.so`. Without that library
    the game still starts but loses Pico OpenXR support, so the grep is the guard.
