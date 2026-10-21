@@ -8,17 +8,18 @@ class_name SlashBlock
 signal slashed()
 
 ## Where it floats, from the player's spot (z = PLAYER_Z, facing -z): YAW to the dominant hand's side, HORIZONTAL
-## metres away, BELOW_EYES under the eyes (0.85 m high for 1.6 m eyes): 33 degrees down, 1.37 m from the eyes and
-## 1.1 m from the shoulder, so a relaxed swing with the arm out cuts it with the middle of the blade (at 0.8 m the
-## player had to pull the arm in). The player has to turn to it, and no saber reaches it while using the song menu:
-## blades 1.25 m long, from hands 0.3-0.5 m in front of the body, pointed anywhere on the menu and flicked 25
-## degrees up or down, stay 0.42 m clear of it. 75 degrees is past the 55 degree comfortable head turn on purpose:
-## the body turns for one swing. Mirrored for left-handed players.
-const YAW_DEGREES := 75.0
+## metres away, BELOW_EYES under the eyes (1.1 m high for 1.6 m eyes): 23.5 degrees down, as low as the song
+## menu's bottom corner (-22 degrees) and 24 degrees right of it (37 degrees), 1.25 m from the eyes and about 1.1 m
+## from the shoulder for a relaxed swing with the arm out. That is as close to the corner as it gets while no saber
+## reaches it during menu use (blades 1.25 m long from hands 0.3-0.5 m in front of the body, pointed anywhere on
+## the menu, flicked 25 degrees up or down: 0.19 m clear). Right at the corner a saber pointing there runs through
+## it (no clearance). 61 degrees is past the 55 degree comfortable head turn: a short turn for one swing. Mirrored
+## for left-handed players (beside the menu's left corner).
+const YAW_DEGREES := 61.0
 const HORIZONTAL := 1.15
-const BELOW_EYES := 0.75
+const BELOW_EYES := 0.5
 const PLAYER_Z := 1.0
-## Edge of the note in metres (the game's notes are 0.4 m): 12.5 degrees across at its distance.
+## Edge of the note in metres (the game's notes are 0.4 m): 13.7 degrees across at its distance.
 const NOTE_SIZE := 0.3
 ## Eye height used when no headset camera is there (desktop runs).
 const FALLBACK_EYES := 1.6
@@ -44,7 +45,7 @@ const WRONG_SOUND := preload("res://game/data/bad_cut.wav")
 const OTHER_NOTE_SIZE := 0.12
 const OTHER_NOTE_CORNER := Vector2(-1.0, 1.0)
 ## The words over the note: what to do, in the arrow's direction. A strip above it, so the arrow stays clear; the
-## theme's Roboto Medium at 72 px with 1 mm per px is a 5 cm cap height, 2.1 degrees at 1.37 m (the menu's 28 px
+## theme's Roboto Medium at 72 px with 1 mm per px is a 5 cm cap height, 2.3 degrees at 1.25 m (the menu's 28 px
 ## rule is 1.9 degrees), white with a dark outline.
 const SLASH_DOWN_TEXT := "Slash down to play"
 const SLASH_TEXT := "Slash to play"
