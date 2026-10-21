@@ -236,7 +236,7 @@ func _load_playlists() -> void:
 		Settings.save()
 	
 	_discover_all_songs(Constants.APPDATA_PATH+"Songs/")
-	SongTags.look_up_missing(self, _all_songs, func() -> void: pass)
+	SongTags.look_up_missing(self, _all_songs, _show_environment)
 	
 	_sort_songs()
 	MapStats.count_all_async(_all_songs, _on_map_stats_counted)
@@ -561,6 +561,7 @@ func _select_song(id: int, with_preview: bool = true) -> void:
 	]
 	
 	_set_favorite_icon(PlayCount.is_favorite(map))
+	_show_environment()
 	
 	# load cover in background to avoid freezing UI
 	_bg_img_loader.load_texture(map.filepath, map.cover_image_filename, _on_cover_loaded, true, -1)
@@ -752,6 +753,8 @@ func on_settings_changed(key: StringName) -> void:
 	match key:
 		&"player_name":
 			_show_player_name()
+		&"environment":
+			_show_environment()
 		&"music_speed":
 			song_preview.pitch_scale = Settings.music_speed / 100.
 			# reaction times depend on the Speed modifier
@@ -1292,6 +1295,19 @@ func _build_modifier_chips() -> void:
 		update_view())
 	more_mods_rows.add_child(_claws_chip)
 	_set_padding(_claws_chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
+	var environment_title := Label.new()
+	environment_title.text = "Environment"
+	more_mods_rows.add_child(environment_title)
+	environment_picker = OptionButton.new()
+	environment_picker.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	environment_picker.add_theme_constant_override(&"icon_max_width", ENVIRONMENT_THUMB_WIDTH_CLOSED)
+	environment_picker.get_popup().add_theme_constant_override(&"icon_max_width", ENVIRONMENT_THUMB_WIDTH)
+	for environment: Array in Settings.ENVIRONMENTS:
+		environment_picker.add_item(environment[1])
+		environment_picker.set_item_icon(environment_picker.item_count - 1, _environment_thumb(environment[0]))
+	environment_picker.item_selected.connect(func(item: int) -> void: Settings.environment = Settings.ENVIRONMENTS[item][0])
+	more_mods_rows.add_child(environment_picker)
+	_show_environment()
 	_set_padding(reset_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 	_set_padding(more_mods_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 
@@ -1333,6 +1349,32 @@ func _changed_modifiers(rare_only := false) -> PackedStringArray:
 	if Settings.claws:
 		names.append(Constants.CLAWS_LABEL)
 	return names
+
+## A small picture of each environment, by id, shown in the environment dropdown when the file exists.
+const ENVIRONMENT_THUMBS := "res://game/env/thumbs/%s.png"
+## how wide the pictures show in the open list, and on the closed dropdown, which must stay one row high
+const ENVIRONMENT_THUMB_WIDTH := 128
+const ENVIRONMENT_THUMB_WIDTH_CLOSED := 48
+## The environment dropdown at the bottom of More modifiers (Settings.ENVIRONMENTS).
+var environment_picker: OptionButton
+
+## Shows the saved pick; "Follow map" also names the environment the selected song will get.
+func _show_environment() -> void:
+	if not environment_picker:
+		return
+	var ids: Array = Settings.ENVIRONMENTS.map(func(e: Array) -> String: return e[0])
+	environment_picker.select(maxi(ids.find(Settings.environment), 0))
+	var follow: String = Settings.ENVIRONMENTS[0][1]
+	var resolved := EventDriver.map_environment(_shown_map)
+	if _shown_map:
+		follow += " (%s)" % Settings.ENVIRONMENTS[ids.find(resolved)][1]
+	environment_picker.set_item_text(0, follow)
+	environment_picker.set_item_icon(0, _environment_thumb(resolved))
+
+## The picture of an environment, or null when there is none.
+static func _environment_thumb(id: String) -> Texture2D:
+	var path := ENVIRONMENT_THUMBS % id
+	return load(path) as Texture2D if ResourceLoader.exists(path) else null
 
 ## Opens More modifiers over the song details, or goes back to them.
 func _show_more_modifiers(open: bool) -> void:

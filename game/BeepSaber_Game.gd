@@ -679,7 +679,6 @@ func _close_profiles() -> void:
 
 func _settings_button() -> void:
 	settings_panel._update_backgrounds()
-	settings_panel.show_environment(menu._shown_map)
 	_transition_game_state(gamestate_settings)
 
 ## Starts the body test from the song menu's More tab.

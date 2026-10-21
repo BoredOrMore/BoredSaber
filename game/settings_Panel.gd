@@ -40,18 +40,12 @@ signal apply()
 @onready var audio_sfx_control := $Tabs/Audio/VBox/audio/sfx/sfx_slider as HSlider
 @onready var spectator_view_control := $Tabs/Advanced/VBox/spectator_view as CheckButton
 @onready var spectator_hud_control := $Tabs/Advanced/VBox/spectator_hud as CheckButton
-@onready var environment_control := $Tabs/Visuals/VBox/environment_grid/environment as OptionButton
 @onready var background_mode_control := $Tabs/Visuals/VBox/background_mode_grid/background_mode as OptionButton
 @onready var background_texture_control := $Tabs/Visuals/VBox/background_texture_grid/background_texture as OptionButton
 @onready var note_style_control := $Tabs/Visuals/VBox/note_style_grid/note_style as OptionButton
 @onready var darker_notes_control := $Tabs/Visuals/VBox/darker_notes as CheckButton
 
 const SWATCH_SIZE := 24
-## A small picture of each environment, by id, shown in the environment dropdown when the file exists.
-const ENVIRONMENT_THUMBS := "res://game/env/thumbs/%s.png"
-## how wide the pictures show in the open list, and on the closed dropdown, which must stay one row high
-const ENVIRONMENT_THUMB_WIDTH := 128
-const ENVIRONMENT_THUMB_WIDTH_CLOSED := 48
 
 var _play_ui_sound_demo := false
 var left_saber_col_state := false
@@ -77,12 +71,6 @@ func _ready() -> void:
 		if Settings.background == Settings.BACKGROUND_MODES[i][0]:
 			background_mode_control.selected = i
 	background_mode_control.connect("item_selected", _on_background_mode_selected)
-	environment_control.add_theme_constant_override(&"icon_max_width", ENVIRONMENT_THUMB_WIDTH_CLOSED)
-	environment_control.get_popup().add_theme_constant_override(&"icon_max_width", ENVIRONMENT_THUMB_WIDTH)
-	for environment: Array in Settings.ENVIRONMENTS:
-		environment_control.add_item(environment[1])
-		environment_control.set_item_icon(environment_control.item_count - 1, _environment_thumb(environment[0]))
-	environment_control.item_selected.connect(func(item: int) -> void: Settings.environment = Settings.ENVIRONMENTS[item][0])
 	_add_debug_view_switches()
 
 	for i in len(Settings.NOTE_STYLES):
@@ -166,7 +154,6 @@ func set_controls_from_settings() -> void:
 	not_music_dl_control.button_pressed = Settings.not_music_dl
 	swing_scoring_control.button_pressed = Settings.swing_scoring
 	ui_volume_slider.value = Settings.ui_volume
-	environment_control.select(maxi(_environment_ids().find(Settings.environment), 0))
 	left_saber_posx_control.value = Settings.left_saber_offset_pos.x
 	left_saber_posy_control.value = Settings.left_saber_offset_pos.y
 	left_saber_posz_control.value = Settings.left_saber_offset_pos.z
@@ -424,26 +411,6 @@ func _on_background_texture_selected(item: int) -> void:
 		Settings.background_texture = Settings.BACKGROUND_TEXTURES[item][0]
 	else:
 		Settings.background_texture = background_texture_control.get_item_text(item)
-
-## Shows the saved pick; "Follow map" also names the environment map, the song picked in the menu, will get.
-func show_environment(map: MapInfo) -> void:
-	var ids := _environment_ids()
-	environment_control.select(maxi(ids.find(Settings.environment), 0))
-	var follow: String = Settings.ENVIRONMENTS[0][1]
-	var resolved := EventDriver.map_environment(map)
-	if map:
-		follow += " (%s)" % Settings.ENVIRONMENTS[ids.find(resolved)][1]
-	environment_control.set_item_text(0, follow)
-	environment_control.set_item_icon(0, _environment_thumb(resolved))
-
-## The ids of Settings.ENVIRONMENTS, in list order.
-static func _environment_ids() -> Array:
-	return Settings.ENVIRONMENTS.map(func(e: Array) -> String: return e[0])
-
-## The picture of an environment, or null when there is none.
-static func _environment_thumb(id: String) -> Texture2D:
-	var path := ENVIRONMENT_THUMBS % id
-	return load(path) as Texture2D if ResourceLoader.exists(path) else null
 
 func _on_background_mode_selected(item: int) -> void:
 	Settings.background = Settings.BACKGROUND_MODES[item][0]
