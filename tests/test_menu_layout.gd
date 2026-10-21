@@ -5,7 +5,9 @@ extends Node
 ## Smallest gap, in px, between two controls placed side by side with offsets (not by a container).
 const MIN_GAP := 4.0
 ## Panels that open over others: whatever lies wholly under a visible one is hidden, not overlapped.
-const OVERLAYS := ["MorePanel", "MoreModsPanel"]
+const OVERLAYS := ["MorePanel", "MoreModsPanel", "FiltersPanel"]
+## Rows the song list must show at once (the player asked for 13-15).
+const MIN_VISIBLE_ROWS := 13
 const LONG_NAME := "Wolfgang Amadeus Mozart and the Very Long Band Name"
 
 var failures := 0
@@ -22,6 +24,10 @@ func _ready() -> void:
 	keyboard.visible = false
 	add_child(keyboard)
 	var menu := (load("res://game/BeepSaberMainMenu.tscn") as PackedScene).instantiate() as MainMenu
+	check(menu != null, "the song menu scene loads (a script that fails to parse leaves it without MainMenu)")
+	if menu == null:
+		get_tree().quit(1)
+		return
 	menu.keyboard = keyboard
 	var player := AudioStreamPlayer.new()
 	add_child(player)
@@ -54,6 +60,11 @@ func _ready() -> void:
 	await _settle()
 	_check_layout(menu, "song tab")
 
+	_check_list_rows(menu.songs_menu)
+	menu._show_filters(true)
+	await _settle()
+	_check_layout(menu, "filters")
+	menu._show_filters(false)
 	menu._show_more_modifiers(true)
 	await _settle()
 	_check_layout(menu, "more modifiers")
@@ -89,6 +100,17 @@ func _fill_worst_details(menu: MainMenu) -> void:
 	menu.level_stats.max_lines_visible = 2
 	menu.level_stats.text = "13:44 · Notes 1.00 s ahead · Swings every 0.93 s\nSwing flow: Tangled · Workout"
 	(menu.get_node("SongInfo_Label") as Label).text = "%s\n%s\nMapped by %s\nPlayed 999 times" % [LONG_NAME, LONG_NAME, LONG_NAME]
+
+## Counts the song list's whole rows in view, filling it with sample rows first (the test has one song).
+func _check_list_rows(list: SongList) -> void:
+	while list.item_count < 40:
+		list.add_item(LONG_NAME, null)
+	await _settle()
+	var view := list._view_height()
+	var shown := floori((view + SongList.ROW_SEPARATION) / (SongList.ROW_HEIGHT + SongList.ROW_SEPARATION))
+	var row_height := list._row(0).size.y
+	check(shown >= MIN_VISIBLE_ROWS and is_equal_approx(row_height, SongList.ROW_HEIGHT),
+			"song list shows %d whole rows of %d px (wants %d of %d px)" % [shown, row_height, MIN_VISIBLE_ROWS, SongList.ROW_HEIGHT])
 
 ## A few frames so containers take their sizes.
 func _settle() -> void:
