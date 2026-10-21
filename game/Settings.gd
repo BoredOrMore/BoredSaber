@@ -150,6 +150,11 @@ var bombs_enabled: bool:
 	set(value):
 		bombs_enabled = value
 		set_and_emit(&"bombs_enabled", value)
+## Walls modifier: off leaves every wall out of the song, for 5% less score (Constants.NO_WALLS_SCORE_SCALE).
+var walls_enabled: bool:
+	set(value):
+		walls_enabled = value
+		set_and_emit(&"walls_enabled", value)
 var events: bool:
 	set(value):
 		events = value
@@ -314,6 +319,7 @@ var default_values = {
 	not_music_dl = false,
 	swing_scoring = true,
 	bombs_enabled = true,
+	walls_enabled = true,
 	events = true,
 	saber_visual = 0,
 	ui_volume = 10.0,

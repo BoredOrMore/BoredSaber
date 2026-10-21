@@ -55,6 +55,8 @@ static func get_rank_key(diff_rank: int) -> int:
 		diff_rank |= Constants.DIFFICULTY_BOMBS
 	if Settings.claws:
 		diff_rank |= Constants.DIFFICULTY_CLAWS
+	if not Settings.walls_enabled:
+		diff_rank |= Constants.DIFFICULTY_NO_WALLS
 	diff_rank = diff_rank & ~Constants.DIFFICULTY_WIDTH_MASK
 	for i in range(Constants.WIDTHS.size()):
 		if Settings.width == Constants.WIDTHS[i][0]:

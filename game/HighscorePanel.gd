@@ -69,6 +69,8 @@ func _get_difficulty_name(map_info: MapInfo, diff_rank: int) -> String:
 		parts.append(Constants.FAIL_OPTIONS[0][2])
 	if diff_rank & Constants.DIFFICULTY_BOMBS == 0:
 		parts.append(Constants.NO_BOMBS_LABEL)
+	if diff_rank & Constants.DIFFICULTY_NO_WALLS != 0:
+		parts.append(Constants.NO_WALLS_LABEL)
 	if diff_rank & Constants.DIFFICULTY_ARROWS == 0:
 		parts.append(Constants.NO_ARROWS_LABEL)
 	match diff_rank & Constants.DIFFICULTY_BLOCK_SIZE_MASK:

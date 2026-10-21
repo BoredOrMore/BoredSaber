@@ -184,6 +184,9 @@ static func load_note_stack_v2(note_data: Array, rotations: Array) -> void:
 	bomb_stack.reverse()
 
 static func load_obstacle_stack_v2(obstacle_data: Array, rotations: Array) -> void:
+	if not Settings.walls_enabled:
+		obstacle_stack.clear()
+		return
 	var last_index := obstacle_data.size() - 1
 	var load_range := func(start: int, end: int) -> void:
 		var i := start
@@ -305,6 +308,9 @@ static func load_bomb_stack_v3_v4(bomb_data: Array, meta: Array, rotations: Arra
 	Utils.custom_thread_wait_to_finish(bomb_thread_1)
 
 static func load_obstacle_stack_v3_v4(obstacle_data: Array, meta: Array, rotations: Array) -> void:
+	if not Settings.walls_enabled:
+		obstacle_stack.clear()
+		return
 	var last_index := obstacle_data.size() - 1
 	var load_range := func(start: int, end: int) -> void:
 		var i := start

@@ -126,6 +126,11 @@ const DIFFICULTY_BLOCK_SIZE_MASK := 0x1000000 | 0x2000000
 const DIFFICULTY_BLOCK_SIZE_SMALL := 0x1000000
 const DIFFICULTY_BLOCK_SIZE_BIG := 0x2000000
 const DIFFICULTY_BLOCK_SIZE_GIANT := 0x1000000 | 0x2000000
+## Set in a record's rank when walls were off. 0x10000 is avoided: old records used it for small blocks.
+const DIFFICULTY_NO_WALLS := 0x4000000
+const NO_WALLS_LABEL := "No Walls"
+## Score kept with walls off, as Beat Saber's No Walls modifier (-5%, bsmg.wiki/ranking-guide.html).
+const NO_WALLS_SCORE_SCALE := 0.95
 
 # Menu colours, shared by the 3D panels (end score, buttons); keep in step with game/ui/menu_theme.tres.
 const UI_PANEL := Color(0.086, 0.094, 0.114)

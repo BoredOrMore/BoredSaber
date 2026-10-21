@@ -92,7 +92,12 @@ func note_best_score() -> float:
 func _count_note(best: float) -> void:
 	_notes_scored += 1
 	var perfect_multiplier := 1 if _notes_scored == 1 else 2 if _notes_scored <= 5 else 4 if _notes_scored <= 13 else 8
-	max_points += int(best) * perfect_multiplier
+	max_points += roundi(int(best) * perfect_multiplier * _modifier_scale())
+
+## The share of points modifiers keep: 1, or NO_WALLS_SCORE_SCALE with walls off. It scales max_points too,
+## so accuracy and rank don't change.
+func _modifier_scale() -> float:
+	return 1.0 if Settings.walls_enabled else Constants.NO_WALLS_SCORE_SCALE
 
 ## Adds a cut's points. best is the most this note could have given (0 uses a normal note's best).
 func add_points(position: Vector3, _rotation: float, amount: int, comment: String = "", best: float = 0.0) -> void:
@@ -107,7 +112,7 @@ func add_points(position: Vector3, _rotation: float, amount: int, comment: Strin
 			multiplier *= 2
 			_multiplier_progress = 0
 			raised = true
-	points += amount * multiplier
+	points += roundi(amount * multiplier * _modifier_scale())
 	
 	points_awarded.emit(position, _rotation, str(amount)+(comment if Settings.explain else ""))
 	_count_note(best if best > 0.0 else note_best_score())
