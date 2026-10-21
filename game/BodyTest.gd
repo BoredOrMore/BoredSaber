@@ -106,6 +106,8 @@ var _rep_hit_time := 0.0
 var _rep_peak_speed := 0.0
 ## Squat: lowest head height; lean: furthest head x on the cued side, during the rep.
 var _rep_extreme := 0.0
+## True once the fist left the target (punch) or the head left the wall's space (squat, lean). Squat and
+## lean keep it across reps, so staying down under the next wall doesn't count twice.
 var _rep_was_clear := false
 var _hand_right := true
 var _reach_samples: Array[float] = []
@@ -216,6 +218,7 @@ func _start_drill(drill: Drill) -> void:
 	_rep = 0
 	_step_passes = 0
 	_rep_open = false
+	_rep_was_clear = false
 	_target.visible = false
 	_bar.visible = false
 	_wall.visible = false
@@ -349,7 +352,9 @@ func _process_rep(velocities: Dictionary) -> void:
 			if not _rep_hit:
 				_rep_peak_speed = maxf(_rep_peak_speed, (velocities[_hand_right] as Vector3).dot(_forward))
 				var fist := (_game.right_controller if _hand_right else _game.left_controller).global_position
-				if fist.distance_to(_target.global_position) < TARGET_RADIUS + FIST_RADIUS:
+				if fist.distance_to(_target.global_position) >= TARGET_RADIUS + FIST_RADIUS:
+					_rep_was_clear = true
+				elif _rep_was_clear:
 					_mark_hit(elapsed)
 					(_game.right_controller if _hand_right else _game.left_controller).simple_rumble(HIT_RUMBLE, HIT_RUMBLE_SECONDS)
 	if elapsed >= _interval:
@@ -361,7 +366,8 @@ func _open_rep() -> void:
 	_rep_hit = false
 	_rep_hit_time = 0.0
 	_rep_peak_speed = 0.0
-	_rep_was_clear = false
+	if _drill != Drill.SQUAT and _drill != Drill.LEAN:
+		_rep_was_clear = false
 	match _drill:
 		Drill.PUNCH_SAME_HAND:
 			_hand_right = _rep % REPS_PER_STEP < REPS_PER_STEP >> 1
@@ -393,11 +399,14 @@ func _open_rep() -> void:
 			(_target.material_override as StandardMaterial3D).albedo_color = Settings.color_right if _hand_right else Settings.color_left
 			_target.visible = true
 
-## Records the moment the rep's move was done and hides the target.
+## Records the moment the rep's move was done and hides the target, bar or wall.
 func _mark_hit(elapsed: float) -> void:
 	_rep_hit = true
 	_rep_hit_time = elapsed
+	_rep_was_clear = false
 	_target.visible = false
+	_bar.visible = false
+	_wall.visible = false
 
 ## Logs the rep and moves on to the next rep, step or drill.
 func _close_rep() -> void:
