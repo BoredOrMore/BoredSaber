@@ -7,15 +7,16 @@ the same post chain: mono, trim leading silence, cut to length, fade out, option
 high-pass below 30 Hz only (the sub stays), 44.1 kHz 16-bit, gain to TARGET_LUFS with true peak at most
 PEAK_DBTP. Files stay dry: the Stinger bus adds the room.
 
-fail: the song is lost. The sabers power down (Stable Audio), then one clean sub thump (synthesised here, like
-    low_health in tools/make_feedback_sounds.py). 1.3 s, so it ends before the song's 1.5 s wind-down.
+saber_powerdown: a first try at the fail sound (the player picked candidate 1c, then preferred the reversed
+    ignition from tools/make_fail_sound.py, so the game does not use it). The sabers power down (Stable Audio),
+    then one clean sub thump (synthesised here, like low_health in tools/make_feedback_sounds.py). 1.3 s.
     A long "distorted glitch" prompt sounded like a jackhammer; keep prompts to one event. The first saber prompt
     came out shrill, so the prompt asks for a low hum and each candidate comes in TONES (darker by letter).
 
 Needs Stable Audio 3 (github.com/Stability-AI/stable-audio-3, weights under the Stability AI Community License)
 installed in SA3_DIR, and ffmpeg. Not a game dependency: only this tool uses it.
-    python3 tools/make_sa3_sounds.py fail            # candidates in OUT_DIR/fail/, listen and pick one
-    python3 tools/make_sa3_sounds.py fail --pick 2b  # copies candidate 2, tone b to game/data/fail.wav
+    python3 tools/make_sa3_sounds.py NAME            # candidates in OUT_DIR/NAME/, listen and pick one
+    python3 tools/make_sa3_sounds.py NAME --pick 2b  # copies candidate 2, tone b to game/data/NAME.wav
 """
 import argparse
 import json
@@ -49,7 +50,7 @@ TONES = {"a": (0, 4000, 0.0), "b": (-5, 3000, -3.0), "c": (-9, 2000, -6.0)}
 SHELF_HZ = 1500
 
 SOUNDS = {
-    "fail": {
+    "saber_powerdown": {
         "prompt": "lightsaber powering down, low deep warm hum winding down and switching off",
         "seed": 2024,
         # the Stable Audio layer is cut to this long
