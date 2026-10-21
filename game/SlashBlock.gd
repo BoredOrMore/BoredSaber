@@ -22,7 +22,7 @@ const NOTE_SIZE := 0.3
 const FALLBACK_EYES := 1.6
 ## Share of the note's size, around its centre, a saber has to cross (the player's pick: grazing an edge doesn't
 ## count). The pointer's hit area stays the whole note, as drawn.
-const SABER_HITBOX_SHARE := 0.7
+const SABER_HITBOX_SHARE := 0.85
 ## Slowest saber tip that counts as a cut, in m/s. Untuned: check on the headset that a deliberate swing
 ## cuts and resting a saber against the note doesn't.
 const MIN_TIP_SPEED := 2.0
