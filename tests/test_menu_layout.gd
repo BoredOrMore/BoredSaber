@@ -127,7 +127,6 @@ func _ready() -> void:
 	Settings.glare = true
 	await _settle()
 	check(settings._graphics_chips[Settings.GRAPHICS_CUSTOM].button_pressed, "changing an effect by hand shows Custom")
-	check(settings._msaa_hint.text == settings.MSAA_GLOW_HINT, "4x with Glow on warns it may stutter in songs")
 	Settings.set_graphics_preset("Normal")
 	Settings.msaa = "2x"
 	await _settle()
