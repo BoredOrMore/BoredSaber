@@ -22,9 +22,13 @@ const HEIGHT := 376
 ## The blur passes: [size relative to the glow image, upsample]. Halving twice then doubling back keeps the glow
 ## wide but smooth (a single downsample read straight at full screen showed its texels as soft blotches).
 const BLUR_CHAIN := [[0.5, false], [0.25, false], [0.5, true]]
-const INTENSITY := 0.8
-## How much of the tight halo (the first downsample) the up pass adds to the wide one.
-const TIGHT_HALO := 0.8
+const INTENSITY := 1.0
+## The up pass: the tight halo (the first downsample) added back to the wide one, mostly tight so the glow hugs the
+## bars instead of spreading like fog.
+const TIGHT_HALO := 1.0
+const WIDE_HALO := 0.35
+## Light under this (in the glow image) doesn't glow: only the bars' bright cores do.
+const THRESHOLD := 0.1
 const NEAR := 0.05
 const FAR := 1000.0
 
@@ -38,6 +42,9 @@ uniform bool up = false;
 // for an up pass: the down pass of its size, added back as a tight inner halo around the wide one
 uniform sampler2D detail : filter_linear, repeat_disable;
 uniform float detail_weight = 0.0;
+uniform float wide_weight = 1.0;
+// for the first pass: light below this doesn't glow (the bars' faint halo and drifting beam would bloom into fog)
+uniform float threshold = 0.0;
 void fragment() {
 	vec3 sum;
 	if (up) {
@@ -45,12 +52,12 @@ void fragment() {
 			+ texture(source, UV + vec2(0.0, -texel.y * 2.0)).rgb + texture(source, UV + vec2(0.0, texel.y * 2.0)).rgb
 			+ (texture(source, UV + vec2(-texel.x, -texel.y)).rgb + texture(source, UV + vec2(texel.x, -texel.y)).rgb
 			+ texture(source, UV + vec2(-texel.x, texel.y)).rgb + texture(source, UV + vec2(texel.x, texel.y)).rgb) * 2.0;
-		sum = sum / 12.0 + texture(detail, UV).rgb * detail_weight;
+		sum = sum / 12.0 * wide_weight + texture(detail, UV).rgb * detail_weight;
 	} else {
 		sum = texture(source, UV).rgb * 4.0
 			+ texture(source, UV + vec2(-texel.x, -texel.y)).rgb + texture(source, UV + vec2(texel.x, -texel.y)).rgb
 			+ texture(source, UV + vec2(-texel.x, texel.y)).rgb + texture(source, UV + vec2(texel.x, texel.y)).rgb;
-		sum /= 8.0;
+		sum = max(sum / 8.0 - vec3(threshold), vec3(0.0));
 	}
 	COLOR = vec4(sum, 1.0);
 }
@@ -135,6 +142,9 @@ func _ready() -> void:
 		material.shader = blur_shader
 		material.set_shader_parameter(&"source", source)
 		material.set_shader_parameter(&"up", pass_[1])
+		material.set_shader_parameter(&"wide_weight", WIDE_HALO)
+		if _blurs.is_empty():
+			material.set_shader_parameter(&"threshold", THRESHOLD)
 		if pass_[1]:
 			# the down pass of the same size
 			for i in _blurs.size():
