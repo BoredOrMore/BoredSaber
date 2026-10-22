@@ -365,7 +365,8 @@ var default_values = {
 	color_right = COLOR_PRESETS[0][2],
 	saber_tail = true,
 	gradual_rotation = 0,
-	glare = false,
+	# first-run effects match the Normal graphics preset
+	glare = true,
 	smoke = true,
 	show_debug_info = false,
 	mixed_reality = false,
@@ -429,12 +430,21 @@ func set_and_emit(key: StringName, value: Variant) -> void:
 
 # load() is the name of a built-in function,
 # so i went with the next best thing.
+## Marks a config written since glow is on by default (see reload).
+const GLOW_DEFAULT_ON := "glow_default_on"
+
 func reload() -> void:
 	var config_error := config.load(CONFIG_PATH)
 	if config_error != OK:
 		vr.log_file_error(config_error, CONFIG_PATH, "reload() in Settings.gd")
 		return
 	
+	# Glow was off by default until the defaults became the Normal preset: a player who left it at that default
+	# (not saved) keeps it off, once.
+	if not config.has_section_key(SECTION, GLOW_DEFAULT_ON):
+		if not config.has_section_key(SECTION, "glare"):
+			config.set_value(SECTION, "glare", false)
+		config.set_value(SECTION, GLOW_DEFAULT_ON, true)
 	for key in default_values:
 		set(key, cast_or_default(key))
 
@@ -451,6 +461,7 @@ func restore_defaults() -> void:
 	var kept_players := players.duplicate(true)
 	var kept_name := player_name
 	config.clear()
+	config.set_value(SECTION, GLOW_DEFAULT_ON, true)
 	save()
 	reload()
 	preloaded_songs = samples_copied
