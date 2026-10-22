@@ -42,6 +42,9 @@ const float SIDE_SCALE = 0.25;
 const float RING_GAIN = 1.6;
 const float SUN_GAIN = 1.4;
 const float CORE_WHITE = 0.7;
+// The sun never goes out (the player wants it kept as the scene's focal point): with the centre lights off it
+// stays at SUN_FLOOR of full brightness in their last colour, and rises from there as they turn on or flash.
+const float SUN_FLOOR = 0.4;
 
 // A light's colour where it traces a shape: toward white where the mask (0..1) is strongest.
 vec3 traced(vec3 tint, float mask) {
@@ -59,7 +62,7 @@ void fragment() {
 		mediump vec2 soft = texture(soft_masks, band_uv).rg;
 		mediump vec3 side_light = mix(bg_3_tint.rgb * bg_3_intensity, bg_2_tint.rgb * bg_2_intensity, step(0.5, UV.x));
 		ALBEDO = env_haze.rgb * (sharp.r * HAZE_SCALE)
-				+ traced(bg_4_tint.rgb, sharp.g) * (bg_4_intensity * sharp.g * SUN_SCALE * SUN_GAIN)
+				+ traced(bg_4_tint.rgb, sharp.g) * (mix(SUN_FLOOR, 1.0, bg_4_intensity) * sharp.g * SUN_SCALE * SUN_GAIN)
 				+ traced(bg_1_tint.rgb, sharp.b) * (bg_1_intensity * sharp.b * RING_SCALE * RING_GAIN)
 				+ bg_0_tint.rgb * (bg_0_intensity * soft.r * BAND_SCALE)
 				+ side_light * (soft.g * SIDE_SCALE);
