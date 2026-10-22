@@ -16,7 +16,7 @@ SKIP_SECONDS = 2
 
 stamp = re.compile(r"^\d\d-\d\d (\d\d):(\d\d):(\d\d)\.(\d+)")
 bench = re.compile(r"BENCH (start|end) (\S+)")
-metric = re.compile(r"FPS=(\d+)/(\d+),.*FrmCpu=([\d.]+)ms,FrmGpu=([\d.]+)ms")
+metric = re.compile(r"FPS=(\d+)/(\d+),.*FrmCpu=([\d.]+)ms,FrmGpu=([\d.]+)ms.*?(?:GPUTemp=([\d.]+)C)?")
 
 
 def seconds(line):
@@ -39,10 +39,11 @@ def main(path):
             continue
         m = metric.search(line)
         if m and "Pkg=" + PKG in line:
-            samples.append((t, int(m[1]), int(m[2]), float(m[3]), float(m[4])))
+            temp = re.search(r"GPUTemp=([\d.]+)C", line)
+            samples.append((t, int(m[1]), int(m[2]), float(m[3]), float(m[4]), float(temp[1]) if temp else 0.0))
     if not phases:
         sys.exit("no BENCH phases in " + path)
-    print(f"{'phase':28} {'GPU ms':>7} {'max':>6} {'missed':>7} {'s over':>7} {'CPU ms':>7} {'n':>3}")
+    print(f"{'phase':28} {'GPU ms':>7} {'median':>6} {'p95':>6} {'max':>6} {'missed':>7} {'s over':>7} {'CPU ms':>7} {'temp':>5} {'n':>3}")
     for name, start, end in phases:
         rows = [s for s in samples if start + SKIP_SECONDS <= s[0] <= end]
         if not rows:
@@ -52,7 +53,10 @@ def main(path):
         late = 100 * sum(r[2] - r[1] for r in rows) / sum(r[2] for r in rows)
         over = 100 * sum(g > BUDGET_MS for g in gpu) / len(gpu)
         cpu = sum(r[3] for r in rows) / len(rows)
-        print(f"{name:28} {sum(gpu) / len(gpu):7.2f} {max(gpu):6.2f} {late:6.1f}% {over:6.0f}% {cpu:7.2f} {len(rows):3}")
+        ordered = sorted(gpu)
+        median = ordered[len(ordered) // 2]
+        p95 = ordered[min(len(ordered) - 1, int(len(ordered) * 0.95))]
+        print(f"{name:28} {sum(gpu) / len(gpu):7.2f} {median:6.2f} {p95:6.2f} {max(gpu):6.2f} {late:6.1f}% {over:6.0f}% {cpu:7.2f} {rows[-1][5]:5.1f} {len(rows):3}")
 
 
 if __name__ == "__main__":

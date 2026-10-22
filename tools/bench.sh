@@ -4,6 +4,7 @@
 # proximity sensor) for the whole run: with the display off nothing is rendered.
 # --only resolution: just the render scale phases (about 3 minutes).
 # --only msaa: just the anti-aliasing phases, in a song (about 2.5 minutes).
+# --only glowb: just the glow phases, in a song (about 3.5 minutes).
 set -e
 MODE=
 if [ "$1" = "--only" ]; then MODE=$2; shift 2; fi

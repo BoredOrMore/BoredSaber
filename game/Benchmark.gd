@@ -29,6 +29,10 @@ const RESOLUTION := "resolution"
 ## (where glow shows) on Normal and on Low at 1x, then 4x on Low at Sharp (1.2x).
 const MSAA := "msaa"
 const MSAA_SONG_SECONDS := 20.0
+## The flag file's mode for the glow phases (tools/bench.sh --only glowb), each in a song at 1x on Normal: no glow,
+## Godot's, neutral adjustments alone (the internal buffer Godot's glow needs), foveation off and high without glow,
+## LowResGlow's parts (SubViewports, + blur, full), and the full LowResGlow with 4x MSAA and at Sharp (1.2x).
+const GLOWB := "glowb"
 const RENDER_SCALES: Array[float] = [1.0, 1.2, 1.44]
 const RESOLUTION_SONG_SECONDS := 20.0
 ## The progress label and Cancel: left of the song menu, facing the player, at eye height.
@@ -101,6 +105,25 @@ static func restore_interrupted() -> void:
 ## The phases in order: [name, per-frame tick, setup, seconds, plays the song], each followed by the restore.
 func _phases(mode: String) -> Array:
 	var openxr := XRServer.find_interface("OpenXR") as OpenXRInterface
+	if mode == GLOWB:
+		var G := BeepSaber_Game.Glow
+		var glow_phases := [
+			["glow_off", G.NONE, -1, Viewport.MSAA_DISABLED, 1.0],
+			["godot_glow", G.GODOT, -1, Viewport.MSAA_DISABLED, 1.0],
+			["adjustments_only", G.ADJUSTMENTS_ONLY, -1, Viewport.MSAA_DISABLED, 1.0],
+			["glow_off_foveation_0", G.NONE, 0, Viewport.MSAA_DISABLED, 1.0],
+			["glow_off_foveation_3", G.NONE, 3, Viewport.MSAA_DISABLED, 1.0],
+			["new_viewports_only", G.NEW_VIEWPORTS_ONLY, -1, Viewport.MSAA_DISABLED, 1.0],
+			["new_with_blur", G.NEW_WITH_BLUR, -1, Viewport.MSAA_DISABLED, 1.0],
+			["new_glow", G.NEW, -1, Viewport.MSAA_DISABLED, 1.0],
+			["new_glow_msaa_4x", G.NEW, -1, Viewport.MSAA_4X, 1.0],
+			["new_glow_sharp", G.NEW, -1, Viewport.MSAA_DISABLED, 1.2],
+		]
+		var phases := []
+		for phase: Array in glow_phases:
+			phases.append([phase[0] + "_song", Callable(), _set_glow.bind(phase[1], phase[2], phase[3], phase[4]),
+					MSAA_SONG_SECONDS, true])
+		return phases
 	if mode == MSAA:
 		var phases := []
 		for preset: String in ["Normal", "Low"]:
@@ -195,6 +218,8 @@ func run(mode := "") -> void:
 		_phase_index += 1
 		await _phase(phase[0], phase[1], phase[2], phase[3] if phase.size() > 3 else PHASE_SECONDS, phase.size() > 4)
 	_restore()
+	game.glow_override = -1
+	game._apply_glow()
 	game.get_viewport().msaa_3d = Settings.msaa_mode()
 	Settings.save()
 	DirAccess.remove_absolute(Constants.APPDATA_PATH + BACKUP_FILE)
@@ -237,6 +262,16 @@ func _set_view(preset: String, msaa: Viewport.MSAA, scale: float) -> void:
 	var openxr := XRServer.find_interface("OpenXR") as OpenXRInterface
 	if openxr:
 		openxr.render_target_size_multiplier = scale
+
+## Sets the glow (BeepSaber_Game.Glow), foveation (-1: as it is), anti-aliasing and render scale for a phase, on
+## Normal; all put back at the end of the run.
+func _set_glow(glow: int, foveation: int, msaa: Viewport.MSAA, scale: float) -> void:
+	_set_view("Normal", msaa, scale)
+	game.glow_override = glow
+	game._apply_glow()
+	var openxr := XRServer.find_interface("OpenXR") as OpenXRInterface
+	if openxr and foveation >= 0:
+		openxr.foveation_level = foveation
 
 ## Waits, or less if cancelled.
 func _wait(seconds: float) -> void:
