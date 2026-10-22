@@ -389,19 +389,19 @@ func _add_glow_style_row() -> void:
 	advanced.add_child(row)
 	advanced.move_child(row, show_debug_control.get_index())
 	UI_AudioEngine.attach_children(row)
-	# the glow image's height, to compare on the headset (not saved)
+	# the glow image's size, MSAA and blur chain (LowResGlow.QUALITIES), to compare on the headset (not saved)
 	var size_row := HBoxContainer.new()
 	var size_label := Label.new()
-	size_label.text = "Glow resolution"
+	size_label.text = "Glow quality"
 	size_label.custom_minimum_size = row_label.custom_minimum_size
 	size_label.add_theme_stylebox_override(&"normal", row_label.get_theme_stylebox(&"normal"))
 	size_row.add_child(size_label)
 	var sizes := OptionButton.new()
 	sizes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for h in LowResGlow.HEIGHTS:
-		sizes.add_item("%d px" % h)
-	sizes.selected = LowResGlow.HEIGHTS.find(LowResGlow.height)
-	sizes.item_selected.connect(func(index: int) -> void: LowResGlow.height = LowResGlow.HEIGHTS[index])
+	for quality: Array in LowResGlow.QUALITIES:
+		sizes.add_item(quality[0])
+	sizes.selected = 0
+	sizes.item_selected.connect(LowResGlow.set_quality)
 	size_row.add_child(sizes)
 	advanced.add_child(size_row)
 	advanced.move_child(size_row, row.get_index() + 1)

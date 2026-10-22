@@ -18,7 +18,17 @@ class_name LowResGlow
 ## The visual layer (bit 11) glow sources carry besides their own.
 const GLOW_LAYER := 1 << 10
 ## 376 px: at 188 thin beams broke up and the upscaled glow looked smoky; the passes measured near free.
-const HEIGHTS: Array[int] = [376, 564, 752]
+## Debug choices in Settings > Advanced "Glow quality": [label, height, MSAA in the glow image, short blur chain].
+## Measured in a song against no glow next to it: 752 full +1.3 ms, 752 without MSAA and short +1.2, 564 without MSAA
+## and short +0.2, the older 376 +1.2 (the run-to-run spread is about 1 ms).
+const QUALITIES := [["752 px, MSAA, full blur", 752, true, false], ["752 px, no MSAA, short blur", 752, false, true],
+		["564 px, no MSAA, short blur", 564, false, true], ["376 px, MSAA, full blur", 376, true, false]]
+
+static func set_quality(index: int) -> void:
+	height = QUALITIES[index][1]
+	view_msaa = QUALITIES[index][2]
+	short_chain = QUALITIES[index][3]
+
 ## The glow image's height in px (its width follows the frustum, so texels are square); a debug choice in Settings >
 ## Advanced while the stripes are compared on the headset. 752 (with the B-spline upsample): at 376 a glow texel
 ## spans about 7 eye pixels and the bilinear steps between them showed as vertical bands sliding as the head turned
