@@ -143,6 +143,8 @@ constant with its role, or reuse one.
 - Danger colour (`DANGER_COLOR`, Beat Saber's wall red, or the map's wall colour) means "dodge or
   you'll lose": walls, bombs, wall-hit feedback, low health. Never use it for decoration or menus.
 - `MISS_COLOR` is only for misses and mistakes.
+- `UI_DANGER` (soft red) is for a menu asking before it deletes or resets something, and for the song menu's
+  warning icon (play area, battery, heat, breaks); always with words or a "!".
 - `UI_ACCENT` (cyan) means "selected, active or the main action": the active tab or option, the
   selected song, the Play button. Don't use it for plain decoration or for warnings.
 - Neutrals (`UI_PANEL`, `UI_SURFACE*`, `UI_BORDER`, `UI_TEXT`, `UI_TEXT_MUTED`) for everything else.

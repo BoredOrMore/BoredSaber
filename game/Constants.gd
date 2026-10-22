@@ -141,7 +141,8 @@ const UI_BORDER := Color(0.208, 0.227, 0.271)
 const UI_ACCENT := Color(0.37, 0.78, 0.94)
 const UI_TEXT := Color(0.894, 0.902, 0.922)
 const UI_TEXT_MUTED := Color(0.6, 0.63, 0.67)
-## Text of a button asking before it deletes or resets something (ConfirmButton).
+## Text of a button asking before it deletes or resets something (ConfirmButton), and the song menu's warning icon
+## (WarningIcon: something may hurt the player or the headset), always with its "!" or words.
 const UI_DANGER := Color(1.0, 0.45, 0.4)
 ## Health strips when full: the light UI text tinted toward the accent. They shift to the song's danger colour as health drops.
 const HEALTH_FULL_COLOR := Color(0.74, 0.86, 0.93)

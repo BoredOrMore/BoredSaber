@@ -428,6 +428,10 @@ func _ready() -> void:
 	beatsaver_canvas.visibility_changed.connect(_on_beatsaver_visibility_changed)
 	# from Settings: back to the song menu, which is what it measures
 	Benchmark.restore_interrupted()
+	var warnings := WarningIcon.new()
+	warnings.name = &"WarningIcon"
+	warnings.game = self
+	add_child(warnings)
 	settings_panel.benchmark_requested.connect(func() -> void:
 		_on_settings_Panel_apply()
 		_start_benchmark())
@@ -528,7 +532,12 @@ var _smooth_bad_seconds := 0
 ## The resolution was lowered during this song (shown on its end screen).
 var _lowered_resolution := false
 
+## Seconds of songs played this session (WarningIcon suggests a break after 30 minutes).
+var played_seconds := 0.0
+
 func _process(delta: float) -> void:
+	if gamestate == gamestate_playing:
+		played_seconds += delta
 	if gamestate != gamestate_playing or Settings.render_scale() <= Settings._resolution_scale(SMOOTH_FALLBACK) \
 			or has_node(^"Benchmark"):
 		_smooth_frames = 0

@@ -139,6 +139,11 @@ func _ready() -> void:
 	check(flashed == EventDriver.MAX_FLASHES_PER_SECOND, "a light group flashes at most %d times a second (flashed %d of 6)" % [EventDriver.MAX_FLASHES_PER_SECOND, flashed])
 	lights.queue_free()
 
+	# the play area warning: a 2 m square guardian leaves 1 m from its middle to an edge
+	var square := PackedVector2Array([Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)])
+	check(is_equal_approx(WarningIcon._distance_to_edge(Vector2.ZERO, square), 1.0) and WarningIcon._distance_to_edge(Vector2(0.5, 0), square) < WarningIcon.REACH,
+			"the play area check measures the way to the guardian's nearest edge")
+
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
