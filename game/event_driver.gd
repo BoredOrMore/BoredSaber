@@ -257,13 +257,14 @@ func _apply_stinger_room(id: String) -> void:
 			target.set(property, room[effect][property])
 
 ## Each environment hangs the same five light groups (so a map's light show still drives them) on its own rig, so
-## the stages don't all look alike: Classic keeps Beat Saber's layout; Neon Grid fans its diagonal lasers out from
-## one point on the horizon, lines its waving lasers along the grid's edges and hangs the square bars far above
+## the stages don't all look alike: Classic keeps Beat Saber's layout; Neon Grid fans its diagonal lasers outward
+## from a stage on each side of the sun, lines its waving lasers along the grid's edges and hangs the square bars far above
 ## the horizon; Night City sweeps its waving lasers like searchlights from far beside the track and crosses its
 ## diagonal beams from rooftop height; Pulse Void mounts its lights on its rings: the diagonal lasers run as rails
 ## from the nearest ring to the farthest, and the waving lasers stand on the rings' upper sides. Every beam starts at its fixture and turns around it (game/AGENTS.md). Positions in metres, untuned.
-const RIG_FAN_ORIGIN := Vector3(0.0, NeonGridRig.STAGE_TOP, NeonGridRig.STAGE_CENTRE.z)
-const RIG_FAN_SPREAD_DEG := 70.0
+## Each side's fan: from its stage, leaning RIG_FAN_MIN_DEG..RIG_FAN_MAX_DEG away from the track (never toward the sun).
+const RIG_FAN_MIN_DEG := 5.0
+const RIG_FAN_MAX_DEG := 70.0
 const RIG_GRID_EDGE_X := NeonGridRig.POLE_X
 ## Neon Grid's square bars: the horizontal ones become light rails between neighbouring lamp poles, along the
 ## track; the vertical ones are left out there, as the poles are shorter than a bar.
@@ -313,7 +314,7 @@ static func _span(laser: Node3D, from: Vector3, to: Vector3) -> void:
 	var b := laser.global_transform.basis
 	laser.global_transform.basis = Basis(b.x, b.y, b.z.normalized() * from.distance_to(to) / reach)
 
-## Hangs the lights on the environment's rig (see RIG_FAN_ORIGIN).
+## Hangs the lights on the environment's rig (see RIG_FAN_MIN_DEG).
 func _apply_rig(id: String) -> void:
 	for node: Node3D in _classic_rig:
 		if node == square_lasers_holder:
@@ -328,9 +329,12 @@ func _apply_rig(id: String) -> void:
 	var half := waving.size() / 2
 	match id:
 		"neon_grid":
+			var per_side := diagonal_lasers.size() >> 1
 			for i in diagonal_lasers.size():
-				var a := deg_to_rad(lerpf(-RIG_FAN_SPREAD_DEG, RIG_FAN_SPREAD_DEG, float(i) / (diagonal_lasers.size() - 1)))
-				_aim(diagonal_lasers[i], RIG_FAN_ORIGIN, Vector3(sin(a), cos(a), -0.15))
+				var side := -1.0 if i < per_side else 1.0
+				var a := deg_to_rad(lerpf(RIG_FAN_MIN_DEG, RIG_FAN_MAX_DEG, float(i % per_side) / maxi(per_side - 1, 1)))
+				_aim(diagonal_lasers[i], Vector3(side * NeonGridRig.STAGE_X, NeonGridRig.STAGE_TOP, NeonGridRig.STAGE_CENTRE_Z),
+						Vector3(side * sin(a), cos(a), -0.15))
 			for i in waving.size():
 				var side := -1.0 if i < half else 1.0
 				waving[i].global_position = Vector3(side * RIG_GRID_EDGE_X, NeonGridRig.POLE_HEIGHT, NeonGridRig.POLE_Z[i % half])
