@@ -55,4 +55,14 @@ func ui_raycast_hit_event(pos: Vector3, click: bool, release: bool) -> void:
 ## The pointer left the panel: logged, and the next hit starts a new pointing.
 func ui_raycast_exit() -> void:
 	print("Pointer off %s" % parent.name)
+	# a press can't end off the panel: let go here, or a drag stays latched until the next press
+	if _held and last_pos2d != Vector2(INF, INF):
+		var e := InputEventMouseButton.new()
+		e.pressed = false
+		e.button_index = MOUSE_BUTTON_LEFT
+		e.position = last_pos2d
+		e.global_position = last_pos2d
+		viewport.push_input(e)
+		parent._input_update()
+		_held = false
 	last_pos2d = Vector2(INF, INF)
