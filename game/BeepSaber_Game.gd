@@ -253,6 +253,7 @@ func _fail_song() -> void:
 # the provided 'next_state'.
 func _transition_game_state(next_state: GameState) -> void:
 	gamestate = next_state
+	_apply_glow()
 	_update_low_health_sound()
 	# the scene only lights up for the combo while a map is on
 	if gamestate != gamestate_playing and gamestate != gamestate_paused:
@@ -411,7 +412,7 @@ func _ready() -> void:
 
 	_show_debug_info()
 	set_colors_from_settings()
-	($WorldEnvironment as WorldEnvironment).environment.glow_enabled = Settings.glare
+	_apply_glow()
 	_apply_note_style()
 	_apply_environment()
 	# the scenery shaders tint their own shadows (game/env/shadow_tone.gdshaderinc)
@@ -511,6 +512,12 @@ func set_background_texture() -> void:
 	var panorama : PanoramaSkyMaterial = environment.sky.sky_material 
 	panorama.panorama = load(Settings.background_texture)	
 	
+## Glow (Settings.glare) only while a song plays or is paused: in the menus it cost about 6 of the 13.9 ms frame
+## (measured on the headset) for little to see; the saved setting stays as the player set it.
+func _apply_glow() -> void:
+	var song := gamestate == gamestate_playing or gamestate == gamestate_paused
+	($WorldEnvironment as WorldEnvironment).environment.glow_enabled = Settings.glare and song
+
 ## Sets the OpenXR render scale to Settings.render_scale() if it differs (the runtime then remakes its eye buffers).
 func _apply_render_scale() -> void:
 	var openxr := XRServer.find_interface("OpenXR") as OpenXRInterface
@@ -588,7 +595,7 @@ func on_settings_changed(key: StringName) -> void:
 		&"show_debug_info":
 			_show_debug_info()
 		&"glare":
-			($WorldEnvironment as WorldEnvironment).environment.glow_enabled = Settings.glare
+			_apply_glow()
 		&"note_style", &"darker_notes":
 			_apply_note_style()
 		&"environment":
