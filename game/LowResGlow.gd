@@ -34,6 +34,10 @@ const BLUR_CHAIN := [[0.5, Pass.DOWN], [0.25, Pass.DOWN], [0.5, Pass.UP], [1.0, 
 ## Where the glow is magnified: "pass" (the BSPLINE pass, the default), "composite" (B-spline in the composite, the
 ## older way, for the benchmark) or "none" (one bilinear tap of the up pass; DebugView.GLOW_BICUBIC).
 static var upsample := "pass"
+## Benchmark switches: 4x MSAA in the glow image (thin bars don't break into dashes), and the short chain, which
+## skips the quarter-size down and up passes (the B-spline pass then reads the first downsample).
+static var view_msaa := true
+static var short_chain := false
 const INTENSITY := 1.0
 ## The up pass: the tight halo (the first downsample) added back to the wide one, mostly tight so the glow hugs the
 ## bars instead of spreading like fog.
@@ -278,6 +282,10 @@ func _apply_stage() -> void:
 	# the B-spline pass only when the composite reads it
 	if _upsample_shown != "pass":
 		_blurs[-1].render_target_update_mode = SubViewport.UPDATE_DISABLED
+	if _short_shown:
+		_blurs[1].render_target_update_mode = SubViewport.UPDATE_DISABLED
+		_blurs[2].render_target_update_mode = SubViewport.UPDATE_DISABLED
+	_blur_materials[-1].set_shader_parameter(&"source", (_blurs[0] if _short_shown else _blurs[2]).get_texture())
 	_quad.visible = shown and stage >= 3
 
 func _process(_delta: float) -> void:
@@ -308,10 +316,12 @@ func _process(_delta: float) -> void:
 	_quad_material.set_shader_parameter(&"debug", debug)
 	_quad_material.set_shader_parameter(&"dither", DebugView.flags & DebugView.GLOW_DITHER != 0)
 	var mode := "none" if DebugView.flags & DebugView.GLOW_BICUBIC != 0 else upsample
-	if mode != _upsample_shown:
+	if mode != _upsample_shown or short_chain != _short_shown:
 		_upsample_shown = mode
+		_short_shown = short_chain
 		_apply_stage()
-	var read := _blurs[-1] if mode == "pass" else _blurs[-2]
+	_view.msaa_3d = Viewport.MSAA_4X if view_msaa else Viewport.MSAA_DISABLED
+	var read := _blurs[-1] if mode == "pass" else (_blurs[0] if _short_shown else _blurs[2])
 	_quad_material.set_shader_parameter(&"glow", read.get_texture())
 	_quad_material.set_shader_parameter(&"bicubic", mode == "composite")
 	_quad_material.set_shader_parameter(&"glow_size", Vector2(read.size))
@@ -324,6 +334,7 @@ func _process(_delta: float) -> void:
 var _foveation_before := -1
 ## The upsample in use (upsample, or "none" while DebugView.GLOW_BICUBIC is on).
 var _upsample_shown := "pass"
+var _short_shown := false
 
 func _test_foveation(xr: XRInterface, off: bool) -> void:
 	var openxr := xr as OpenXRInterface

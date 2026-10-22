@@ -29,10 +29,9 @@ const RESOLUTION := "resolution"
 ## (where glow shows) on Normal and on Low at 1x, then 4x on Low at Sharp (1.2x).
 const MSAA := "msaa"
 const MSAA_SONG_SECONDS := 20.0
-## The flag file's mode for the glow phases (tools/bench.sh --only glowb), each in a song on Normal, with no glow
-## between each pair: Godot's glow, neutral adjustments alone (the internal buffer Godot's glow needs), LowResGlow at
-## 752 and 564 px with its B-spline in a pass, at 752 with it in the composite (the older way), and at 752 with 4x
-## MSAA and at Sharp (1.2x).
+## The flag file's mode for the glow phases (tools/bench.sh --only glowb), each in a song on Normal at 1x, with no
+## glow between each pair: LowResGlow's parts at 752 px (the glow image with and without its MSAA, + the full or short
+## blur chain), the full glow, the cheapest combination at 752 and 564, and the older 376 px single tap.
 const GLOWB := "glowb"
 const RENDER_SCALES: Array[float] = [1.0, 1.2, 1.44]
 const RESOLUTION_SONG_SECONDS := 20.0
@@ -109,24 +108,25 @@ func _phases(mode: String) -> Array:
 	if mode == GLOWB:
 		var G := BeepSaber_Game.Glow
 		# A no-glow phase between each pair (the headset warms up through a run, so each is compared with the no-glow
-		# phases next to it): [name, glow, foveation, MSAA, render scale, glow image height, upsample]
+		# phases next to it): [name, glow, glow image MSAA, short blur chain, glow image height, upsample]
 		var tested := [
-			["godot_glow", G.GODOT, -1, Viewport.MSAA_DISABLED, 1.0, 752, "pass"],
-			["adjustments_only", G.ADJUSTMENTS_ONLY, -1, Viewport.MSAA_DISABLED, 1.0, 752, "pass"],
-			["new_752_upsample_pass", G.NEW, -1, Viewport.MSAA_DISABLED, 1.0, 752, "pass"],
-			["new_564_upsample_pass", G.NEW, -1, Viewport.MSAA_DISABLED, 1.0, 564, "pass"],
-			["new_752_upsample_composite", G.NEW, -1, Viewport.MSAA_DISABLED, 1.0, 752, "composite"],
-			["new_752_msaa_4x", G.NEW, -1, Viewport.MSAA_4X, 1.0, 752, "pass"],
-			["new_752_sharp", G.NEW, -1, Viewport.MSAA_DISABLED, 1.2, 752, "pass"],
+			["new_752_view_msaa", G.NEW_VIEWPORTS_ONLY, true, false, 752, "pass"],
+			["new_752_view_no_msaa", G.NEW_VIEWPORTS_ONLY, false, false, 752, "pass"],
+			["new_752_blur_full_chain", G.NEW_WITH_BLUR, true, false, 752, "pass"],
+			["new_752_blur_short_chain", G.NEW_WITH_BLUR, true, true, 752, "pass"],
+			["new_752_full", G.NEW, true, false, 752, "pass"],
+			["new_752_cheapest", G.NEW, false, true, 752, "pass"],
+			["new_564_cheapest", G.NEW, false, true, 564, "pass"],
+			["new_376_old_single_tap", G.NEW, true, false, 376, "none"],
 		]
 		var glow_phases := []
 		for i in tested.size():
-			glow_phases.append(["glow_off_%d" % i, G.NONE, -1, Viewport.MSAA_DISABLED, 1.0, 752, "pass"])
+			glow_phases.append(["glow_off_%d" % i, G.NONE, true, false, 752, "pass"])
 			glow_phases.append(tested[i])
-		glow_phases.append(["glow_off_%d" % tested.size(), G.NONE, -1, Viewport.MSAA_DISABLED, 1.0, 752, "pass"])
+		glow_phases.append(["glow_off_%d" % tested.size(), G.NONE, true, false, 752, "pass"])
 		var phases := []
 		for phase: Array in glow_phases:
-			phases.append([phase[0] + "_song", Callable(), _set_glow.bind(phase[1], phase[2], phase[3], phase[4], phase[5], phase[6]),
+			phases.append([phase[0] + "_song", Callable(), _set_glow.bind(phase[1], phase[2], phase[3], phase[4], phase[5]),
 					MSAA_SONG_SECONDS, true])
 		return phases
 	if mode == MSAA:
@@ -226,6 +226,8 @@ func run(mode := "") -> void:
 	game.glow_override = -1
 	LowResGlow.height = 752
 	LowResGlow.upsample = "pass"
+	LowResGlow.view_msaa = true
+	LowResGlow.short_chain = false
 	game._apply_glow()
 	game.get_viewport().msaa_3d = Settings.msaa_mode()
 	Settings.save()
@@ -270,17 +272,16 @@ func _set_view(preset: String, msaa: Viewport.MSAA, scale: float) -> void:
 	if openxr:
 		openxr.render_target_size_multiplier = scale
 
-## Sets the glow (BeepSaber_Game.Glow), foveation (-1: as it is), anti-aliasing and render scale for a phase, on
-## Normal; all put back at the end of the run.
-func _set_glow(glow: int, foveation: int, msaa: Viewport.MSAA, scale: float, height: int, upsample: String) -> void:
-	_set_view("Normal", msaa, scale)
+## Sets the glow (BeepSaber_Game.Glow) and LowResGlow's switches for a phase, on Normal at 1x without MSAA; all put
+## back at the end of the run.
+func _set_glow(glow: int, view_msaa: bool, short_chain: bool, height: int, upsample: String) -> void:
+	_set_view("Normal", Viewport.MSAA_DISABLED, 1.0)
+	LowResGlow.view_msaa = view_msaa
+	LowResGlow.short_chain = short_chain
 	LowResGlow.height = height
 	LowResGlow.upsample = upsample
 	game.glow_override = glow
 	game._apply_glow()
-	var openxr := XRServer.find_interface("OpenXR") as OpenXRInterface
-	if openxr and foveation >= 0:
-		openxr.foveation_level = foveation
 
 ## Waits, or less if cancelled.
 func _wait(seconds: float) -> void:
