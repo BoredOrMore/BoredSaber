@@ -20,9 +20,10 @@ const GLOW_LAYER := 1 << 10
 ## 376 px: at 188 thin beams broke up and the upscaled glow looked smoky; the passes measured near free.
 const HEIGHTS: Array[int] = [376, 564, 752]
 ## The glow image's height in px (its width follows the frustum, so texels are square); a debug choice in Settings >
-## Advanced while the stripes are compared on the headset. 564: at 376 a glow texel spans about 7 eye pixels, and
-## the bilinear steps between them showed as vertical bands sliding as the head turned or a bar swept.
-static var height := 564
+## Advanced while the stripes are compared on the headset. 752 (with the B-spline upsample): at 376 a glow texel
+## spans about 7 eye pixels and the bilinear steps between them showed as vertical bands sliding as the head turned
+## or a bar swept; the player found 564 good and 752 best.
+static var height := 752
 ## The blur passes: [size relative to the glow image, upsample]. Halving twice then doubling back keeps the glow
 ## wide but smooth (a single downsample read straight at full screen showed its texels as soft blotches).
 const BLUR_CHAIN := [[0.5, false], [0.25, false], [0.5, true]]
@@ -74,7 +75,7 @@ void fragment() {
 
 const COMPOSITE_SHADER := """
 shader_type spatial;
-render_mode unshaded, blend_add, depth_test_disabled, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
+render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 uniform sampler2D glow : filter_linear, repeat_disable, source_color;
 // DebugView.GLOW_ALIGN: the unblurred glow image, solid magenta, to see where it lands
 uniform sampler2D raw : filter_nearest, repeat_disable, source_color;
@@ -82,7 +83,7 @@ uniform bool debug = false;
 // DebugView A/B tests: a 4x4 Bayer dither of half an 8-bit step, and a B-spline upsample (Sigg and Hadwiger,
 // GPU Gems 2 ch. 20: four bilinear taps) of the glow image, glow_size texels big
 uniform bool dither = false;
-uniform bool bicubic = false;
+uniform bool bicubic = true;
 uniform vec2 glow_size = vec2(188.0);
 vec3 bspline(vec2 uv) {
 	vec2 p = uv * glow_size - 0.5;
@@ -104,11 +105,17 @@ vec3 bspline(vec2 uv) {
 // the glow camera's projection times its view rotation (no translation): reprojects by rotation only
 uniform mat4 glow_rotation;
 uniform float intensity = 0.8;
+// how far away the quad sits, in metres: anything solid nearer (drawn with depth) hides the glow behind it, as the
+// glow image has no occluders of its own. The quad is a plane, so towards the view's corners (about 55 degrees off
+// centre) it lies 1.75 times as far: 50 m keeps it inside the 100 m sky sphere everywhere.
+uniform float glow_depth = 50.0;
 // the glow image's clip position of each corner's view ray (linear across the screen; divided per pixel)
 varying vec4 glow_clip;
 void vertex() {
-	// the quad covers each eye's whole view
-	POSITION = vec4(VERTEX.xy, 0.0, 1.0);
+	// the quad covers each eye's whole view, at glow_depth (through this eye's projection, so whichever way the
+	// depth runs)
+	vec4 back = PROJECTION_MATRIX * vec4(0.0, 0.0, -glow_depth, 1.0);
+	POSITION = vec4(VERTEX.xy * back.w, back.z, back.w);
 	// In stereo, VIEW_MATRIX is a camera behind both eyes and each eye's PROJECTION_MATRIX carries that eye's
 	// offset from it, so a single unprojected point (at the near plane with reversed depth) isn't on the eye's ray
 	// from that camera: take the ray between two points of it instead, which the offset doesn't turn.
@@ -270,7 +277,8 @@ func _process(_delta: float) -> void:
 	var debug := DebugView.flags & DebugView.GLOW_ALIGN != 0
 	_quad_material.set_shader_parameter(&"debug", debug)
 	_quad_material.set_shader_parameter(&"dither", DebugView.flags & DebugView.GLOW_DITHER != 0)
-	_quad_material.set_shader_parameter(&"bicubic", DebugView.flags & DebugView.GLOW_BICUBIC != 0)
+	# on by default; the switch now turns it off, to compare
+	_quad_material.set_shader_parameter(&"bicubic", DebugView.flags & DebugView.GLOW_BICUBIC == 0)
 	_quad_material.set_shader_parameter(&"glow_size", Vector2(_blurs[-1].size))
 	_test_foveation(xr, DebugView.flags & DebugView.GLOW_NO_FOVEATION != 0)
 	# the log also runs during a benchmark, to have the numbers with each measurement
