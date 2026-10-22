@@ -126,6 +126,16 @@ func _ready() -> void:
 	_check_layout(settings.get_node(^"Tabs/Visuals/VBox") as Control, "settings visuals, Custom")
 	settings.queue_free()
 
+	# a map flashing one light group 6 times in a second flashes it at most 3 times
+	var lights := (load("res://game/event_driver.tscn") as PackedScene).instantiate() as EventDriver
+	add_child(lights)
+	var flashed := 0
+	for i in 6:
+		if lights._flash_allowed(EventInfo.TYPE_DIAGONAL_LASERS):
+			flashed += 1
+	check(flashed == EventDriver.MAX_FLASHES_PER_SECOND, "a light group flashes at most %d times a second (flashed %d of 6)" % [EventDriver.MAX_FLASHES_PER_SECOND, flashed])
+	lights.queue_free()
+
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 

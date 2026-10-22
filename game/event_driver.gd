@@ -708,28 +708,56 @@ func turn_light_on(type: int, color: Color) -> void:
 			track_lights_material.set_shader_parameter(&"light_color", color)
 			floor_material.albedo_color = color
 
+## At most this many flashes a second per light group (WCAG 2.3.1, three flashes, for photosensitive players);
+## a map's further flashes in that second fade to their colour instead of jumping to it. Always on.
+const MAX_FLASHES_PER_SECOND := 3
+## When each light group's recent flashes started (msec).
+var _flash_times: Array[PackedInt64Array] = [PackedInt64Array(), PackedInt64Array(), PackedInt64Array(),
+		PackedInt64Array(), PackedInt64Array()]
+
+## True (and counted) if the light group may flash now (MAX_FLASHES_PER_SECOND).
+func _flash_allowed(type: int) -> bool:
+	var now := Time.get_ticks_msec()
+	var recent := PackedInt64Array()
+	for t in _flash_times[type]:
+		if now - t < 1000:
+			recent.append(t)
+	var allowed := recent.size() < MAX_FLASHES_PER_SECOND
+	if allowed:
+		recent.append(now)
+	_flash_times[type] = recent
+	return allowed
+
 func flash_light_on(type: int, color: Color) -> void:
+	if not _flash_allowed(type):
+		fade_light_from_current(type, color)
+		return
 	_set_light_param(StringName("bg_%d_tint" % type), color)
 	fade_light(type, color * FLASH_BOOST, color, false, Tween.TRANS_LINEAR, Tween.EASE_OUT)
 
 func flash_light_then_fade_off(type: int, color: Color) -> void:
 	_set_light_param(StringName("bg_%d_tint" % type), color)
+	if not _flash_allowed(type):
+		fade_light(type, _current_color(type), Color.BLACK, true, Tween.TRANS_QUAD, Tween.EASE_IN)
+		return
 	fade_light(type, color * FLASH_BOOST, Color.BLACK, true, Tween.TRANS_QUAD, Tween.EASE_IN)
 
 func fade_light_from_current(type: int, to_color: Color) -> void:
-	var current_color: Color
+	fade_light(type, _current_color(type), to_color, false, Tween.TRANS_LINEAR, Tween.EASE_IN)
+
+## A light group's colour now.
+func _current_color(type: int) -> Color:
 	match type:
 		EventInfo.TYPE_DIAGONAL_LASERS:
-			current_color = diagonal_lasers_material.get_shader_parameter(&"light_color")
+			return diagonal_lasers_material.get_shader_parameter(&"light_color")
 		EventInfo.TYPE_SQUARE_LASERS:
-			current_color = square_lasers_material.get_shader_parameter(&"light_color")
+			return square_lasers_material.get_shader_parameter(&"light_color")
 		EventInfo.TYPE_LEFT_WAVING_LASERS:
-			current_color = left_waving_lasers_material.get_shader_parameter(&"light_color")
+			return left_waving_lasers_material.get_shader_parameter(&"light_color")
 		EventInfo.TYPE_RIGHT_WAVING_LASERS:
-			current_color = right_waving_lasers_material.get_shader_parameter(&"light_color")
-		EventInfo.TYPE_FLOOR_LIGHTS:
-			current_color = floor_material.albedo_color
-	fade_light(type, current_color, to_color, false, Tween.TRANS_LINEAR, Tween.EASE_IN)
+			return right_waving_lasers_material.get_shader_parameter(&"light_color")
+		_:
+			return floor_material.albedo_color
 
 func fade_light(type: int, from: Color, to: Color, turn_off_after_fade: bool, trans_type: Tween.TransitionType, ease_type: Tween.EaseType) -> void:
 	stop_prev_tween(type)
