@@ -4,8 +4,9 @@ class_name LowResGlow
 ## copy it to the screen eye by eye (about 5 ms of the Pico 4's 13.9 ms frame in a song, measured), and makes MSAA
 ## resolve through it. Here the scene still draws straight to the screen; only the glow sources (GLOW_LAYER: the
 ## light show's lasers and bars) are drawn again by one camera at the middle of the eyes, whose off-axis frustum
-## covers both eyes' views, into a small SubViewport (HEIGHT px), blurred once into a smaller one (BLUR_SCALE), and
-## added over each eye's view by one full-screen quad in front of the XR camera, one bilinear tap a pixel.
+## covers both eyes' views, into a small SubViewport (HEIGHT px), blurred by a dual-filter chain (BLUR_CHAIN: down
+## twice, up once, each a SubViewport), and added over each eye's view by one full-screen quad in front of the XR
+## camera, one bilinear tap a pixel.
 ## One view for both eyes (not one each) halves the extra render passes, which measured costlier than their pixels
 ## (a viewport per eye: +2 ms before blur); it ignores the eyes' parallax, under half a degree for lights 5 m or
 ## more away and hidden by the blur, which is why the saber blades (half a metre away: about 7 degrees) aren't
@@ -16,26 +17,42 @@ class_name LowResGlow
 
 ## The visual layer (bit 11) glow sources carry besides their own.
 const GLOW_LAYER := 1 << 10
-const HEIGHT := 188
-## The blur pass's size relative to the glow image.
-const BLUR_SCALE := 0.5
+## 376 px: at 188 thin beams broke up and the upscaled glow looked smoky; the passes measured near free.
+const HEIGHT := 376
+## The blur passes: [size relative to the glow image, upsample]. Halving twice then doubling back keeps the glow
+## wide but smooth (a single downsample read straight at full screen showed its texels as soft blotches).
+const BLUR_CHAIN := [[0.5, false], [0.25, false], [0.5, true]]
 const INTENSITY := 0.8
+## How much of the tight halo (the first downsample) the up pass adds to the wide one.
+const TIGHT_HALO := 0.8
 const NEAR := 0.05
 const FAR := 1000.0
 
 const BLUR_SHADER := """
 shader_type canvas_item;
-// Dual-filter (Kawase) downsample: the centre and four diagonal taps half a source texel out, each bilinear (so 16
-// texels), into an image half the size.
+// Dual filter (Arm, SIGGRAPH 2015). Down: the centre and four diagonal taps half a source texel out, each bilinear,
+// into an image half the size. Up: a tent of four edge taps a texel out and four diagonal ones half a texel out.
 uniform sampler2D source : filter_linear, repeat_disable;
 uniform vec2 texel;
+uniform bool up = false;
+// for an up pass: the down pass of its size, added back as a tight inner halo around the wide one
+uniform sampler2D detail : filter_linear, repeat_disable;
+uniform float detail_weight = 0.0;
 void fragment() {
-	vec4 sum = texture(source, UV) * 4.0;
-	sum += texture(source, UV + vec2(-texel.x, -texel.y) * 1.5);
-	sum += texture(source, UV + vec2(texel.x, -texel.y) * 1.5);
-	sum += texture(source, UV + vec2(-texel.x, texel.y) * 1.5);
-	sum += texture(source, UV + vec2(texel.x, texel.y) * 1.5);
-	COLOR = vec4(sum.rgb / 8.0, 1.0);
+	vec3 sum;
+	if (up) {
+		sum = texture(source, UV + vec2(-texel.x * 2.0, 0.0)).rgb + texture(source, UV + vec2(texel.x * 2.0, 0.0)).rgb
+			+ texture(source, UV + vec2(0.0, -texel.y * 2.0)).rgb + texture(source, UV + vec2(0.0, texel.y * 2.0)).rgb
+			+ (texture(source, UV + vec2(-texel.x, -texel.y)).rgb + texture(source, UV + vec2(texel.x, -texel.y)).rgb
+			+ texture(source, UV + vec2(-texel.x, texel.y)).rgb + texture(source, UV + vec2(texel.x, texel.y)).rgb) * 2.0;
+		sum = sum / 12.0 + texture(detail, UV).rgb * detail_weight;
+	} else {
+		sum = texture(source, UV).rgb * 4.0
+			+ texture(source, UV + vec2(-texel.x, -texel.y)).rgb + texture(source, UV + vec2(texel.x, -texel.y)).rgb
+			+ texture(source, UV + vec2(-texel.x, texel.y)).rgb + texture(source, UV + vec2(texel.x, texel.y)).rgb;
+		sum /= 8.0;
+	}
+	COLOR = vec4(sum, 1.0);
 }
 """
 
@@ -49,8 +66,8 @@ uniform bool debug = false;
 // the glow camera's projection times its view rotation (no translation): reprojects by rotation only
 uniform mat4 glow_rotation;
 uniform float intensity = 0.8;
-// the view ray of each corner, in world space (linear across the screen)
-varying vec3 world_dir;
+// the glow image's clip position of each corner's view ray (linear across the screen; divided per pixel)
+varying vec4 glow_clip;
 void vertex() {
 	// the quad covers each eye's whole view
 	POSITION = vec4(VERTEX.xy, 0.0, 1.0);
@@ -62,15 +79,12 @@ void vertex() {
 	vec3 ray = a.xyz / a.w - b.xyz / b.w;
 	// forward is -z in view space, whichever end the depth puts first
 	ray *= ray.z > 0.0 ? -1.0 : 1.0;
-	world_dir = mat3(INV_VIEW_MATRIX) * ray;
+	glow_clip = glow_rotation * vec4(mat3(INV_VIEW_MATRIX) * ray, 0.0);
 }
 void fragment() {
-	vec4 clip = glow_rotation * vec4(world_dir, 0.0);
-	vec2 uv = clip.xy / clip.w * 0.5 + 0.5;
+	vec2 uv = glow_clip.xy / glow_clip.w * 0.5 + 0.5;
 	uv.y = 1.0 - uv.y;
-	// a little noise so the soft falloff doesn't band
-	float noise = fract(sin(dot(FRAGCOORD.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
-	ALBEDO = texture(glow, uv).rgb * intensity + noise / 255.0;
+	ALBEDO = texture(glow, uv).rgb * intensity;
 	if (debug) {
 		ALBEDO = dot(texture(raw, uv).rgb, vec3(1.0)) > 0.1 ? vec3(1.0, 0.0, 1.0) : vec3(0.0);
 	}
@@ -85,8 +99,8 @@ var stage := 0:
 var _game: BeepSaber_Game
 var _view := SubViewport.new()
 var _camera := Camera3D.new()
-var _blur := SubViewport.new()
-var _blur_material := ShaderMaterial.new()
+var _blurs: Array[SubViewport] = []
+var _blur_materials: Array[ShaderMaterial] = []
 var _quad := MeshInstance3D.new()
 var _quad_material := ShaderMaterial.new()
 
@@ -110,22 +124,36 @@ func _ready() -> void:
 
 	var blur_shader := Shader.new()
 	blur_shader.code = BLUR_SHADER
-	_blur.size = Vector2i(Vector2(HEIGHT, HEIGHT) * BLUR_SCALE)
-	_blur.disable_3d = true
-	var rect := ColorRect.new()
-	rect.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_blur_material.shader = blur_shader
-	_blur_material.set_shader_parameter(&"source", _view.get_texture())
-	rect.material = _blur_material
-	_blur.add_child(rect)
-	add_child(_blur)
+	var source: Texture2D = _view.get_texture()
+	for pass_: Array in BLUR_CHAIN:
+		var blur := SubViewport.new()
+		blur.size = Vector2i(Vector2(HEIGHT, HEIGHT) * float(pass_[0]))
+		blur.disable_3d = true
+		var rect := ColorRect.new()
+		rect.set_anchors_preset(Control.PRESET_FULL_RECT)
+		var material := ShaderMaterial.new()
+		material.shader = blur_shader
+		material.set_shader_parameter(&"source", source)
+		material.set_shader_parameter(&"up", pass_[1])
+		if pass_[1]:
+			# the down pass of the same size
+			for i in _blurs.size():
+				if is_equal_approx(float(BLUR_CHAIN[i][0]), float(pass_[0])) and not BLUR_CHAIN[i][1]:
+					material.set_shader_parameter(&"detail", _blurs[i].get_texture())
+					material.set_shader_parameter(&"detail_weight", TIGHT_HALO)
+		rect.material = material
+		blur.add_child(rect)
+		add_child(blur)
+		_blurs.append(blur)
+		_blur_materials.append(material)
+		source = blur.get_texture()
 
 	var shader := Shader.new()
 	shader.code = COMPOSITE_SHADER
 	_quad_material.shader = shader
 	_quad_material.render_priority = Material.RENDER_PRIORITY_MAX
 	_quad_material.set_shader_parameter(&"intensity", INTENSITY)
-	_quad_material.set_shader_parameter(&"glow", _blur.get_texture())
+	_quad_material.set_shader_parameter(&"glow", _blurs[-1].get_texture())
 	_quad_material.set_shader_parameter(&"raw", _view.get_texture())
 	var quad := QuadMesh.new()
 	quad.size = Vector2(2.0, 2.0)
@@ -162,7 +190,8 @@ func _apply_stage() -> void:
 		return
 	var shown := stage > 0 and not Settings.mixed_reality
 	_view.render_target_update_mode = SubViewport.UPDATE_ALWAYS if shown else SubViewport.UPDATE_DISABLED
-	_blur.render_target_update_mode = SubViewport.UPDATE_ALWAYS if shown and stage >= 2 else SubViewport.UPDATE_DISABLED
+	for blur in _blurs:
+		blur.render_target_update_mode = SubViewport.UPDATE_ALWAYS if shown and stage >= 2 else SubViewport.UPDATE_DISABLED
 	_quad.visible = shown and stage >= 3
 
 func _process(_delta: float) -> void:
@@ -184,7 +213,11 @@ func _process(_delta: float) -> void:
 	_match_frustum(bounds)
 	var rotation := Projection(Transform3D(_camera.global_basis.orthonormalized().inverse(), Vector3.ZERO))
 	_quad_material.set_shader_parameter(&"glow_rotation", _camera.get_camera_projection() * rotation)
-	_blur_material.set_shader_parameter(&"texel", Vector2.ONE / Vector2(_view.size))
+	# each pass reads the one before: a texel of its source
+	var source_size := Vector2(_view.size)
+	for i in _blurs.size():
+		_blur_materials[i].set_shader_parameter(&"texel", Vector2.ONE / source_size)
+		source_size = Vector2(_blurs[i].size)
 	var debug := DebugView.flags & DebugView.GLOW_ALIGN != 0
 	_quad_material.set_shader_parameter(&"debug", debug)
 	# the log also runs during a benchmark, to have the numbers with each measurement
@@ -274,5 +307,6 @@ func _match_frustum(bounds: Rect2) -> void:
 	var size := Vector2i(roundi(HEIGHT * bounds.size.x / bounds.size.y), HEIGHT)
 	if _view.size != size:
 		_view.size = size
-		_blur.size = Vector2i(Vector2(size) * BLUR_SCALE)
+		for i in _blurs.size():
+			_blurs[i].size = Vector2i(Vector2(size) * float(BLUR_CHAIN[i][0]))
 	_camera.set_frustum(bounds.size.y * NEAR, bounds.get_center() * NEAR, NEAR, FAR)
