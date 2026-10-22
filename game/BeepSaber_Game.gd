@@ -365,7 +365,20 @@ func _enter_tree() -> void:
 	@warning_ignore("return_value_discarded")
 	Settings.changed.connect(on_settings_changed)
 
+## The countdown before a song starts or resumes (tools/make_countdown_sounds.py): a tick on 3, 2, 1 and a higher
+## tone when the song goes.
+const COUNTDOWN_TICK := preload("res://game/data/countdown_tick.wav")
+const COUNTDOWN_GO := preload("res://game/data/countdown_go.wav")
+var _countdown_player := AudioStreamPlayer.new()
+
+## Plays the countdown sound for seconds left (0: go).
+func play_countdown(seconds: int) -> void:
+	_countdown_player.stream = COUNTDOWN_TICK if seconds > 0 else COUNTDOWN_GO
+	_countdown_player.play()
+
 func _ready() -> void:
+	_countdown_player.bus = &"SFX"
+	add_child(_countdown_player)
 	_mistake_player = AudioStreamPlayer.new()
 	_mistake_player.bus = &"SFX"
 	_mistake_player.max_polyphony = 2
@@ -801,13 +814,12 @@ func _unpause_button() -> void:
 	show_sabers_for_map()
 	pause_countdown.visible = true
 	track.visible = true
-	pause_countdown.set_label_text("3")
-	await get_tree().create_timer(0.5).timeout
-	pause_countdown.set_label_text("2")
-	await get_tree().create_timer(0.5).timeout
-	pause_countdown.set_label_text("1")
-	await get_tree().create_timer(0.5).timeout
+	for seconds in [3, 2, 1]:
+		pause_countdown.set_label_text(str(seconds))
+		play_countdown(seconds)
+		await get_tree().create_timer(0.5).timeout
 	pause_countdown.visible = false
+	play_countdown(0)
 	
 	# continue game play; a lead-in that was cut short keeps counting in Playing
 	if lead_in <= 0.0:

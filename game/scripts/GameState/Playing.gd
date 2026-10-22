@@ -56,9 +56,11 @@ func _count_down_lead_in(game: BeepSaber_Game) -> void:
 		game.pause_countdown.visible = seconds > 0
 		if seconds > 0:
 			game.pause_countdown.set_label_text(str(seconds))
+			game.play_countdown(seconds)
 	if game.lead_in <= 0.0:
 		game.lead_in = 0.0
 		game.song_player.play(0.0)
+		game.play_countdown(0)
 
 func _process_map(game: BeepSaber_Game) -> void:
 	if (Map.current_info == null):
