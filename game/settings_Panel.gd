@@ -480,23 +480,19 @@ func _on_measure_height_pressed() -> void:
 	player_height_offset_control.value = clampf(snappedf(Constants.EYE_HEIGHT - eyes, 0.01),
 			player_height_offset_control.min_value, player_height_offset_control.max_value)
 
+## Godot draws a shape's or ray's debug mesh when it enters the tree with the hint on, and doesn't drop it when the
+## hint goes off (toggling disabled left the boxes up): so each collision shape and ray leaves the tree and comes
+## back, in place, to be drawn again under the hint as it is now. Shapes added later (pooled notes) enter with it.
 func _force_update_show_coll_shapes(node: Node) -> void:
-	# toggle enable to make engine show collision shapes
-	if node is CollisionShape3D:
-		var col := node as CollisionShape3D
-		col.disabled = not col.disabled
-		col.disabled = not col.disabled
-	elif node is RayCast3D:
-		var ray := node as RayCast3D
-		ray.enabled = not ray.enabled
-		ray.enabled = not ray.enabled
-	
-	for c in node.get_children():
-		_force_update_show_coll_shapes(c)
+	for shape in node.find_children("*", "CollisionShape3D", true, false) + node.find_children("*", "RayCast3D", true, false):
+		var parent := shape.get_parent()
+		var index := shape.get_index()
+		parent.remove_child(shape)
+		parent.add_child(shape)
+		parent.move_child(shape, index)
 
 func _on_show_collisions_toggled(button_pressed: bool) -> void:
 	get_tree().debug_collisions_hint = button_pressed
-	# must toggle 
 	_force_update_show_coll_shapes(get_tree().root)
 
 func _on_apply_pressed() -> void:
