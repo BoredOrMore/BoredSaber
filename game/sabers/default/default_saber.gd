@@ -11,11 +11,37 @@ var is_extended := false
 @onready var hitsound := $hitsound as AudioStreamPlayer3D
 @onready var _ring_mat := ($Hilt/Ring as MeshInstance3D).material_override as ShaderMaterial
 
+## The blade's glow (SaberHalo.gdshader): drawn with the blade, so it sits on it in both eyes, while Glow is on with
+## the Soft or Sharp style (Classic is Godot's glow, which already lights the blade) and not in mixed reality.
+var _halo := MeshInstance3D.new()
+var _halo_mat := ShaderMaterial.new()
+
 func _ready() -> void:
+	_halo_mat.shader = preload("res://game/sabers/default/SaberHalo.gdshader")
+	_halo.mesh = QuadMesh.new()
+	_halo.material_override = _halo_mat
+	_halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_halo.layers = light_mesh.layers
+	# the vertex shader places it along the blade, wider than the quad's bounds
+	_halo.extra_cull_margin = 2.0
+	light_mesh.add_child(_halo)
+	Settings.changed.connect(func(key: StringName) -> void:
+		if key in [&"glare", &"glow_quality", &"mixed_reality"]:
+			_show_halo())
+	_show_halo()
 	quickhide()
+
+func _show_halo() -> void:
+	_halo.visible = Settings.glare and Settings.glow_quality != "Classic" and not Settings.mixed_reality
+
+## The halo follows the blade's length as it turns on and off.
+func _process(_delta: float) -> void:
+	if _halo.visible:
+		_halo_mat.set_shader_parameter(&"blade_length", (light_mesh.mesh as CapsuleMesh).height)
 
 func set_color(color: Color) -> void:
 	_mat.set_shader_parameter(&"color", color)
+	_halo_mat.set_shader_parameter(&"color", color)
 	_ring_mat.set_shader_parameter(&"accent", color)
 	tail.set_color(color)
 
