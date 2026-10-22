@@ -105,9 +105,6 @@ const IN_VIEW_COS := 0.77
 var _touching: Array[LightSaber] = []
 
 func _ready() -> void:
-	Settings.changed.connect(func(_key: StringName) -> void:
-		if _shown:
-			_light.visible = _light_on())
 	collision_mask = 0
 	_note_mesh = _add_note_mesh(NOTE_SIZE)
 	_material = _note_mesh.material_override as ShaderMaterial
@@ -183,10 +180,6 @@ static func _setup_additive(material: StandardMaterial3D, texture: Texture2D) ->
 	material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 	material.cull_mode = BaseMaterial3D.CULL_DISABLED
 
-## The light around the note is off on the Low graphics preset.
-func _light_on() -> bool:
-	return Settings.graphics_preset() != "Low"
-
 ## Breathes the light while the note is up.
 func _process(delta: float) -> void:
 	if not _shown:
@@ -251,7 +244,7 @@ func set_shown(shown: bool) -> void:
 		if _flash:
 			_flash.kill()
 		_light.scale = Vector3.ONE
-		_light.visible = _light_on()
+		_light.visible = true
 	elif not _flash or not _flash.is_running():
 		_light.visible = false
 	collision_layer = CollisionLayerConstants.Ui_mask if shown else 0
@@ -321,7 +314,7 @@ func _slash(controller: BeepSaberController, cut_normal: Vector3) -> void:
 		piece.mesh.scale = _note_mesh.scale
 		piece.apply_central_impulse(normal * side * SPLIT_IMPULSE)
 	# the light flashes, then fades out with the halves
-	_light.visible = _light_on()
+	_light.visible = true
 	_halo_material.albedo_color = Color(_color, 1.0)
 	_ray_material.albedo_color = Color(_color, 1.0)
 	_flash = create_tween()

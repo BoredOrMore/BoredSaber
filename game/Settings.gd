@@ -34,8 +34,8 @@ const NOTE_DARK_VALUE := 0.7
 ## (EventDriver.pick_environment)
 const ENVIRONMENTS := [ ["auto", "Follow map"], ["classic", "Classic"], ["neon_grid", "Neon Grid"], ["pulse_void", "Pulse Void"], ["night_city", "Night City"] ]
 ## Graphics presets in Settings > Visuals: the effects each sets (Settings key: value). Glow was the only one
-## measured to cost much on the headset (about 6 of a 13.9 ms frame); Low also hides the slash note's light. Both
-## keep the light show (about 0.2 ms): players missed the moving lights with them off.
+## measured to cost much on the headset (about 6 of a 13.9 ms frame). Both keep the light show (about 0.2 ms) and the
+## slash note's light (about 0.3 ms): players missed them off.
 const GRAPHICS_PRESETS := {
 	"Low": {&"glare": false, &"smoke": false, &"saber_tail": false, &"cube_cuts_falloff": false, &"background": "dynamic"},
 	"Normal": {&"glare": true, &"smoke": true, &"saber_tail": true, &"cube_cuts_falloff": true, &"background": "dynamic"},
