@@ -2,7 +2,8 @@ extends UIRaycastTarget
 class_name WarningIcon
 ## A red "!" right of the song menu, about level with its Damage row, shown only while something may hurt the player
 ## or the headset; pointing the laser at it opens a card listing those warnings in plain words. Warnings: the play
-## area (the guardian) too small for the saber's reach or the Slash to play note, or unknown; a low battery; a hot
+## area (the guardian) too small for the saber's reach or the Slash to play note (where the runtime gives it: Pico
+## doesn't, and an unknown play area isn't warned about); a low battery; a hot
 ## headset; 30 minutes of songs this session; Full resolution lowered to Sharp after stuttering. It only warns: it
 ## never changes anything. Checked every CHECK_SECONDS while the song menu shows.
 
@@ -25,7 +26,6 @@ const HOT_THERMAL_STATUS := 2
 const BREAK_SECONDS := 30 * 60
 
 const PLAY_AREA_SMALL_TEXT := "Play area: your saber's reach (%.1f m around you) or the Slash to play note goes past your guardian. Make room before you swing."
-const PLAY_AREA_UNKNOWN_TEXT := "Play area unknown: check your guardian before you swing."
 const BATTERY_TEXT := "Battery %d%%: charge soon, the headset may switch off mid-song."
 const HOT_TEXT := "The headset is hot: it may slow down and stutter. Take a break, or try Graphics: Low."
 const BREAK_TEXT := "You've played 30 min, take a short break."
@@ -41,6 +41,9 @@ var _messages := PackedStringArray()
 var _since_check := CHECK_SECONDS
 ## Logged once each: what the device didn't let the game read.
 var _unreadable := {}
+## The guardian, read once and again after a recenter (asking every check logs an engine warning when there is none).
+var _play_area := PackedVector3Array()
+var _play_area_read := false
 
 func _ready() -> void:
 	# facing the player at the middle of the play space
@@ -87,6 +90,7 @@ func _ready() -> void:
 	_card.visible = false
 	add_child(_card)
 	visible = false
+	vr.pose_recentered.connect(func() -> void: _play_area_read = false)
 
 ## A centred label of the given size.
 func _label(text: String, size: int) -> Label3D:
@@ -134,10 +138,13 @@ func _play_area_warning() -> String:
 	var xr := XRServer.primary_interface
 	if xr == null or not xr.is_initialized():
 		return ""
-	var area := xr.get_play_area()
+	if not _play_area_read:
+		_play_area_read = true
+		_play_area = xr.get_play_area()
+	var area := _play_area
 	if area.size() < 3:
-		_log_unreadable("play area", "the runtime gave no play area (%d points, mode %d)" % [area.size(), xr.get_play_area_mode()])
-		return PLAY_AREA_UNKNOWN_TEXT
+		_log_unreadable("play area", "the runtime gave none (%d points, mode %d): not warning" % [area.size(), xr.get_play_area_mode()])
+		return ""
 	var polygon := PackedVector2Array()
 	for point in area:
 		polygon.append(Vector2(point.x, point.z))
