@@ -118,6 +118,16 @@ const MISTAKE_DIP_SECONDS := 0.6
 ## 0 at x1 to 1 at x8, and where it is heading
 var _combo_level := 0.0
 var _combo_target := 0.0
+## Settings.atmosphere Eerie, in a song: after QUIET_AFTER_SECONDS without a light event the lasers and the air sink
+## by up to QUIET_DIM over QUIET_FADE_SECONDS, and the next light event brings them back over QUIET_RISE_SECONDS.
+## Untuned.
+const QUIET_AFTER_SECONDS := 1.5
+const QUIET_FADE_SECONDS := 3.0
+const QUIET_RISE_SECONDS := 0.3
+const QUIET_DIM := 0.4
+var _since_event := 0.0
+## 0 lit to 1 fully sunk
+var _quiet := 0.0
 
 @onready var ring_holder := $Level/rings as Node3D
 @onready var diagonal_lasers_holder := $Level/DiagonalLasers as Node3D
@@ -486,6 +496,9 @@ func _process(delta: float) -> void:
 			delta / (COMBO_RISE_SECONDS if _combo_target > _combo_level else COMBO_FALL_SECONDS))
 	if menu_focus:
 		_breathe(delta)
+	_since_event += delta
+	var quiet := not menu_focus and Settings.atmosphere == "Eerie" and _since_event > QUIET_AFTER_SECONDS
+	_quiet = move_toward(_quiet, 1.0 if quiet else 0.0, delta / (QUIET_FADE_SECONDS if quiet else QUIET_RISE_SECONDS))
 	_update_haze()
 	# update the level animations
 	#procces ring rotations
@@ -504,7 +517,8 @@ func _update_haze() -> void:
 	if track_lights_holder.visible:
 		haze += floor_material.albedo_color * HAZE_LIGHT_WEIGHT
 	var pulse := _combo_pulse * _combo_pulse
-	haze *= (1.0 + COMBO_HAZE_BOOST * _combo_level + COMBO_PULSE * pulse) * (1.0 - MISTAKE_DIP * _mistake_dip)
+	haze *= (1.0 + COMBO_HAZE_BOOST * _combo_level + COMBO_PULSE * pulse) * (1.0 - MISTAKE_DIP * _mistake_dip) \
+			* (1.0 - QUIET_DIM * _quiet)
 	if menu_focus:
 		haze *= MENU_HAZE_BOOST
 	var eerie := Settings.atmosphere == "Eerie"
@@ -516,7 +530,8 @@ func _update_haze() -> void:
 		haze *= Constants.EERIE_HAZE_TINT
 	haze.a = 1.0
 	RenderingServer.global_shader_parameter_set(&"env_haze", haze)
-	RenderingServer.global_shader_parameter_set(&"combo_glow", COMBO_LASER_BOOST * _combo_level + COMBO_PULSE_LASER * pulse)
+	RenderingServer.global_shader_parameter_set(&"combo_glow", COMBO_LASER_BOOST * _combo_level + COMBO_PULSE_LASER * pulse
+			- QUIET_DIM * _quiet)
 
 ## Sets how lit up the scene is for the combo multiplier (1, 2, 4 or 8).
 func set_combo_multiplier(multiplier: int) -> void:
@@ -622,6 +637,7 @@ func set_all_on(left: Color, right: Color) -> void:
 func process_event(data: EventInfo) -> void:
 	if disabled: return
 	if data.type in range(0,5):
+		_since_event = 0.0
 		match data.value:
 			EventInfo.VALUE_LIGHTS_OFF:
 				turn_light_off(data.type)
