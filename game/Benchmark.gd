@@ -224,10 +224,8 @@ func run(mode := "") -> void:
 		await _phase(phase[0], phase[1], phase[2], phase[3] if phase.size() > 3 else PHASE_SECONDS, phase.size() > 4)
 	_restore()
 	game.glow_override = -1
-	LowResGlow.height = 752
+	LowResGlow.set_quality(Settings.glow_quality)
 	LowResGlow.upsample = "pass"
-	LowResGlow.view_msaa = true
-	LowResGlow.short_chain = false
 	game._apply_glow()
 	game.get_viewport().msaa_3d = Settings.msaa_mode()
 	Settings.save()

@@ -74,7 +74,6 @@ func _ready() -> void:
 			background_mode_control.selected = i
 	background_mode_control.connect("item_selected", _on_background_mode_selected)
 	_add_debug_view_switches()
-	_add_glow_style_row()
 	_add_graphics_row()
 
 	for i in len(Settings.NOTE_STYLES):
@@ -277,6 +276,12 @@ const RESOLUTION_HINTS := {
 	"Full": "Sharpest",
 }
 const RESOLUTION_NEEDS_LOW := "Needs Graphics: Low"
+const GLOW_HINTS := {
+	"Standard": "Soft light around the lasers",
+	"High": "Finer light around the lasers",
+	"Classic": "Godot's full-screen glow",
+}
+const GLOW_OFF_HINT := "Needs Glow on"
 const MSAA_HINTS := {
 	"Off": "Jagged edges",
 	"2x": "Smoother edges",
@@ -289,6 +294,8 @@ var _resolution_chips := {}
 var _resolution_hint := Label.new()
 var _msaa_chips := {}
 var _msaa_hint := Label.new()
+var _glow_chips := {}
+var _glow_hint := Label.new()
 
 ## At the top of Visuals: "Graphics: Low | Normal" chips setting the effects below (a third chip, Custom, can't be
 ## picked and lights up when the effects match neither), then "Resolution: Normal | Sharp | Full", only on Low.
@@ -303,8 +310,10 @@ func _add_graphics_row() -> void:
 			func(resolution: String) -> void: Settings.resolution = resolution, _resolution_hint)
 	_msaa_chips = _add_chip_row(4, "Anti-aliasing", Settings.MSAA_LEVELS.map(func(m: Array) -> String: return m[0]),
 			func(level: String) -> void: Settings.msaa = level, _msaa_hint)
+	_glow_chips = _add_chip_row(6, "Glow style", Settings.GLOW_QUALITIES, func(quality: String) -> void: Settings.glow_quality = quality,
+			_glow_hint)
 	Settings.changed.connect(func(key: StringName) -> void:
-		if key in [&"resolution", &"msaa"] or key in Settings.GRAPHICS_PRESETS["Low"]:
+		if key in [&"resolution", &"msaa", &"glow_quality"] or key in Settings.GRAPHICS_PRESETS["Low"]:
 			_sync_graphics())
 	_sync_graphics()
 
@@ -361,6 +370,11 @@ func _sync_graphics() -> void:
 	for name: String in _msaa_chips:
 		(_msaa_chips[name] as Button).set_pressed_no_signal(name == Settings.msaa)
 	_msaa_hint.text = MSAA_HINTS.get(Settings.msaa, "")
+	for name: String in _glow_chips:
+		var chip := _glow_chips[name] as Button
+		chip.disabled = not Settings.glare
+		chip.set_pressed_no_signal(name == Settings.glow_quality)
+	_glow_hint.text = GLOW_HINTS.get(Settings.glow_quality, "") if Settings.glare else GLOW_OFF_HINT
 	glare_control.set_pressed_no_signal(Settings.glare)
 	smoke_control.set_pressed_no_signal(Settings.smoke)
 	saber_tail_control.set_pressed_no_signal(Settings.saber_tail)
@@ -368,44 +382,6 @@ func _sync_graphics() -> void:
 	for i in Settings.BACKGROUND_MODES.size():
 		if Settings.BACKGROUND_MODES[i][0] == Settings.background:
 			background_mode_control.selected = i
-
-## "Glow style: Godot | New (test)" in Advanced, to compare LowResGlow with Godot's glow on the headset.
-func _add_glow_style_row() -> void:
-	var row := HBoxContainer.new()
-	var row_label := $Tabs/Visuals/VBox/ColorPresetRow/color_preset_label as Label
-	var label := Label.new()
-	label.text = "Glow style"
-	label.custom_minimum_size = row_label.custom_minimum_size
-	label.add_theme_stylebox_override(&"normal", row_label.get_theme_stylebox(&"normal"))
-	row.add_child(label)
-	var styles := OptionButton.new()
-	styles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	styles.add_item("Godot")
-	styles.add_item("New (test)")
-	styles.selected = 1 if Settings.glow_style == "new" else 0
-	styles.item_selected.connect(func(index: int) -> void: Settings.glow_style = "new" if index == 1 else "godot")
-	row.add_child(styles)
-	var advanced := show_debug_control.get_parent()
-	advanced.add_child(row)
-	advanced.move_child(row, show_debug_control.get_index())
-	UI_AudioEngine.attach_children(row)
-	# the glow image's size, MSAA and blur chain (LowResGlow.QUALITIES), to compare on the headset (not saved)
-	var size_row := HBoxContainer.new()
-	var size_label := Label.new()
-	size_label.text = "Glow quality"
-	size_label.custom_minimum_size = row_label.custom_minimum_size
-	size_label.add_theme_stylebox_override(&"normal", row_label.get_theme_stylebox(&"normal"))
-	size_row.add_child(size_label)
-	var sizes := OptionButton.new()
-	sizes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for quality: Array in LowResGlow.QUALITIES:
-		sizes.add_item(quality[0])
-	sizes.selected = 0
-	sizes.item_selected.connect(LowResGlow.set_quality)
-	size_row.add_child(sizes)
-	advanced.add_child(size_row)
-	advanced.move_child(size_row, row.get_index() + 1)
-	UI_AudioEngine.attach_children(size_row)
 
 func _show_debug_view_switches() -> void:
 	for switch in _debug_view_switches:

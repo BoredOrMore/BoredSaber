@@ -17,23 +17,21 @@ class_name LowResGlow
 
 ## The visual layer (bit 11) glow sources carry besides their own.
 const GLOW_LAYER := 1 << 10
-## 376 px: at 188 thin beams broke up and the upscaled glow looked smoky; the passes measured near free.
-## Debug choices in Settings > Advanced "Glow quality": [label, height, MSAA in the glow image, short blur chain].
-## Measured in a song against no glow next to it: 752 full +1.3 ms, 752 without MSAA and short +1.2, 564 without MSAA
-## and short +0.2, the older 376 +1.2 (the run-to-run spread is about 1 ms).
-const QUALITIES := [["752 px, MSAA, full blur", 752, true, false], ["752 px, no MSAA, short blur", 752, false, true],
-		["564 px, no MSAA, short blur", 564, false, true], ["376 px, MSAA, full blur", 376, true, false]]
+## The glow image for each Settings.glow_quality: [height px, 4x MSAA in it, short blur chain]. Measured in a song
+## against no glow next to it: Standard (564, no MSAA, short) +0.2 ms, High (752, no MSAA, short) +1.2 ms; 752 with
+## MSAA and the full chain was +1.3 and the older 376 +1.2 (the run-to-run spread is about 1 ms). At 188 px thin
+## bars broke into dashes, and at 376 a glow texel spanned about 7 eye pixels, showing as bands.
+const QUALITIES := {"Standard": [564, false, true], "High": [752, false, true]}
 
-static func set_quality(index: int) -> void:
-	height = QUALITIES[index][1]
-	view_msaa = QUALITIES[index][2]
-	short_chain = QUALITIES[index][3]
+## Sets the glow image for a Settings.glow_quality name.
+static func set_quality(quality: String) -> void:
+	var values: Array = QUALITIES.get(quality, QUALITIES["Standard"])
+	height = values[0]
+	view_msaa = values[1]
+	short_chain = values[2]
 
-## The glow image's height in px (its width follows the frustum, so texels are square); a debug choice in Settings >
-## Advanced while the stripes are compared on the headset. 752 (with the B-spline upsample): at 376 a glow texel
-## spans about 7 eye pixels and the bilinear steps between them showed as vertical bands sliding as the head turned
-## or a bar swept; the player found 564 good and 752 best.
-static var height := 752
+## The glow image's height in px (its width follows the frustum, so texels are square).
+static var height := 564
 ## The blur passes: [size relative to the glow image, upsample]. Halving twice then doubling back keeps the glow
 ## wide but smooth (a single downsample read straight at full screen showed its texels as soft blotches).
 ## Then a B-spline (bicubic) up pass back to the glow image's size: the composite reads it with one bilinear tap,
@@ -44,10 +42,10 @@ const BLUR_CHAIN := [[0.5, Pass.DOWN], [0.25, Pass.DOWN], [0.5, Pass.UP], [1.0, 
 ## Where the glow is magnified: "pass" (the BSPLINE pass, the default), "composite" (B-spline in the composite, the
 ## older way, for the benchmark) or "none" (one bilinear tap of the up pass; DebugView.GLOW_BICUBIC).
 static var upsample := "pass"
-## Benchmark switches: 4x MSAA in the glow image (thin bars don't break into dashes), and the short chain, which
-## skips the quarter-size down and up passes (the B-spline pass then reads the first downsample).
-static var view_msaa := true
-static var short_chain := false
+## 4x MSAA in the glow image, and the short chain, which skips the quarter-size down and up passes (the B-spline
+## pass then reads the first downsample); set by set_quality, and by the benchmark.
+static var view_msaa := false
+static var short_chain := true
 const INTENSITY := 1.0
 ## The up pass: the tight halo (the first downsample) added back to the wide one, mostly tight so the glow hugs the
 ## bars instead of spreading like fog.

@@ -425,6 +425,7 @@ func _ready() -> void:
 
 	_show_debug_info()
 	set_colors_from_settings()
+	LowResGlow.set_quality(Settings.glow_quality)
 	low_res_glow = LowResGlow.new(self)
 	low_res_glow.name = &"LowResGlow"
 	add_child(low_res_glow)
@@ -531,7 +532,7 @@ func set_background_texture() -> void:
 	
 ## Glow (Settings.glare) only while a song plays or is paused: in the menus it cost about 6 of the 13.9 ms frame
 ## (measured on the headset) for little to see; the saved setting stays as the player set it.
-## While Settings.glow_style is "new" the glow is LowResGlow instead of Godot's (a test, for A/B on the headset).
+## Settings.glow_quality Standard and High are LowResGlow, Classic Godot's glow.
 ## The benchmark sets glow_override to one of Glow to measure each part.
 enum Glow { NONE, GODOT, ADJUSTMENTS_ONLY, NEW_VIEWPORTS_ONLY, NEW_WITH_BLUR, NEW }
 var glow_override := -1
@@ -543,7 +544,7 @@ func _apply_glow() -> void:
 	if glow_override >= 0:
 		glow = glow_override
 	elif Settings.glare and song:
-		glow = Glow.NEW if Settings.glow_style == "new" else Glow.GODOT
+		glow = Glow.GODOT if Settings.glow_quality == "Classic" else Glow.NEW
 	var environment := ($WorldEnvironment as WorldEnvironment).environment
 	environment.glow_enabled = glow == Glow.GODOT
 	# neutral adjustments: only to measure the internal buffer they share with Godot's glow
@@ -631,7 +632,9 @@ func on_settings_changed(key: StringName) -> void:
 			event_driver.set_background_texture()
 		&"show_debug_info":
 			_show_debug_info()
-		&"glare", &"glow_style":
+		&"glare", &"glow_quality":
+			if glow_override < 0:
+				LowResGlow.set_quality(Settings.glow_quality)
 			_apply_glow()
 		&"msaa":
 			_apply_msaa()
