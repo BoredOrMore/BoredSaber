@@ -225,17 +225,30 @@ func _check_list_drag(menu: MainMenu) -> void:
 	# 6 px is under the threshold, then the list follows the pointer from the press: 126 px
 	check(absi(list.scroll_vertical - 126) <= 2 and list._selected == -1,
 			"a drag moves the list 1:1 (moved %d of 126 px) and picks no song" % list.scroll_vertical)
+	# a press whose release something else took (an option list's popup): moving after it doesn't scroll
+	var scrolled := list.scroll_vertical
+	_pointer(at, true)
+	_pointer_held = false
+	_pointer(at + Vector2(0, -60), null)
+	_pointer(at + Vector2(0, -120), null)
+	await _settle()
+	check(list.scroll_vertical == scrolled, "after a release the list didn't see, the pointer moves without scrolling it (moved %d px)" % (list.scroll_vertical - scrolled))
 
 ## How long a flick keeps going (the song list's vr_slider).
 func vr_slider_momentum() -> float:
 	return preload("res://game/vr_slider.gd").MOMENTUM_SECONDS
 
 ## Sends a pointer press (true), release (false) or move (null) to the menu's viewport, as the VR pointer does.
+var _pointer_held := false
+
 func _pointer(at: Vector2, pressed: Variant) -> void:
 	var event: InputEventMouse
 	if pressed == null:
 		event = InputEventMouseMotion.new()
+		# as the VR pointer sends it: the button held while pressed
+		(event as InputEventMouseMotion).button_mask = MOUSE_BUTTON_MASK_LEFT if _pointer_held else 0
 	else:
+		_pointer_held = pressed
 		var button := InputEventMouseButton.new()
 		button.button_index = MOUSE_BUTTON_LEFT
 		button.pressed = pressed

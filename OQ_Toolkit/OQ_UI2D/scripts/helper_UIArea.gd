@@ -36,6 +36,8 @@ func ui_raycast_hit_event(pos: Vector3, click: bool, release: bool) -> void:
 		e.velocity = (pos2d - last_pos2d) / 16.0 #?? chose an arbitrary scale here for now
 		e.global_position = pos2d
 		e.position = pos2d
+		# held or not, so a drag can tell it ended where it didn't see the release (a popup took it)
+		e.button_mask = MOUSE_BUTTON_MASK_LEFT if _held else 0
 		
 		viewport.push_input(e)
 		# redraw (a whole SubViewport render) only when the move can change the look: another control under the

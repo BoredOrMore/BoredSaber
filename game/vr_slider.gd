@@ -115,6 +115,12 @@ func _input(event: InputEvent) -> void:
 	var motion := event as InputEventMouseMotion
 	if motion == null or _press_pos == NOT_PRESSED:
 		return
+	# the button went up where this didn't see it (an option list's popup takes the release): the press is over,
+	# or the list would follow the pointer from then on
+	if motion.button_mask & MOUSE_BUTTON_MASK_LEFT == 0:
+		_press_pos = NOT_PRESSED
+		_dragging = false
+		return
 	var dy := motion.position.y - _press_pos.y
 	if not _dragging and absf(dy) > DRAG_THRESHOLD:
 		_dragging = true
