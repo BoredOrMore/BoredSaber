@@ -266,19 +266,19 @@ func _add_debug_view_switches() -> void:
 
 ## What each graphics chip means, under the chips.
 const GRAPHICS_HINTS := {
-	"Low": "Smoother, less glow",
+	"Low": "Less glow and effects",
 	"Normal": "Every effect on",
 	Settings.GRAPHICS_CUSTOM: "Effects below changed one by one",
 }
 const RESOLUTION_HINTS := {
-	"Normal": "The headset's usual sharpness",
-	"Sharp": "Sharper, still smooth",
-	"Full": "Sharpest, may stutter in busy songs",
+	"Normal": "Standard sharpness",
+	"Sharp": "Sharper",
+	"Full": "Sharpest",
 }
 const RESOLUTION_NEEDS_LOW := "Needs Graphics: Low"
 const MSAA_HINTS := {
-	"Off": "Fastest, jagged edges",
-	"2x": "Lighter",
+	"Off": "Jagged edges",
+	"2x": "Smoother edges",
 	"4x": "Smoothest edges",
 }
 

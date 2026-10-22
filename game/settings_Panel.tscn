@@ -378,7 +378,7 @@ layout_mode = 2
 theme_override_styles/normal = SubResource("row_label")
 theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
 theme_override_font_sizes/font_size = 22
-text = "The four effects below cost frame rate. If play stutters, turn them off first."
+text = "Graphics above sets the effects below; change any of them to make your own mix."
 autowrap_mode = 3
 
 [node name="glare" type="CheckButton" parent="Tabs/Visuals/VBox"]
