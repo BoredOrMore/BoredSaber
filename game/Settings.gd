@@ -274,6 +274,12 @@ var environment: String:
 ## Anti-aliasing (MSAA) of the 3D view: [name, Viewport.MSAA value]. 4x is the default: on a tiled GPU like the
 ## Pico 4's it resolves in tile memory, so it smooths the thin lasers, note edges and floor lines cheaply.
 const MSAA_LEVELS := [["Off", Viewport.MSAA_DISABLED], ["2x", Viewport.MSAA_2X], ["4x", Viewport.MSAA_4X]]
+## Which glow draws while Glow is on: "godot" (Godot's) or "new" (LowResGlow, a test in Settings > Advanced).
+var glow_style: String:
+	set(value):
+		glow_style = value
+		set_and_emit(&"glow_style", value)
+
 ## The anti-aliasing picked (an MSAA_LEVELS name).
 var msaa: String:
 	set(value):
@@ -439,6 +445,7 @@ var default_values = {
 	note_style = "solid",
 	resolution = "Normal",
 	msaa = "Off",
+	glow_style = "godot",
 	darker_notes = false,
 	background_texture = "res://game/data/background/stage_sky.png",
 	health_mode = true,

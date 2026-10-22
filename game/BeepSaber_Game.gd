@@ -425,6 +425,9 @@ func _ready() -> void:
 
 	_show_debug_info()
 	set_colors_from_settings()
+	low_res_glow = LowResGlow.new(self)
+	low_res_glow.name = &"LowResGlow"
+	add_child(low_res_glow)
 	_apply_glow()
 	_apply_msaa()
 	_apply_note_style()
@@ -528,9 +531,25 @@ func set_background_texture() -> void:
 	
 ## Glow (Settings.glare) only while a song plays or is paused: in the menus it cost about 6 of the 13.9 ms frame
 ## (measured on the headset) for little to see; the saved setting stays as the player set it.
+## While Settings.glow_style is "new" the glow is LowResGlow instead of Godot's (a test, for A/B on the headset).
+## The benchmark sets glow_override to one of Glow to measure each part.
+enum Glow { NONE, GODOT, ADJUSTMENTS_ONLY, NEW_VIEWPORTS_ONLY, NEW_WITH_BLUR, NEW }
+var glow_override := -1
+var low_res_glow: LowResGlow
+
 func _apply_glow() -> void:
 	var song := gamestate == gamestate_playing or gamestate == gamestate_paused
-	($WorldEnvironment as WorldEnvironment).environment.glow_enabled = Settings.glare and song
+	var glow := Glow.NONE
+	if glow_override >= 0:
+		glow = glow_override
+	elif Settings.glare and song:
+		glow = Glow.NEW if Settings.glow_style == "new" else Glow.GODOT
+	var environment := ($WorldEnvironment as WorldEnvironment).environment
+	environment.glow_enabled = glow == Glow.GODOT
+	# neutral adjustments: only to measure the internal buffer they share with Godot's glow
+	environment.adjustment_enabled = glow == Glow.ADJUSTMENTS_ONLY
+	if low_res_glow:
+		low_res_glow.stage = glow - Glow.NEW_VIEWPORTS_ONLY + 1 if glow >= Glow.NEW_VIEWPORTS_ONLY else 0
 
 ## Sets the 3D view's anti-aliasing to Settings.msaa (it applies to both eyes).
 func _apply_msaa() -> void:
@@ -612,7 +631,7 @@ func on_settings_changed(key: StringName) -> void:
 			event_driver.set_background_texture()
 		&"show_debug_info":
 			_show_debug_info()
-		&"glare":
+		&"glare", &"glow_style":
 			_apply_glow()
 		&"msaa":
 			_apply_msaa()

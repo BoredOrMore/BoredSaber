@@ -74,6 +74,7 @@ func _ready() -> void:
 			background_mode_control.selected = i
 	background_mode_control.connect("item_selected", _on_background_mode_selected)
 	_add_debug_view_switches()
+	_add_glow_style_row()
 	_add_graphics_row()
 
 	for i in len(Settings.NOTE_STYLES):
@@ -367,6 +368,27 @@ func _sync_graphics() -> void:
 	for i in Settings.BACKGROUND_MODES.size():
 		if Settings.BACKGROUND_MODES[i][0] == Settings.background:
 			background_mode_control.selected = i
+
+## "Glow style: Godot | New (test)" in Advanced, to compare LowResGlow with Godot's glow on the headset.
+func _add_glow_style_row() -> void:
+	var row := HBoxContainer.new()
+	var row_label := $Tabs/Visuals/VBox/ColorPresetRow/color_preset_label as Label
+	var label := Label.new()
+	label.text = "Glow style"
+	label.custom_minimum_size = row_label.custom_minimum_size
+	label.add_theme_stylebox_override(&"normal", row_label.get_theme_stylebox(&"normal"))
+	row.add_child(label)
+	var styles := OptionButton.new()
+	styles.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	styles.add_item("Godot")
+	styles.add_item("New (test)")
+	styles.selected = 1 if Settings.glow_style == "new" else 0
+	styles.item_selected.connect(func(index: int) -> void: Settings.glow_style = "new" if index == 1 else "godot")
+	row.add_child(styles)
+	var advanced := show_debug_control.get_parent()
+	advanced.add_child(row)
+	advanced.move_child(row, show_debug_control.get_index())
+	UI_AudioEngine.attach_children(row)
 
 func _show_debug_view_switches() -> void:
 	for switch in _debug_view_switches:
