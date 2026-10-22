@@ -33,6 +33,9 @@ const MSAA_SONG_SECONDS := 20.0
 ## glow between each pair: LowResGlow's parts at 752 px (the glow image with and without its MSAA, + the full or short
 ## blur chain), the full glow, the cheapest combination at 752 and 564, and the older 376 px single tap.
 const GLOWB := "glowb"
+## The flag file's mode for the whole look's cost (tools/bench.sh --only total): each setup in a song with the
+## player's own settings switches, a no-glow phase (Normal, 4x, Atmosphere Normal, 1x) between each pair.
+const TOTAL := "total"
 const RENDER_SCALES: Array[float] = [1.0, 1.2, 1.44]
 const RESOLUTION_SONG_SECONDS := 20.0
 ## The progress label and Cancel: left of the song menu, facing the player, at eye height.
@@ -86,7 +89,8 @@ static func requested() -> Variant:
 ## The player's settings while a run is on (it saves some of its own on the way, as starting the song saves the
 ## settings): if the game closes mid-run, the next launch puts them back (restore_interrupted).
 const BACKUP_FILE := "benchmark_settings.json"
-const SAVED_KEYS: Array[StringName] = [&"glare", &"smoke", &"saber_tail", &"cube_cuts_falloff", &"background", &"health_mode"]
+const SAVED_KEYS: Array[StringName] = [&"glare", &"smoke", &"saber_tail", &"cube_cuts_falloff", &"background", &"health_mode",
+		&"msaa", &"glow_quality", &"atmosphere"]
 
 ## Puts back and saves the settings of a run the game closed in the middle of; call at launch.
 static func restore_interrupted() -> void:
@@ -128,6 +132,24 @@ func _phases(mode: String) -> Array:
 		for phase: Array in glow_phases:
 			phases.append([phase[0] + "_song", Callable(), _set_glow.bind(phase[1], phase[2], phase[3], phase[4], phase[5]),
 					MSAA_SONG_SECONDS, true])
+		return phases
+	if mode == TOTAL:
+		# [name, preset, glow on (null: the preset's), glow style, anti-aliasing, atmosphere, render scale]
+		var tested := [
+			["old_normal_godot_glow_aa_off", "Normal", true, "Classic", "Off", "Normal", 1.0],
+			["normal_4x_soft_halo", "Normal", true, "Soft", "4x", "Normal", 1.0],
+			["normal_4x_soft_halo_eerie", "Normal", true, "Soft", "4x", "Eerie", 1.0],
+			["normal_4x_crisp_halo", "Normal", true, "Crisp", "4x", "Normal", 1.0],
+			["normal_4x_classic", "Normal", true, "Classic", "4x", "Normal", 1.0],
+			["low_preset", "Low", null, "Soft", "4x", "Normal", 1.0],
+			["normal_4x_soft_halo_sharp_1.2", "Normal", true, "Soft", "4x", "Normal", 1.2],
+		]
+		var off := ["Normal", false, "Soft", "4x", "Normal", 1.0]
+		var phases := []
+		for i in tested.size():
+			phases.append(["glow_off_%d_song" % i, Callable(), _set_look.bindv(off), MSAA_SONG_SECONDS, true])
+			phases.append([tested[i][0] + "_song", Callable(), _set_look.bindv(tested[i].slice(1)), MSAA_SONG_SECONDS, true])
+		phases.append(["glow_off_%d_song" % tested.size(), Callable(), _set_look.bindv(off), MSAA_SONG_SECONDS, true])
 		return phases
 	if mode == MSAA:
 		var phases := []
@@ -266,6 +288,19 @@ func _phase(phase_name: String, tick: Callable, setup: Callable, seconds: float,
 func _set_view(preset: String, msaa: Viewport.MSAA, scale: float) -> void:
 	Settings.set_graphics_preset(preset)
 	game.get_viewport().msaa_3d = msaa
+	var openxr := XRServer.find_interface("OpenXR") as OpenXRInterface
+	if openxr:
+		openxr.render_target_size_multiplier = scale
+
+## Sets the player's own look settings for a phase (glare null keeps the preset's); all put back after it, the render
+## scale at the end of the run.
+func _set_look(preset: String, glare: Variant, quality: String, msaa: String, atmosphere: String, scale: float) -> void:
+	Settings.set_graphics_preset(preset)
+	if glare != null:
+		Settings.glare = glare
+	Settings.glow_quality = quality
+	Settings.msaa = msaa
+	Settings.atmosphere = atmosphere
 	var openxr := XRServer.find_interface("OpenXR") as OpenXRInterface
 	if openxr:
 		openxr.render_target_size_multiplier = scale
