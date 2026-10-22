@@ -34,6 +34,12 @@ varying float across;
 varying float along;
 varying float fade;
 varying vec3 world_pos;
+// LowResGlow's camera (it sees only LowResGlow.GLOW_LAYER) draws the bar as one smooth, steady soft line at least
+// GLOW_MIN_PIXELS of its small image wide (dimmed by the width it gains, like any far bar): the thin core broke into
+// dashes there, and the drifting beam waves bloomed into stripes crawling along the bar.
+const uint GLOW_LAYER = 1024u;
+const float GLOW_MIN_PIXELS = 4.0;
+varying float glow_pass;
 
 void vertex() {
 	vec3 axis = normalize((MODEL_MATRIX * vec4(0.0, 0.0, 1.0, 0.0)).xyz);
@@ -44,7 +50,8 @@ void vertex() {
 	side = side_len > 1e-4 ? side / side_len : vec3(1.0, 0.0, 0.0);
 	float dist = length(to_cam);
 	float pixel = 2.0 * dist / (PROJECTION_MATRIX[1][1] * VIEWPORT_SIZE.y);
-	float w = (debug_view & 4) != 0 ? 0.0 : max(width, min_pixels * pixel * 4.0);
+	glow_pass = CAMERA_VISIBLE_LAYERS == GLOW_LAYER ? 1.0 : 0.0;
+	float w = (debug_view & 4) != 0 ? 0.0 : max(width, (glow_pass > 0.5 ? GLOW_MIN_PIXELS : min_pixels) * pixel * 4.0);
 	vec3 world = center + side * VERTEX.x * w;
 	world_pos = world;
 	across = VERTEX.x * 2.0;
@@ -65,5 +72,9 @@ void fragment() {
 	float peak = max(light_color.r, max(light_color.g, light_color.b));
 	vec3 hot = mix(light_color.rgb, vec3(peak), CORE_WHITE);
 	vec3 col = hot * core + light_color.rgb * (halo + beam) * HALO_GAIN;
+	if (glow_pass > 0.5) {
+		// its colour: the glow is the coloured falloff around the white-hot core the view draws
+		col = light_color.rgb * exp(-d * d * 4.0);
+	}
 	ALBEDO = col * (1.0 - d) * tips * fade * brightness * (1.0 + combo_glow);
 }

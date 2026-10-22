@@ -43,7 +43,8 @@ uniform bool up = false;
 uniform sampler2D detail : filter_linear, repeat_disable;
 uniform float detail_weight = 0.0;
 uniform float wide_weight = 1.0;
-// for the first pass: light below this doesn't glow (the bars' faint halo and drifting beam would bloom into fog)
+// for the first pass: light below this doesn't glow, eased in over a knee as wide (a hard cut turned a thin bar
+// whose brightness varies between texels into dashes)
 uniform float threshold = 0.0;
 void fragment() {
 	vec3 sum;
@@ -57,7 +58,11 @@ void fragment() {
 		sum = texture(source, UV).rgb * 4.0
 			+ texture(source, UV + vec2(-texel.x, -texel.y)).rgb + texture(source, UV + vec2(texel.x, -texel.y)).rgb
 			+ texture(source, UV + vec2(-texel.x, texel.y)).rgb + texture(source, UV + vec2(texel.x, texel.y)).rgb;
-		sum = max(sum / 8.0 - vec3(threshold), vec3(0.0));
+		sum /= 8.0;
+		if (threshold > 0.0) {
+			float level = max(sum.r, max(sum.g, sum.b));
+			sum *= smoothstep(0.0, threshold * 2.0, level);
+		}
 	}
 	COLOR = vec4(sum, 1.0);
 }
