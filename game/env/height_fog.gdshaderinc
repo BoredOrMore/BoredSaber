@@ -8,15 +8,21 @@ const float HEIGHT_FOG_DENSITY = 0.06;
 const float HEIGHT_FOG_FALLOFF = 0.8;
 // how much brighter the fog layer is than the plain haze, as it catches the stage's light
 const float HEIGHT_FOG_GLOW = 1.4;
+// Settings.atmosphere Eerie (1) makes the layer thicker and lower: denser at the floor and thinning out faster, so
+// it pools below the notes
+global uniform float atmosphere_eerie;
+const float EERIE_FOG_DENSITY = 2.5;
+const float EERIE_FOG_FALLOFF = 1.8;
 
 // How much of the view from cam to world is fogged (0 clear, 1 all fog).
 float height_fog(vec3 world, vec3 cam) {
 	vec3 ray = world - cam;
 	float dist = length(ray);
 	float ry = ray.y / max(dist, 1e-4);
-	float start = HEIGHT_FOG_DENSITY * exp(-max(cam.y, 0.0) * HEIGHT_FOG_FALLOFF);
+	float falloff = HEIGHT_FOG_FALLOFF * mix(1.0, EERIE_FOG_FALLOFF, atmosphere_eerie);
+	float start = HEIGHT_FOG_DENSITY * mix(1.0, EERIE_FOG_DENSITY, atmosphere_eerie) * exp(-max(cam.y, 0.0) * falloff);
 	float amount = abs(ry) < 1e-3
 		? start * dist
-		: start * (1.0 - exp(-dist * ry * HEIGHT_FOG_FALLOFF)) / (ry * HEIGHT_FOG_FALLOFF);
+		: start * (1.0 - exp(-dist * ry * falloff)) / (ry * falloff);
 	return 1.0 - exp(-max(amount, 0.0));
 }

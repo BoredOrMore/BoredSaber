@@ -434,7 +434,7 @@ func _ready() -> void:
 	_apply_note_style()
 	_apply_environment()
 	# the scenery shaders tint their own shadows (game/env/shadow_tone.gdshaderinc)
-	RenderingServer.global_shader_parameter_set(&"shadow_tint", Constants.SHADOW_TINT)
+	_apply_atmosphere()
 	
 	if not vr.inVR:
 		xr_origin.add_child(preload("res://OQ_Toolkit/OQ_ARVROrigin/Feature_VRSimulator.tscn").instantiate())
@@ -552,6 +552,14 @@ func _apply_glow() -> void:
 	if low_res_glow:
 		low_res_glow.stage = glow - Glow.NEW_VIEWPORTS_ONLY + 1 if glow >= Glow.NEW_VIEWPORTS_ONLY else 0
 
+## The scenery shaders' share of Settings.atmosphere (height fog, dust, shadow tone) and the stage smoke; the haze and
+## menu lights read it themselves.
+func _apply_atmosphere() -> void:
+	var eerie := Settings.atmosphere == "Eerie"
+	RenderingServer.global_shader_parameter_set(&"atmosphere_eerie", 1.0 if eerie else 0.0)
+	RenderingServer.global_shader_parameter_set(&"shadow_tint", Constants.EERIE_SHADOW_TINT if eerie else Constants.SHADOW_TINT)
+	event_driver.stage_smoke.apply_atmosphere()
+
 ## Sets the 3D view's anti-aliasing to Settings.msaa (it applies to both eyes).
 func _apply_msaa() -> void:
 	get_viewport().msaa_3d = Settings.msaa_mode()
@@ -632,6 +640,8 @@ func on_settings_changed(key: StringName) -> void:
 			event_driver.set_background_texture()
 		&"show_debug_info":
 			_show_debug_info()
+		&"atmosphere":
+			_apply_atmosphere()
 		&"glare", &"glow_quality":
 			if glow_override < 0:
 				LowResGlow.set_quality(Settings.glow_quality)

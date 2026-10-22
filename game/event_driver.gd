@@ -30,6 +30,13 @@ const COMBO_FALL_SECONDS := 0.3
 const MENU_BREATH_LOW := 0.3
 const MENU_BREATH_HIGH := 0.4
 const MENU_BREATH_SECONDS := 12.0
+## Settings.atmosphere Eerie: the menu lights breathe lower and slower, and the air is darker, greyer and colder
+## (Constants.EERIE_HAZE_TINT). Untuned.
+const EERIE_BREATH_LOW := 0.2
+const EERIE_BREATH_HIGH := 0.28
+const EERIE_BREATH_SECONDS := 20.0
+const EERIE_HAZE_DIM := 0.7
+const EERIE_HAZE_NEUTRAL := 0.8
 const MENU_LASER_LEVEL := 0.2
 const MENU_LASER_SWEEP_SECONDS := 30.0
 const MENU_HAZE_BOOST := 1.5
@@ -500,8 +507,13 @@ func _update_haze() -> void:
 	haze *= (1.0 + COMBO_HAZE_BOOST * _combo_level + COMBO_PULSE * pulse) * (1.0 - MISTAKE_DIP * _mistake_dip)
 	if menu_focus:
 		haze *= MENU_HAZE_BOOST
+	var eerie := Settings.atmosphere == "Eerie"
+	if eerie:
+		haze *= EERIE_HAZE_DIM
 	var grey := haze.r * 0.299 + haze.g * 0.587 + haze.b * 0.114
-	haze = haze.lerp(Color(grey, grey, grey), HAZE_NEUTRAL)
+	haze = haze.lerp(Color(grey, grey, grey), EERIE_HAZE_NEUTRAL if eerie else HAZE_NEUTRAL)
+	if eerie:
+		haze *= Constants.EERIE_HAZE_TINT
 	haze.a = 1.0
 	RenderingServer.global_shader_parameter_set(&"env_haze", haze)
 	RenderingServer.global_shader_parameter_set(&"combo_glow", COMBO_LASER_BOOST * _combo_level + COMBO_PULSE_LASER * pulse)
@@ -567,8 +579,9 @@ func _breathe(delta: float) -> void:
 	_menu_time += delta
 	if disabled or _menu_time < MENU_FADE_SECONDS:
 		return
-	var level := lerpf(MENU_BREATH_LOW, MENU_BREATH_HIGH,
-		0.5 - 0.5 * cos(TAU * (_menu_time - MENU_FADE_SECONDS) / MENU_BREATH_SECONDS))
+	var eerie := Settings.atmosphere == "Eerie"
+	var level := lerpf(EERIE_BREATH_LOW if eerie else MENU_BREATH_LOW, EERIE_BREATH_HIGH if eerie else MENU_BREATH_HIGH,
+		0.5 - 0.5 * cos(TAU * (_menu_time - MENU_FADE_SECONDS) / (EERIE_BREATH_SECONDS if eerie else MENU_BREATH_SECONDS)))
 	turn_light_on(EventInfo.TYPE_DIAGONAL_LASERS, _menu_color(left_color, level))
 	turn_light_on(EventInfo.TYPE_SQUARE_LASERS, _menu_color(right_color, level))
 	turn_light_on(EventInfo.TYPE_FLOOR_LIGHTS, _menu_color(right_color, level))

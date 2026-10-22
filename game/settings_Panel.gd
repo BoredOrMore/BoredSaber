@@ -282,6 +282,12 @@ const GLOW_HINTS := {
 	"Classic": "Glow over the whole view",
 }
 const GLOW_OFF_HINT := "Needs Glow on"
+const ATMOSPHERE_HINTS := {
+	"Normal": "Clear air, lively lights",
+	"Eerie": "Cold low mist, slow dim lights",
+}
+var _atmosphere_chips := {}
+var _atmosphere_hint := Label.new()
 ## Chip labels that differ from the setting's value (the player asked Classic to say what it costs).
 const GLOW_LABELS := {"Classic": "Classic (heavy)"}
 const MSAA_HINTS := {
@@ -314,10 +320,12 @@ func _add_graphics_row() -> void:
 			func(level: String) -> void: Settings.msaa = level, _msaa_hint)
 	_glow_chips = _add_chip_row(6, "Glow style", Settings.GLOW_QUALITIES, func(quality: String) -> void: Settings.glow_quality = quality,
 			_glow_hint)
+	_atmosphere_chips = _add_chip_row(8, "Atmosphere", Settings.ATMOSPHERES,
+			func(atmosphere: String) -> void: Settings.atmosphere = atmosphere, _atmosphere_hint)
 	for quality: String in GLOW_LABELS:
 		(_glow_chips[quality] as Button).text = GLOW_LABELS[quality]
 	Settings.changed.connect(func(key: StringName) -> void:
-		if key in [&"resolution", &"msaa", &"glow_quality"] or key in Settings.GRAPHICS_PRESETS["Low"]:
+		if key in [&"resolution", &"msaa", &"glow_quality", &"atmosphere"] or key in Settings.GRAPHICS_PRESETS["Low"]:
 			_sync_graphics())
 	_sync_graphics()
 
@@ -379,6 +387,9 @@ func _sync_graphics() -> void:
 		chip.disabled = not Settings.glare
 		chip.set_pressed_no_signal(name == Settings.glow_quality)
 	_glow_hint.text = GLOW_HINTS.get(Settings.glow_quality, "") if Settings.glare else GLOW_OFF_HINT
+	for name: String in _atmosphere_chips:
+		(_atmosphere_chips[name] as Button).set_pressed_no_signal(name == Settings.atmosphere)
+	_atmosphere_hint.text = ATMOSPHERE_HINTS.get(Settings.atmosphere, "")
 	glare_control.set_pressed_no_signal(Settings.glare)
 	smoke_control.set_pressed_no_signal(Settings.smoke)
 	saber_tail_control.set_pressed_no_signal(Settings.saber_tail)

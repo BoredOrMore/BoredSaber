@@ -33,6 +33,10 @@ const SHEET_OPACITY := 0.35
 ## Seconds the smoke takes to clear once a song starts (then it is freed and costs nothing while playing), and to
 ## fill the stage again in the menus. Untuned.
 const CLEAR_SECONDS := 3.0
+## Settings.atmosphere Eerie: the floor layer is this much thicker, and during a song it stays at EERIE_SONG_FLOOR of
+## that (it lies 12 cm up, under the notes) while the sheets still clear. Untuned.
+const EERIE_FLOOR := 1.4
+const EERIE_SONG_FLOOR := 0.6
 const FILL_SECONDS := 4.0
 
 var _noise: NoiseTexture2D
@@ -41,6 +45,8 @@ var _materials: Array[ShaderMaterial] = []
 var _full_opacity: Array[float] = []
 var _amount := 1.0
 var _tween: Tween
+## A song is on (dissipate) rather than a menu (refill).
+var _playing := false
 
 func _ready() -> void:
 	var noise := NoiseTexture2D.new()
@@ -54,14 +60,19 @@ func _ready() -> void:
 	_noise = noise
 	_spawn()
 
-## Clears the smoke over CLEAR_SECONDS and then frees it, as a song starts.
+## Clears the smoke over CLEAR_SECONDS and then frees it, as a song starts (with the Eerie atmosphere the floor layer
+## stays, thinner).
 func dissipate() -> void:
+	_playing = true
 	if get_child_count() == 0:
 		return
-	_fade_to(0.0, CLEAR_SECONDS).finished.connect(_free_smoke)
+	var tween := _fade_to(0.0, CLEAR_SECONDS)
+	if not _eerie():
+		tween.finished.connect(_free_smoke)
 
 ## Spawns the smoke again if it was cleared and fades it in over FILL_SECONDS, for the menus.
 func refill() -> void:
+	_playing = false
 	if get_child_count() == 0:
 		_spawn()
 		_set_amount(0.0)
@@ -75,11 +86,25 @@ func _fade_to(amount: float, seconds: float) -> Tween:
 	_tween.tween_method(_set_amount, _amount, amount, seconds)
 	return _tween
 
-## Scales every smoke material's opacity to an amount of its full value.
+## Scales every smoke material's opacity to an amount of its full value (the floor layers' by the atmosphere too).
 func _set_amount(amount: float) -> void:
 	_amount = amount
+	var eerie := _eerie()
 	for i in _materials.size():
-		_materials[i].set_shader_parameter(&"opacity", _full_opacity[i] * amount)
+		var opacity := _full_opacity[i] * amount
+		if eerie and i < FLOOR_LAYERS.size():
+			opacity = _full_opacity[i] * EERIE_FLOOR * (lerpf(EERIE_SONG_FLOOR, 1.0, amount) if _playing else amount)
+		_materials[i].set_shader_parameter(&"opacity", opacity)
+
+## Puts the smoke in step with Settings.atmosphere (it may change any time).
+func apply_atmosphere() -> void:
+	if _eerie() and get_child_count() == 0:
+		_spawn()
+		_set_amount(0.0)
+	_set_amount(_amount)
+
+static func _eerie() -> bool:
+	return Settings.atmosphere == "Eerie"
 
 ## Removes the smoke meshes (the noise texture stays for the next spawn).
 func _free_smoke() -> void:

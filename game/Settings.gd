@@ -282,6 +282,14 @@ var glow_quality: String:
 		glow_quality = value
 		set_and_emit(&"glow_quality", value)
 
+## The air: "Normal", or "Eerie" (thicker low fog that stays during songs, colder darker haze and shadows, slower
+## dimmer dust and menu lights). Not part of the graphics presets.
+const ATMOSPHERES := ["Normal", "Eerie"]
+var atmosphere: String:
+	set(value):
+		atmosphere = value
+		set_and_emit(&"atmosphere", value)
+
 ## The anti-aliasing picked (an MSAA_LEVELS name).
 var msaa: String:
 	set(value):
@@ -448,6 +456,7 @@ var default_values = {
 	resolution = "Normal",
 	msaa = "4x",
 	glow_quality = "Soft",
+	atmosphere = "Normal",
 	darker_notes = false,
 	background_texture = "res://game/data/background/stage_sky.png",
 	health_mode = true,

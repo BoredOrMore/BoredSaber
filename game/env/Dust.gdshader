@@ -29,6 +29,11 @@ const float SABER_GAIN = 1.5;
 // metres around a blade tip that it lights
 const float SABER_REACH = 0.6;
 const float CUT_WAVE_GAIN = 1.0;
+// Settings.atmosphere Eerie (1): the specks drift slower and dimmer, each fading in and out slowly on its own
+// (a period of about 20 s; never a flash)
+global uniform float atmosphere_eerie;
+const float EERIE_SPEED = 0.45;
+const float EERIE_DIM = 0.6;
 
 varying vec3 light;
 varying vec2 corner;
@@ -41,7 +46,8 @@ float saber_light(vec3 world, vec3 tip) {
 void vertex() {
 	vec3 p = VERTEX;
 	float phase = dot(p, vec3(1.7, 2.3, 3.1));
-	p += vec3(sin(TIME * 0.3 + phase), RISE * TIME, cos(TIME * 0.23 + phase * 1.3)) * vec3(SWAY, 1.0, SWAY);
+	float t = TIME * mix(1.0, EERIE_SPEED, atmosphere_eerie);
+	p += vec3(sin(t * 0.3 + phase), RISE * t, cos(t * 0.23 + phase * 1.3)) * vec3(SWAY, 1.0, SWAY);
 	// where the speck is in the box, 0 to 1 on each axis
 	vec3 q = mod(p, box) / box;
 	vec3 edges = smoothstep(0.0, 0.1, q) * smoothstep(0.0, 0.1, 1.0 - q);
@@ -52,7 +58,8 @@ void vertex() {
 	light = (env_haze.rgb * HAZE_GAIN
 		+ left_saber_color.rgb * SABER_GAIN * saber_light(world, left_saber)
 		+ right_saber_color.rgb * SABER_GAIN * saber_light(world, right_saber)
-		+ cut_wave_light(world) * CUT_WAVE_GAIN) * shown;
+		+ cut_wave_light(world) * CUT_WAVE_GAIN) * shown
+		* mix(1.0, EERIE_DIM * (0.55 + 0.45 * sin(TIME * 0.3 + phase * 3.0)), atmosphere_eerie);
 	corner = UV;
 	vec4 view = VIEW_MATRIX * vec4(world, 1.0);
 	view.xy += UV * SIZE;

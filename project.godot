@@ -188,6 +188,10 @@ combo_glow={
 "type": "float",
 "value": 0.0
 }
+atmosphere_eerie={
+"type": "float",
+"value": 0.0
+}
 cut_waves={
 "type": "vec2",
 "value": Vector2(-1, -1)
