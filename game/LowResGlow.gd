@@ -26,7 +26,14 @@ const HEIGHTS: Array[int] = [376, 564, 752]
 static var height := 752
 ## The blur passes: [size relative to the glow image, upsample]. Halving twice then doubling back keeps the glow
 ## wide but smooth (a single downsample read straight at full screen showed its texels as soft blotches).
-const BLUR_CHAIN := [[0.5, false], [0.25, false], [0.5, true]]
+## Then a B-spline (bicubic) up pass back to the glow image's size: the composite reads it with one bilinear tap,
+## magnified only about twice. The B-spline at full screen (four taps for each of about 4.5 million pixels) cost
+## about 2.9 ms; here it runs over the glow image's few hundred thousand.
+enum Pass { DOWN, UP, BSPLINE }
+const BLUR_CHAIN := [[0.5, Pass.DOWN], [0.25, Pass.DOWN], [0.5, Pass.UP], [1.0, Pass.BSPLINE]]
+## Where the glow is magnified: "pass" (the BSPLINE pass, the default), "composite" (B-spline in the composite, the
+## older way, for the benchmark) or "none" (one bilinear tap of the up pass; DebugView.GLOW_BICUBIC).
+static var upsample := "pass"
 const INTENSITY := 1.0
 ## The up pass: the tight halo (the first downsample) added back to the wide one, mostly tight so the glow hugs the
 ## bars instead of spreading like fog.
@@ -43,7 +50,8 @@ shader_type canvas_item;
 // into an image half the size. Up: a tent of four edge taps a texel out and four diagonal ones half a texel out.
 uniform sampler2D source : filter_linear, repeat_disable;
 uniform vec2 texel;
-uniform bool up = false;
+// Pass: 0 down, 1 up, 2 B-spline up (Sigg and Hadwiger, GPU Gems 2 ch. 20: four bilinear taps)
+uniform int mode = 0;
 // for an up pass: the down pass of its size, added back as a tight inner halo around the wide one
 uniform sampler2D detail : filter_linear, repeat_disable;
 uniform float detail_weight = 0.0;
@@ -51,9 +59,28 @@ uniform float wide_weight = 1.0;
 // for the first pass: light below this doesn't glow, eased in over a knee as wide (a hard cut turned a thin bar
 // whose brightness varies between texels into dashes)
 uniform float threshold = 0.0;
+vec3 bspline(vec2 uv, vec2 size) {
+	vec2 p = uv * size - 0.5;
+	vec2 i = floor(p);
+	vec2 f = p - i;
+	vec2 f2 = f * f;
+	vec2 f3 = f2 * f;
+	vec2 w0 = (-f3 + 3.0 * f2 - 3.0 * f + 1.0) / 6.0;
+	vec2 w1 = (3.0 * f3 - 6.0 * f2 + 4.0) / 6.0;
+	vec2 w2 = (-3.0 * f3 + 3.0 * f2 + 3.0 * f + 1.0) / 6.0;
+	vec2 w3 = f3 / 6.0;
+	vec2 g0 = w0 + w1;
+	vec2 g1 = w2 + w3;
+	vec2 h0 = (i - 0.5 + w1 / g0) / size;
+	vec2 h1 = (i + 1.5 + w3 / g1) / size;
+	return g0.y * (g0.x * texture(source, h0).rgb + g1.x * texture(source, vec2(h1.x, h0.y)).rgb)
+		+ g1.y * (g0.x * texture(source, vec2(h0.x, h1.y)).rgb + g1.x * texture(source, h1).rgb);
+}
 void fragment() {
 	vec3 sum;
-	if (up) {
+	if (mode == 2) {
+		sum = bspline(UV, 1.0 / texel);
+	} else if (mode == 1) {
 		sum = texture(source, UV + vec2(-texel.x * 2.0, 0.0)).rgb + texture(source, UV + vec2(texel.x * 2.0, 0.0)).rgb
 			+ texture(source, UV + vec2(0.0, -texel.y * 2.0)).rgb + texture(source, UV + vec2(0.0, texel.y * 2.0)).rgb
 			+ (texture(source, UV + vec2(-texel.x, -texel.y)).rgb + texture(source, UV + vec2(texel.x, -texel.y)).rgb
@@ -83,7 +110,7 @@ uniform bool debug = false;
 // DebugView A/B tests: a 4x4 Bayer dither of half an 8-bit step, and a B-spline upsample (Sigg and Hadwiger,
 // GPU Gems 2 ch. 20: four bilinear taps) of the glow image, glow_size texels big
 uniform bool dither = false;
-uniform bool bicubic = true;
+uniform bool bicubic = false;
 uniform vec2 glow_size = vec2(188.0);
 vec3 bspline(vec2 uv) {
 	vec2 p = uv * glow_size - 0.5;
@@ -187,14 +214,14 @@ func _ready() -> void:
 		var material := ShaderMaterial.new()
 		material.shader = blur_shader
 		material.set_shader_parameter(&"source", source)
-		material.set_shader_parameter(&"up", pass_[1])
+		material.set_shader_parameter(&"mode", pass_[1])
 		material.set_shader_parameter(&"wide_weight", WIDE_HALO)
 		if _blurs.is_empty():
 			material.set_shader_parameter(&"threshold", THRESHOLD)
-		if pass_[1]:
+		if pass_[1] == Pass.UP:
 			# the down pass of the same size
 			for i in _blurs.size():
-				if is_equal_approx(float(BLUR_CHAIN[i][0]), float(pass_[0])) and not BLUR_CHAIN[i][1]:
+				if is_equal_approx(float(BLUR_CHAIN[i][0]), float(pass_[0])) and BLUR_CHAIN[i][1] == Pass.DOWN:
 					material.set_shader_parameter(&"detail", _blurs[i].get_texture())
 					material.set_shader_parameter(&"detail_weight", TIGHT_HALO)
 		rect.material = material
@@ -248,6 +275,9 @@ func _apply_stage() -> void:
 	_view.render_target_update_mode = SubViewport.UPDATE_ALWAYS if shown else SubViewport.UPDATE_DISABLED
 	for blur in _blurs:
 		blur.render_target_update_mode = SubViewport.UPDATE_ALWAYS if shown and stage >= 2 else SubViewport.UPDATE_DISABLED
+	# the B-spline pass only when the composite reads it
+	if _upsample_shown != "pass":
+		_blurs[-1].render_target_update_mode = SubViewport.UPDATE_DISABLED
 	_quad.visible = shown and stage >= 3
 
 func _process(_delta: float) -> void:
@@ -277,9 +307,14 @@ func _process(_delta: float) -> void:
 	var debug := DebugView.flags & DebugView.GLOW_ALIGN != 0
 	_quad_material.set_shader_parameter(&"debug", debug)
 	_quad_material.set_shader_parameter(&"dither", DebugView.flags & DebugView.GLOW_DITHER != 0)
-	# on by default; the switch now turns it off, to compare
-	_quad_material.set_shader_parameter(&"bicubic", DebugView.flags & DebugView.GLOW_BICUBIC == 0)
-	_quad_material.set_shader_parameter(&"glow_size", Vector2(_blurs[-1].size))
+	var mode := "none" if DebugView.flags & DebugView.GLOW_BICUBIC != 0 else upsample
+	if mode != _upsample_shown:
+		_upsample_shown = mode
+		_apply_stage()
+	var read := _blurs[-1] if mode == "pass" else _blurs[-2]
+	_quad_material.set_shader_parameter(&"glow", read.get_texture())
+	_quad_material.set_shader_parameter(&"bicubic", mode == "composite")
+	_quad_material.set_shader_parameter(&"glow_size", Vector2(read.size))
 	_test_foveation(xr, DebugView.flags & DebugView.GLOW_NO_FOVEATION != 0)
 	# the log also runs during a benchmark, to have the numbers with each measurement
 	if (debug or _game.has_node(^"Benchmark")) and xr and xr.is_initialized() and xr.get_view_count() == 2:
@@ -287,6 +322,8 @@ func _process(_delta: float) -> void:
 
 ## The foveation level before DebugView.GLOW_NO_FOVEATION turned it off (-1: not off).
 var _foveation_before := -1
+## The upsample in use (upsample, or "none" while DebugView.GLOW_BICUBIC is on).
+var _upsample_shown := "pass"
 
 func _test_foveation(xr: XRInterface, off: bool) -> void:
 	var openxr := xr as OpenXRInterface

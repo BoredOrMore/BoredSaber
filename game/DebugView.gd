@@ -15,7 +15,7 @@ const CYCLE := 1024
 ## Not read by shaders: LowResGlow draws its unblurred glow solid magenta and logs how far it lands from the light.
 const GLOW_ALIGN := 2048
 ## Not read by shaders, A/B tests for LowResGlow's stripes in the headset: a 4x4 Bayer dither in its composite,
-## one bilinear tap instead of the B-spline (bicubic) upsample, and foveation off while the glow is on.
+## no B-spline (bicubic) upsample (one bilinear tap of the blur), and foveation off while the glow is on.
 const GLOW_DITHER := 4096
 const GLOW_BICUBIC := 8192
 const GLOW_NO_FOVEATION := 16384
