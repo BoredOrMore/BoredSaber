@@ -4,7 +4,7 @@ class_name LowResGlow
 ## copy it to the screen eye by eye (about 5 ms of the Pico 4's 13.9 ms frame in a song, measured), and makes MSAA
 ## resolve through it. Here the scene still draws straight to the screen; only the glow sources (GLOW_LAYER: the
 ## light show's lasers and bars) are drawn again by one camera at the middle of the eyes, whose off-axis frustum
-## covers both eyes' views, into a small SubViewport (HEIGHT px), blurred by a dual-filter chain (BLUR_CHAIN: down
+## covers both eyes' views, into a small SubViewport (height px), blurred by a dual-filter chain (BLUR_CHAIN: down
 ## twice, up once, each a SubViewport), and added over each eye's view by one full-screen quad in front of the XR
 ## camera, one bilinear tap a pixel.
 ## One view for both eyes (not one each) halves the extra render passes, which measured costlier than their pixels
@@ -18,7 +18,11 @@ class_name LowResGlow
 ## The visual layer (bit 11) glow sources carry besides their own.
 const GLOW_LAYER := 1 << 10
 ## 376 px: at 188 thin beams broke up and the upscaled glow looked smoky; the passes measured near free.
-const HEIGHT := 376
+const HEIGHTS: Array[int] = [376, 564, 752]
+## The glow image's height in px (its width follows the frustum, so texels are square); a debug choice in Settings >
+## Advanced while the stripes are compared on the headset. 564: at 376 a glow texel spans about 7 eye pixels, and
+## the bilinear steps between them showed as vertical bands sliding as the head turned or a bar swept.
+static var height := 564
 ## The blur passes: [size relative to the glow image, upsample]. Halving twice then doubling back keeps the glow
 ## wide but smooth (a single downsample read straight at full screen showed its texels as soft blotches).
 const BLUR_CHAIN := [[0.5, false], [0.25, false], [0.5, true]]
@@ -151,7 +155,7 @@ func _ready() -> void:
 	var black := Environment.new()
 	black.background_mode = Environment.BG_COLOR
 	black.background_color = Color.BLACK
-	_view.size = Vector2i(HEIGHT, HEIGHT)
+	_view.size = Vector2i(height, height)
 	# beams thinner than a pixel at this size would come out as dashes; on a tiled GPU the resolve stays in tile memory
 	_view.msaa_3d = Viewport.MSAA_4X
 	_camera.cull_mask = GLOW_LAYER
@@ -167,7 +171,7 @@ func _ready() -> void:
 	var source: Texture2D = _view.get_texture()
 	for pass_: Array in BLUR_CHAIN:
 		var blur := SubViewport.new()
-		blur.size = Vector2i(Vector2(HEIGHT, HEIGHT) * float(pass_[0]))
+		blur.size = Vector2i(Vector2(height, height) * float(pass_[0]))
 		blur.disable_3d = true
 		# half floats: a soft falloff in 8 bits shows steps that slide as the bars move
 		blur.use_hdr_2d = true
@@ -367,8 +371,10 @@ static func _tangents(projection: Projection) -> Rect2:
 ## Sets the camera to an off-axis frustum: Camera3D can't take a matrix, but a frustum's height, centre offset and
 ## the viewport's aspect fix its left, right, bottom and top exactly.
 func _match_frustum(bounds: Rect2) -> void:
-	var size := Vector2i(roundi(HEIGHT * bounds.size.x / bounds.size.y), HEIGHT)
+	var size := Vector2i(roundi(height * bounds.size.x / bounds.size.y), height)
 	if _view.size != size:
+		print("Glow view %dx%d for a frustum %.3f x %.3f (tangents): texel aspect %.3f" % [size.x, size.y,
+				bounds.size.x, bounds.size.y, (bounds.size.x / size.x) / (bounds.size.y / size.y)])
 		_view.size = size
 		for i in _blurs.size():
 			_blurs[i].size = Vector2i(Vector2(size) * float(BLUR_CHAIN[i][0]))
