@@ -28,8 +28,9 @@ func _ready() -> void:
 	var normal: Dictionary = Settings.GRAPHICS_PRESETS["Normal"]
 	check(normal.keys().all(func(key: StringName) -> bool: return Settings.default_values[key] == normal[key]),
 			"first-run effects are the Normal graphics preset")
-	check(Settings.default_values["msaa"] == "Off", "anti-aliasing is off by default (the Normal preset's)")
-	check(Settings.migrated_msaa("Normal", true) == "Off" and Settings.migrated_msaa("Low", false) == "4x"
+	check(Settings.default_values["msaa"] == Settings.PRESET_MSAA["Normal"] and Settings.PRESET_MSAA["Normal"] == "4x",
+			"anti-aliasing is 4x by default (the Normal preset's)")
+	check(Settings.migrated_msaa("Normal", true) == "4x" and Settings.migrated_msaa("Low", false) == "4x"
 			and Settings.migrated_msaa(Settings.GRAPHICS_CUSTOM, true) == "Off" and Settings.migrated_msaa(Settings.GRAPHICS_CUSTOM, false) == "4x",
 			"configs from the 4x-everywhere build get their preset's anti-aliasing")
 	_port.size = Vector2i(1600, 1100)

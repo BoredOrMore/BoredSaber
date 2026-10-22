@@ -82,9 +82,9 @@ func set_graphics_preset(preset: String) -> void:
 	msaa = PRESET_MSAA[preset]
 
 ## The anti-aliasing a preset picks; the player may change it afterwards without the preset becoming Custom.
-## Measured in a song on the headset: with glow (Normal) 4x MSAA costs about 3.2 ms and goes over the 13.9 ms frame,
-## without glow (Low) about 1.5 ms.
-const PRESET_MSAA := {"Low": "4x", "Normal": "Off"}
+## Measured in a song on the headset: with Godot's glow 4x MSAA cost about 3.2 ms and went over the 13.9 ms frame;
+## with the Soft glow (LowResGlow) about 0.7 ms, and without glow (Low) about 1.5 ms, so both presets use 4x.
+const PRESET_MSAA := {"Low": "4x", "Normal": "4x"}
 
 ## The anti-aliasing for a config from before PRESET_MSAA: its preset's, or for Custom Off with glow, 4x without.
 static func migrated_msaa(preset: String, glow: bool) -> String:
@@ -446,7 +446,7 @@ var default_values = {
 	environment = "auto",
 	note_style = "solid",
 	resolution = "Normal",
-	msaa = "Off",
+	msaa = "4x",
 	glow_quality = "Standard",
 	darker_notes = false,
 	background_texture = "res://game/data/background/stage_sky.png",
@@ -482,6 +482,8 @@ func set_and_emit(key: StringName, value: Variant) -> void:
 const GLOW_DEFAULT_ON := "glow_default_on"
 ## Marks a config written since the anti-aliasing follows the graphics preset (see reload).
 const MSAA_PER_PRESET := "msaa_per_preset"
+## Marks a config written since Normal's anti-aliasing is 4x (see reload).
+const NORMAL_MSAA_4X := "normal_msaa_4x"
 
 func reload() -> void:
 	var config_error := config.load(CONFIG_PATH)
@@ -506,6 +508,11 @@ func reload() -> void:
 	if not config.has_section_key(SECTION, MSAA_PER_PRESET):
 		msaa = migrated_msaa(graphics_preset(), glare)
 		config.set_value(SECTION, MSAA_PER_PRESET, true)
+	# Normal's anti-aliasing was Off while Godot's glow made 4x too costly; once, Normal configs with it Off get 4x.
+	if not config.has_section_key(SECTION, NORMAL_MSAA_4X):
+		if graphics_preset() == "Normal" and msaa == "Off":
+			msaa = "4x"
+		config.set_value(SECTION, NORMAL_MSAA_4X, true)
 
 func save() -> void:
 	var error := config.save(CONFIG_PATH)
@@ -522,6 +529,7 @@ func restore_defaults() -> void:
 	config.clear()
 	config.set_value(SECTION, GLOW_DEFAULT_ON, true)
 	config.set_value(SECTION, MSAA_PER_PRESET, true)
+	config.set_value(SECTION, NORMAL_MSAA_4X, true)
 	save()
 	reload()
 	preloaded_songs = samples_copied
