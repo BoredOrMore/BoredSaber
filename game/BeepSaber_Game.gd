@@ -192,6 +192,7 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 		health_rails.start_map(Settings.fail_mode == Constants.FAIL_MODE_LIVES, current_health / Constants.HEALTH_MAX)
 	
 	_clear_track()
+	_lowered_resolution = false
 	_transition_game_state(gamestate_playing)
 
 ## Changes health by delta in the health bar mode. mistake is a miss, bad cut, bomb or wall
@@ -304,6 +305,9 @@ func _show_name_card() -> void:
 		endscore.show_name_card("Best on this map: %d by %s" % [records[0].score, records[0].player_name])
 	else:
 		endscore.hide_name_card()
+	if _lowered_resolution:
+		var card := endscore._name_label.text if endscore._name_card.visible else ""
+		endscore.show_name_card(LOWERED_TEXT if card.is_empty() else "%s\n%s" % [card, LOWERED_TEXT])
 
 func _check_and_update_saber(controller: BeepSaberController, saber: LightSaber) -> void:
 	# to allow extending/sheething the saber while not playing a song
@@ -468,16 +472,56 @@ func set_background_texture() -> void:
 	var panorama : PanoramaSkyMaterial = environment.sky.sky_material 
 	panorama.panorama = load(Settings.background_texture)	
 	
+## Sets the OpenXR render scale to Settings.render_scale() if it differs (the runtime then remakes its eye buffers).
+func _apply_render_scale() -> void:
+	var openxr := XRServer.find_interface("OpenXR") as OpenXRInterface
+	if openxr and openxr.is_initialized() and openxr.render_target_size_multiplier != Settings.render_scale():
+		openxr.render_target_size_multiplier = Settings.render_scale()
+		print("render scale ", Settings.render_scale())
+
+## Full resolution stutters in busy songs (measured near the 13.9 ms budget): when a song misses more than
+## SMOOTH_MISSED_SHARE of its frames for SMOOTH_BAD_SECONDS seconds in a row, the render scale drops to Sharp for
+## the rest of the session (Settings.resolution_cap) and the end screen says so. Only the resolution changes:
+## lights and effects stay as the player set them.
+const SMOOTH_MISSED_SHARE := 0.05
+const SMOOTH_BAD_SECONDS := 3
+const SMOOTH_FALLBACK := "Sharp"
+const LOWERED_TEXT := "Lowered to Sharp to stay smooth"
+var _smooth_frames := 0
+var _smooth_time := 0.0
+var _smooth_bad_seconds := 0
+## The resolution was lowered during this song (shown on its end screen).
+var _lowered_resolution := false
+
+func _process(delta: float) -> void:
+	if gamestate != gamestate_playing or Settings.render_scale() <= Settings._resolution_scale(SMOOTH_FALLBACK) \
+			or has_node(^"Benchmark"):
+		_smooth_frames = 0
+		_smooth_time = 0.0
+		_smooth_bad_seconds = 0
+		return
+	_smooth_frames += 1
+	_smooth_time += delta
+	if _smooth_time < 1.0:
+		return
+	var expected := _smooth_time * Engine.physics_ticks_per_second
+	var missed := 1.0 - _smooth_frames / expected
+	_smooth_bad_seconds = _smooth_bad_seconds + 1 if missed > SMOOTH_MISSED_SHARE else 0
+	_smooth_frames = 0
+	_smooth_time = 0.0
+	if _smooth_bad_seconds >= SMOOTH_BAD_SECONDS:
+		Settings.resolution_cap = SMOOTH_FALLBACK
+		_apply_render_scale()
+		_lowered_resolution = true
+		print("render scale lowered to %s: missed %d%% of frames for %d s" % [SMOOTH_FALLBACK, int(missed * 100), SMOOTH_BAD_SECONDS])
+
 func on_settings_changed(key: StringName) -> void:
 	# ensures proper initialization of tree for proper first frame setting loading
 	await get_tree().process_frame
 	# the render scale follows the Low preset's resolution (Settings.render_scale)
 	# (not while the benchmark sets scales itself)
 	if (key == &"resolution" or key in Settings.GRAPHICS_PRESETS["Low"]) and not has_node(^"Benchmark"):
-		var openxr := XRServer.find_interface("OpenXR") as OpenXRInterface
-		if openxr and openxr.is_initialized() and openxr.render_target_size_multiplier != Settings.render_scale():
-			openxr.render_target_size_multiplier = Settings.render_scale()
-			print("render scale ", Settings.render_scale())
+		_apply_render_scale()
 	match key:
 		&"left_handed":
 			if Settings.left_handed:

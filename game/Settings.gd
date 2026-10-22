@@ -46,12 +46,22 @@ const GRAPHICS_CUSTOM := "Custom"
 ## everything but Low renders at 1x.
 const RESOLUTIONS := [["Normal", 1.0], ["Sharp", 1.2], ["Full", 1.44]]
 
-## The render scale in use: the picked resolution on Low, 1 otherwise.
+## A RESOLUTIONS name the render scale is held at or below for the rest of the session ("" none): the game lowers
+## Full to Sharp when a song stutters, leaving the picked resolution as it is.
+var resolution_cap := ""
+
+## The render scale in use: the picked resolution on Low (at most resolution_cap), 1 otherwise.
 func render_scale() -> float:
 	if graphics_preset() != "Low":
 		return 1.0
+	var scale := _resolution_scale(resolution)
+	if not resolution_cap.is_empty():
+		scale = minf(scale, _resolution_scale(resolution_cap))
+	return scale
+
+static func _resolution_scale(resolution_name: String) -> float:
 	for entry: Array in RESOLUTIONS:
-		if entry[0] == resolution:
+		if entry[0] == resolution_name:
 			return entry[1]
 	return 1.0
 

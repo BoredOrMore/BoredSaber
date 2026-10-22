@@ -116,6 +116,9 @@ func _ready() -> void:
 			"Graphics Low lights its chip and turns Glow off")
 	settings._resolution_chips["Full"].pressed.emit()
 	check(Settings.render_scale() == 1.44 and not settings._resolution_chips["Full"].disabled, "Resolution Full on Low renders at 1.44x")
+	Settings.resolution_cap = "Sharp"
+	check(Settings.render_scale() == 1.2 and Settings.resolution == "Full", "a stutter cap lowers Full to Sharp and keeps Full picked")
+	Settings.resolution_cap = ""
 	Settings.glare = true
 	await _settle()
 	check(settings._graphics_chips[Settings.GRAPHICS_CUSTOM].button_pressed, "changing an effect by hand shows Custom")
