@@ -28,7 +28,10 @@ func _ready() -> void:
 	var normal: Dictionary = Settings.GRAPHICS_PRESETS["Normal"]
 	check(normal.keys().all(func(key: StringName) -> bool: return Settings.default_values[key] == normal[key]),
 			"first-run effects are the Normal graphics preset")
-	check(Settings.default_values["msaa"] == "4x", "anti-aliasing is 4x MSAA by default")
+	check(Settings.default_values["msaa"] == "Off", "anti-aliasing is off by default (the Normal preset's)")
+	check(Settings.migrated_msaa("Normal", true) == "Off" and Settings.migrated_msaa("Low", false) == "4x"
+			and Settings.migrated_msaa(Settings.GRAPHICS_CUSTOM, true) == "Off" and Settings.migrated_msaa(Settings.GRAPHICS_CUSTOM, false) == "4x",
+			"configs from the 4x-everywhere build get their preset's anti-aliasing")
 	_port.size = Vector2i(1600, 1100)
 	add_child(_port)
 	var keyboard := (load("res://OQ_Toolkit/OQ_UI2D/OQ_UI2DKeyboard.tscn") as PackedScene).instantiate() as OQ_UI2DKeyboard
@@ -113,6 +116,7 @@ func _ready() -> void:
 	await _settle()
 	Settings.set_graphics_preset("Low")
 	await _settle()
+	check(Settings.msaa == "4x", "Graphics Low picks 4x anti-aliasing")
 	check(settings._graphics_chips["Low"].button_pressed and not settings.glare_control.button_pressed,
 			"Graphics Low lights its chip and turns Glow off")
 	settings._resolution_chips["Full"].pressed.emit()
@@ -123,6 +127,14 @@ func _ready() -> void:
 	Settings.glare = true
 	await _settle()
 	check(settings._graphics_chips[Settings.GRAPHICS_CUSTOM].button_pressed, "changing an effect by hand shows Custom")
+	check(settings._msaa_hint.text == settings.MSAA_GLOW_HINT, "4x with Glow on warns it may stutter in songs")
+	Settings.set_graphics_preset("Normal")
+	Settings.msaa = "2x"
+	await _settle()
+	check(Settings.graphics_preset() == "Normal", "changing anti-aliasing by hand keeps the preset")
+	Settings.set_graphics_preset("Low")
+	Settings.glare = true
+	await _settle()
 	check(Settings.render_scale() == 1.0 and settings._resolution_chips["Full"].disabled and Settings.resolution == "Full",
 			"off Low the resolution chips grey out and render at 1x, keeping Full for Low")
 	(settings.get_node(^"Tabs") as TabContainer).current_tab = settings.get_node(^"Tabs/Visuals").get_index()

@@ -276,6 +276,7 @@ const RESOLUTION_HINTS := {
 	"Full": "Sharpest, may stutter in busy songs",
 }
 const RESOLUTION_NEEDS_LOW := "Needs Graphics: Low"
+const MSAA_GLOW_HINT := "May stutter in songs while Glow is on"
 const MSAA_HINTS := {
 	"Off": "Fastest, jagged edges",
 	"2x": "Lighter",
@@ -359,7 +360,7 @@ func _sync_graphics() -> void:
 	_resolution_hint.text = RESOLUTION_HINTS.get(Settings.resolution, "") if low else RESOLUTION_NEEDS_LOW
 	for name: String in _msaa_chips:
 		(_msaa_chips[name] as Button).set_pressed_no_signal(name == Settings.msaa)
-	_msaa_hint.text = MSAA_HINTS.get(Settings.msaa, "")
+	_msaa_hint.text = MSAA_GLOW_HINT if Settings.glare and Settings.msaa != "Off" else MSAA_HINTS.get(Settings.msaa, "")
 	glare_control.set_pressed_no_signal(Settings.glare)
 	smoke_control.set_pressed_no_signal(Settings.smoke)
 	saber_tail_control.set_pressed_no_signal(Settings.saber_tail)

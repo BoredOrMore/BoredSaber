@@ -74,10 +74,21 @@ func graphics_preset() -> String:
 	return GRAPHICS_CUSTOM
 
 ## Sets every effect of a preset.
+## Sets every effect of a preset, and its anti-aliasing (PRESET_MSAA).
 func set_graphics_preset(preset: String) -> void:
 	var values: Dictionary = GRAPHICS_PRESETS[preset]
 	for key: StringName in values:
 		set(key, values[key])
+	msaa = PRESET_MSAA[preset]
+
+## The anti-aliasing a preset picks; the player may change it afterwards without the preset becoming Custom.
+## Measured in a song on the headset: with glow (Normal) 4x MSAA costs about 3.2 ms and goes over the 13.9 ms frame,
+## without glow (Low) about 1.5 ms.
+const PRESET_MSAA := {"Low": "4x", "Normal": "Off"}
+
+## The anti-aliasing for a config from before PRESET_MSAA: its preset's, or for Custom Off with glow, 4x without.
+static func migrated_msaa(preset: String, glow: bool) -> String:
+	return PRESET_MSAA.get(preset, "Off" if glow else "4x")
 
 ## Stage lights: a light show that follows the music, lights off, or lights off with the stage pieces hidden too.
 const BACKGROUND_MODES := [ ["dynamic", "Light show"],
@@ -427,7 +438,7 @@ var default_values = {
 	environment = "auto",
 	note_style = "solid",
 	resolution = "Normal",
-	msaa = "4x",
+	msaa = "Off",
 	darker_notes = false,
 	background_texture = "res://game/data/background/stage_sky.png",
 	health_mode = true,
@@ -460,6 +471,8 @@ func set_and_emit(key: StringName, value: Variant) -> void:
 # so i went with the next best thing.
 ## Marks a config written since glow is on by default (see reload).
 const GLOW_DEFAULT_ON := "glow_default_on"
+## Marks a config written since the anti-aliasing follows the graphics preset (see reload).
+const MSAA_PER_PRESET := "msaa_per_preset"
 
 func reload() -> void:
 	var config_error := config.load(CONFIG_PATH)
@@ -475,6 +488,10 @@ func reload() -> void:
 		config.set_value(SECTION, GLOW_DEFAULT_ON, true)
 	for key in default_values:
 		set(key, cast_or_default(key))
+	# A build forced 4x MSAA on every config; once, configs get their preset's (migrated_msaa).
+	if not config.has_section_key(SECTION, MSAA_PER_PRESET):
+		msaa = migrated_msaa(graphics_preset(), glare)
+		config.set_value(SECTION, MSAA_PER_PRESET, true)
 
 func save() -> void:
 	var error := config.save(CONFIG_PATH)
@@ -490,6 +507,7 @@ func restore_defaults() -> void:
 	var kept_name := player_name
 	config.clear()
 	config.set_value(SECTION, GLOW_DEFAULT_ON, true)
+	config.set_value(SECTION, MSAA_PER_PRESET, true)
 	save()
 	reload()
 	preloaded_songs = samples_copied
