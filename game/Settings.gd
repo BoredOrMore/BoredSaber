@@ -260,6 +260,22 @@ var environment: String:
 	set(value):
 		environment = value
 		set_and_emit(&"environment", value)
+## Anti-aliasing (MSAA) of the 3D view: [name, Viewport.MSAA value]. 4x is the default: on a tiled GPU like the
+## Pico 4's it resolves in tile memory, so it smooths the thin lasers, note edges and floor lines cheaply.
+const MSAA_LEVELS := [["Off", Viewport.MSAA_DISABLED], ["2x", Viewport.MSAA_2X], ["4x", Viewport.MSAA_4X]]
+## The anti-aliasing picked (an MSAA_LEVELS name).
+var msaa: String:
+	set(value):
+		msaa = value
+		set_and_emit(&"msaa", value)
+
+## The Viewport.MSAA value for msaa.
+func msaa_mode() -> Viewport.MSAA:
+	for entry: Array in MSAA_LEVELS:
+		if entry[0] == msaa:
+			return entry[1]
+	return Viewport.MSAA_DISABLED
+
 ## The resolution picked for the Low preset (a RESOLUTIONS name), kept while on another preset.
 var resolution: String:
 	set(value):
@@ -411,6 +427,7 @@ var default_values = {
 	environment = "auto",
 	note_style = "solid",
 	resolution = "Normal",
+	msaa = "4x",
 	darker_notes = false,
 	background_texture = "res://game/data/background/stage_sky.png",
 	health_mode = true,

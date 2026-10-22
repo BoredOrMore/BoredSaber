@@ -426,6 +426,7 @@ func _ready() -> void:
 	_show_debug_info()
 	set_colors_from_settings()
 	_apply_glow()
+	_apply_msaa()
 	_apply_note_style()
 	_apply_environment()
 	# the scenery shaders tint their own shadows (game/env/shadow_tone.gdshaderinc)
@@ -531,6 +532,10 @@ func _apply_glow() -> void:
 	var song := gamestate == gamestate_playing or gamestate == gamestate_paused
 	($WorldEnvironment as WorldEnvironment).environment.glow_enabled = Settings.glare and song
 
+## Sets the 3D view's anti-aliasing to Settings.msaa (it applies to both eyes).
+func _apply_msaa() -> void:
+	get_viewport().msaa_3d = Settings.msaa_mode()
+
 ## Sets the OpenXR render scale to Settings.render_scale() if it differs (the runtime then remakes its eye buffers).
 func _apply_render_scale() -> void:
 	var openxr := XRServer.find_interface("OpenXR") as OpenXRInterface
@@ -609,6 +614,8 @@ func on_settings_changed(key: StringName) -> void:
 			_show_debug_info()
 		&"glare":
 			_apply_glow()
+		&"msaa":
+			_apply_msaa()
 		&"note_style", &"darker_notes":
 			_apply_note_style()
 		&"environment":

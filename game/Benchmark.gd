@@ -25,6 +25,10 @@ const KEY_SECONDS := 2.5
 ## Render scales (OpenXR render target size multiplier) the resolution phases try, each with Normal and Low graphics,
 ## and the song's seconds at the last scale with Low.
 const RESOLUTION := "resolution"
+## The flag file's mode for the anti-aliasing phases (tools/bench.sh --only msaa): MSAA off, 2x and 4x in a song
+## (where glow shows) on Normal and on Low at 1x, then 4x on Low at Sharp (1.2x).
+const MSAA := "msaa"
+const MSAA_SONG_SECONDS := 20.0
 const RENDER_SCALES: Array[float] = [1.0, 1.2, 1.44]
 const RESOLUTION_SONG_SECONDS := 20.0
 ## The progress label and Cancel: left of the song menu, facing the player, at eye height.
@@ -97,6 +101,14 @@ static func restore_interrupted() -> void:
 ## The phases in order: [name, per-frame tick, setup, seconds, plays the song], each followed by the restore.
 func _phases(mode: String) -> Array:
 	var openxr := XRServer.find_interface("OpenXR") as OpenXRInterface
+	if mode == MSAA:
+		var phases := []
+		for preset: String in ["Normal", "Low"]:
+			for level: Array in Settings.MSAA_LEVELS:
+				phases.append(["msaa_%s_%s_song" % [level[0].to_lower(), preset.to_lower()], Callable(),
+						_set_view.bind(preset, level[1], 1.0), MSAA_SONG_SECONDS, true])
+		phases.append(["msaa_4x_low_sharp_song", Callable(), _set_view.bind("Low", Viewport.MSAA_4X, 1.2), MSAA_SONG_SECONDS, true])
+		return phases
 	if mode == RESOLUTION:
 		var phases := []
 		if openxr:
@@ -183,6 +195,7 @@ func run(mode := "") -> void:
 		_phase_index += 1
 		await _phase(phase[0], phase[1], phase[2], phase[3] if phase.size() > 3 else PHASE_SECONDS, phase.size() > 4)
 	_restore()
+	game.get_viewport().msaa_3d = Settings.msaa_mode()
 	Settings.save()
 	DirAccess.remove_absolute(Constants.APPDATA_PATH + BACKUP_FILE)
 	# the render scale only at the end: each change makes the runtime remake its eye buffers
@@ -216,6 +229,14 @@ func _phase(phase_name: String, tick: Callable, setup: Callable, seconds: float,
 	if song:
 		game._main_menu_button()
 	_restore()
+
+## Sets the graphics preset, anti-aliasing and render scale for a phase (all put back at the end of the run).
+func _set_view(preset: String, msaa: Viewport.MSAA, scale: float) -> void:
+	Settings.set_graphics_preset(preset)
+	game.get_viewport().msaa_3d = msaa
+	var openxr := XRServer.find_interface("OpenXR") as OpenXRInterface
+	if openxr:
+		openxr.render_target_size_multiplier = scale
 
 ## Waits, or less if cancelled.
 func _wait(seconds: float) -> void:

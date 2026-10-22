@@ -28,6 +28,7 @@ func _ready() -> void:
 	var normal: Dictionary = Settings.GRAPHICS_PRESETS["Normal"]
 	check(normal.keys().all(func(key: StringName) -> bool: return Settings.default_values[key] == normal[key]),
 			"first-run effects are the Normal graphics preset")
+	check(Settings.default_values["msaa"] == "4x", "anti-aliasing is 4x MSAA by default")
 	_port.size = Vector2i(1600, 1100)
 	add_child(_port)
 	var keyboard := (load("res://OQ_Toolkit/OQ_UI2D/OQ_UI2DKeyboard.tscn") as PackedScene).instantiate() as OQ_UI2DKeyboard

@@ -276,11 +276,18 @@ const RESOLUTION_HINTS := {
 	"Full": "Sharpest, may stutter in busy songs",
 }
 const RESOLUTION_NEEDS_LOW := "Needs Graphics: Low"
+const MSAA_HINTS := {
+	"Off": "Fastest, jagged edges",
+	"2x": "Lighter",
+	"4x": "Smoothest edges",
+}
 
 var _graphics_chips := {}
 var _graphics_hint := Label.new()
 var _resolution_chips := {}
 var _resolution_hint := Label.new()
+var _msaa_chips := {}
+var _msaa_hint := Label.new()
 
 ## At the top of Visuals: "Graphics: Low | Normal" chips setting the effects below (a third chip, Custom, can't be
 ## picked and lights up when the effects match neither), then "Resolution: Normal | Sharp | Full", only on Low.
@@ -293,8 +300,10 @@ func _add_graphics_row() -> void:
 	custom.focus_mode = Control.FOCUS_NONE
 	_resolution_chips = _add_chip_row(2, "Resolution", Settings.RESOLUTIONS.map(func(r: Array) -> String: return r[0]),
 			func(resolution: String) -> void: Settings.resolution = resolution, _resolution_hint)
+	_msaa_chips = _add_chip_row(4, "Anti-aliasing", Settings.MSAA_LEVELS.map(func(m: Array) -> String: return m[0]),
+			func(level: String) -> void: Settings.msaa = level, _msaa_hint)
 	Settings.changed.connect(func(key: StringName) -> void:
-		if key == &"resolution" or key in Settings.GRAPHICS_PRESETS["Low"]:
+		if key in [&"resolution", &"msaa"] or key in Settings.GRAPHICS_PRESETS["Low"]:
 			_sync_graphics())
 	_sync_graphics()
 
@@ -348,6 +357,9 @@ func _sync_graphics() -> void:
 		chip.disabled = not low
 		chip.set_pressed_no_signal(name == (Settings.resolution if low else "Normal"))
 	_resolution_hint.text = RESOLUTION_HINTS.get(Settings.resolution, "") if low else RESOLUTION_NEEDS_LOW
+	for name: String in _msaa_chips:
+		(_msaa_chips[name] as Button).set_pressed_no_signal(name == Settings.msaa)
+	_msaa_hint.text = MSAA_HINTS.get(Settings.msaa, "")
 	glare_control.set_pressed_no_signal(Settings.glare)
 	smoke_control.set_pressed_no_signal(Settings.smoke)
 	saber_tail_control.set_pressed_no_signal(Settings.saber_tail)
