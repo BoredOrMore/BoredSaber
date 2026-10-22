@@ -54,13 +54,21 @@ const PHASE_COUNT := 18
 static func total_seconds() -> float:
 	return SETTLE_SECONDS + PHASE_COUNT * PHASE_SECONDS + SONG_SECONDS
 
-## The mode in the flag file ("" for a full run) once if it is there (and removes it), null if not.
+## A flag file older than this was left by a tools/bench.sh run the game didn't see (closed, or in a song): ignored,
+## so a run never starts by itself days later.
+const FLAG_MAX_AGE_SECONDS := 120
+
+## The mode in the flag file ("" for a full run) once if it is there and fresh (it is removed either way), null if not.
 static func requested() -> Variant:
 	var path := Constants.APPDATA_PATH + FLAG_FILE
 	if not FileAccess.file_exists(path):
 		return null
+	var age := Time.get_unix_time_from_system() - FileAccess.get_modified_time(path)
 	var mode := FileAccess.get_file_as_string(path).strip_edges()
 	DirAccess.remove_absolute(path)
+	if age > FLAG_MAX_AGE_SECONDS:
+		print("BENCH ignored a flag file %d s old" % age)
+		return null
 	return mode
 
 ## The player's settings while a run is on (it saves some of its own on the way, as starting the song saves the
