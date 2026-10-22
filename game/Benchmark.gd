@@ -32,6 +32,8 @@ const PANEL_POSITION := Vector3(-1.1, 1.55, 0.0)
 const PANEL_YAW := deg_to_rad(50.0)
 const TEXT_SIZE := 56
 const TEXT_PIXEL := 0.001
+## How long to wait for the player to turn to the slash note.
+const FACE_TIMEOUT_SECONDS := 15.0
 
 var game: BeepSaber_Game
 ## Called every frame of the running phase, with its elapsed seconds.
@@ -46,6 +48,8 @@ var _cancel := (preload("res://game/scripts/UIRaycast/UIRaycastButton.tscn") as 
 var _phase_index := 0
 var _phase_count := 0
 var _seconds_left := 0.0
+## Set by a phase's setup to leave the phase out (its precondition didn't happen).
+var _skip_phase := false
 
 ## Phases of a full run before the song (_phases(), with OpenXR's four foveation levels).
 const PHASE_COUNT := 18
@@ -119,8 +123,8 @@ func _phases(mode: String) -> Array:
 		["stage_light_show", Callable(), func() -> void: Settings.background = "dynamic"],
 		["stage_lights_off", Callable(), func() -> void: Settings.background = "static"],
 		["stage_lights_off_no_stage", Callable(), func() -> void: Settings.background = "simple"],
-		["slash_note_light_on", Callable(), func() -> void: _face_slash_note(true)],
-		["slash_note_light_off", Callable(), func() -> void: _face_slash_note(false)],
+		["slash_note_light_on", Callable(), _face_slash_note.bind(true)],
+		["slash_note_light_off", Callable(), _face_slash_note.bind(false)],
 	]
 	if openxr:
 		for level in 4:
@@ -191,7 +195,13 @@ func run(mode := "") -> void:
 ## both ends with the eye buffer size, then everything put back.
 func _phase(phase_name: String, tick: Callable, setup: Callable, seconds: float, song: bool) -> void:
 	if setup.is_valid():
-		setup.call()
+		await setup.call()
+	if _skip_phase:
+		_skip_phase = false
+		print("BENCH skip ", phase_name)
+		_seconds_left -= seconds
+		_restore()
+		return
 	_show_status(phase_name)
 	if song:
 		Settings.health_mode = false
@@ -228,17 +238,25 @@ func _restore() -> void:
 	if openxr and _foveation >= 0:
 		openxr.foveation_level = _foveation
 
-	game.xr_origin.rotation.y = 0.0
 	game.slash_block._light.visible = game.slash_block._note_mesh.visible and game.slash_block._light_on()
 	if game.highscore_keyboard.visible:
 		game.highscore_keyboard._on_cancel()
 
-## Turns the player to the slash note (instead of the head: it is placed for where the head looks) with or without
-## its light.
+## Asks the player to turn to the slash note (the view is never turned for them: that made players sick) and waits
+## until it is in view, with or without its light; the phase is skipped if the note isn't up or not looked at within
+## FACE_TIMEOUT_SECONDS.
 func _face_slash_note(light: bool) -> void:
-	var turn := deg_to_rad(SlashBlock.YAW_DEGREES) * (-1.0 if Settings.left_handed else 1.0)
-	game.xr_origin.rotation.y = -turn
-	game.slash_block._light.visible = light
+	var slash := game.slash_block
+	if not slash._shown:
+		_skip_phase = true
+		return
+	slash._light.visible = light
+	var waited := 0.0
+	while not slash._in_view and waited < FACE_TIMEOUT_SECONDS and not _cancelled:
+		_label.text = "Turn %s to the note to measure it" % ("left" if Settings.left_handed else "right")
+		await get_tree().process_frame
+		waited += get_process_delta_time()
+	_skip_phase = not slash._in_view
 
 ## Moves a pointer over the menu canvas through the same path the laser takes (its UIArea).
 func _sweep_pointer(elapsed: float) -> void:
