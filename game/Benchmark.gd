@@ -31,7 +31,8 @@ const MSAA := "msaa"
 const MSAA_SONG_SECONDS := 20.0
 ## The flag file's mode for the glow phases (tools/bench.sh --only glowb), each in a song at 1x on Normal: no glow,
 ## Godot's, neutral adjustments alone (the internal buffer Godot's glow needs), foveation off and high without glow,
-## LowResGlow's parts (SubViewports, + blur, full), and the full LowResGlow with 4x MSAA and at Sharp (1.2x).
+## LowResGlow's parts (SubViewport, + blur, full), the full LowResGlow with 4x MSAA and at Sharp (1.2x), and no
+## glow again.
 const GLOWB := "glowb"
 const RENDER_SCALES: Array[float] = [1.0, 1.2, 1.44]
 const RESOLUTION_SONG_SECONDS := 20.0
@@ -118,6 +119,8 @@ func _phases(mode: String) -> Array:
 			["new_glow", G.NEW, -1, Viewport.MSAA_DISABLED, 1.0],
 			["new_glow_msaa_4x", G.NEW, -1, Viewport.MSAA_4X, 1.0],
 			["new_glow_sharp", G.NEW, -1, Viewport.MSAA_DISABLED, 1.2],
+			# again at the end: the headset warms up during a run, so compare with the average of both
+			["glow_off_end", G.NONE, -1, Viewport.MSAA_DISABLED, 1.0],
 		]
 		var phases := []
 		for phase: Array in glow_phases:
