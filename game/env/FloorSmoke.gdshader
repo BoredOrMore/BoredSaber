@@ -15,11 +15,13 @@ uniform float opacity = 0.3;
 uniform vec2 drift_a = vec2(0.05, 0.12);
 uniform vec2 drift_b = vec2(-0.08, 0.05);
 
-// noise tiles per metre for each copy
-const float SCALE_A = 0.12;
-const float SCALE_B = 0.07;
-const float DENSITY_FROM = 0.4;
-const float DENSITY_TO = 0.75;
+// noise tiles per metre for each copy, across (x) and along the track (z): large and stretched across, so the
+// smoke lies in thin wisps rather than clumps
+const vec2 SCALE_A = vec2(0.035, 0.08);
+const vec2 SCALE_B = vec2(0.02, 0.05);
+// a wide, gentle ramp from noise to thickness (a narrow one cut the noise into dense blobs with gaps between)
+const float DENSITY_FROM = 0.3;
+const float DENSITY_TO = 0.85;
 // fraction of the layer's size over which its edges fade
 const float EDGE_FADE = 0.25;
 const float NEAR_START = 1.2;
@@ -36,8 +38,8 @@ varying float fade;
 
 void vertex() {
 	vec3 world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-	uv_a = world.xz * SCALE_A + TIME * drift_a * SCALE_A;
-	uv_b = world.xz * SCALE_B + TIME * drift_b * SCALE_B;
+	uv_a = (world.xz + TIME * drift_a) * SCALE_A;
+	uv_b = (world.xz + TIME * drift_b) * SCALE_B;
 	vec2 e = min(UV, 1.0 - UV);
 	float edge = smoothstep(0.0, EDGE_FADE, min(e.x, e.y));
 	vec3 to_vertex = world - CAMERA_POSITION_WORLD;

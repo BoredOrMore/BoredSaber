@@ -1,6 +1,6 @@
 extends Node3D
 class_name StageSmoke
-## Fog on the stage: a thin drifting layer just above the floor and four wide fog sheets standing across the view at
+## Fog on the stage: a thin drifting layer just above the floor and three wide fog sheets standing across the view at
 ## increasing depth (FogSheet.gdshader), dense at the bottom and rolling sideways, so the fog has layers and mass
 ## instead of floating puffs; all lit by the scene lights and faded out close to the player. Drawn before the other
 ## see-through things, so lights and walls show on top. During a song it clears and is freed; the menus bring it back
@@ -18,18 +18,18 @@ const FLOOR_SUBDIVIDE := Vector2i(13, 29)
 ## height, opacity, and drift of each noise copy in metres per second, for each floor layer; one layer about as thick
 ## as the two there were
 const FLOOR_LAYERS := [
-	[0.12, 0.9, Vector2(0.05, 0.12), Vector2(-0.08, 0.05)],
+	[0.12, 0.8, Vector2(0.05, 0.12), Vector2(-0.08, 0.05)],
 ]
 ## Fog sheets standing across the view, nearest first: x, y, z of the centre and width, height. Each one wider
 ## and taller than the one before, so the layers read as depth; their bottoms reach below the floor.
 const SHEETS: Array[Rect2] = [
-	Rect2(Vector2(0.0, -14.0), Vector2(40.0, 5.0)),
 	Rect2(Vector2(0.0, -24.0), Vector2(50.0, 6.5)),
 	Rect2(Vector2(0.0, -36.0), Vector2(62.0, 8.0)),
 	Rect2(Vector2(0.0, -52.0), Vector2(80.0, 10.0)),
 ]
 const SHEET_BOTTOM := -1.0
-const SHEET_OPACITY := 0.35
+## thin layers: several faint sheets read as depth, where thick ones read as solid clouds
+const SHEET_OPACITY := 0.26
 ## Seconds the smoke takes to clear once a song starts (then it is freed and costs nothing while playing), and to
 ## fill the stage again in the menus. Untuned.
 const CLEAR_SECONDS := 3.0

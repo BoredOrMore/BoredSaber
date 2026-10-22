@@ -12,8 +12,9 @@ global uniform vec4 env_haze;
 uniform sampler2D noise : filter_linear_mipmap, repeat_enable;
 uniform float opacity = 0.35;
 
-// noise texture repeats per metre of sheet, and its sideways drift in metres per second
-const float NOISE_SCALE = 0.06;
+// noise texture repeats per metre of sheet, across and up (stretched sideways into thin streaks of haze), and its
+// sideways drift in metres per second
+const vec2 NOISE_SCALE = vec2(0.025, 0.06);
 const float DRIFT = 0.25;
 // how much of the sheet's height the dense part fills, and how soft its top is
 const float BODY = 0.35;
@@ -49,11 +50,12 @@ void vertex() {
 void fragment() {
 	vec2 metres = sheet_uv * sheet_size;
 	float speed = DRIFT * (0.6 + seed);
-	float n = texture(noise, (metres + vec2(TIME * speed + seed * 37.0, 0.0)) * NOISE_SCALE).r * 0.65
-		+ texture(noise, (metres + vec2(-TIME * speed * 0.7, seed * 13.0)) * NOISE_SCALE * 2.3).r * 0.35;
+	float n = texture(noise, (metres + vec2(TIME * speed + seed * 37.0, 0.0)) * NOISE_SCALE).r * 0.75
+		+ texture(noise, (metres + vec2(-TIME * speed * 0.7, seed * 13.0)) * NOISE_SCALE * 1.7).r * 0.25;
 	float height = 1.0 - smoothstep(BODY, BODY + TOP_SOFTNESS, sheet_uv.y + (n - 0.5) * 0.4);
 	float sides = smoothstep(0.0, SIDE_SOFTNESS, sheet_uv.x) * smoothstep(0.0, SIDE_SOFTNESS, 1.0 - sheet_uv.x);
-	float density = clamp(height * sides * (0.55 + 0.9 * n), 0.0, 1.0);
+	// low contrast: the noise varies the haze gently instead of cutting it into clumps
+	float density = clamp(height * sides * (0.6 + 0.6 * n), 0.0, 1.0);
 	ALBEDO = FOG_BASE + env_haze.rgb * LIGHT_GAIN * (1.0 + BACK_GLOW * (1.0 - density));
 	float clear = smoothstep(0.0, FLOOR_FADE, world_pos.y)
 		* (1.0 - smoothstep(SIDE_FADE_FROM, SIDE_FADE_TO, abs(world_pos.x)))
