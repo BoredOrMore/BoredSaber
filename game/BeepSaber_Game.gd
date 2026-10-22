@@ -418,6 +418,7 @@ func _ready() -> void:
 	UI_AudioEngine.attach_children(online_search_keyboard)
 	beatsaver_canvas.visibility_changed.connect(_on_beatsaver_visibility_changed)
 	# from Settings: back to the song menu, which is what it measures
+	Benchmark.restore_interrupted()
 	settings_panel.benchmark_requested.connect(func() -> void:
 		_on_settings_Panel_apply()
 		_start_benchmark())

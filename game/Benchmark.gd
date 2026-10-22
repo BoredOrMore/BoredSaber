@@ -63,6 +63,25 @@ static func requested() -> Variant:
 	DirAccess.remove_absolute(path)
 	return mode
 
+## The player's settings while a run is on (it saves some of its own on the way, as starting the song saves the
+## settings): if the game closes mid-run, the next launch puts them back (restore_interrupted).
+const BACKUP_FILE := "benchmark_settings.json"
+const SAVED_KEYS: Array[StringName] = [&"glare", &"smoke", &"saber_tail", &"cube_cuts_falloff", &"background", &"health_mode"]
+
+## Puts back and saves the settings of a run the game closed in the middle of; call at launch.
+static func restore_interrupted() -> void:
+	var path := Constants.APPDATA_PATH + BACKUP_FILE
+	if not FileAccess.file_exists(path):
+		return
+	var saved: Variant = JSON.parse_string(FileAccess.get_file_as_string(path))
+	if saved is Dictionary:
+		for key: String in saved:
+			if StringName(key) in SAVED_KEYS:
+				Settings.set(key, saved[key])
+		Settings.save()
+		print("BENCH restored settings of an interrupted run")
+	DirAccess.remove_absolute(path)
+
 ## The phases in order: [name, per-frame tick, setup, seconds, plays the song], each followed by the restore.
 func _phases(mode: String) -> Array:
 	var openxr := XRServer.find_interface("OpenXR") as OpenXRInterface
@@ -123,8 +142,12 @@ func _process(delta: float) -> void:
 ## Runs every phase of the mode ("" for all) in order, then puts everything back.
 func run(mode := "") -> void:
 	print("BENCH begin ", mode)
-	for key: StringName in [&"glare", &"smoke", &"saber_tail", &"cube_cuts_falloff", &"background", &"health_mode"]:
+	for key in SAVED_KEYS:
 		_saved[key] = Settings.get(key)
+	var backup := FileAccess.open(Constants.APPDATA_PATH + BACKUP_FILE, FileAccess.WRITE)
+	if backup:
+		backup.store_string(JSON.stringify(_saved))
+		backup.close()
 	var openxr := XRServer.find_interface("OpenXR") as OpenXRInterface
 	if openxr:
 		_foveation = openxr.foveation_level
@@ -148,6 +171,8 @@ func run(mode := "") -> void:
 		_phase_index += 1
 		await _phase(phase[0], phase[1], phase[2], phase[3] if phase.size() > 3 else PHASE_SECONDS, phase.size() > 4)
 	_restore()
+	Settings.save()
+	DirAccess.remove_absolute(Constants.APPDATA_PATH + BACKUP_FILE)
 	# the render scale only at the end: each change makes the runtime remake its eye buffers
 	if openxr:
 		openxr.render_target_size_multiplier = _render_scale
