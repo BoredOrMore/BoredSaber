@@ -403,6 +403,11 @@ func _ready() -> void:
 	if vr.xr_interface and vr.xr_interface.has_signal(&"session_visible"):
 		vr.xr_interface.connect(&"session_visible", _pause_if_playing)
 		vr.xr_interface.connect(&"session_stopping", _pause_if_playing)
+		for lost: StringName in [&"session_visible", &"session_synchronized", &"session_stopping"]:
+			if vr.xr_interface.has_signal(lost):
+				vr.xr_interface.connect(lost, _set_away.bind(true))
+		if vr.xr_interface.has_signal(&"session_focussed"):
+			vr.xr_interface.connect(&"session_focussed", _set_away.bind(false))
 
 	_show_debug_info()
 	set_colors_from_settings()
@@ -461,6 +466,36 @@ func _ready() -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_APPLICATION_FOCUS_OUT or what == NOTIFICATION_APPLICATION_PAUSED:
 		_pause_if_playing()
+		_set_away(true)
+	elif what == NOTIFICATION_APPLICATION_FOCUS_IN or what == NOTIFICATION_APPLICATION_RESUMED:
+		_set_away(false)
+
+## How long the menu music takes to fade out when the headset comes off.
+const AWAY_FADE_SECONDS := 1.0
+var _away := false
+var _away_fade: Tween
+var _away_volume_db := 0.0
+
+## With the headset off (or a system window over the game) the menu's song preview fades out over AWAY_FADE_SECONDS
+## and pauses, so it doesn't play to nobody on the battery; it resumes and fades back in when the player returns.
+## A song in play pauses on its own (_pause_if_playing).
+func _set_away(away: bool) -> void:
+	if away == _away:
+		return
+	_away = away
+	var preview := menu.song_preview
+	if _away_fade:
+		_away_fade.kill()
+	if away:
+		_away_volume_db = preview.volume_db
+		_away_fade = create_tween()
+		_away_fade.tween_property(preview, ^"volume_db", -60.0, AWAY_FADE_SECONDS)
+		_away_fade.tween_callback(func() -> void: preview.stream_paused = true)
+	else:
+		preview.stream_paused = false
+		_away_fade = create_tween()
+		_away_fade.tween_property(preview, ^"volume_db", _away_volume_db, AWAY_FADE_SECONDS)
+	print("Menu music %s" % ("paused: player away" if away else "resumed"))
 
 ## Pauses the song when the player can no longer see or control the game.
 func _pause_if_playing() -> void:
