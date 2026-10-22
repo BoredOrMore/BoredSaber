@@ -75,6 +75,28 @@ uniform sampler2D glow : filter_linear, repeat_disable, source_color;
 // DebugView.GLOW_ALIGN: the unblurred glow image, solid magenta, to see where it lands
 uniform sampler2D raw : filter_nearest, repeat_disable, source_color;
 uniform bool debug = false;
+// DebugView A/B tests: a 4x4 Bayer dither of half an 8-bit step, and a B-spline upsample (Sigg and Hadwiger,
+// GPU Gems 2 ch. 20: four bilinear taps) of the glow image, glow_size texels big
+uniform bool dither = false;
+uniform bool bicubic = false;
+uniform vec2 glow_size = vec2(188.0);
+vec3 bspline(vec2 uv) {
+	vec2 p = uv * glow_size - 0.5;
+	vec2 i = floor(p);
+	vec2 f = p - i;
+	vec2 f2 = f * f;
+	vec2 f3 = f2 * f;
+	vec2 w0 = (-f3 + 3.0 * f2 - 3.0 * f + 1.0) / 6.0;
+	vec2 w1 = (3.0 * f3 - 6.0 * f2 + 4.0) / 6.0;
+	vec2 w2 = (-3.0 * f3 + 3.0 * f2 + 3.0 * f + 1.0) / 6.0;
+	vec2 w3 = f3 / 6.0;
+	vec2 g0 = w0 + w1;
+	vec2 g1 = w2 + w3;
+	vec2 h0 = (i - 0.5 + w1 / g0) / glow_size;
+	vec2 h1 = (i + 1.5 + w3 / g1) / glow_size;
+	return g0.y * (g0.x * texture(glow, h0).rgb + g1.x * texture(glow, vec2(h1.x, h0.y)).rgb)
+		+ g1.y * (g0.x * texture(glow, vec2(h0.x, h1.y)).rgb + g1.x * texture(glow, h1).rgb);
+}
 // the glow camera's projection times its view rotation (no translation): reprojects by rotation only
 uniform mat4 glow_rotation;
 uniform float intensity = 0.8;
@@ -96,7 +118,13 @@ void vertex() {
 void fragment() {
 	vec2 uv = glow_clip.xy / glow_clip.w * 0.5 + 0.5;
 	uv.y = 1.0 - uv.y;
-	ALBEDO = texture(glow, uv).rgb * intensity;
+	ALBEDO = (bicubic ? bspline(uv) : texture(glow, uv).rgb) * intensity;
+	if (dither) {
+		int x = int(FRAGCOORD.x) & 3;
+		int y = int(FRAGCOORD.y) & 3;
+		int bayer[16] = int[](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
+		ALBEDO += (float(bayer[y * 4 + x]) / 16.0 - 0.5) / 255.0;
+	}
 	if (debug) {
 		ALBEDO = dot(texture(raw, uv).rgb, vec3(1.0)) > 0.1 ? vec3(1.0, 0.0, 1.0) : vec3(0.0);
 	}
@@ -141,6 +169,8 @@ func _ready() -> void:
 		var blur := SubViewport.new()
 		blur.size = Vector2i(Vector2(HEIGHT, HEIGHT) * float(pass_[0]))
 		blur.disable_3d = true
+		# half floats: a soft falloff in 8 bits shows steps that slide as the bars move
+		blur.use_hdr_2d = true
 		var rect := ColorRect.new()
 		rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 		var material := ShaderMaterial.new()
@@ -235,9 +265,27 @@ func _process(_delta: float) -> void:
 		source_size = Vector2(_blurs[i].size)
 	var debug := DebugView.flags & DebugView.GLOW_ALIGN != 0
 	_quad_material.set_shader_parameter(&"debug", debug)
+	_quad_material.set_shader_parameter(&"dither", DebugView.flags & DebugView.GLOW_DITHER != 0)
+	_quad_material.set_shader_parameter(&"bicubic", DebugView.flags & DebugView.GLOW_BICUBIC != 0)
+	_quad_material.set_shader_parameter(&"glow_size", Vector2(_blurs[-1].size))
+	_test_foveation(xr, DebugView.flags & DebugView.GLOW_NO_FOVEATION != 0)
 	# the log also runs during a benchmark, to have the numbers with each measurement
 	if (debug or _game.has_node(^"Benchmark")) and xr and xr.is_initialized() and xr.get_view_count() == 2:
 		_log_offsets(xr, head)
+
+## The foveation level before DebugView.GLOW_NO_FOVEATION turned it off (-1: not off).
+var _foveation_before := -1
+
+func _test_foveation(xr: XRInterface, off: bool) -> void:
+	var openxr := xr as OpenXRInterface
+	if openxr == null:
+		return
+	if off and _foveation_before < 0:
+		_foveation_before = openxr.foveation_level
+		openxr.foveation_level = 0
+	elif not off and _foveation_before >= 0:
+		openxr.foveation_level = _foveation_before
+		_foveation_before = -1
 
 var _log_time := 0.0
 var _last_head := Basis()
