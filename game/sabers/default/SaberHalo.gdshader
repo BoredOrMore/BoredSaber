@@ -13,7 +13,7 @@ uniform float blade_length = 1.2;
 // the whole ribbon's width, in metres (untuned)
 uniform float width = 0.09;
 uniform float min_pixels = 6.0;
-uniform float strength = 0.55;
+uniform float strength = 0.45;
 
 varying float across;
 varying float along;

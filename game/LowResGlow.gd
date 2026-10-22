@@ -46,7 +46,7 @@ static var upsample := "pass"
 ## pass then reads the first downsample); set by set_quality, and by the benchmark.
 static var view_msaa := false
 static var short_chain := true
-const INTENSITY := 1.0
+const INTENSITY := 0.8
 ## The up pass: the tight halo (the first downsample) added back to the wide one, mostly tight so the glow hugs the
 ## bars instead of spreading like fog.
 const TIGHT_HALO := 1.0
