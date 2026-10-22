@@ -43,6 +43,7 @@ def main(path):
             samples.append((t, int(m[1]), int(m[2]), float(m[3]), float(m[4]), float(temp[1]) if temp else 0.0))
     if not phases:
         sys.exit("no BENCH phases in " + path)
+    medians = {}
     print(f"{'phase':28} {'GPU ms':>7} {'median':>6} {'p95':>6} {'max':>6} {'missed':>7} {'s over':>7} {'CPU ms':>7} {'temp':>5} {'n':>3}")
     for name, start, end in phases:
         rows = [s for s in samples if start + SKIP_SECONDS <= s[0] <= end]
@@ -57,6 +58,14 @@ def main(path):
         median = ordered[len(ordered) // 2]
         p95 = ordered[min(len(ordered) - 1, int(len(ordered) * 0.95))]
         print(f"{name:28} {sum(gpu) / len(gpu):7.2f} {median:6.2f} {p95:6.2f} {max(gpu):6.2f} {late:6.1f}% {over:6.0f}% {cpu:7.2f} {rows[-1][5]:5.1f} {len(rows):3}")
+        medians[name] = median
+    # a phase between two no-glow phases (glowb): its median against theirs, the headset's warming taken out
+    names = [name for name, _, _ in phases]
+    for i in range(1, len(names) - 1):
+        before, after = names[i - 1], names[i + 1]
+        if "glow_off" in before and "glow_off" in after and names[i] in medians and before in medians and after in medians:
+            reference = (medians[before] + medians[after]) / 2
+            print(f"{names[i]:28} {medians[names[i]] - reference:+6.2f} ms against the no-glow phases next to it ({reference:.2f})")
 
 
 if __name__ == "__main__":
