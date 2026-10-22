@@ -277,11 +277,13 @@ const RESOLUTION_HINTS := {
 }
 const RESOLUTION_NEEDS_LOW := "Needs Graphics: Low"
 const GLOW_HINTS := {
-	"Standard": "Soft light around the lasers",
-	"High": "Finer light around the lasers",
-	"Classic": "Godot's full-screen glow",
+	"Soft": "Soft light around the lasers",
+	"Crisp": "Crisper light around the lasers",
+	"Classic": "Glow over the whole view",
 }
 const GLOW_OFF_HINT := "Needs Glow on"
+## Chip labels that differ from the setting's value (the player asked Classic to say what it costs).
+const GLOW_LABELS := {"Classic": "Classic (heavy)"}
 const MSAA_HINTS := {
 	"Off": "Jagged edges",
 	"2x": "Smoother edges",
@@ -312,6 +314,8 @@ func _add_graphics_row() -> void:
 			func(level: String) -> void: Settings.msaa = level, _msaa_hint)
 	_glow_chips = _add_chip_row(6, "Glow style", Settings.GLOW_QUALITIES, func(quality: String) -> void: Settings.glow_quality = quality,
 			_glow_hint)
+	for quality: String in GLOW_LABELS:
+		(_glow_chips[quality] as Button).text = GLOW_LABELS[quality]
 	Settings.changed.connect(func(key: StringName) -> void:
 		if key in [&"resolution", &"msaa", &"glow_quality"] or key in Settings.GRAPHICS_PRESETS["Low"]:
 			_sync_graphics())

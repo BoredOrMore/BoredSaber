@@ -18,14 +18,14 @@ class_name LowResGlow
 ## The visual layer (bit 11) glow sources carry besides their own.
 const GLOW_LAYER := 1 << 10
 ## The glow image for each Settings.glow_quality: [height px, 4x MSAA in it, short blur chain]. Measured in a song
-## against no glow next to it: Standard (564, no MSAA, short) +0.2 ms, High (752, no MSAA, short) +1.2 ms; 752 with
+## against no glow next to it: Soft (564, no MSAA, short) +0.2 ms, Crisp (752, no MSAA, short) +1.2 ms; 752 with
 ## MSAA and the full chain was +1.3 and the older 376 +1.2 (the run-to-run spread is about 1 ms). At 188 px thin
 ## bars broke into dashes, and at 376 a glow texel spanned about 7 eye pixels, showing as bands.
-const QUALITIES := {"Standard": [564, false, true], "High": [752, false, true]}
+const QUALITIES := {"Soft": [564, false, true], "Crisp": [752, false, true]}
 
 ## Sets the glow image for a Settings.glow_quality name.
 static func set_quality(quality: String) -> void:
-	var values: Array = QUALITIES.get(quality, QUALITIES["Standard"])
+	var values: Array = QUALITIES.get(quality, QUALITIES["Soft"])
 	height = values[0]
 	view_msaa = values[1]
 	short_chain = values[2]

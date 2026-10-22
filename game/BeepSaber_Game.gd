@@ -532,7 +532,7 @@ func set_background_texture() -> void:
 	
 ## Glow (Settings.glare) only while a song plays or is paused: in the menus it cost about 6 of the 13.9 ms frame
 ## (measured on the headset) for little to see; the saved setting stays as the player set it.
-## Settings.glow_quality Standard and High are LowResGlow, Classic Godot's glow.
+## Settings.glow_quality Soft and Crisp are LowResGlow, Classic Godot's glow.
 ## The benchmark sets glow_override to one of Glow to measure each part.
 enum Glow { NONE, GODOT, ADJUSTMENTS_ONLY, NEW_VIEWPORTS_ONLY, NEW_WITH_BLUR, NEW }
 var glow_override := -1
