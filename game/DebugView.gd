@@ -12,6 +12,8 @@ const DUST := 128
 ## Not read by shaders: while on, a song steps through CYCLE_STEPS by itself (cycle_tick), so one run measures
 ## every part; the log line "debug_view N" marks each step for matching with the headset's GPU timings.
 const CYCLE := 1024
+## Not read by shaders: LowResGlow draws its unblurred glow solid magenta and logs how far it lands from the light.
+const GLOW_ALIGN := 2048
 const CYCLE_STEPS: Array[int] = [0, WALLS, PLAIN_NOTES, LASERS, RINGS, SKY, DUST]
 const CYCLE_SECONDS := 10.0
 ## label and bit of each switch, in the order they show
@@ -23,6 +25,7 @@ const SWITCHES := [
 	["Plain black sky", SKY],
 	["Hide dust", DUST],
 	["Measure each part (cycles the switches)", CYCLE],
+	["Glow alignment: new glow magenta, offsets in the log", GLOW_ALIGN],
 ]
 
 static var flags := 0:

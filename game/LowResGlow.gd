@@ -43,6 +43,9 @@ const COMPOSITE_SHADER := """
 shader_type spatial;
 render_mode unshaded, blend_add, depth_test_disabled, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 uniform sampler2D glow : filter_linear, repeat_disable, source_color;
+// DebugView.GLOW_ALIGN: the unblurred glow image, solid magenta, to see where it lands
+uniform sampler2D raw : filter_nearest, repeat_disable, source_color;
+uniform bool debug = false;
 // the glow camera's projection times its view rotation (no translation): reprojects by rotation only
 uniform mat4 glow_rotation;
 uniform float intensity = 0.8;
@@ -51,8 +54,15 @@ varying vec3 world_dir;
 void vertex() {
 	// the quad covers each eye's whole view
 	POSITION = vec4(VERTEX.xy, 0.0, 1.0);
-	vec4 view = INV_PROJECTION_MATRIX * vec4(VERTEX.xy, 1.0, 1.0);
-	world_dir = mat3(INV_VIEW_MATRIX) * (view.xyz / view.w);
+	// In stereo, VIEW_MATRIX is a camera behind both eyes and each eye's PROJECTION_MATRIX carries that eye's
+	// offset from it, so a single unprojected point (at the near plane with reversed depth) isn't on the eye's ray
+	// from that camera: take the ray between two points of it instead, which the offset doesn't turn.
+	vec4 a = INV_PROJECTION_MATRIX * vec4(VERTEX.xy, 1.0, 1.0);
+	vec4 b = INV_PROJECTION_MATRIX * vec4(VERTEX.xy, 0.0, 1.0);
+	vec3 ray = a.xyz / a.w - b.xyz / b.w;
+	// forward is -z in view space, whichever end the depth puts first
+	ray *= ray.z > 0.0 ? -1.0 : 1.0;
+	world_dir = mat3(INV_VIEW_MATRIX) * ray;
 }
 void fragment() {
 	vec4 clip = glow_rotation * vec4(world_dir, 0.0);
@@ -61,6 +71,9 @@ void fragment() {
 	// a little noise so the soft falloff doesn't band
 	float noise = fract(sin(dot(FRAGCOORD.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5;
 	ALBEDO = texture(glow, uv).rgb * intensity + noise / 255.0;
+	if (debug) {
+		ALBEDO = dot(texture(raw, uv).rgb, vec3(1.0)) > 0.1 ? vec3(1.0, 0.0, 1.0) : vec3(0.0);
+	}
 }
 """
 
@@ -113,6 +126,7 @@ func _ready() -> void:
 	_quad_material.render_priority = Material.RENDER_PRIORITY_MAX
 	_quad_material.set_shader_parameter(&"intensity", INTENSITY)
 	_quad_material.set_shader_parameter(&"glow", _blur.get_texture())
+	_quad_material.set_shader_parameter(&"raw", _view.get_texture())
 	var quad := QuadMesh.new()
 	quad.size = Vector2(2.0, 2.0)
 	_quad.mesh = quad
@@ -171,6 +185,81 @@ func _process(_delta: float) -> void:
 	var rotation := Projection(Transform3D(_camera.global_basis.orthonormalized().inverse(), Vector3.ZERO))
 	_quad_material.set_shader_parameter(&"glow_rotation", _camera.get_camera_projection() * rotation)
 	_blur_material.set_shader_parameter(&"texel", Vector2.ONE / Vector2(_view.size))
+	var debug := DebugView.flags & DebugView.GLOW_ALIGN != 0
+	_quad_material.set_shader_parameter(&"debug", debug)
+	# the log also runs during a benchmark, to have the numbers with each measurement
+	if (debug or _game.has_node(^"Benchmark")) and xr and xr.is_initialized() and xr.get_view_count() == 2:
+		_log_offsets(xr, head)
+
+var _log_time := 0.0
+var _last_head := Basis()
+
+## Once a second with DebugView.GLOW_ALIGN: for a few points, how far (degrees, + to the right) from the point each
+## eye's glow lands, with the composite's ray math before this fix (one unprojected point, either depth end) and
+## now, and the head's turning speed. Godot's stereo matrices are rebuilt here as set_multiview_camera makes them.
+func _log_offsets(xr: XRInterface, head: Camera3D) -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if now - _log_time < 1.0:
+		return
+	var turn := rad_to_deg(_last_head.get_rotation_quaternion().angle_to(head.global_basis.get_rotation_quaternion())) / maxf(now - _log_time, 0.001)
+	_last_head = head.global_basis
+	_log_time = now
+	var origin := _game.xr_origin.global_transform
+	var eyes: Array[Transform3D] = [xr.get_transform_for_view(0, origin), xr.get_transform_for_view(1, origin)]
+	var projections: Array[Projection] = [xr.get_projection_for_view(0, 1.0, head.near, head.far),
+			xr.get_projection_for_view(1, 1.0, head.near, head.far)]
+	var main := _multiview_camera(eyes, projections)
+	var points := {"2m ahead": head.global_position - head.global_basis.z * 2.0,
+			"laser 30m": head.global_position + Vector3(0.0, 10.0, -30.0)}
+	for saber: Node3D in [_game.left_saber, _game.right_saber]:
+		var tip := saber.find_child("tip", true, false) as Node3D
+		if tip:
+			points["%s tip" % saber.name] = tip.global_position
+	var lines := PackedStringArray()
+	for point_name: String in points:
+		var point: Vector3 = points[point_name]
+		var parts := PackedStringArray()
+		for v in 2:
+			var stereo := projections[v] * Projection((main.affine_inverse() * eyes[v]).affine_inverse())
+			var clip := stereo * Projection(main.affine_inverse()) * Vector4(point.x, point.y, point.z, 1.0)
+			var ndc := Vector2(clip.x, clip.y) / clip.w
+			var near := _unproject(stereo, ndc, 1.0)
+			var far := _unproject(stereo, ndc, -1.0)
+			var eye := eyes[v].basis.orthonormalized()
+			var seen := point - _camera.global_position
+			var ray := far - near
+			ray *= -1.0 if ray.z > 0.0 else 1.0
+			parts.append("%s old(+1) %+.2f old(-1) %+.2f new %+.2f" % ["L" if v == 0 else "R",
+					_yaw(main.basis * near, eye) - _yaw(seen, eye), _yaw(main.basis * far, eye) - _yaw(seen, eye),
+					_yaw(main.basis * ray, eye) - _yaw(seen, eye)])
+		lines.append("%s: %s" % [point_name, " | ".join(parts)])
+	print("Glow offset deg (turning %.0f deg/s): %s" % [turn, " ; ".join(lines)])
+
+static func _unproject(projection: Projection, ndc: Vector2, depth: float) -> Vector3:
+	var p := projection.inverse() * Vector4(ndc.x, ndc.y, depth, 1.0)
+	return Vector3(p.x, p.y, p.z) / p.w
+
+## A direction's angle to the right of the eye's forward, in degrees, in the eye's horizontal plane.
+static func _yaw(direction: Vector3, eye: Basis) -> float:
+	return rad_to_deg(atan2(direction.dot(eye.x), -direction.dot(eye.z)))
+
+## The camera Godot renders both eyes from (RendererSceneRender::CameraData::set_multiview_camera): looking between
+## the eyes' left and right frustum planes, where the first eye's left plane meets the second's right plane.
+static func _multiview_camera(eyes: Array[Transform3D], projections: Array[Projection]) -> Transform3D:
+	var left := eyes[0] * projections[0].get_projection_plane(Projection.PLANE_LEFT)
+	var right := eyes[1] * projections[1].get_projection_plane(Projection.PLANE_RIGHT)
+	var z := (left.normal + right.normal).normalized()
+	# backward, as a camera's z
+	z *= -1.0 if z.dot(eyes[0].basis.z) < 0.0 else 1.0
+	var y := eyes[0].basis.y.normalized()
+	var x := y.cross(z).normalized()
+	y = z.cross(x).normalized()
+	var origin := eyes[0].origin
+	var horizon := Plane(y, eyes[0].origin)
+	var meet: Variant = horizon.intersect_3(left, right)
+	if meet != null:
+		origin = meet
+	return Transform3D(Basis(x, y, z), origin)
 
 ## A projection's frustum as tangents: x from left to right, y from bottom to top.
 static func _tangents(projection: Projection) -> Rect2:

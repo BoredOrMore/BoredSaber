@@ -151,6 +151,22 @@ func _ready() -> void:
 	check(flashed == EventDriver.MAX_FLASHES_PER_SECOND, "a light group flashes at most %d times a second (flashed %d of 6)" % [EventDriver.MAX_FLASHES_PER_SECOND, flashed])
 	lights.queue_free()
 
+	# LowResGlow's ray from two unprojected points lands on the eye's real ray with Godot's stereo matrices
+	var eyes: Array[Transform3D] = [Transform3D(Basis(), Vector3(-0.032, 1.6, 0)), Transform3D(Basis(), Vector3(0.032, 1.6, 0))]
+	var projections: Array[Projection] = [Projection.create_frustum(-0.06, 0.04, -0.05, 0.05, 0.05, 1000.0),
+			Projection.create_frustum(-0.04, 0.06, -0.05, 0.05, 0.05, 1000.0)]
+	var main := LowResGlow._multiview_camera(eyes, projections)
+	var worst := 0.0
+	for v in 2:
+		var point := Vector3(0.3, 1.8, -0.6)
+		var stereo := projections[v] * Projection((main.affine_inverse() * eyes[v]).affine_inverse())
+		var clip := stereo * Projection(main.affine_inverse()) * Vector4(point.x, point.y, point.z, 1.0)
+		var ndc := Vector2(clip.x, clip.y) / clip.w
+		var ray := LowResGlow._unproject(stereo, ndc, -1.0) - LowResGlow._unproject(stereo, ndc, 1.0)
+		ray *= -1.0 if ray.z > 0.0 else 1.0
+		worst = maxf(worst, rad_to_deg((main.basis * ray).angle_to(point - eyes[v].origin)))
+	check(main.origin.z > 0.0 and worst < 0.01, "the glow's ray follows each eye's own ray (worst %.3f deg, stereo camera %.3f m behind the eyes)" % [worst, main.origin.z])
+
 	# the play area warning: a 2 m square guardian leaves 1 m from its middle to an edge
 	var square := PackedVector2Array([Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)])
 	check(is_equal_approx(WarningIcon._distance_to_edge(Vector2.ZERO, square), 1.0) and WarningIcon._distance_to_edge(Vector2(0.5, 0), square) < WarningIcon.REACH,
