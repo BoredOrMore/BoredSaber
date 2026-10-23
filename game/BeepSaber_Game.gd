@@ -786,18 +786,20 @@ func _on_song_ended() -> void:
 	_new_record = {}
 	PlayCount.increment_play_count(Map.current_info,Map.current_difficulty.difficulty_rank)
 	
+	# a failed song's score stops where it failed, so it isn't a record (it filled the tables with near-zero runs)
+	var failed := Settings.health_mode and current_health <= 0
 	var new_record := false
 	var highscore := Highscores.get_highscore(Map.current_info,Map.current_difficulty.difficulty_rank)
 	if highscore == -1:
 		# no highscores exist yet
 		highscore = Scoreboard.points
-	elif Scoreboard.points > highscore:
+	elif Scoreboard.points > highscore and not failed:
 		# player's score is the new highscore!
 		highscore = Scoreboard.points
 		new_record = true
 
 	var current_percent : float
-	if Settings.health_mode and current_health <= 0:
+	if failed:
 		current_percent = -1
 	else:
 		current_percent = Scoreboard.accuracy()
@@ -816,7 +818,7 @@ func _on_song_ended() -> void:
 		new_record
 	)
 	
-	if Highscores.is_new_highscore(Map.current_info,Map.current_difficulty.difficulty_rank,Scoreboard.points):
+	if not failed and Highscores.is_new_highscore(Map.current_info,Map.current_difficulty.difficulty_rank,Scoreboard.points):
 		# saved under the current player, picked in the song menu
 		_new_record = Highscores.add_highscore(
 			Map.current_info,
