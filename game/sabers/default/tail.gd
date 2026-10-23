@@ -78,12 +78,13 @@ var last_pos: Array[HistoricalPositions] = []
 const MAX_AGE := 0.22 as float
 ## The sheet shows only where the blade swept fast, as in Beat Saber: a part swept slower than TRAIL_SPEED_START
 ## (m/s at the tip) is dark, full from TRAIL_SPEED_FULL. Without this a slowly moving blade left a bright band beside
-## it, like a second blade (the player's "trail light bug").
-const TRAIL_SPEED_START := 1.5
-const TRAIL_SPEED_FULL := 4.0
+## it, like a second blade (the player's "trail light bug"); the slower wind-up before a swing (the 0.2 s before
+## it) showed too at 1.5 to 4 m/s, so the sheet now starts at 3 m/s.
+const TRAIL_SPEED_START := 3.0
+const TRAIL_SPEED_FULL := 5.5
 ## The sweep's speed is smoothed over frames (this share of the new frame's each time) and set per point, not per
 ## segment, so a slow swing fades smoothly along the sheet instead of breaking into patches.
-const TRAIL_SPEED_SMOOTHING := 0.3
+const TRAIL_SPEED_SMOOTHING := 0.5
 ## A blade tip that moves further than this (m) in one frame was moved, not swung: recentering (the headset's
 ## recenter or the game's own), a height change (switching player, Measure, the Height setting) or the controller
 ## losing and finding tracking. The trail starts again there instead of drawing a full-bright sheet across the jump.
