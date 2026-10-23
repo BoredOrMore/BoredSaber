@@ -11,7 +11,10 @@ const LENGTH := 0.9
 const WIDTH := 0.05
 const FADE_SECONDS := 0.18
 const SPARKS := 12
-const SPARK_SIZE := 0.012
+## a spark's trail: its width and length in metres (two crossed strips along its velocity, SparkStreak.gdshader)
+const SPARK_WIDTH := 0.008
+const SPARK_TRAIL := 0.08
+const SPARK_SHADER := preload("res://game/SparkStreak.gdshader")
 const SPARK_SPEED_MIN := 1.0
 const SPARK_SPEED_MAX := 2.5
 const SPARK_SPREAD_DEG := 35.0
@@ -37,17 +40,30 @@ func _ready() -> void:
 		_tweens.append(null)
 		_sparks.append(_make_sparks())
 
+## A spark with a trail for CPU particles with particle_flag_align_y: two crossed strips along +y (the velocity),
+## the head at the top, so it shows from every side but straight along its path.
+static func spark_mesh() -> ArrayMesh:
+	var vertices := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	for across: Vector3 in [Vector3(SPARK_WIDTH * 0.5, 0.0, 0.0), Vector3(0.0, 0.0, SPARK_WIDTH * 0.5)]:
+		var tail := Vector3(0.0, -SPARK_TRAIL, 0.0)
+		vertices.append_array([tail - across, tail + across, across, tail - across, across, -across])
+		uvs.append_array([Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 0), Vector2(1, 1), Vector2(0, 1)])
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var material := ShaderMaterial.new()
+	material.shader = SPARK_SHADER
+	mesh.surface_set_material(0, material)
+	return mesh
+
 func _make_sparks() -> CPUParticles3D:
-	var mesh := QuadMesh.new()
-	mesh.size = Vector2.ONE * SPARK_SIZE
-	var material := StandardMaterial3D.new()
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	material.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	material.vertex_color_use_as_albedo = true
-	mesh.material = material
 	var sparks := CPUParticles3D.new()
-	sparks.mesh = mesh
+	sparks.mesh = spark_mesh()
+	sparks.particle_flag_align_y = true
 	sparks.amount = SPARKS
 	sparks.lifetime = 0.3
 	sparks.one_shot = true

@@ -597,23 +597,14 @@ var _lowered_resolution := false
 var played_seconds := 0.0
 
 ## Buzzes both controllers while the two blades touch.
-## Sparks fly from where the blades touch: a few tiny glowing specks on CPU particles, hot white cooling to orange
+## Sparks fly from where the blades touch: short glowing streaks on CPU particles, hot white cooling to orange
 ## as they fall. Untuned.
 var _sparks := CPUParticles3D.new()
 const SPARKS_AMOUNT := 24
-const SPARK_SIZE := 0.012
 
 func _make_sparks() -> void:
-	var mesh := QuadMesh.new()
-	mesh.size = Vector2.ONE * SPARK_SIZE
-	var material := StandardMaterial3D.new()
-	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	material.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
-	material.vertex_color_use_as_albedo = true
-	material.no_depth_test = false
-	mesh.material = material
-	_sparks.mesh = mesh
+	_sparks.mesh = CutFlash.spark_mesh()
+	_sparks.particle_flag_align_y = true
 	_sparks.amount = SPARKS_AMOUNT
 	_sparks.lifetime = 0.35
 	_sparks.local_coords = false
