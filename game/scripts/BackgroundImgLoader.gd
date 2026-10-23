@@ -34,7 +34,10 @@ func load_texture(path: String, file: String, callback_func: Callable, is_main_c
 	new_req.callback_func = callback_func
 	new_req.is_main_cover = is_main_cover
 	new_req.index = index
+	# the loading threads take requests off this queue under the mutex, so adding goes under it too
+	_img_load_mutex.lock()
 	_img_load_request_queue.push_back(new_req)
+	_img_load_mutex.unlock()
 	
 	_start_next_img_load()
 
