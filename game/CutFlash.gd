@@ -17,15 +17,16 @@ const SPARK_SHADER := preload("res://game/SparkStreak.gdshader")
 const CUT_LINE_HALF := 0.18
 ## the fountain thrown back against the swing
 const FOUNTAIN_SPARKS := 28
-## speeds at a full swing; the two ends are close so the sparks fly evenly (the player asked for more uniform)
-const FOUNTAIN_SPEED_MIN := 3.4
-const FOUNTAIN_SPEED_MAX := 4.2
+## speeds at a full swing, spread wide so some sparks shoot far and some drop short along the same narrow line
+## (the player asked for random speeds within a plume that doesn't open out)
+const FOUNTAIN_SPEED_MIN := 1.8
+const FOUNTAIN_SPEED_MAX := 4.8
 const FOUNTAIN_SPREAD_DEG := 40.0
 const FOUNTAIN_SECONDS := 0.5
 ## the few carried on along the swing
 const SPRAY_SPARKS := 8
-const SPRAY_SPEED_MIN := 3.8
-const SPRAY_SPEED_MAX := 4.6
+const SPRAY_SPEED_MIN := 2.0
+const SPRAY_SPEED_MAX := 5.0
 const SPRAY_SPREAD_DEG := 8.0
 const SPRAY_SECONDS := 0.4
 ## pulls the sparks into falling arcs (m/s²)
@@ -40,8 +41,8 @@ const SWING_CURVE := 3.0
 const SPEED_SCALE_MIN := 0.35
 const BRIGHTNESS_MIN := 0.2
 ## a narrow plume close along the swing, not a fan (the player's sketch: within about 20 degrees)
-const FOUNTAIN_SPREAD_MIN_DEG := 8.0
-const FOUNTAIN_SPREAD_MAX_DEG := 18.0
+const FOUNTAIN_SPREAD_MIN_DEG := 6.0
+const FOUNTAIN_SPREAD_MAX_DEG := 9.0
 ## sparks vary in length (and width) only this much, so the burst looks even
 const SPARK_SCALE_MIN := 0.85
 const SPARK_SCALE_MAX := 1.15
