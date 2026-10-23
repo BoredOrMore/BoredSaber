@@ -6,6 +6,11 @@ extends Node3D
 class_name BeepSaber_Game
 
 var version : String = ProjectSettings.get_setting("application/config/version", "0.0.0")
+## the streak where a saber cut a note (BeepCube.cut)
+var cut_flash := CutFlash.new()
+## Sabers touching: both controllers buzz while the blades are this close (metres), as in Beat Saber.
+const CLASH_DISTANCE := 0.04
+const CLASH_RUMBLE := 0.5
 var gamestate_bootup := GameState.new()
 var gamestate_mapcomplete := GameStateMapComplete.new()
 var gamestate_mapselection := GameStateMapSelection.new()
@@ -378,6 +383,7 @@ func play_countdown(seconds: int) -> void:
 
 func _ready() -> void:
 	track.position.z = Constants.HIT_PLANE_Z
+	add_child(cut_flash)
 	_countdown_player.bus = &"SFX"
 	add_child(_countdown_player)
 	_mistake_player = AudioStreamPlayer.new()
@@ -589,7 +595,18 @@ var _lowered_resolution := false
 ## Seconds of songs played this session (WarningIcon suggests a break after 30 minutes).
 var played_seconds := 0.0
 
+## Buzzes both controllers while the two blades touch.
+func _rumble_on_clash() -> void:
+	if not (left_saber.is_extended() and right_saber.is_extended()):
+		return
+	var closest := Geometry3D.get_closest_points_between_segments(left_saber.global_position, left_saber.saber_end,
+			right_saber.global_position, right_saber.saber_end)
+	if closest[0].distance_to(closest[1]) < CLASH_DISTANCE:
+		left_controller.simple_rumble(CLASH_RUMBLE, 0.05)
+		right_controller.simple_rumble(CLASH_RUMBLE, 0.05)
+
 func _process(delta: float) -> void:
+	_rumble_on_clash()
 	if gamestate == gamestate_playing:
 		played_seconds += delta
 	if gamestate != gamestate_playing or Settings.render_scale() <= Settings._resolution_scale(SMOOTH_FALLBACK) \

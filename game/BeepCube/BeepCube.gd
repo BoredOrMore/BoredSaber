@@ -171,6 +171,9 @@ func cut(saber: LightSaber, cut_speed: Vector3, cut_plane: Plane, controller: Be
 		controller.simple_rumble(WRONG_SABER_RUMBLE, 0.2)
 		cutted.emit(false)
 	
+	var on_cut := global_transform.origin - cut_plane.normal * cut_distance
+	GlobalReferences.main_game_scene.cut_flash.flash(on_cut, cut_speed.rotated(Vector3(0, 1, 0), rotation.y),
+			Map.color_right if saber.type == 1 else Map.color_left)
 	# reset the movement tracking volume for the next cut
 	controller.reset_movement_aabb()
 	
