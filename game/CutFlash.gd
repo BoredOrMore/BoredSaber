@@ -16,19 +16,27 @@ const SPARK_SHADER := preload("res://game/SparkStreak.gdshader")
 ## half the length of the cut line the sparks leave from, along the swing through the note
 const CUT_LINE_HALF := 0.18
 ## the fountain thrown back against the swing
-const FOUNTAIN_SPARKS := 40
+const FOUNTAIN_SPARKS := 28
 const FOUNTAIN_SPEED_MIN := 2.0
 const FOUNTAIN_SPEED_MAX := 4.5
 const FOUNTAIN_SPREAD_DEG := 40.0
 const FOUNTAIN_SECONDS := 0.5
 ## the few carried on along the swing
-const SPRAY_SPARKS := 12
+const SPRAY_SPARKS := 8
 const SPRAY_SPEED_MIN := 2.5
 const SPRAY_SPEED_MAX := 5.0
 const SPRAY_SPREAD_DEG := 15.0
 const SPRAY_SECONDS := 0.4
 ## pulls the sparks into falling arcs (m/s²)
 const SPARK_GRAVITY := 9.0
+## The swing drives the sparks: at REFERENCE_SWING (m/s at the blade tip) they fly at the speeds above; a harder or
+## softer swing scales their speed (so the fountain's height) by its share of that, within SWING_SCALE_MIN..MAX,
+## widens or narrows the fountain toward FOUNTAIN_SPREAD_MAX_DEG, and pulls them down faster or slower.
+const REFERENCE_SWING := 5.0
+const SWING_SCALE_MIN := 0.5
+const SWING_SCALE_MAX := 2.0
+const FOUNTAIN_SPREAD_MIN_DEG := 20.0
+const FOUNTAIN_SPREAD_MAX_DEG := 60.0
 ## sparks vary in length (and width) by this much
 const SPARK_SCALE_MIN := 0.5
 const SPARK_SCALE_MAX := 1.3
@@ -107,7 +115,17 @@ func flash(at: Vector3, swing: Vector3, color: Color) -> void:
 	var back := -_across_view(sight, swing)
 	var toward := -sight
 	var basis := Basis(back.cross(toward), back, toward).orthonormalized()
-	for sparks: CPUParticles3D in [_fountains[i], _sprays[i]]:
+	var scale := clampf(swing.length() / REFERENCE_SWING, SWING_SCALE_MIN, SWING_SCALE_MAX)
+	var fountain := _fountains[i]
+	var spray := _sprays[i]
+	fountain.initial_velocity_min = FOUNTAIN_SPEED_MIN * scale
+	fountain.initial_velocity_max = FOUNTAIN_SPEED_MAX * scale
+	fountain.spread = lerpf(FOUNTAIN_SPREAD_MIN_DEG, FOUNTAIN_SPREAD_MAX_DEG,
+			inverse_lerp(SWING_SCALE_MIN, SWING_SCALE_MAX, scale))
+	spray.initial_velocity_min = SPRAY_SPEED_MIN * scale
+	spray.initial_velocity_max = SPRAY_SPEED_MAX * scale
+	for sparks: CPUParticles3D in [fountain, spray]:
+		sparks.gravity = Vector3(0.0, -SPARK_GRAVITY * sqrt(scale), 0.0)
 		sparks.global_transform = Transform3D(basis, at)
 		sparks.color_ramp.set_color(0, Color(1.0, 1.0, 1.0))
 		sparks.color_ramp.set_color(1, Color(color.r, color.g, color.b, 0.0))
