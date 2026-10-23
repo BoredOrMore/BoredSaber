@@ -403,7 +403,7 @@ text = "Cut pieces"
 
 [node name="cut_flash" type="CheckButton" parent="Tabs/Visuals/VBox"]
 layout_mode = 2
-text = "Cut flash"
+text = "Cut flash and sparks"
 
 [node name="background_mode_grid" type="GridContainer" parent="Tabs/Visuals/VBox"]
 theme_override_constants/h_separation = 16
