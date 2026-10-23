@@ -94,10 +94,26 @@ jobs:
           # Without the vendors plugin the game still starts but loses Pico OpenXR support.
           unzip -l build/BoredSaber-Pico4.apk | grep -q 'lib/arm64-v8a/libgodotopenxrvendors.so'
 
+      # Quest 2/3/3S/Pro: the same game with Meta's OpenXR loader instead of Pico's. Not yet tested on a Quest, so a
+      # failure here doesn't stop the Pico build.
+      - name: Export Quest APK
+        continue-on-error: true
+        run: |
+          ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 --headless --path . \
+            --export-debug "Oculus Quest (RELEASE)" build/BoredSaber-Quest.apk
+          test -f build/BoredSaber-Quest.apk
+          unzip -l build/BoredSaber-Quest.apk | grep -q 'lib/arm64-v8a/libgodotopenxrvendors.so'
+
       - uses: actions/upload-artifact@v4
         with:
           name: BoredSaber-Pico4
           path: build/BoredSaber-Pico4.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BoredSaber-Quest
+          path: build/BoredSaber-Quest.apk
+          if-no-files-found: ignore
 
       # A fixed release URL lets the headset browser download the APK without a GitHub login.
       - name: Publish pico4-latest release
@@ -106,6 +122,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete pico4-latest --yes --cleanup-tag || true
-          gh release create pico4-latest build/BoredSaber-Pico4.apk --prerelease --target "$GITHUB_SHA" \
+          gh release create pico4-latest build/BoredSaber-Pico4.apk $(ls build/BoredSaber-Quest.apk 2>/dev/null) \
+            --prerelease --target "$GITHUB_SHA" \
             --title "Pico 4 latest build" \
             --notes "Debug APK built from ${GITHUB_SHA::7} on ${GITHUB_REF_NAME}."
