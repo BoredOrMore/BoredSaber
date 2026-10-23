@@ -76,12 +76,12 @@ var last_pos: Array[HistoricalPositions] = []
 ## how long the swept sheet behind the blade lasts; its gradient (tail.tscn) keeps the leading edge bright and fades
 ## the rest evenly, as in Beat Saber (it dropped to a fifth right behind the blade and lasted 0.15 s, too faint)
 const MAX_AGE := 0.22 as float
-## The sheet shows only where the blade swept fast, as in Beat Saber: a part swept slower than TRAIL_SPEED_START
-## (m/s at the tip) is dark, full from TRAIL_SPEED_FULL. Without this a slowly moving blade left a bright band beside
-## it, like a second blade (the player's "trail light bug"); the slower wind-up before a swing (the 0.2 s before
-## it) showed too at 1.5 to 4 m/s, so the sheet now starts at 3 m/s.
-const TRAIL_SPEED_START := 3.0
-const TRAIL_SPEED_FULL := 5.5
+## The sheet's opacity follows how fast the blade swept, as the player asked: 0 at rest, rising exponentially
+## with the tip's speed to 1 at TRAIL_SPEED_FULL (m/s), so the slow wind-up before a swing barely shows and a real
+## swing shows fully. TRAIL_CURVE sets how late it rises (at half speed it is 12%, at three quarters 35%). Without
+## this a slowly moving blade left a bright band beside it, like a second blade.
+const TRAIL_SPEED_FULL := 6.0
+const TRAIL_CURVE := 4.0
 ## The sweep's speed is smoothed over frames (this share of the new frame's each time) and set per point, not per
 ## segment, so a slow swing fades smoothly along the sheet instead of breaking into patches.
 const TRAIL_SPEED_SMOOTHING := 0.5
@@ -98,7 +98,7 @@ func _process(delta: float) -> void:
 			last_pos.clear()
 		if last_pos.size() > 0:
 			var swept := pos.tip_pos.distance_to(last_pos[0].tip_pos) / maxf(delta, 1e-4)
-			var raw := clampf((swept - TRAIL_SPEED_START) / (TRAIL_SPEED_FULL - TRAIL_SPEED_START), 0.0, 1.0)
+			var raw := (exp(TRAIL_CURVE * clampf(swept / TRAIL_SPEED_FULL, 0.0, 1.0)) - 1.0) / (exp(TRAIL_CURVE) - 1.0)
 			pos.fast = lerpf(last_pos[0].fast, raw, TRAIL_SPEED_SMOOTHING)
 		var segments := 0
 		if last_pos.size() > 0:
