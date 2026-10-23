@@ -50,7 +50,9 @@ class HistoricalPositions:
 		tip_pos = tip
 
 var last_pos: Array[HistoricalPositions] = []
-const MAX_AGE := 0.15 as float
+## how long the swept sheet behind the blade lasts; its gradient (tail.tscn) keeps the leading edge bright and fades
+## the rest evenly, as in Beat Saber (it dropped to a fifth right behind the blade and lasted 0.15 s, too faint)
+const MAX_AGE := 0.22 as float
 func _process(delta: float) -> void:
 	if visible and size > 0:
 		var pos := HistoricalPositions.new(global_position, to_global(position + Vector3(0,size,0)))

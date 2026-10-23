@@ -3,8 +3,8 @@
 [ext_resource type="Script" path="res://game/sabers/default/tail.gd" id="1_mawj2"]
 
 [sub_resource type="Gradient" id="Gradient_1mbrl"]
-offsets = PackedFloat32Array(0, 0.234483, 1)
-colors = PackedColorArray(1, 1, 1, 1, 0.216967, 0.216967, 0.216967, 1, 0, 0, 0, 1)
+offsets = PackedFloat32Array(0, 0.08, 0.5, 1)
+colors = PackedColorArray(1, 1, 1, 1, 0.7, 0.7, 0.7, 1, 0.3, 0.3, 0.3, 1, 0, 0, 0, 1)
 
 [sub_resource type="GradientTexture2D" id="GradientTexture2D_i1q2c"]
 gradient = SubResource("Gradient_1mbrl")
