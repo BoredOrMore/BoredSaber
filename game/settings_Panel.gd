@@ -13,6 +13,8 @@ signal benchmark_requested()
 @onready var saber_tail_control := $Tabs/Visuals/VBox/saber_tail as CheckButton
 @onready var saber_thickness := $Tabs/Visuals/VBox/SaberThicknessRow/saber_thickness as HSlider
 @onready var cut_blocks := $Tabs/Visuals/VBox/cut_blocks as CheckButton
+@onready var cut_flash_control := $Tabs/Visuals/VBox/cut_flash as CheckButton
+@onready var saber_clash_control := $Tabs/Gameplay/VBox/saber_clash_rumble as CheckButton
 @onready var left_saber_col := $Tabs/Visuals/VBox/SaberColorsRow/left_saber_col as ColorPickerButton
 @onready var right_saber_col := $Tabs/Visuals/VBox/SaberColorsRow/right_saber_col as ColorPickerButton
 @onready var show_debug_control := $Tabs/Advanced/VBox/show_debug as CheckButton
@@ -142,6 +144,8 @@ func set_controls_from_settings() -> void:
 	await get_tree().process_frame
 	saber_thickness.value = Settings.thickness
 	cut_blocks.button_pressed = Settings.cube_cuts_falloff
+	cut_flash_control.button_pressed = Settings.cut_flash
+	saber_clash_control.button_pressed = Settings.saber_clash_rumble
 	left_saber_col.color = Settings.color_left
 	right_saber_col.color = Settings.color_right
 	_update_color_preset_selection()
@@ -187,6 +191,12 @@ func _on_thickness_value_changed(value: float) -> void:
 
 func _on_cut_blocks_toggled(button_pressed: bool) -> void:
 	Settings.cube_cuts_falloff = button_pressed
+
+func _on_cut_flash_toggled(button_pressed: bool) -> void:
+	Settings.cut_flash = button_pressed
+
+func _on_saber_clash_rumble_toggled(button_pressed: bool) -> void:
+	Settings.saber_clash_rumble = button_pressed
 
 func _on_left_saber_color_changed(color: Color) -> void:
 	Settings.color_left = color
@@ -394,6 +404,8 @@ func _sync_graphics() -> void:
 	smoke_control.set_pressed_no_signal(Settings.smoke)
 	saber_tail_control.set_pressed_no_signal(Settings.saber_tail)
 	cut_blocks.set_pressed_no_signal(Settings.cube_cuts_falloff)
+	cut_flash_control.set_pressed_no_signal(Settings.cut_flash)
+	saber_clash_control.set_pressed_no_signal(Settings.saber_clash_rumble)
 	for i in Settings.BACKGROUND_MODES.size():
 		if Settings.BACKGROUND_MODES[i][0] == Settings.background:
 			background_mode_control.selected = i

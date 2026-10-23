@@ -597,7 +597,7 @@ var played_seconds := 0.0
 
 ## Buzzes both controllers while the two blades touch.
 func _rumble_on_clash() -> void:
-	if not (left_saber.is_extended() and right_saber.is_extended()):
+	if not (Settings.saber_clash_rumble and left_saber.is_extended() and right_saber.is_extended()):
 		return
 	var closest := Geometry3D.get_closest_points_between_segments(left_saber.global_position, left_saber.saber_end,
 			right_saber.global_position, right_saber.saber_end)

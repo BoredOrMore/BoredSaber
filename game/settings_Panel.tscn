@@ -236,6 +236,10 @@ text = "Score by swing and distance"
 layout_mode = 2
 text = "Explain scores"
 
+[node name="saber_clash_rumble" type="CheckButton" parent="Tabs/Gameplay/VBox"]
+layout_mode = 2
+text = "Buzz when sabers touch"
+
 [node name="player_height_offset" type="HBoxContainer" parent="Tabs/Gameplay/VBox"]
 layout_mode = 2
 
@@ -396,6 +400,10 @@ text = "Saber trail"
 [node name="cut_blocks" type="CheckButton" parent="Tabs/Visuals/VBox"]
 layout_mode = 2
 text = "Cut pieces"
+
+[node name="cut_flash" type="CheckButton" parent="Tabs/Visuals/VBox"]
+layout_mode = 2
+text = "Cut flash"
 
 [node name="background_mode_grid" type="GridContainer" parent="Tabs/Visuals/VBox"]
 theme_override_constants/h_separation = 16
@@ -850,6 +858,8 @@ scroll_without_pointer = true
 [connection signal="value_changed" from="Tabs/Audio/VBox/audio/music_preview/music_preview_slider" to="." method="_on_music_preview_slider_value_changed"]
 [connection signal="button_up" from="Tabs/Gameplay/VBox/recenter" to="." method="_on_recenter_button_up"]
 [connection signal="toggled" from="Tabs/Visuals/VBox/cut_blocks" to="." method="_on_cut_blocks_toggled"]
+[connection signal="toggled" from="Tabs/Visuals/VBox/cut_flash" to="." method="_on_cut_flash_toggled"]
+[connection signal="toggled" from="Tabs/Gameplay/VBox/saber_clash_rumble" to="." method="_on_saber_clash_rumble_toggled"]
 [connection signal="toggled" from="Tabs/Visuals/VBox/glare" to="." method="_on_glare_toggled"]
 [connection signal="toggled" from="Tabs/Visuals/VBox/smoke" to="." method="_on_smoke_toggled"]
 [connection signal="toggled" from="Tabs/Visuals/VBox/darker_notes" to="." method="_on_darker_notes_toggled"]

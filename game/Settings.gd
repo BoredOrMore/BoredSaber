@@ -167,6 +167,16 @@ var cube_cuts_falloff: bool:
 	set(value):
 		cube_cuts_falloff = value
 		set_and_emit(&"cube_cuts_falloff", value)
+## a streak where a saber cuts a note (CutFlash)
+var cut_flash: bool:
+	set(value):
+		cut_flash = value
+		set_and_emit(&"cut_flash", value)
+## both controllers buzz while the blades touch
+var saber_clash_rumble: bool:
+	set(value):
+		saber_clash_rumble = value
+		set_and_emit(&"saber_clash_rumble", value)
 var saber_tail: bool:
 	set(value):
 		saber_tail = value
@@ -415,6 +425,8 @@ const platform_default_values = {
 var default_values = {
 	thickness = 1.0,
 	cube_cuts_falloff = true,
+	cut_flash = true,
+	saber_clash_rumble = true,
 	color_left = COLOR_PRESETS[0][1],
 	color_right = COLOR_PRESETS[0][2],
 	saber_tail = true,
