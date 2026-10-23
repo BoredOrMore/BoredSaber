@@ -59,6 +59,8 @@ class HistoricalPositions:
 	var base_pos := Vector3() # global position of blade at the base (near handle)
 	var tip_pos := Vector3()  # blogal position of blade at the tip
 	var age := 0.0 as float
+	## how fast the blade swept here, 0 (dark) to 1 (full); smoothed over frames
+	var fast := 0.0
 	
 	func _init(base: Vector3, tip: Vector3):
 		base_pos = base
@@ -73,9 +75,16 @@ const MAX_AGE := 0.22 as float
 ## it, like a second blade (the player's "trail light bug").
 const TRAIL_SPEED_START := 1.5
 const TRAIL_SPEED_FULL := 4.0
+## The sweep's speed is smoothed over frames (this share of the new frame's each time) and set per point, not per
+## segment, so a slow swing fades smoothly along the sheet instead of breaking into patches.
+const TRAIL_SPEED_SMOOTHING := 0.3
 func _process(delta: float) -> void:
 	if visible and size > 0:
 		var pos := HistoricalPositions.new(global_position, to_global(position + Vector3(0,size,0)))
+		if last_pos.size() > 0:
+			var swept := pos.tip_pos.distance_to(last_pos[0].tip_pos) / maxf(delta, 1e-4)
+			var raw := clampf((swept - TRAIL_SPEED_START) / (TRAIL_SPEED_FULL - TRAIL_SPEED_START), 0.0, 1.0)
+			pos.fast = lerpf(last_pos[0].fast, raw, TRAIL_SPEED_SMOOTHING)
 		var segments := 0
 		if last_pos.size() > 0:
 			var new_size = -1 as int
@@ -87,11 +96,9 @@ func _process(delta: float) -> void:
 				
 				var t := clampf(last_pos[i].age / MAX_AGE, 0.02, 0.98)
 				var offsetted := clampf(t + (1.0/last_pos.size()), 0.02, 0.98)
-				# a slow part of the sweep reads as older (darker) on the gradient, by how slow it was
-				var swept := posA.tip_pos.distance_to(posB.tip_pos) / maxf(delta, 1e-4)
-				var fast := clampf((swept - TRAIL_SPEED_START) / (TRAIL_SPEED_FULL - TRAIL_SPEED_START), 0.0, 1.0)
-				t = 1.0 - (1.0 - t) * fast
-				offsetted = 1.0 - (1.0 - offsetted) * fast
+				# a slow part of the sweep reads as older (darker) on the gradient, by how slow it was there
+				t = 1.0 - (1.0 - t) * posA.fast
+				offsetted = 1.0 - (1.0 - offsetted) * posB.fast
 
 				if segments < MAX_SEGMENTS:
 					var v := segments * 6
