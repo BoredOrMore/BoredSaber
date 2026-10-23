@@ -115,17 +115,17 @@ func flash(at: Vector3, swing: Vector3, color: Color) -> void:
 	var back := -_across_view(sight, swing)
 	var toward := -sight
 	var basis := Basis(back.cross(toward), back, toward).orthonormalized()
-	var scale := clampf(swing.length() / REFERENCE_SWING, SWING_SCALE_MIN, SWING_SCALE_MAX)
+	var swing_scale := clampf(swing.length() / REFERENCE_SWING, SWING_SCALE_MIN, SWING_SCALE_MAX)
 	var fountain := _fountains[i]
 	var spray := _sprays[i]
-	fountain.initial_velocity_min = FOUNTAIN_SPEED_MIN * scale
-	fountain.initial_velocity_max = FOUNTAIN_SPEED_MAX * scale
+	fountain.initial_velocity_min = FOUNTAIN_SPEED_MIN * swing_scale
+	fountain.initial_velocity_max = FOUNTAIN_SPEED_MAX * swing_scale
 	fountain.spread = lerpf(FOUNTAIN_SPREAD_MIN_DEG, FOUNTAIN_SPREAD_MAX_DEG,
-			inverse_lerp(SWING_SCALE_MIN, SWING_SCALE_MAX, scale))
-	spray.initial_velocity_min = SPRAY_SPEED_MIN * scale
-	spray.initial_velocity_max = SPRAY_SPEED_MAX * scale
+			inverse_lerp(SWING_SCALE_MIN, SWING_SCALE_MAX, swing_scale))
+	spray.initial_velocity_min = SPRAY_SPEED_MIN * swing_scale
+	spray.initial_velocity_max = SPRAY_SPEED_MAX * swing_scale
 	for sparks: CPUParticles3D in [fountain, spray]:
-		sparks.gravity = Vector3(0.0, -SPARK_GRAVITY * sqrt(scale), 0.0)
+		sparks.gravity = Vector3(0.0, -SPARK_GRAVITY * sqrt(swing_scale), 0.0)
 		sparks.global_transform = Transform3D(basis, at)
 		sparks.color_ramp.set_color(0, Color(1.0, 1.0, 1.0))
 		sparks.color_ramp.set_color(1, Color(color.r, color.g, color.b, 0.0))
