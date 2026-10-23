@@ -62,7 +62,7 @@ const FIST_RADIUS := 0.045
 ## head is a sphere of 0.07 m (PlayerHead in BeepSaber_Game.tscn); a lean wall covers one middle
 ## column, whose inner edge is the centre line x = 0.
 const HEAD_RADIUS := 0.07
-const SQUAT_WALL_BOTTOM := 2 * Constants.LANE_DISTANCE_Y
+const SQUAT_WALL_BOTTOM := Constants.CROUCH_WALL_BOTTOM
 const SQUAT_HEAD_Y := SQUAT_WALL_BOTTOM - HEAD_RADIUS
 const LEAN_HEAD_X := HEAD_RADIUS
 ## How far in front of the eyes the squat bar and lean wall stand.

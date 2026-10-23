@@ -50,7 +50,8 @@ func spawn(wall_info: ObstacleInfo, current_beat: float) -> void:
 	var shape := ($WallMeshOrientation/WallArea/CollisionShape3D as CollisionShape3D).shape as BoxShape3D
 	
 	var x_size := wall_info.width * Settings.LANE_DISTANCE_X
-	var y_size := wall_info.height * Constants.LANE_DISTANCE_Y
+	var bottom := Constants.wall_y(wall_info.line_layer)
+	var y_size := Constants.wall_y(wall_info.line_layer + wall_info.height) - bottom
 	var z_size := wall_info.duration * Map.beat_distance
 	var depth := z_size * 0.5
 	m.size.x = x_size
@@ -62,7 +63,7 @@ func spawn(wall_info: ObstacleInfo, current_beat: float) -> void:
 	despawn_z = Constants.MISS_Z + depth
 	
 	var x := (0.5 * wall_info.width + wall_info.line_index - 2) * Settings.LANE_DISTANCE_X
-	var y := (0.5 * wall_info.height + wall_info.line_layer) * Constants.LANE_DISTANCE_Y
+	var y := bottom + 0.5 * y_size
 	var z := (current_beat - wall_info.beat) * Map.beat_distance - depth
 	
 	var c := cos(wall_info.rotation)

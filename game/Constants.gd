@@ -4,7 +4,7 @@ const DEFAULT_LANE_ZERO_X := -0.9
 const BEAT_DISTANCE := 4.0
 const DEFAULT_LANE_DISTANCE_X := 0.6
 const LANE_DISTANCE_Y := 0.6
-## Eye height the note rows (ROW_Y) and crouch walls (1.2 m) suit, as Beat Saber's default 1.80 m player (eyes about
+## Eye height the note rows (ROW_Y) and crouch walls (CROUCH_WALL_BOTTOM) suit, as Beat Saber's default 1.80 m player (eyes about
 ## 0.1 m below the top of the head); "Measure my height" sets a player's Height as their difference from it.
 const EYE_HEIGHT := 1.7
 ## Note row heights in metres (bottom, middle, top), where Beat Saber puts them for its 1.80 m player
@@ -14,6 +14,9 @@ const ROW_Y: Array[float] = [0.85, 1.40, 1.90]
 ## Saber moves its grid by half the player's difference from 1.80 m, clamped to -0.2..+0.6 m (the view moves the
 ## other way).
 const HEIGHT_FOLLOW := 0.5
+## Where a crouch wall (one starting at row 2) begins, in metres; the player asked for 1.3 m (the plain 0.6 m steps
+## put it at 1.2 m). Walls from row 2 up are raised by the difference (wall_y).
+const CROUCH_WALL_BOTTOM := 1.3
 const VIEW_SHIFT_MIN := -0.6
 const VIEW_SHIFT_MAX := 0.2
 
@@ -21,6 +24,11 @@ const VIEW_SHIFT_MAX := 0.2
 static func layer_y(layer: float) -> float:
 	var i := clampi(floori(layer), 0, ROW_Y.size() - 2)
 	return lerpf(ROW_Y[i], ROW_Y[i + 1], layer - i)
+
+## The height of a wall edge at a wall layer: 0.6 m steps, raised from row 2 up so crouch walls start at
+## CROUCH_WALL_BOTTOM.
+static func wall_y(layer: float) -> float:
+	return layer * LANE_DISTANCE_Y + (CROUCH_WALL_BOTTOM - 2.0 * LANE_DISTANCE_Y) * clampf(layer - 1.0, 0.0, 1.0)
 
 ## How far the view moves for a player's Height setting.
 static func view_shift(height_offset: float) -> float:
