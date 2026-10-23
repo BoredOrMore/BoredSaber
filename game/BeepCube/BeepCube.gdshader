@@ -62,6 +62,11 @@ uniform float sub_emission_energy;
 uniform bool cutted = false;
 uniform float cut_vanish = 0.0;
 uniform float cut_white_margin = 0.04;
+// A cut half's cut edge glows white-hot and cools to the note's colour as the half flies off (1 to 0, CutPiece);
+// the inside seen through the cut is dark, as in Beat Saber, glowing only at the cut.
+uniform float cut_glow = 1.0;
+const float CUT_EDGE_GAIN = 1.5;
+const float CUT_INSIDE_DARK = 0.12;
 
 uniform bool is_dot = false;
 uniform bool arrows_enabled = true;
@@ -127,12 +132,17 @@ void fragment() {
 		}
 
 		if (cutted){
-			// soft white margin
-			base += vec3( smoothstep(cut_white_margin+0.01,cut_white_margin,cut_interp) );
+			// soft glowing margin along the cut
+			base += mix(color.rgb, vec3(1.0), cut_glow) * (CUT_EDGE_GAIN * (0.5 + cut_glow))
+				* smoothstep(cut_white_margin + 0.01, cut_white_margin, cut_interp);
 			// hard white margin
 			//base += vec3( float(cut_white_margin < cut_interp) );
 		}
 		ALBEDO = base;
+	} else if (cutted) {
+		// the inside, seen through the cut: dark, lit along the cut's edge
+		float edge = smoothstep(cut_white_margin * 2.0, 0.0, cut_interp);
+		ALBEDO = color.rgb * CUT_INSIDE_DARK + mix(color.rgb, vec3(1.0), cut_glow) * edge * (0.5 + cut_glow);
 	} else {
 		ALBEDO = vec3(1.0);
 	}

@@ -71,7 +71,8 @@ func hide_piece():
 	# disable processing on this node and all children to help with performance
 	process_mode = Node.PROCESS_MODE_DISABLED
 
-const MAX_LIFETIME := 0.3;
+## How long a cut half flies before it is gone (it was 0.3 s, too short to see the cut)
+const MAX_LIFETIME := 0.6;
 
 func _physics_process(delta: float) -> void:
 	lifetime += delta
@@ -86,4 +87,6 @@ func _physics_process(delta: float) -> void:
 		# lifetime. see this reddit post for a visual of ease() curve values.
 		# https://forum.godotengine.org/t/how-do-i-properly-use-the-ease-function/20396/2
 		var fade := lifetime / MAX_LIFETIME
-		mesh.material_override.set_shader_parameter(&"cut_vanish",ease(fade,2.0)*0.5)
+		mesh.material_override.set_shader_parameter(&"cut_vanish",ease(fade,3.0)*0.5)
+		# the cut edge cools from white-hot to the note's colour
+		mesh.material_override.set_shader_parameter(&"cut_glow", 1.0 - fade)
