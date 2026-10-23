@@ -36,6 +36,10 @@ const GLOWB := "glowb"
 ## The flag file's mode for the whole look's cost (tools/bench.sh --only total): each setup in a song with the
 ## player's own settings switches, a no-glow phase (Normal, 4x, Atmosphere Normal, 1x) between each pair.
 const TOTAL := "total"
+## The flag file's mode for the refresh rate (tools/bench.sh --only hz90): the menu and a song at 72 and at 90 Hz, on
+## the player's own settings, plus a song at 90 Hz on Low; 72 Hz again last, as the headset warms up through a run.
+const HZ90 := "hz90"
+const HZ_SONG_SECONDS := 20.0
 const RENDER_SCALES: Array[float] = [1.0, 1.2, 1.44]
 const RESOLUTION_SONG_SECONDS := 20.0
 ## The progress label and Cancel: left of the song menu, facing the player, at eye height.
@@ -54,6 +58,7 @@ var _cancelled := false
 var _saved := {}
 var _foveation := -1
 var _render_scale := 1.0
+var _refresh_rate := 0.0
 var _label := Label3D.new()
 var _cancel := (preload("res://game/scripts/UIRaycast/UIRaycastButton.tscn") as PackedScene).instantiate() as UIRaycastButton
 var _phase_index := 0
@@ -132,6 +137,23 @@ func _phases(mode: String) -> Array:
 		for phase: Array in glow_phases:
 			phases.append([phase[0] + "_song", Callable(), _set_glow.bind(phase[1], phase[2], phase[3], phase[4], phase[5]),
 					MSAA_SONG_SECONDS, true])
+		return phases
+	if mode == HZ90:
+		var phases := []
+		if openxr:
+			print("BENCH refresh rates ", openxr.get_available_display_refresh_rates())
+			var rate := func(hz: float, preset: String) -> void:
+				openxr.display_refresh_rate = hz
+				if not preset.is_empty():
+					Settings.set_graphics_preset(preset)
+			phases = [
+				["menu_72hz", _sweep_pointer, rate.bind(72.0, "")],
+				["menu_90hz", _sweep_pointer, rate.bind(90.0, "")],
+				["song_72hz_song", Callable(), rate.bind(72.0, ""), HZ_SONG_SECONDS, true],
+				["song_90hz_song", Callable(), rate.bind(90.0, ""), HZ_SONG_SECONDS, true],
+				["song_90hz_low_song", Callable(), rate.bind(90.0, "Low"), HZ_SONG_SECONDS, true],
+				["song_72hz_again_song", Callable(), rate.bind(72.0, ""), HZ_SONG_SECONDS, true],
+			]
 		return phases
 	if mode == TOTAL:
 		# [name, preset, glow on (null: the preset's), glow style, anti-aliasing, atmosphere, render scale]
@@ -226,6 +248,7 @@ func run(mode := "") -> void:
 	if openxr:
 		_foveation = openxr.foveation_level
 		_render_scale = openxr.render_target_size_multiplier
+		_refresh_rate = openxr.display_refresh_rate
 	# a song phase plays the picked song, or the first listed
 	if not game.menu.has_song_picked() and game.menu.songs_menu.item_count > 0:
 		game.menu.songs_menu.select(0)
@@ -255,6 +278,8 @@ func run(mode := "") -> void:
 	# the render scale only at the end: each change makes the runtime remake its eye buffers
 	if openxr:
 		openxr.render_target_size_multiplier = _render_scale
+		if _refresh_rate > 0.0:
+			openxr.display_refresh_rate = _refresh_rate
 	print("BENCH cancelled" if _cancelled else "BENCH done")
 	queue_free()
 

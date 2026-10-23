@@ -2,15 +2,15 @@
 """Per-phase GPU table for a Benchmark run (game/Benchmark.gd), from `adb logcat -v time` text.
 
 Matches the game's "BENCH start/end <phase>" lines to the headset's once-a-second PxrMetric lines for the game.
-PxrMetric gives per-second averages, so "missed" is the share of the 72 frames a second that were not shown
-(72 - FPS; its FrmEarly/FrmLate counts are mostly 0 and say little), and "s over" is the share of seconds whose average FrmGpu was over the 72 Hz budget.
+PxrMetric gives per-second averages ("FPS=shown/target"), so "missed" is the share of the target frames a second
+that were not shown (its FrmEarly/FrmLate counts are mostly 0 and say little), and "s over" is the share of seconds
+whose average FrmGpu was over the frame budget at that second's target rate (13.9 ms at 72 Hz, 11.1 ms at 90).
 Usage: tools/bench_report.py bench.log
 """
 import re
 import sys
 
 PKG = "org.godotengine.open_saber_plus"
-BUDGET_MS = 1000 / 72
 # the first seconds after a switch still show the previous setup
 SKIP_SECONDS = 2
 
@@ -52,7 +52,7 @@ def main(path):
             continue
         gpu = [r[4] for r in rows]
         late = 100 * sum(r[2] - r[1] for r in rows) / sum(r[2] for r in rows)
-        over = 100 * sum(g > BUDGET_MS for g in gpu) / len(gpu)
+        over = 100 * sum(r[4] > 1000 / r[2] for r in rows) / len(rows)
         cpu = sum(r[3] for r in rows) / len(rows)
         ordered = sorted(gpu)
         median = ordered[len(ordered) // 2]
