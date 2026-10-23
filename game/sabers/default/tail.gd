@@ -78,9 +78,17 @@ const TRAIL_SPEED_FULL := 4.0
 ## The sweep's speed is smoothed over frames (this share of the new frame's each time) and set per point, not per
 ## segment, so a slow swing fades smoothly along the sheet instead of breaking into patches.
 const TRAIL_SPEED_SMOOTHING := 0.3
+## A blade tip that moves further than this (m) in one frame was moved, not swung: recentering (the headset's
+## recenter or the game's own), a height change (switching player, Measure, the Height setting) or the controller
+## losing and finding tracking. The trail starts again there instead of drawing a full-bright sheet across the jump.
+## A hard swing moves the tip about 0.15 m a frame.
+const TELEPORT_DISTANCE := 0.5
 func _process(delta: float) -> void:
 	if visible and size > 0:
 		var pos := HistoricalPositions.new(global_position, to_global(position + Vector3(0,size,0)))
+		if last_pos.size() > 0 and (pos.tip_pos.distance_to(last_pos[0].tip_pos) > TELEPORT_DISTANCE
+				or pos.base_pos.distance_to(last_pos[0].base_pos) > TELEPORT_DISTANCE):
+			last_pos.clear()
 		if last_pos.size() > 0:
 			var swept := pos.tip_pos.distance_to(last_pos[0].tip_pos) / maxf(delta, 1e-4)
 			var raw := clampf((swept - TRAIL_SPEED_START) / (TRAIL_SPEED_FULL - TRAIL_SPEED_START), 0.0, 1.0)
