@@ -17,7 +17,7 @@ const SPARK_TRAIL := 0.2
 const SPARK_SHADER := preload("res://game/SparkStreak.gdshader")
 const SPARK_SPEED_MIN := 2.0
 const SPARK_SPEED_MAX := 4.5
-const SPARK_SPREAD_DEG := 35.0
+const SPARK_SPREAD_DEG := 15.0
 
 var _quads: Array[MeshInstance3D] = []
 var _tweens: Array[Tween] = []
@@ -78,6 +78,16 @@ func _make_sparks() -> CPUParticles3D:
 	add_child(sparks)
 	return sparks
 
+## The swing as the player sees it: its part across the line of sight to the cut, so the sparks fly the way the
+## saber went (down for a down cut) instead of off toward or away from the player with the wrist's turn.
+func _across_view(at: Vector3, swing: Vector3) -> Vector3:
+	var camera := get_viewport().get_camera_3d()
+	var across := swing
+	if camera:
+		var sight := (at - camera.global_position).normalized()
+		across = swing - sight * swing.dot(sight)
+	return across.normalized() if across.length() > 1e-4 else Vector3.DOWN
+
 ## Shows a streak centred at a point on the cut, lying along the swing's direction (seen from the front).
 func flash(at: Vector3, swing: Vector3, color: Color) -> void:
 	var i := _next
@@ -96,7 +106,7 @@ func flash(at: Vector3, swing: Vector3, color: Color) -> void:
 	_tweens[i] = tween
 	var sparks := _sparks[i]
 	sparks.global_position = at
-	sparks.direction = swing.normalized() if swing.length() > 1e-4 else Vector3.UP
+	sparks.direction = _across_view(at, swing)
 	sparks.color_ramp.set_color(0, Color(1.0, 1.0, 1.0))
 	sparks.color_ramp.set_color(1, Color(color.r, color.g, color.b, 0.0))
 	sparks.restart()

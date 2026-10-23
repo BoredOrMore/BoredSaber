@@ -282,6 +282,8 @@ func _physics_process(_delta: float) -> void:
 			continue
 		_touching.append(saber)
 		if _right_cut(saber, velocity):
+			if Settings.cut_flash:
+				GlobalReferences.main_game_scene.cut_flash.flash(global_position, velocity, _color)
 			_slash(saber.controller, velocity.cross(saber.saber_end - saber.controller.global_position))
 			return
 		_sound.stream = WRONG_SOUND
