@@ -5,8 +5,8 @@ render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabl
 // edges (AGENTS.md "Light"), thinning to points at both ends. fade runs from 1 to 0.
 uniform vec4 color : source_color = vec4(1.0);
 uniform float fade = 0.0;
-const CORE_WHITE = 0.7;
-const GAIN = 1.6;
+const float CORE_WHITE = 0.7;
+const float GAIN = 1.6;
 
 void fragment() {
 	float across = abs(UV.y * 2.0 - 1.0);
