@@ -39,7 +39,7 @@ func set_color(color: Color) -> void:
 	material.emission = color
 
 ## A cut makes the sheet flare for a moment: FLASH_GAIN times as bright, back to normal over FLASH_SECONDS.
-const FLASH_GAIN := 2.5
+const FLASH_GAIN := 1.8
 const FLASH_SECONDS := 0.15
 var _base_energy := -1.0
 var _flash_tween: Tween
@@ -68,6 +68,11 @@ var last_pos: Array[HistoricalPositions] = []
 ## how long the swept sheet behind the blade lasts; its gradient (tail.tscn) keeps the leading edge bright and fades
 ## the rest evenly, as in Beat Saber (it dropped to a fifth right behind the blade and lasted 0.15 s, too faint)
 const MAX_AGE := 0.22 as float
+## The sheet shows only where the blade swept fast, as in Beat Saber: a part swept slower than TRAIL_SPEED_START
+## (m/s at the tip) is dark, full from TRAIL_SPEED_FULL. Without this a slowly moving blade left a bright band beside
+## it, like a second blade (the player's "trail light bug").
+const TRAIL_SPEED_START := 1.5
+const TRAIL_SPEED_FULL := 4.0
 func _process(delta: float) -> void:
 	if visible and size > 0:
 		var pos := HistoricalPositions.new(global_position, to_global(position + Vector3(0,size,0)))
@@ -82,6 +87,11 @@ func _process(delta: float) -> void:
 				
 				var t := clampf(last_pos[i].age / MAX_AGE, 0.02, 0.98)
 				var offsetted := clampf(t + (1.0/last_pos.size()), 0.02, 0.98)
+				# a slow part of the sweep reads as older (darker) on the gradient, by how slow it was
+				var swept := posA.tip_pos.distance_to(posB.tip_pos) / maxf(delta, 1e-4)
+				var fast := clampf((swept - TRAIL_SPEED_START) / (TRAIL_SPEED_FULL - TRAIL_SPEED_START), 0.0, 1.0)
+				t = 1.0 - (1.0 - t) * fast
+				offsetted = 1.0 - (1.0 - offsetted) * fast
 
 				if segments < MAX_SEGMENTS:
 					var v := segments * 6
