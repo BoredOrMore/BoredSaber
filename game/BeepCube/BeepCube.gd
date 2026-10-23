@@ -82,6 +82,9 @@ func spawn(note_info: ColorNoteInfo, current_beat: float) -> void:
 	piece_left.set_chain_head(false)
 	piece_right.set_chain_head(false)
 	chain_head = false
+	# and arc ends: a recycled cube that stayed an arc head gave every later note a full approach score without a swing
+	arc_head = false
+	arc_tail = false
 	
 	# separate cube collision layers to allow a diferent collider on right/wrong cuts.
 	# opposing collision layers (ie. right note & left saber) will be placed on the
