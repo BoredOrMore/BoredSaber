@@ -10,13 +10,13 @@ const COUNT := 6
 const LENGTH := 0.9
 const WIDTH := 0.05
 const FADE_SECONDS := 0.18
-const SPARKS := 12
+const SPARKS := 20
 ## a spark's trail: its width and length in metres (two crossed strips along its velocity, SparkStreak.gdshader)
-const SPARK_WIDTH := 0.008
-const SPARK_TRAIL := 0.08
+const SPARK_WIDTH := 0.016
+const SPARK_TRAIL := 0.2
 const SPARK_SHADER := preload("res://game/SparkStreak.gdshader")
-const SPARK_SPEED_MIN := 1.0
-const SPARK_SPEED_MAX := 2.5
+const SPARK_SPEED_MIN := 2.0
+const SPARK_SPEED_MAX := 4.5
 const SPARK_SPREAD_DEG := 35.0
 
 var _quads: Array[MeshInstance3D] = []
@@ -65,7 +65,7 @@ func _make_sparks() -> CPUParticles3D:
 	sparks.mesh = spark_mesh()
 	sparks.particle_flag_align_y = true
 	sparks.amount = SPARKS
-	sparks.lifetime = 0.3
+	sparks.lifetime = 0.4
 	sparks.one_shot = true
 	sparks.explosiveness = 1.0
 	sparks.emitting = false
