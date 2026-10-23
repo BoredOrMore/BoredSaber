@@ -1,17 +1,31 @@
-[gd_scene load_steps=3 format=3 uid="uid://rkj0m5l66401"]
+[gd_scene load_steps=7 format=3 uid="uid://rkj0m5l66401"]
 
 [ext_resource type="AudioStream" uid="uid://d1m0nnw518aku" path="res://game/data/click_002.ogg" id="1"]
 [ext_resource type="Script" path="res://game/ui/UI_AudioEngine/UI_AudioEngine.gd" id="2"]
+[ext_resource type="AudioStream" uid="uid://bstadi50o3aff" path="res://game/data/ui_hover.wav" id="3"]
+[ext_resource type="AudioStream" uid="uid://mvb2otk4k30n" path="res://game/data/ui_back.wav" id="4"]
+[ext_resource type="AudioStream" uid="uid://bfpvana78kx6u" path="res://game/data/toggle_on.wav" id="5"]
+[ext_resource type="AudioStream" uid="uid://j8aja0l2b4h0" path="res://game/data/toggle_off.wav" id="6"]
 
 [node name="UI_AudioEngine" type="Node"]
 script = ExtResource("2")
 
 [node name="HoverStream" type="AudioStreamPlayer" parent="."]
-stream = ExtResource("1")
-volume_db = -7.0
-pitch_scale = 1.5
+stream = ExtResource("3")
 bus = &"UI"
 
 [node name="ClickStream" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("1")
+bus = &"UI"
+
+[node name="BackStream" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("4")
+bus = &"UI"
+
+[node name="ToggleOnStream" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("5")
+bus = &"UI"
+
+[node name="ToggleOffStream" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("6")
 bus = &"UI"

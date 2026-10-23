@@ -1,4 +1,4 @@
-# Open Saber VR
+# Open Saber Plus VR
 This is a fork of [Beep Saber by NeoSpark314](https://github.com/NeoSpark314/BeepSaber) ported to Godot 4.3 and OpenXR (WIP)
 (The OQ Toolkit is only partially ported/patched for it to work on Godot 4 with OpenXR, most features that are not used in this project will not work)
 
@@ -24,6 +24,18 @@ To export for android headsets the godot openxr vendors plugin may be needed
 There is one demo song included that is part of the deployed package.
 
 You can play custom songs by downloading them in the in-game menu. 
+
+# Pico 4
+The `Pico 4` export preset builds an APK with the Pico OpenXR loader. GitHub Actions builds it on every push
+(`.github/workflows/build-pico4.yml`) with Godot 4.6.2 and godot_openxr_vendors 4.3.1, and uploads it as the
+`BoredSaber-Pico4` artifact. Pushes to `pico4-offline` or the default branch also replace the `pico4-latest` release, so the
+headset browser can download https://github.com/BoredOrMore/BoredSaber/releases/download/pico4-latest/BoredSaber-Pico4.apk
+without a GitHub login. The project uses the Compatibility (OpenGL ES) renderer and targets OpenXR 1.0: on Pico OS 5.12
+the Vulkan path segfaults inside the Pico runtime, and the runtime rejects OpenXR 1.1 binding paths.
+
+Downloaded songs are stored on the headset, so they stay playable without an internet connection.
+
+Map parsing tests run headless: `godot --headless --path . res://tests/test_map_info.tscn`
 
 # Credits
 The included Music Track is Time Lapse by TheFatRat (https://www.youtube.com/watch?v=3fxq7kqyWO8)

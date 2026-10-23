@@ -1,0 +1,128 @@
+name: Build Pico 4 APK
+
+# Push only: a branch's push build also shows as the check on its pull request, so a pull_request
+# trigger only built every commit twice.
+on:
+  push:
+  workflow_dispatch:
+
+# A newer push to the same branch replaces a build still running or queued.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # 4.6.3 crashes on Pico 4 at startup (eye-tracked foveation with Vulkan), 4.6.2 does not.
+  GODOT_VERSION: 4.6.2
+  VENDORS_VERSION: 4.3.1
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    # a normal build takes a few minutes; one once hung in the project import for 6 hours
+    timeout-minutes: 20
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Cache Godot
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/godot
+            ~/.local/share/godot/export_templates
+          key: godot-${{ env.GODOT_VERSION }}-android
+
+      - name: Download Godot and Android export templates
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          base=https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable
+          mkdir -p ~/godot ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable
+          curl -fsSL -o /tmp/godot.zip "$base/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d ~/godot
+          curl -fsSL -o /tmp/templates.tpz "$base/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          unzip -q /tmp/templates.tpz 'templates/android_*' 'templates/version.txt' -d /tmp/tpl
+          mv /tmp/tpl/templates/* ~/.local/share/godot/export_templates/${GODOT_VERSION}.stable/
+
+      - name: Install OpenXR vendors plugin
+        run: |
+          curl -fsSL -o /tmp/vendors.zip "https://github.com/GodotVR/godot_openxr_vendors/releases/download/${VENDORS_VERSION}-stable/godotopenxrvendorsaddon.zip"
+          unzip -q /tmp/vendors.zip -d /tmp/vendors
+          rm -rf addons/godotopenxrvendors
+          # addons/ has no tracked files, so create it or cp would make addons/ the plugin folder itself.
+          mkdir -p addons
+          cp -r /tmp/vendors/asset/addons/godotopenxrvendors addons/
+          test -f addons/godotopenxrvendors/plugin.gdextension
+
+      - name: Configure Android export
+        run: |
+          # A committed debug key keeps every build signed the same, so new APKs install over old ones.
+          cp .github/debug.keystore ~/debug.keystore
+          mkdir -p ~/.config/godot
+          cat > ~/.config/godot/editor_settings-${GODOT_VERSION%.*}.tres <<EOF
+          [gd_resource type="EditorSettings" format=3]
+
+          [resource]
+          export/android/android_sdk_path = "$ANDROID_SDK_ROOT"
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/debug_keystore = "$HOME/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOF
+
+      - name: Import project
+        run: ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 --headless --path . --import
+
+      - name: Run tests
+        run: |
+          ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 --headless --path . res://tests/test_map_info.tscn
+          ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 --headless --path . res://tests/test_menu_layout.tscn
+
+      - name: Export Pico 4 APK
+        run: |
+          mkdir -p build
+          ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 --headless --path . \
+            --install-android-build-template --export-debug "Pico 4" build/BoredSaber-Pico4.apk
+          test -f build/BoredSaber-Pico4.apk
+          # Without the vendors plugin the game still starts but loses Pico OpenXR support.
+          unzip -l build/BoredSaber-Pico4.apk | grep -q 'lib/arm64-v8a/libgodotopenxrvendors.so'
+
+      # Quest 2/3/3S/Pro: the same game with Meta's OpenXR loader instead of Pico's. Not yet tested on a Quest, so a
+      # failure here doesn't stop the Pico build.
+      - name: Export Quest APK
+        continue-on-error: true
+        run: |
+          ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 --headless --path . \
+            --export-debug "Oculus Quest (RELEASE)" build/BoredSaber-Quest.apk
+          test -f build/BoredSaber-Quest.apk
+          unzip -l build/BoredSaber-Quest.apk | grep -q 'lib/arm64-v8a/libgodotopenxrvendors.so'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BoredSaber-Pico4
+          path: build/BoredSaber-Pico4.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BoredSaber-Quest
+          path: build/BoredSaber-Quest.apk
+          if-no-files-found: ignore
+
+      # A fixed release URL lets the headset browser download the APK without a GitHub login.
+      - name: Publish pico4-latest release
+        if: github.event_name != 'pull_request' && (github.ref_name == 'pico4-offline' || github.ref_name == github.event.repository.default_branch)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete pico4-latest --yes --cleanup-tag || true
+          gh release create pico4-latest build/BoredSaber-Pico4.apk $(ls build/BoredSaber-Quest.apk 2>/dev/null) \
+            --prerelease --target "$GITHUB_SHA" \
+            --title "Pico 4 latest build" \
+            --notes "Debug APK built from ${GITHUB_SHA::7} on ${GITHUB_REF_NAME}."

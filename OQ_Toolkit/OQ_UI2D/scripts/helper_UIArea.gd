@@ -6,6 +6,10 @@ extends UIRaycastTarget
 @onready var viewport := parent.get_node("SubViewport") as SubViewport
 
 var last_pos2d := Vector2(INF, INF)
+## The pointer's button is down (a click or a drag in progress): every move may change the look then.
+var _held := false
+## The control under the pointer at the last redraw: moving within it changes nothing on screen.
+var _last_hovered: Control
 
 
 func ui_raycast_hit_event(pos: Vector3, click: bool, release: bool) -> void:
@@ -25,13 +29,40 @@ func ui_raycast_hit_event(pos: Vector3, click: bool, release: bool) -> void:
 		
 		viewport.push_input(e)
 		parent._input_update()
+		_held = click
 	elif (last_pos2d != Vector2(INF, INF) && last_pos2d != pos2d):
 		var e := InputEventMouseMotion.new()
 		e.relative = pos2d - last_pos2d
 		e.velocity = (pos2d - last_pos2d) / 16.0 #?? chose an arbitrary scale here for now
 		e.global_position = pos2d
 		e.position = pos2d
+		# held or not, so a drag can tell it ended where it didn't see the release (a popup took it)
+		e.button_mask = MOUSE_BUTTON_MASK_LEFT if _held else 0
 		
 		viewport.push_input(e)
-		parent._input_update()
+		# redraw (a whole SubViewport render) only when the move can change the look: another control under the
+		# pointer, a button held (dragging a list or slider), or a list whose rows light up one by one
+		var hovered := viewport.gui_get_hovered_control()
+		if _held or hovered != _last_hovered or hovered is ItemList:
+			parent._input_update()
+		_last_hovered = hovered
+	else:
+		# a marker in the log, to line performance measurements up with pointing at this panel
+		if last_pos2d == Vector2(INF, INF):
+			print("Pointer on %s" % parent.name)
 	last_pos2d = pos2d
+
+## The pointer left the panel: logged, and the next hit starts a new pointing.
+func ui_raycast_exit() -> void:
+	print("Pointer off %s" % parent.name)
+	# a press can't end off the panel: let go here, or a drag stays latched until the next press
+	if _held and last_pos2d != Vector2(INF, INF):
+		var e := InputEventMouseButton.new()
+		e.pressed = false
+		e.button_index = MOUSE_BUTTON_LEFT
+		e.position = last_pos2d
+		e.global_position = last_pos2d
+		viewport.push_input(e)
+		parent._input_update()
+		_held = false
+	last_pos2d = Vector2(INF, INF)

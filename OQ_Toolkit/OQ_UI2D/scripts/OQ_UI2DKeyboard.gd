@@ -35,6 +35,14 @@ func _on_enter() -> void:
 
 
 func _ready() -> void:
+	# a marker in the log, to line performance measurements up with the keyboard
+	# the text box redraws only when its text changes or the keyboard opens (text set before it showed), not every
+	# frame; the caret doesn't blink
+	var text_canvas := $OQ_UI2DCanvas_TextInput as OQ_UI2DCanvas
+	_text_edit.text_changed.connect(text_canvas._input_update)
+	visibility_changed.connect(func() -> void:
+		print("Keyboard %s %s" % [name, "shown" if is_visible_in_tree() else "hidden"])
+		text_canvas._input_update())
 	#_text_edit = $OQ_UI2DCanvas_TextInput.find_child("TextEdit", true, false) as TextEdit
 	#_keyboard = $OQ_UI2DCanvas_Keyboard.find_child("VirtualKeyboard", true, false) as VirtualKeyboard
 	_keyboard.set_cancelable(cancelable)

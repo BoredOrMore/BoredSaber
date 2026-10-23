@@ -3,20 +3,25 @@ class_name GameStatePaused
 
 func _ready(game: BeepSaber_Game) -> void:
 	game.main_menu._hide()
+	game.profiles_canvas._hide()
+	game.slash_block.set_shown(false)
 	game.settings_canvas._hide()
 	game.show_MapSourceDialogs(false)
 	game.endscore._hide()
 	game.pause_menu._show()
+	game.pause_countdown.visible = false
 	game.highscore_canvas._hide()
-	game.name_selector_canvas._hide()
 	game.multiplier_label.visible = true
 	game.point_label.visible = true
 	game.percent_indicator.visible = true
+	game.health_rails.visible = Settings.health_mode
 	game.track.visible = false
 	game.left_ui_raycast.visible = true
 	game.right_ui_raycast.visible = true
 	game.highscore_keyboard._hide()
 	game.online_search_keyboard._hide()
+	game.left_saber._hide()
+	game.right_saber._hide()
 	game.left_saber.set_swingcast_enabled(false)
 	game.right_saber.set_swingcast_enabled(false)
 	Scoreboard.paused = true
@@ -28,5 +33,5 @@ func _ready(game: BeepSaber_Game) -> void:
 		Map.current_info.song_name,
 		Map.current_info.song_author_name,
 		Map.current_info.level_author_name
-		], Map.current_difficulty.custom_name
+		], MapStats.level_name(Map.current_info, Map.current_difficulty)
 	)

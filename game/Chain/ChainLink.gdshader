@@ -1,5 +1,28 @@
 shader_type spatial;
-render_mode cull_disabled,diffuse_burley,specular_schlick_ggx;
+render_mode unshaded, cull_disabled;
+
+// Same fake light and the same two looks (note_style) as BeepCube.gdshader, since the scene has no lights; see there.
+// The link has no bevelled edges, so its Neon look has no bevel highlight.
+const vec3 LIGHT_DIR = vec3(-0.3, 0.8, 0.5);
+const float SHADE_FLOOR = 0.45;
+const float RIM_STRENGTH = 0.35;
+const float REFLECT = 0.12;
+const float REFLECT_WHITE = 0.2;
+const float SPEC_POWER = 16.0;
+const float SPEC_STRENGTH = 0.08;
+const float HAZE_REFLECT = 1.0;
+
+global uniform vec4 env_haze;
+global uniform int note_style;
+// Darker Notes: the body colour's HSV value is capped here, so hue and saturation stay (1.0 = off)
+global uniform float note_max_value;
+const float NEON_GLOW = 0.12;
+
+float studio(vec3 r) {
+	float band = smoothstep(-0.1, 0.25, r.y) * (1.0 - smoothstep(0.25, 0.7, r.y));
+	float top = pow(clamp(r.y, 0.0, 1.0), 3.0);
+	return 0.15 + band * 0.5 + top * 0.5;
+}
 
 const float sub_emission_energy = 0.18;
 const float cut_white_margin = 0.04;
@@ -39,25 +62,35 @@ void fragment() {
 		discard;
 	}
 
-	ALBEDO = color.rgb;
-	METALLIC = 0.3;
-	ROUGHNESS = 0.2;
 	if (FRONT_FACING) {
+		vec3 body = color.rgb * min(1.0, note_max_value / max(max(color.r, color.g), max(color.b, 1e-4)));
 		float x_centered = UV.x - 0.25;
 		float y_centered = UV.y - 0.25;
 		float dist_from_center_squared = x_centered * x_centered + y_centered * y_centered;
 		if (dist_from_center_squared <= 0.001) {
-			EMISSION = vec3(1.0);
+			ALBEDO = vec3(1.0);
 		} else {
-			EMISSION = color.rgb * sub_emission_energy;
+			vec3 world_normal = normalize((INV_VIEW_MATRIX * vec4(NORMAL, 0.0)).xyz);
+			float shade = mix(SHADE_FLOOR, 1.0, clamp(dot(world_normal, normalize(LIGHT_DIR)), 0.0, 1.0));
+			float n_dot_v = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
+			float rim = pow(1.0 - n_dot_v, 3.0) * RIM_STRENGTH;
+			vec3 base = body * (shade + sub_emission_energy + rim);
+			if (note_style == 1) {
+				vec3 view_world = normalize((INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz);
+				vec3 r = reflect(-view_world, world_normal);
+				vec3 reflection = mix(body, vec3(1.0), REFLECT_WHITE) * (studio(r) * REFLECT + env_haze.rgb * HAZE_REFLECT);
+				float spec = pow(clamp(dot(world_normal, normalize(normalize(LIGHT_DIR) + view_world)), 0.0, 1.0), SPEC_POWER) * SPEC_STRENGTH;
+				base += body * NEON_GLOW + reflection + vec3(spec);
+			}
 			if (cutted){
 				// soft white margin
-				EMISSION += vec3(smoothstep(cut_white_margin+0.01,cut_white_margin,cut_interp));
+				base += vec3(smoothstep(cut_white_margin+0.01,cut_white_margin,cut_interp));
 				// hard white margin
-				//EMISSION += vec3( float(cut_white_margin < cut_interp) );
+				//base += vec3( float(cut_white_margin < cut_interp) );
 			}
+			ALBEDO = base;
 		}
 	} else {
-		EMISSION = vec3(1.0);
+		ALBEDO = vec3(1.0);
 	}
 }

@@ -1,5 +1,16 @@
 [gd_resource type="AudioBusLayout" format=3 uid="uid://di3uvmyqcehc1"]
 
+[sub_resource type="AudioEffectReverb" id="AudioEffectReverb_stinger"]
+resource_name = &"Reverb"
+room_size = 0.45
+damping = 0.5
+wet = 0.25
+
+[sub_resource type="AudioEffectDelay" id="AudioEffectDelay_stinger"]
+resource_name = &"Delay"
+tap1_active = false
+tap2_active = false
+
 [resource]
 bus/1/name = &"UI"
 bus/1/solo = false
@@ -19,3 +30,19 @@ bus/3/mute = false
 bus/3/bypass_fx = false
 bus/3/volume_db = 0.0
 bus/3/send = &"Master"
+bus/4/name = &"MusicPreview"
+bus/4/solo = false
+bus/4/mute = false
+bus/4/bypass_fx = false
+bus/4/volume_db = 0.0
+bus/4/send = &"Master"
+bus/5/name = &"Stinger"
+bus/5/solo = false
+bus/5/mute = false
+bus/5/bypass_fx = false
+bus/5/volume_db = 0.0
+bus/5/send = &"SFX"
+bus/5/effect/0/effect = SubResource("AudioEffectReverb_stinger")
+bus/5/effect/0/enabled = true
+bus/5/effect/1/effect = SubResource("AudioEffectDelay_stinger")
+bus/5/effect/1/enabled = true

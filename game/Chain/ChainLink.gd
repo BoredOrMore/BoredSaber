@@ -47,14 +47,14 @@ static func construct_chain(chain_info: ChainInfo, current_beat: float, note_inf
 	# of a straight line from the head to the tail.  the end point of the line
 	# you just drew is the mid point of the curve.
 	var head_pos := Vector2(
-		Constants.LANE_DISTANCE * float(chain_info.head_line_index) + Constants.LANE_ZERO_X,
-		Constants.LANE_DISTANCE * float(chain_info.head_line_layer) + Constants.LAYER_ZERO_Y
+		Settings.LANE_DISTANCE_X * float(chain_info.head_line_index) + Settings.LANE_ZERO_X,
+		Constants.layer_y(float(chain_info.head_line_layer))
 	)
 	var tail_pos := Vector2(
-		Constants.LANE_DISTANCE * float(chain_info.tail_line_index) + Constants.LANE_ZERO_X,
-		Constants.LANE_DISTANCE * float(chain_info.tail_line_layer) + Constants.LAYER_ZERO_Y
+		Settings.LANE_DISTANCE_X * float(chain_info.tail_line_index) + Settings.LANE_ZERO_X,
+		Constants.layer_y(float(chain_info.tail_line_layer))
 	)
-	var mid_pos := head_pos + (Constants.ROTATION_UNIT_VECTORS[chain_info.head_cut_direction] * head_pos.distance_to(tail_pos) * 0.5)
+	var mid_pos := head_pos + Utils.rotation_unit_vector(chain_info.head_cut_angle) * head_pos.distance_to(tail_pos) * 0.5
 	i = 1
 	while i < chain_info.slice_count:
 		var chain_link := GlobalReferences.link_pool.acquire() as ChainLink
@@ -67,7 +67,7 @@ func spawn(chain_info: ChainInfo, current_beat: float, head_pos: Vector2, tail_p
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	
 	var color := Map.color_left if chain_info.color == 0 else Map.color_right
-	speed = Constants.BEAT_DISTANCE * Map.current_info.beats_per_minute * 0.016666666666666667
+	speed = Map.beat_distance * Map.beats_per_second()
 	which_saber = chain_info.color
 	
 	var lerp_factor := float(link_index) / float(chain_info.slice_count - 1) * chain_info.squish_factor
@@ -77,24 +77,29 @@ func spawn(chain_info: ChainInfo, current_beat: float, head_pos: Vector2, tail_p
 	var q1 := mid_pos.lerp(tail_pos, lerp_factor)
 	var bezier_pos := q0.lerp(q1, lerp_factor)
 	
+	# TODO: USE THIS
+	#scale = Vector3(Settings.block_size,Settings.block_size,Settings.block_size)/100.
+	
 	transform.origin.x = bezier_pos.x
 	transform.origin.y = bezier_pos.y
-	transform.origin.z = -(beat - current_beat) * Constants.BEAT_DISTANCE
+	transform.origin.z = -(beat - current_beat) * Map.beat_distance
+	
+	add_lane_rotation(chain_info.rotation)
 	
 	rotation.z = q0.angle_to_point(q1) - TAU*0.25
 	
 	# little bit of forgiveness.  if the chain link is more than a meter away
 	# from the chain head, its hitbox is extended to halfway between the link
 	# and the head.
-	var z_distance_from_head := (beat - chain_info.head_beat) * Constants.BEAT_DISTANCE
+	var z_distance_from_head := (beat - chain_info.head_beat) * Map.beat_distance
 	if z_distance_from_head > 1.0:
 		var collision := $Area3D/CollisionShape3D as CollisionShape3D
 		var new_size := z_distance_from_head * 0.5
 		(collision.shape as BoxShape3D).size.z = new_size
 		collision.transform.origin.z = new_size * 0.5 - 0.25
 	
-	piece_left.set_color(color)
-	piece_right.set_color(color)
+	piece_left.set_color(color, false) # TODO: can it be true?
+	piece_right.set_color(color, false)
 	_mat.set_shader_parameter(&"color", color)
 	
 	var anim := $AnimationPlayer as AnimationPlayer
@@ -118,11 +123,16 @@ func hide_cube() -> void:
 	# disable processing on this node and all children to help with performance
 	process_mode = Node.PROCESS_MODE_DISABLED # disable to help with performance
 
-func cut(saber_type: int, _cut_speed: Vector3, cut_plane: Plane, _controller: BeepSaberController) -> void:
-	if saber_type == which_saber:
-		Scoreboard.chain_link_cut(transform.origin)
+func cut(saber: LightSaber, _cut_speed: Vector3, cut_plane: Plane, _controller: BeepSaberController) -> void:
+	#_cut_speed = _cut_speed.rotated(Vector3(0,1,0),-rotation.x)
+	if saber.type == which_saber or Map.one_saber or Settings.handedness != 0:
+		Scoreboard.chain_link_cut(transform.origin, lane_rotation)
 	else:
-		Scoreboard.bad_cut(transform.origin)
+		Scoreboard.bad_cut(transform.origin, lane_rotation, "wrong saber", Scoreboard.chain_link_best_score())
+	if Settings.cut_flash:
+		var on_cut := global_transform.origin - cut_plane.normal * cut_plane.distance_to(global_transform.origin)
+		GlobalReferences.main_game_scene.cut_flash.flash(on_cut, _cut_speed,
+				Map.color_right if saber.type == 1 else Map.color_left)
 	
 	hide_cube()
 	if Settings.cube_cuts_falloff:
@@ -132,7 +142,7 @@ func cut(saber_type: int, _cut_speed: Vector3, cut_plane: Plane, _controller: Be
 		release()# release now instead of waiting for cut pieces to die off
 
 func on_miss() -> void:
-	Scoreboard.reset_combo()
+	Scoreboard.bad_cut(transform.origin, lane_rotation, "miss", Scoreboard.chain_link_best_score())
 	hide_cube()
 	release()
 
@@ -149,10 +159,11 @@ func _start_cut_pieces(cutplane: Plane) -> void:
 	var cut_angle_rel := cut_angle_abs - global_rotation.z
 	
 	_piece_death_count = 0
-	piece_left.start_cut(-cut_dist_from_center, cut_angle_rel + PI)
-	piece_right.start_cut(cut_dist_from_center, cut_angle_rel)
-	
+	var p := global_transform * cutplane
+	piece_left.start_cut_plane(-p.normal, -p.d)
+	piece_right.start_cut_plane(p.normal, p.d)
+
 	# some impulse so the cube half moves
-	var split_vector := cutplane.normal * 2.0
-	piece_left.apply_central_impulse(-split_vector)
-	piece_right.apply_central_impulse(split_vector)
+	var split_vector := p.normal * 2.0
+	piece_left.apply_central_impulse(piece_left.transform * -split_vector)
+	piece_right.apply_central_impulse(piece_right.transform * split_vector)
