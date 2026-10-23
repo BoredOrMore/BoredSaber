@@ -7,16 +7,16 @@ extends Node3D
 
 const SHADER := preload("res://game/CutFlash.gdshader")
 const COUNT := 6
-const LENGTH := 0.9
-const WIDTH := 0.05
+const LENGTH := 1.35
+const WIDTH := 0.075
 const FADE_SECONDS := 0.18
 const SPARKS := 20
 ## a spark's trail: its width and length in metres (two crossed strips along its velocity, SparkStreak.gdshader)
-const SPARK_WIDTH := 0.016
-const SPARK_TRAIL := 0.2
+const SPARK_WIDTH := 0.024
+const SPARK_TRAIL := 0.3
 const SPARK_SHADER := preload("res://game/SparkStreak.gdshader")
-const SPARK_SPEED_MIN := 2.0
-const SPARK_SPEED_MAX := 4.5
+const SPARK_SPEED_MIN := 3.0
+const SPARK_SPEED_MAX := 6.75
 const SPARK_SPREAD_DEG := 15.0
 
 var _quads: Array[MeshInstance3D] = []
