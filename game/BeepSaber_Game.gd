@@ -672,7 +672,7 @@ func on_settings_changed(key: StringName) -> void:
 			_apply_environment()
 		&"player_height_offset":
 			if not _height_held:
-				xr_origin.transform.origin.y = Settings.player_height_offset
+				xr_origin.transform.origin.y = Constants.view_shift(Settings.player_height_offset)
 
 ## Tells the note shaders which look the player picked, and how bright their colours may be.
 func _apply_note_style() -> void:
@@ -957,7 +957,7 @@ var _height_fade := MeshInstance3D.new()
 ## (settings Measure). The view then moves to the height behind a short fade to the panel colour.
 func _adjust_height() -> void:
 	var measure := Settings.player_height_offset == 0.0
-	if is_same(Settings.find_player(Settings.player_name), _height_player) or not measure and absf(Settings.player_height_offset - xr_origin.transform.origin.y) < 0.005:
+	if is_same(Settings.find_player(Settings.player_name), _height_player) or not measure and absf(Constants.view_shift(Settings.player_height_offset) - xr_origin.transform.origin.y) < 0.005:
 		_height_held = false
 		return
 	if not _height_notice.is_inside_tree():
@@ -993,7 +993,7 @@ func _adjust_height() -> void:
 	if measure:
 		settings_panel._on_measure_height_pressed()
 	await _fade_view(1.0)
-	xr_origin.transform.origin.y = Settings.player_height_offset
+	xr_origin.transform.origin.y = Constants.view_shift(Settings.player_height_offset)
 	await _fade_view(0.0)
 	_height_held = false
 

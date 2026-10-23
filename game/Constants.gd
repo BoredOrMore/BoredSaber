@@ -1,13 +1,30 @@
 extends Node
 
 const DEFAULT_LANE_ZERO_X := -0.9
-const LAYER_ZERO_Y := 0.8
 const BEAT_DISTANCE := 4.0
 const DEFAULT_LANE_DISTANCE_X := 0.6
 const LANE_DISTANCE_Y := 0.6
-## Eye height the note rows (0.8, 1.4 and 2.0 m) and crouch walls (1.2 m) suit, as Beat Saber's default 1.80 m player
-## (eyes about 0.1 m below the top of the head); "Measure my height" moves the view to it.
+## Eye height the note rows (ROW_Y) and crouch walls (1.2 m) suit, as Beat Saber's default 1.80 m player (eyes about
+## 0.1 m below the top of the head); "Measure my height" sets a player's Height as their difference from it.
 const EYE_HEIGHT := 1.7
+## Note row heights in metres (bottom, middle, top), where Beat Saber puts them for its 1.80 m player
+## (doc/research/scoring-and-reach.md); notes, bombs, arcs and chains use layer_y(), walls keep LANE_DISTANCE_Y steps.
+const ROW_Y: Array[float] = [0.85, 1.40, 1.90]
+## A player's Height moves the view by only this share of it, within VIEW_SHIFT_MIN..VIEW_SHIFT_MAX metres, as Beat
+## Saber moves its grid by half the player's difference from 1.80 m, clamped to -0.2..+0.6 m (the view moves the
+## other way).
+const HEIGHT_FOLLOW := 0.5
+const VIEW_SHIFT_MIN := -0.6
+const VIEW_SHIFT_MAX := 0.2
+
+## The height of a note row; fractional or outside rows (mapping extensions) carry on the nearest step.
+static func layer_y(layer: float) -> float:
+	var i := clampi(floori(layer), 0, ROW_Y.size() - 2)
+	return lerpf(ROW_Y[i], ROW_Y[i + 1], layer - i)
+
+## How far the view moves for a player's Height setting.
+static func view_shift(height_offset: float) -> float:
+	return clampf(height_offset * HEIGHT_FOLLOW, VIEW_SHIFT_MIN, VIEW_SHIFT_MAX)
 const MISS_Z := 2.5
 ## How far the track (every note, bomb, wall, arc and chain) is moved toward the player, so a note is on the beat
 ## 0.65 m in front of the player (XROrigin3D at z 1), near Beat Saber's cut plane, instead of 1 m. Further notes

@@ -476,8 +476,8 @@ func _reset_row(row: Node) -> void:
 		if control is SpinBox:
 			(control as SpinBox).value = 0.0
 
-## Stand straight and press: raises or lowers the view so the eyes are at Constants.EYE_HEIGHT, the height the
-## notes and walls are laid out for, as far as the adjust range allows.
+## Stand straight and press: sets the Height to the eyes' difference from Constants.EYE_HEIGHT, the height the notes
+## and walls are laid out for; the view then moves by half of it (Constants.view_shift), as in Beat Saber.
 func _on_measure_height_pressed() -> void:
 	var eyes := vr.get_current_player_height()
 	player_height_offset_control.value = clampf(snappedf(Constants.EYE_HEIGHT - eyes, 0.01),

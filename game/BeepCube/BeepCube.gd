@@ -64,7 +64,7 @@ func spawn(note_info: ColorNoteInfo, current_beat: float) -> void:
 		
 	scale = Vector3(Settings.block_size/100.,Settings.block_size/100.,Settings.block_size/100.)
 	transform.origin.x = Settings.LANE_DISTANCE_X * float(note_info.line_index) + Settings.LANE_ZERO_X
-	transform.origin.y = Constants.LANE_DISTANCE_Y * float(note_info.line_layer) + Constants.LAYER_ZERO_Y
+	transform.origin.y = Constants.layer_y(float(note_info.line_layer))
 	transform.origin.z = -(note_info.beat - current_beat) * Map.beat_distance
 	
 	add_lane_rotation(note_info.rotation)
