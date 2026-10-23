@@ -31,6 +31,22 @@ the notes come: about 35 cm further away and a slightly taller grid. Notes furth
 held forward, which turns a swing into a shorter push from the shoulder; the logged angles (110° per cut) fit
 that.
 
+## Result on the headset (2026-10-23)
+
+Changes: hit point 0.65 m from the player (3c81c66), rows 0.85/1.40/1.90 m and height followed by half (1e8b6a5),
+crouch walls at 1.3 m on the player's request (346f4fb). A pooled-note bug that gave arc heads' full approach to
+later notes (fixed da7109c) inflated logged approach scores, so these use the measured whole-swing angles.
+
+| | 1.0 m | 0.65 m | 0.65 m + new rows |
+|---|---|---|---|
+| Approach, median | 66° | 69° | 79° |
+| Follow-through, median | 49° | 62° | 80° |
+| Centre, of 20 | 5.6 | 9.7 | 10.7 |
+| Per cut | 65% | 72% | 79% |
+
+Same songs: Renai Circulation Normal 65% → 77%, Psycho Easy 57% → 80%. The player: "feels much better", arcs and
+chains stay on their notes. Beat Saber's 100°/60° targets stay; lowering them is no longer needed.
+
 ## Sources
 
 - Points, targets, grades: BSMG Ranking & Scoring Guide, https://bsmg.wiki/ranking-guide.html; AccSaber wiki,
