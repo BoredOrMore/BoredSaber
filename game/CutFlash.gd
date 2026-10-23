@@ -26,7 +26,7 @@ const FOUNTAIN_SECONDS := 0.5
 const SPRAY_SPARKS := 8
 const SPRAY_SPEED_MIN := 3.8
 const SPRAY_SPEED_MAX := 4.6
-const SPRAY_SPREAD_DEG := 15.0
+const SPRAY_SPREAD_DEG := 8.0
 const SPRAY_SECONDS := 0.4
 ## pulls the sparks into falling arcs (m/s²)
 const SPARK_GRAVITY := 9.0
@@ -39,8 +39,9 @@ const SWING_FULL := 6.0
 const SWING_CURVE := 3.0
 const SPEED_SCALE_MIN := 0.35
 const BRIGHTNESS_MIN := 0.2
-const FOUNTAIN_SPREAD_MIN_DEG := 20.0
-const FOUNTAIN_SPREAD_MAX_DEG := 55.0
+## a narrow plume close along the swing, not a fan (the player's sketch: within about 20 degrees)
+const FOUNTAIN_SPREAD_MIN_DEG := 8.0
+const FOUNTAIN_SPREAD_MAX_DEG := 18.0
 ## sparks vary in length (and width) only this much, so the burst looks even
 const SPARK_SCALE_MIN := 0.85
 const SPARK_SCALE_MAX := 1.15
