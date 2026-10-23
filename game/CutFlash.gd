@@ -8,8 +8,9 @@ extends Node3D
 
 const COUNT := 6
 ## a spark's trail: its width and length in metres at scale 1 (two crossed strips along its velocity)
-const SPARK_WIDTH := 0.004
-const SPARK_TRAIL := 0.12
+## (the player found 4 mm by 12 cm too small and asked for the earlier size back)
+const SPARK_WIDTH := 0.024
+const SPARK_TRAIL := 0.3
 const SPARK_SHADER := preload("res://game/SparkStreak.gdshader")
 ## the burst all round the cut, flattened into the plane facing the player
 const BURST_SPARKS := 48

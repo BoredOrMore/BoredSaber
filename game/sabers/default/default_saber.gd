@@ -78,6 +78,8 @@ func quickhide() -> void:
 	is_extended = false
 
 func hit(time_offset: float) -> void:
+	if tail.visible:
+		tail.flash()
 	if time_offset>0.2 or time_offset<-0.05:
 		hitsound.play()
 	else:

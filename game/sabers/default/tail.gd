@@ -38,6 +38,21 @@ func set_color(color: Color) -> void:
 	material.albedo_color = color
 	material.emission = color
 
+## A cut makes the sheet flare for a moment: FLASH_GAIN times as bright, back to normal over FLASH_SECONDS.
+const FLASH_GAIN := 2.5
+const FLASH_SECONDS := 0.15
+var _base_energy := -1.0
+var _flash_tween: Tween
+
+func flash() -> void:
+	if _base_energy < 0.0:
+		_base_energy = material.emission_energy_multiplier
+	if _flash_tween:
+		_flash_tween.kill()
+	_flash_tween = create_tween()
+	_flash_tween.tween_property(material, ^"emission_energy_multiplier", _base_energy, FLASH_SECONDS).from(
+			_base_energy * FLASH_GAIN)
+
 class HistoricalPositions:
 	extends RefCounted
 	
