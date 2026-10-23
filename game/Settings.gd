@@ -167,7 +167,7 @@ var cube_cuts_falloff: bool:
 	set(value):
 		cube_cuts_falloff = value
 		set_and_emit(&"cube_cuts_falloff", value)
-## a streak and a burst of sparks where a saber cuts a note (CutFlash)
+## a burst of sparks where a saber cuts a note (CutFlash)
 var cut_flash: bool:
 	set(value):
 		cut_flash = value

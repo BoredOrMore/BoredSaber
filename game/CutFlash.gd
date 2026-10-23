@@ -1,15 +1,10 @@
 class_name CutFlash
 extends Node3D
-## A thin bright streak across a note where a saber cut it, along the swing, in the saber's colour; it flashes
-## and fades in FADE_SECONDS. A small burst of sparks flies off the cut along the swing, hot white cooling to the
-## saber's colour (SPARKS per cut, CPU particles). A few quads reused in turn, so a burst of cuts never allocates. Unshaded and added
-## on top, so it costs only the pixels it covers. Sizes in metres, untuned.
+## A burst of sparks flying off a cut along the swing, hot white cooling to the saber's colour (SPARKS per cut, CPU
+## particles with short trails). COUNT emitters reused in turn, so a burst of cuts never allocates. A flat streak
+## left hanging where the cut was looked fake to the player and was taken out. Sizes in metres, untuned.
 
-const SHADER := preload("res://game/CutFlash.gdshader")
 const COUNT := 6
-const LENGTH := 1.35
-const WIDTH := 0.075
-const FADE_SECONDS := 0.18
 const SPARKS := 20
 ## a spark's trail: its width and length in metres (two crossed strips along its velocity, SparkStreak.gdshader)
 const SPARK_WIDTH := 0.024
@@ -19,25 +14,11 @@ const SPARK_SPEED_MIN := 3.0
 const SPARK_SPEED_MAX := 6.75
 const SPARK_SPREAD_DEG := 15.0
 
-var _quads: Array[MeshInstance3D] = []
-var _tweens: Array[Tween] = []
 var _next := 0
 var _sparks: Array[CPUParticles3D] = []
 
 func _ready() -> void:
-	var quad := QuadMesh.new()
-	quad.size = Vector2(LENGTH, WIDTH)
 	for i in COUNT:
-		var instance := MeshInstance3D.new()
-		instance.mesh = quad
-		var material := ShaderMaterial.new()
-		material.shader = SHADER
-		instance.material_override = material
-		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		instance.visible = false
-		add_child(instance)
-		_quads.append(instance)
-		_tweens.append(null)
 		_sparks.append(_make_sparks())
 
 ## A spark with a trail for CPU particles with particle_flag_align_y: two crossed strips along +y (the velocity),
@@ -88,22 +69,10 @@ func _across_view(at: Vector3, swing: Vector3) -> Vector3:
 		across = swing - sight * swing.dot(sight)
 	return across.normalized() if across.length() > 1e-4 else Vector3.DOWN
 
-## Shows a streak centred at a point on the cut, lying along the swing's direction (seen from the front).
+## Sends a burst of sparks from a point on the cut along the swing.
 func flash(at: Vector3, swing: Vector3, color: Color) -> void:
 	var i := _next
 	_next = (_next + 1) % COUNT
-	var quad := _quads[i]
-	var material := quad.material_override as ShaderMaterial
-	if _tweens[i]:
-		_tweens[i].kill()
-	quad.global_position = at
-	quad.rotation = Vector3(0.0, 0.0, atan2(swing.y, swing.x))
-	material.set_shader_parameter(&"color", color)
-	quad.visible = true
-	var tween := quad.create_tween()
-	tween.tween_method(func(v: float) -> void: material.set_shader_parameter(&"fade", v), 1.0, 0.0, FADE_SECONDS)
-	tween.tween_callback(quad.hide)
-	_tweens[i] = tween
 	var sparks := _sparks[i]
 	sparks.global_position = at
 	sparks.direction = _across_view(at, swing)
