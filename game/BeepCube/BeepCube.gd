@@ -158,7 +158,7 @@ func cut(saber: LightSaber, cut_speed: Vector3, cut_plane: Plane, controller: Be
 		var travel_distance_factor := controller.movement_aabb.get_longest_axis_size()
 		travel_distance_factor = clampf((travel_distance_factor-0.5)/0.5, 0.0, 1.0)
 		# allows a bit of save margin where the beat is considered 100% correct
-		var beat_accuracy := clampf((1.0 - absf(global_transform.origin.z)) / 0.5, 0.0, 1.0)
+		var beat_accuracy := clampf((1.0 - absf(global_transform.origin.z - Constants.HIT_PLANE_Z)) / 0.5, 0.0, 1.0)
 		Scoreboard.note_cut(saber, transform.origin, lane_rotation, beat_accuracy, cut_angle_accuracy, cut_distance_accuracy, travel_distance_factor, arc_head, arc_tail, chain_head)
 		# replaces the saber's flat contact rumble: cleaner cuts kick harder
 		controller.simple_rumble(lerpf(MIN_CUT_RUMBLE, 1.0, cut_angle_accuracy * cut_distance_accuracy), 0.1)

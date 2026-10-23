@@ -377,6 +377,7 @@ func play_countdown(seconds: int) -> void:
 	_countdown_player.play()
 
 func _ready() -> void:
+	track.position.z = Constants.HIT_PLANE_Z
 	_countdown_player.bus = &"SFX"
 	add_child(_countdown_player)
 	_mistake_player = AudioStreamPlayer.new()

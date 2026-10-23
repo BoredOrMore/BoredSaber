@@ -9,6 +9,11 @@ const LANE_DISTANCE_Y := 0.6
 ## (eyes about 0.1 m below the top of the head); "Measure my height" moves the view to it.
 const EYE_HEIGHT := 1.7
 const MISS_Z := 2.5
+## How far the track (every note, bomb, wall, arc and chain) is moved toward the player, so a note is on the beat
+## 0.65 m in front of the player (XROrigin3D at z 1), near Beat Saber's cut plane, instead of 1 m. Further notes
+## made players push from the shoulder instead of swinging (doc/research/scoring-and-reach.md). Track-local z 0 is
+## still the beat; game/AGENTS.md lists what to check when this changes.
+const HIT_PLANE_Z := 0.35
 const DIRECTION8_OFFSET := 2 * TAU 
 const DIRECTION8_COMPARE := DIRECTION8_OFFSET - .001
 const ROTATION_EPS := 1e-5

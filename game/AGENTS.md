@@ -93,6 +93,13 @@ constraints apply here unchanged.
 
 ## Invariants and gotchas
 
+- Moving the playspace (where notes reach the player, `Constants.HIT_PLANE_Z`, the `Track` node, `XROrigin3D`,
+  lane or row positions, player height handling) moves everything the player cuts or dodges together. After such
+  a change check each kind on the headset, not only notes: notes and chains arrive on the beat at the hit plane;
+  bombs and walls pass where the notes do and still hit the head (`PlayerHead`) and sabers; each arc's head and
+  tail sit on its two notes and the arc stays attached while it flies in; anything that measures distance in
+  world space instead of track space (`global_transform`, `MISS_Z`, despawn checks, beat accuracy) is updated.
+
 - Light comes from a source. Every beam, laser and glow in the scenery starts at a place a real fixture
   could sit (floor, rig, ring, sky edge), and moves the way a real light does: a beam turns around the
   fixture it comes out of, never around its middle. In `event_driver.tscn` a laser's pivot node is the
