@@ -384,6 +384,7 @@ func play_countdown(seconds: int) -> void:
 func _ready() -> void:
 	track.position.z = Constants.HIT_PLANE_Z
 	add_child(cut_flash)
+	_make_sparks()
 	_countdown_player.bus = &"SFX"
 	add_child(_countdown_player)
 	_mistake_player = AudioStreamPlayer.new()
@@ -596,14 +597,54 @@ var _lowered_resolution := false
 var played_seconds := 0.0
 
 ## Buzzes both controllers while the two blades touch.
+## Sparks fly from where the blades touch: a few tiny glowing specks on CPU particles, hot white cooling to orange
+## as they fall. Untuned.
+var _sparks := CPUParticles3D.new()
+const SPARKS_AMOUNT := 24
+const SPARK_SIZE := 0.012
+
+func _make_sparks() -> void:
+	var mesh := QuadMesh.new()
+	mesh.size = Vector2.ONE * SPARK_SIZE
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	material.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	material.vertex_color_use_as_albedo = true
+	material.no_depth_test = false
+	mesh.material = material
+	_sparks.mesh = mesh
+	_sparks.amount = SPARKS_AMOUNT
+	_sparks.lifetime = 0.35
+	_sparks.local_coords = false
+	_sparks.emitting = false
+	_sparks.direction = Vector3.UP
+	_sparks.spread = 180.0
+	_sparks.initial_velocity_min = 0.6
+	_sparks.initial_velocity_max = 1.6
+	_sparks.gravity = Vector3(0.0, -4.0, 0.0)
+	var ramp := Gradient.new()
+	ramp.set_color(0, Color(1.0, 0.95, 0.85))
+	ramp.set_color(1, Color(1.0, 0.45, 0.1, 0.0))
+	_sparks.color_ramp = ramp
+	add_child(_sparks)
+
+## Sparks and a buzz in both controllers while the two blades touch.
 func _rumble_on_clash() -> void:
-	if not (Settings.saber_clash_rumble and left_saber.is_extended() and right_saber.is_extended()):
-		return
-	var closest := Geometry3D.get_closest_points_between_segments(left_saber.global_position, left_saber.saber_end,
-			right_saber.global_position, right_saber.saber_end)
-	if closest[0].distance_to(closest[1]) < CLASH_DISTANCE:
+	var touching := false
+	var closest := PackedVector3Array()
+	if Settings.saber_clash_rumble and left_saber.is_extended() and right_saber.is_extended():
+		closest = Geometry3D.get_closest_points_between_segments(left_saber.global_position, left_saber.saber_end,
+				right_saber.global_position, right_saber.saber_end)
+		touching = closest[0].distance_to(closest[1]) < CLASH_DISTANCE
+	if touching:
 		left_controller.simple_rumble(CLASH_RUMBLE, 0.05)
 		right_controller.simple_rumble(CLASH_RUMBLE, 0.05)
+		_sparks.global_position = (closest[0] + closest[1]) * 0.5
+	if touching != _sparks.emitting:
+		_sparks.emitting = touching
+		# for matching GPU timings on the headset
+		print("saber_clash ", touching)
 
 func _process(delta: float) -> void:
 	_rumble_on_clash()

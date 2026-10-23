@@ -238,7 +238,7 @@ text = "Explain scores"
 
 [node name="saber_clash_rumble" type="CheckButton" parent="Tabs/Gameplay/VBox"]
 layout_mode = 2
-text = "Buzz when sabers touch"
+text = "Sparks and buzz when sabers touch"
 
 [node name="player_height_offset" type="HBoxContainer" parent="Tabs/Gameplay/VBox"]
 layout_mode = 2

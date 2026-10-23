@@ -172,7 +172,7 @@ var cut_flash: bool:
 	set(value):
 		cut_flash = value
 		set_and_emit(&"cut_flash", value)
-## both controllers buzz while the blades touch
+## sparks fly and both controllers buzz while the blades touch
 var saber_clash_rumble: bool:
 	set(value):
 		saber_clash_rumble = value
