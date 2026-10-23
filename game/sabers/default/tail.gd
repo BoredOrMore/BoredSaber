@@ -34,6 +34,12 @@ func _ready() -> void:
 	remove_child(mesh_instance)
 	get_tree().get_root().add_child.call_deferred(mesh_instance)
 
+## The mesh lives under the root (see _ready), so it outlived a freed saber: swapping the saber (Settings > Saber)
+## left its last trail frozen in the air for good. It goes with the tail now.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE and is_instance_valid(mesh_instance):
+		mesh_instance.queue_free()
+
 func set_color(color: Color) -> void:
 	material.albedo_color = color
 	material.emission = color
