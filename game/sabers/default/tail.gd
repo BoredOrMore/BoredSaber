@@ -1,7 +1,7 @@
 extends Node3D
 class_name SaberTail
 
-@onready var material := ($Mesh as MeshInstance3D).material_override as StandardMaterial3D
+@onready var material := ($Mesh as MeshInstance3D).material_override as ShaderMaterial
 @onready var mesh_instance := $Mesh as MeshInstance3D
 
 # most trail segments drawn; at 72-120 Hz the trail holds 11-18
@@ -41,8 +41,7 @@ func _notification(what: int) -> void:
 		mesh_instance.queue_free()
 
 func set_color(color: Color) -> void:
-	material.albedo_color = color
-	material.emission = color
+	material.set_shader_parameter(&"color", color)
 
 ## A cut makes the sheet flare for a moment: FLASH_GAIN times as bright, back to normal over FLASH_SECONDS.
 const FLASH_GAIN := 1.8
@@ -52,12 +51,12 @@ var _flash_tween: Tween
 
 func flash() -> void:
 	if _base_energy < 0.0:
-		_base_energy = material.emission_energy_multiplier
+		_base_energy = material.get_shader_parameter(&"energy")
 	if _flash_tween:
 		_flash_tween.kill()
 	_flash_tween = create_tween()
-	_flash_tween.tween_property(material, ^"emission_energy_multiplier", _base_energy, FLASH_SECONDS).from(
-			_base_energy * FLASH_GAIN)
+	_flash_tween.tween_method(func(energy: float) -> void: material.set_shader_parameter(&"energy", energy),
+			_base_energy * FLASH_GAIN, _base_energy, FLASH_SECONDS)
 
 class HistoricalPositions:
 	extends RefCounted
@@ -111,24 +110,22 @@ func _process(delta: float) -> void:
 				
 				var t := clampf(last_pos[i].age / MAX_AGE, 0.02, 0.98)
 				var offsetted := clampf(t + (1.0/last_pos.size()), 0.02, 0.98)
-				# a slow part of the sweep reads as older (darker) on the gradient, by how slow it was there
-				t = 1.0 - (1.0 - t) * posA.fast
-				offsetted = 1.0 - (1.0 - offsetted) * posB.fast
+				# UV: x the age along the sheet, y the opacity from how fast the blade swept there (SaberTrail.gdshader)
 
 				if segments < MAX_SEGMENTS:
 					var v := segments * 6
-					_uvs[v] = Vector2(t,0.98)
+					_uvs[v] = Vector2(t, posA.fast)
 					_verts[v] = posA.base_pos
-					_uvs[v + 1] = Vector2(t,0.02)
+					_uvs[v + 1] = Vector2(t, posA.fast)
 					_verts[v + 1] = posA.tip_pos
-					_uvs[v + 2] = Vector2(offsetted,0.02)
+					_uvs[v + 2] = Vector2(offsetted, posB.fast)
 					_verts[v + 2] = posB.tip_pos
 
-					_uvs[v + 3] = Vector2(t,0.98)
+					_uvs[v + 3] = Vector2(t, posA.fast)
 					_verts[v + 3] = posA.base_pos
-					_uvs[v + 4] = Vector2(offsetted,0.98)
+					_uvs[v + 4] = Vector2(offsetted, posB.fast)
 					_verts[v + 4] = posB.base_pos
-					_uvs[v + 5] = Vector2(offsetted,0.02)
+					_uvs[v + 5] = Vector2(offsetted, posB.fast)
 					_verts[v + 5] = posB.tip_pos
 					segments += 1
 				
