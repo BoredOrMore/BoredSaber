@@ -654,7 +654,8 @@ func on_settings_changed(key: StringName) -> void:
 		&"environment":
 			_apply_environment()
 		&"player_height_offset":
-			xr_origin.transform.origin.y = Settings.player_height_offset
+			if not _height_held:
+				xr_origin.transform.origin.y = Settings.player_height_offset
 
 ## Tells the note shaders which look the player picked, and how bright their colours may be.
 func _apply_note_style() -> void:
@@ -902,8 +903,11 @@ func _update_slash_block() -> void:
 	slash_block.set_shown(gamestate == gamestate_mapselection and main_menu.visible and not main_menu.disable_collision
 			and not highscore_keyboard.visible and menu.has_song_picked())
 
-## Opens "Who's playing?" in front of the song menu; the menu behind takes no pointer input until it closes.
+## Opens "Who's playing?" in front of the song menu; the menu behind takes no pointer input until it closes. The
+## view keeps its height until the panel closes (_adjust_height).
 func _open_profiles() -> void:
+	_height_held = true
+	_height_player = Settings.find_player(Settings.player_name)
 	profiles_panel.refresh()
 	profiles_canvas._show()
 	main_menu.disable_collision = true
@@ -915,6 +919,85 @@ func _close_profiles() -> void:
 	main_menu.disable_collision = false
 	menu.update_view()
 	_update_slash_block()
+	_adjust_height()
+
+## Where "Adjusting height" shows: where "Who's playing?" was, a little nearer.
+const HEIGHT_NOTICE_POSITION := Vector3(0.0, 1.6, -0.85)
+## The player's Height (Settings.player_height_offset) is held while "Who's playing?" is open, so a new player's
+## height doesn't jump the view under them.
+var _height_held := false
+var _height_notice := Label3D.new()
+var _height_notice_back := MeshInstance3D.new()
+const HEIGHT_NOTICE_PADDING := 0.03
+## The current player's Settings.players entry when "Who's playing?" opened (a rename keeps the entry).
+var _height_player := {}
+
+const HEIGHT_FADE_SECONDS := 0.2
+var _height_fade := MeshInstance3D.new()
+
+## After picking another player: "Adjusting height for <name>" counts 3, 2, 1 with the countdown ticks when their Height
+## differs; for a player whose Height was never set (0) it asks them to stand straight and measures it at the end
+## (settings Measure). The view then moves to the height behind a short fade to the panel colour.
+func _adjust_height() -> void:
+	var measure := Settings.player_height_offset == 0.0
+	if is_same(Settings.find_player(Settings.player_name), _height_player) or not measure and absf(Settings.player_height_offset - xr_origin.transform.origin.y) < 0.005:
+		_height_held = false
+		return
+	if not _height_notice.is_inside_tree():
+		_height_notice.font_size = 56
+		_height_notice.pixel_size = 0.001
+		_height_notice.outline_size = 12
+		_height_notice.modulate = Constants.UI_TEXT
+		_height_notice.outline_modulate = Constants.UI_PANEL
+		_height_notice.no_depth_test = true
+		_height_notice.render_priority = Material.RENDER_PRIORITY_MAX
+		_height_notice.position = HEIGHT_NOTICE_POSITION
+		add_child(_height_notice)
+		var back_material := StandardMaterial3D.new()
+		back_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		back_material.no_depth_test = true
+		back_material.render_priority = Material.RENDER_PRIORITY_MAX - 1
+		back_material.albedo_color = Constants.UI_SURFACE
+		_height_notice_back.mesh = QuadMesh.new()
+		_height_notice_back.material_override = back_material
+		_height_notice.add_child(_height_notice_back)
+	_height_notice.visible = true
+	for seconds in [3, 2, 1]:
+		_height_notice.text = ("Measuring height for %s\nStand straight, look ahead\n%d" if measure
+				else "Adjusting height for %s\n%d") % [Settings.player_name, seconds]
+		var font := _height_notice.font if _height_notice.font else ThemeDB.fallback_font
+		var text_size := font.get_multiline_string_size(_height_notice.text, HORIZONTAL_ALIGNMENT_CENTER, -1,
+				_height_notice.font_size) * _height_notice.pixel_size
+		(_height_notice_back.mesh as QuadMesh).size = text_size + Vector2.ONE * HEIGHT_NOTICE_PADDING * 2.0
+		play_countdown(seconds)
+		await get_tree().create_timer(0.5).timeout
+	_height_notice.visible = false
+	play_countdown(0)
+	if measure:
+		settings_panel._on_measure_height_pressed()
+	await _fade_view(1.0)
+	xr_origin.transform.origin.y = Settings.player_height_offset
+	await _fade_view(0.0)
+	_height_held = false
+
+## Fades a quad over the eyes to opacity over HEIGHT_FADE_SECONDS.
+func _fade_view(opacity: float) -> void:
+	if not _height_fade.is_inside_tree():
+		var quad := QuadMesh.new()
+		quad.size = Vector2.ONE
+		_height_fade.mesh = quad
+		var material := StandardMaterial3D.new()
+		material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		material.no_depth_test = true
+		material.render_priority = Material.RENDER_PRIORITY_MAX
+		material.albedo_color = Color(Constants.UI_PANEL, 0.0)
+		_height_fade.material_override = material
+		_height_fade.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		_height_fade.position = Vector3(0.0, 0.0, -0.1)
+		vr.vrCamera.add_child(_height_fade)
+	var material := _height_fade.material_override as StandardMaterial3D
+	await create_tween().tween_property(material, "albedo_color:a", opacity, HEIGHT_FADE_SECONDS).finished
 
 func _settings_button() -> void:
 	settings_panel._update_backgrounds()
