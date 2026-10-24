@@ -5,8 +5,11 @@ shader_type spatial;
 //   2. form: faces shaded by which way they point, as if lit from above (top lighter, bottom darker)
 //   3. light spill: the lights' colour (env_light, set by EventDriver) on every face, more on faces turned toward
 //      the track, where the lights are
-//   4. lit edge (rings only): the hole's edge glows in the lights' colour, like the lit edge of a real ring
-//   5. haze: fades into the air's colour with distance and more so near the floor (Quilez, "Better fog", 2010)
+//   4. lit edge (rings only): the hole's edge glows in the lights' colour, like the lit edge of a real ring. It is
+//      light, so it goes on after the haze and the haze only dims it
+//   5. haze: fades into the air's colour with distance and more so near the floor (Quilez, "Better fog", 2010).
+//      Rings take less of it, so they stay dark shapes against the sky instead of turning haze-grey (headset,
+//      2026-10-24: at 30 m the full haze left them flat grey and hid their lit edge)
 // The scene has no real lights (AGENTS.md "Light", rule 10), so layers 2-4 are faked here. Everything but the edge's
 // falloff is worked out per vertex: the faces are flat, so per pixel would give the same picture. Values untuned.
 render_mode unshaded, fog_disabled, shadows_disabled;
@@ -37,8 +40,8 @@ const float TRACK_AXIS_Y = 2.0;
 // 0 leaves the edge off.
 uniform float ring_hole = 0.0;
 // how much of the lights' colour the very edge takes, and how tight the glow hugs it (higher = thinner)
-const float EDGE_LIGHT = 0.55;
-const float EDGE_TIGHTNESS = 5.0;
+const float EDGE_LIGHT = 0.7;
+const float EDGE_TIGHTNESS = 2.0;
 
 // 5. haze: per metre
 uniform float fog_density = 0.03;
@@ -46,6 +49,8 @@ uniform float fog_density = 0.03;
 uniform float floor_haze_falloff = 0.35;
 // how much of the height fog the solids take: less than the air, so buildings and frames read as dark shapes
 const float SOLID_HEIGHT_FOG = 0.55;
+// the part of the haze the rings take
+const float RING_FOG = 0.5;
 
 varying float fog;
 varying float form;
@@ -78,11 +83,14 @@ void vertex() {
 	fog = clamp(distance_fog * mix(0.5, 1.0, floor_haze), 0.0, 1.0);
 	// height fog lifts the solids' bottoms into the fog, but they stay darker than the air around them (silhouettes)
 	fog = max(fog, height_fog(world, CAMERA_POSITION_WORLD) * SOLID_HEIGHT_FOG);
+	if (ring_hole > 0.0) {
+		fog *= RING_FOG;
+	}
 }
 
 void fragment() {
 	// edge is interpolated linearly across the ring's band; the power pulls the glow in tight against the hole
 	float glow = pow(edge, EDGE_TIGHTNESS) * EDGE_LIGHT;
-	vec3 lit = albedo.rgb * form + env_light.rgb * (spill * form + glow);
-	ALBEDO = shadow_tone(mix(lit, env_haze.rgb, fog));
+	vec3 lit = albedo.rgb * form + env_light.rgb * spill * form;
+	ALBEDO = shadow_tone(mix(lit, env_haze.rgb, fog) + env_light.rgb * glow * (1.0 - fog));
 }
