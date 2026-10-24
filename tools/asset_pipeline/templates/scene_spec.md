@@ -1,0 +1,13 @@
+# Scene spec
+- Ticket / owner / song / genre:
+- Existing scene to extend (never replace without approval):
+- Camera / lane dimensions / scale:
+- Gameplay readability constraints:
+- Main composition / focal points:
+- Modular assets / dependencies:
+- Lighting / atmosphere / post-processing:
+- Beat events and existing interfaces:
+- Intro / build-up / drop / climax / outro:
+- Performance budget / target hardware:
+- Preview angles / automated checks:
+- Human acceptance criteria:

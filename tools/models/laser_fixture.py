@@ -143,7 +143,8 @@ arm_bottom = BAR_TOP - BAR_HEIGHT
 parts = [
 	box("arm_l", (-arm_x, 0.0, (ARM_ABOVE + arm_bottom) * 0.5), (ARM[0], ARM[1], ARM_ABOVE - arm_bottom)),
 	box("arm_r", (arm_x, 0.0, (ARM_ABOVE + arm_bottom) * 0.5), (ARM[0], ARM[1], ARM_ABOVE - arm_bottom)),
-	box("bar", (0.0, 0.0, BAR_TOP - BAR_HEIGHT * 0.5), (arm_x * 2.0 + ARM[0], ARM[1], BAR_HEIGHT)),
+	# the bar ends at the arms' inner faces: ends buried in the arms made its long faces bake fully black
+	box("bar", (0.0, 0.0, BAR_TOP - BAR_HEIGHT * 0.5), (arm_x * 2.0 - ARM[0], ARM[1], BAR_HEIGHT)),
 	box("stem", (0.0, 0.0, arm_bottom - STEM[1] * 0.5), (STEM[0], STEM[0], STEM[1])),
 ]
 bpy.ops.mesh.primitive_cylinder_add(vertices=PLATE_SIDES, radius=PLATE_RADIUS, depth=PLATE_THICKNESS,

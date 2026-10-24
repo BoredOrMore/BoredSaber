@@ -9,6 +9,10 @@ Adapted from the "Game Model Creator — Godot" skill the owner provided (2026-1
 rules added: Pico 4 budget, unshaded fake-lit shaders, shared materials. Read `.claude/skills/shader-design/SKILL.md`
 too: a model is only half the look, its shader is the other half.
 
+Run every asset through the asset pipeline in `tools/asset_pipeline/` (the owner's Claude + Blender kit): its stages
+and gates, a spec and a review report per asset in `doc/assets/<asset>/`, and its review renders. This skill's
+rules win where they differ.
+
 ## 1. Spec first
 
 Before building, write down and show the user (or put on the style frame):

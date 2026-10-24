@@ -196,7 +196,8 @@ channel), so brightness comes from contrast and the size of bright areas, not fr
 
 For any shader work, follow `.claude/skills/shader-design/SKILL.md` (layers first, named knobs, then
 optimise with before/after GPU numbers). For any new or replaced model, follow
-`.claude/skills/game-model-creator/SKILL.md` (spec and budget first, Blender by script, shared unshaded material).
+`.claude/skills/game-model-creator/SKILL.md` (spec and budget first, Blender by script, shared unshaded material)
+and the asset pipeline in `tools/asset_pipeline/` (records in `doc/assets/`).
 For any environment or layout change, follow `.claude/skills/rhythm-world-design/SKILL.md` and keep the design
 records in `doc/world/` (game bible, visual style, spatial layout, audio-visual mapping) up to date. Where it
 disagrees with the Light, Colour or playspace rules here, these rules win; suggest a change to the owner when the
