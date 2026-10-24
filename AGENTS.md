@@ -197,6 +197,8 @@ channel), so brightness comes from contrast and the size of bright areas, not fr
 For any shader work, follow `.claude/skills/shader-design/SKILL.md` (layers first, named knobs, then
 optimise with before/after GPU numbers). For any new or replaced model, follow
 `.claude/skills/game-model-creator/SKILL.md` (spec and budget first, Blender by script, shared unshaded material).
+For any environment or layout change, follow `.claude/skills/rhythm-world-design/SKILL.md` and keep the design
+records in `doc/world/` (game bible, visual style, spatial layout, audio-visual mapping) up to date.
 
 Sources: James Gurney, "Color and Light" (luminance and saturation, limited palettes); Richard
 Pilbrow, "Stage Lighting Design" (direction, source and movement of stage light); W3C WCAG 2.2
