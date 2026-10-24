@@ -31,9 +31,9 @@ const WAVING_FIXTURES: Array[Vector2] = [
 ]
 const PEDESTAL := Vector3(1.6, 3.0, 1.2)
 const PEDESTAL_TOP := 0.05
-## the laser fixtures' tilt axes (their pivots, LaserFixtures.gd) sit this high: the yoke's foot is 1.08 m below its
+## the laser fixtures' tilt axes (their pivots, LaserFixtures.gd) sit this high: the yoke's foot is 0.54 m below its
 ## tilt axis (tools/models/laser_fixture.py prints it), standing on the pedestal's top
-const FIXTURE_Y := PEDESTAL_TOP + 1.08
+const FIXTURE_Y := PEDESTAL_TOP + 0.54
 
 func _ready() -> void:
 	var boxes: Array[Transform3D] = []

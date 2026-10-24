@@ -6,8 +6,9 @@
 #    head's tilt axis on either side. Same origin (the tilt axis's centre); it only turns around the vertical.
 # Vertex colours: red is baked ambient occlusion, green marks the lens (1) for LaserFixture.gdshader.
 # Run headless: blender -b -P tools/models/laser_fixture.py -- game/models
-# Sizes in metres. The head was 0.6 m across at first; from the player's place 30 m away it read as a speck
-# (Blender render from the player's eye, 2026-10-24), so it is 1.5 times that. Made from scratch; no outside assets.
+# Sizes in metres, as designed; SIZE scales the finished parts. The head was 0.6 m across at first and read as a speck
+# from 30 m (Blender render from the player's eye, 2026-10-24); at 1.5 times that the player found the fixtures far
+# too big on the headset and asked for half (SIZE 0.5). Made from scratch; no outside assets.
 import math
 import sys
 
@@ -40,6 +41,8 @@ PLATE_RADIUS = 0.4
 PLATE_THICKNESS = 0.08
 PLATE_SIDES = 8
 AO_SAMPLES = 64
+# the whole fixture's scale, applied to each finished part before baking
+SIZE = 0.5
 
 
 def box(name, centre, size):
@@ -53,6 +56,11 @@ def box(name, centre, size):
 
 def bake_and_export(obj, file_name, lens_faces):
 	"""Bakes occlusion into red and the lens mask into green, then exports obj alone."""
+	obj.scale = (SIZE, SIZE, SIZE)
+	bpy.ops.object.select_all(action="DESELECT")
+	obj.select_set(True)
+	bpy.context.view_layer.objects.active = obj
+	bpy.ops.object.transform_apply(scale=True)
 	mesh = obj.data
 	mesh.shade_smooth()
 	mesh.set_sharp_from_angle(angle=math.radians(40.0))
@@ -150,4 +158,4 @@ yoke = bpy.context.object
 yoke.name = "laser_fixture_yoke"
 bake_and_export(yoke, "laser_fixture_yoke", False)
 # where the pedestal's top must be, below the tilt axis (ClassicRig.FIXTURE_Y uses it)
-print("yoke foot below the tilt axis: %.3f m" % -(arm_bottom - STEM[1] - PLATE_THICKNESS))
+print("yoke foot below the tilt axis: %.3f m" % (-(arm_bottom - STEM[1] - PLATE_THICKNESS) * SIZE))

@@ -8,7 +8,7 @@ shader_type spatial;
 render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 
 // 1. metres toward the eye
-const float TOWARD_EYE = 0.6;
+const float TOWARD_EYE = 0.3;
 // 2. how fast the glow falls off from the centre (higher = smaller), how far the centre leans toward white, and how
 // bright the glow is at most
 const float FALLOFF = 9.0;

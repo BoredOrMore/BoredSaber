@@ -15,9 +15,10 @@ const HEAD := preload("res://game/models/laser_fixture.glb")
 const YOKE := preload("res://game/models/laser_fixture_yoke.glb")
 const BODY_SHADER := preload("res://game/env/LaserFixture.gdshader")
 const FLARE_SHADER := preload("res://game/env/LaserFlare.gdshader")
-## how far in front of the head's centre the glow sits (the lens is 0.53 m out), and its size in metres. Untuned.
-const FLARE_FORWARD := 0.6
-const FLARE_SIZE := 1.6
+## how far in front of the head's centre the glow sits (the lens is 0.26 m out), and its size in metres; halved with the
+## fixture (tools/models/laser_fixture.py SIZE). Untuned.
+const FLARE_FORWARD := 0.3
+const FLARE_SIZE := 0.8
 
 var _lasers: Array[Node3D] = []
 var _materials: Array[ShaderMaterial] = []
