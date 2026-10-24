@@ -431,7 +431,7 @@ func show_scenery_for_mixed_reality() -> void:
 	night_city_rig.visible = environment == "night_city" and not Settings.mixed_reality
 	stage_smoke.visible = Settings.smoke and not Settings.mixed_reality
 	_dust.visible = not Settings.mixed_reality
-	_fixtures.visible = not Settings.mixed_reality
+	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple"
 
 func set_background() -> void:
 	var width_scale := 2 * Settings.LANE_DISTANCE_X / 3.
@@ -450,6 +450,7 @@ func set_background() -> void:
 		for laser in diagonal_lasers:
 			laser.transform.origin.x = 4.5 * width_scale * sign(laser.transform.origin.x)
 	
+	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple"
 	if Settings.background == "simple":
 		ring_holder.hide()
 		diagonal_lasers_holder.hide()

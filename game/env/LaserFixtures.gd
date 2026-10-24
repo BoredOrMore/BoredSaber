@@ -3,7 +3,8 @@ class_name LaserFixtures
 ## A moving-head light at the pivot of every laser (AGENTS.md "Light", rule 5): the beam leaves from its lens, and the
 ## head turns with the beam around its own centre, as a real moving head does. All drawn in one MultiMesh; each frame
 ## every head copies its laser's place and turn, and its lens takes the beam's colour (black when the light is off).
-## A head whose laser is hidden shrinks to nothing. The model is game/models/laser_fixture.glb, made by
+## The heads are objects, not light: they stay when their light turns off (which hides the beam's node) and only
+## go with the rest of the scenery (EventDriver: mixed reality, simple background). The model is game/models/laser_fixture.glb, made by
 ## tools/models/laser_fixture.py; LaserFixture.gdshader draws it.
 
 const MODEL := preload("res://game/models/laser_fixture.glb")
@@ -32,8 +33,5 @@ func setup(lasers: Array[Node3D], materials: Array[ShaderMaterial]) -> void:
 func _process(_delta: float) -> void:
 	for i in _lasers.size():
 		var laser := _lasers[i]
-		if laser.is_visible_in_tree():
-			multimesh.set_instance_transform(i, Transform3D(laser.global_basis.orthonormalized(), laser.global_position))
-			multimesh.set_instance_custom_data(i, _materials[i].get_shader_parameter(&"light_color") as Color)
-		else:
-			multimesh.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3.ZERO), laser.global_position))
+		multimesh.set_instance_transform(i, Transform3D(laser.global_basis.orthonormalized(), laser.global_position))
+		multimesh.set_instance_custom_data(i, _materials[i].get_shader_parameter(&"light_color") as Color)
