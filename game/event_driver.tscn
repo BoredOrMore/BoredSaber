@@ -1,4 +1,4 @@
-[gd_scene load_steps=43 format=3 uid="uid://qjvg3reomvyk"]
+[gd_scene load_steps=44 format=3 uid="uid://qjvg3reomvyk"]
 
 [ext_resource type="Shader" path="res://game/env/EnvSolid.gdshader" id="env_solid"]
 [ext_resource type="Shader" path="res://game/env/NeonRibbon.gdshader" id="neon_ribbon"]
@@ -287,6 +287,11 @@ albedo_texture = SubResource("17")
 [sub_resource type="ShaderMaterial" id="20"]
 render_priority = 0
 shader = ExtResource("env_solid")
+
+[sub_resource type="ShaderMaterial" id="ring_material"]
+render_priority = 0
+shader = ExtResource("env_solid")
+shader_parameter/ring_hole = 0.936
 
 [sub_resource type="Animation" id="21"]
 length = 2.0
@@ -1023,79 +1028,79 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 4, -4)
 [node name="ring" type="MeshInstance3D" parent="Level/rings"]
 transform = Transform3D(1.64568e-13, 1.01011e-06, 6.2, 6.2, -1.01011e-06, 0, 1.01011e-06, 6.2, -1.01011e-06, 0, 0, -7)
 layers = 3
-material_override = SubResource("20")
+material_override = SubResource("ring_material")
 mesh = ExtResource("3")
 
 [node name="ring2" type="MeshInstance3D" parent="Level/rings"]
 transform = Transform3D(1.64568e-13, 1.01011e-06, 6.2, 6.2, -1.01011e-06, 0, 1.01011e-06, 6.2, -1.01011e-06, 0, 0, -11)
 layers = 3
-material_override = SubResource("20")
+material_override = SubResource("ring_material")
 mesh = ExtResource("3")
 
 [node name="ring3" type="MeshInstance3D" parent="Level/rings"]
 transform = Transform3D(1.64568e-13, 1.01011e-06, 6.2, 6.2, -1.01011e-06, 0, 1.01011e-06, 6.2, -1.01011e-06, 0, 0, -15)
 layers = 3
-material_override = SubResource("20")
+material_override = SubResource("ring_material")
 mesh = ExtResource("3")
 
 [node name="ring4" type="MeshInstance3D" parent="Level/rings"]
 transform = Transform3D(1.64568e-13, 1.01011e-06, 6.2, 6.2, -1.01011e-06, 0, 1.01011e-06, 6.2, -1.01011e-06, 0, 0, -19)
 layers = 3
-material_override = SubResource("20")
+material_override = SubResource("ring_material")
 mesh = ExtResource("3")
 
 [node name="ring5" type="MeshInstance3D" parent="Level/rings"]
 transform = Transform3D(1.64568e-13, 1.01011e-06, 6.2, 6.2, -1.01011e-06, 0, 1.01011e-06, 6.2, -1.01011e-06, 0, 0, -23)
 layers = 3
-material_override = SubResource("20")
+material_override = SubResource("ring_material")
 mesh = ExtResource("3")
 
 [node name="ring6" type="MeshInstance3D" parent="Level/rings"]
 transform = Transform3D(1.64568e-13, 1.01011e-06, 6.2, 6.2, -1.01011e-06, 0, 1.01011e-06, 6.2, -1.01011e-06, 0, 0, -27)
 layers = 3
-material_override = SubResource("20")
+material_override = SubResource("ring_material")
 mesh = ExtResource("3")
 
 [node name="ring7" type="MeshInstance3D" parent="Level/rings"]
 transform = Transform3D(1.64568e-13, 1.01011e-06, 6.2, 6.2, -1.01011e-06, 0, 1.01011e-06, 6.2, -1.01011e-06, 0, 0, -31)
 layers = 3
-material_override = SubResource("20")
+material_override = SubResource("ring_material")
 mesh = ExtResource("3")
 
 [node name="ring8" type="MeshInstance3D" parent="Level/rings"]
 transform = Transform3D(1.64568e-13, 1.01011e-06, 6.2, 6.2, -1.01011e-06, 0, 1.01011e-06, 6.2, -1.01011e-06, 0, 0, -35)
 layers = 3
-material_override = SubResource("20")
+material_override = SubResource("ring_material")
 mesh = ExtResource("3")
 
 [node name="ring9" type="MeshInstance3D" parent="Level/rings"]
 transform = Transform3D(1.64568e-13, 1.01011e-06, 6.2, 6.2, -1.01011e-06, 0, 1.01011e-06, 6.2, -1.01011e-06, 0, 0, -39)
 layers = 3
-material_override = SubResource("20")
+material_override = SubResource("ring_material")
 mesh = ExtResource("3")
 
 [node name="ring10" type="MeshInstance3D" parent="Level/rings"]
 transform = Transform3D(1.64568e-13, 1.01011e-06, 6.2, 6.2, -1.01011e-06, 0, 1.01011e-06, 6.2, -1.01011e-06, 0, 0, -43)
 layers = 3
-material_override = SubResource("20")
+material_override = SubResource("ring_material")
 mesh = ExtResource("3")
 
 [node name="ring11" type="MeshInstance3D" parent="Level/rings"]
 transform = Transform3D(1.64568e-13, 1.01011e-06, 6.2, 6.2, -1.01011e-06, 0, 1.01011e-06, 6.2, -1.01011e-06, 0, 0, -47)
 layers = 3
-material_override = SubResource("20")
+material_override = SubResource("ring_material")
 mesh = ExtResource("3")
 
 [node name="ring12" type="MeshInstance3D" parent="Level/rings"]
 transform = Transform3D(1.64568e-13, 1.01011e-06, 6.2, 6.2, -1.01011e-06, 0, 1.01011e-06, 6.2, -1.01011e-06, 0, 0, -51)
 layers = 3
-material_override = SubResource("20")
+material_override = SubResource("ring_material")
 mesh = ExtResource("3")
 
 [node name="ring13" type="MeshInstance3D" parent="Level/rings"]
 transform = Transform3D(1.64568e-13, 1.01011e-06, 6.2, 6.2, -1.01011e-06, 0, 1.01011e-06, 6.2, -1.01011e-06, 0, 0, -55)
 layers = 3
-material_override = SubResource("20")
+material_override = SubResource("ring_material")
 mesh = ExtResource("3")
 
 [node name="AnimationPlayer" type="AnimationPlayer" parent="Level/rings"]

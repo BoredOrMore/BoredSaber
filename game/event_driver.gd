@@ -512,24 +512,33 @@ func _process(delta: float) -> void:
 ## Tints the shared haze with the light groups that are on, so a flash lights up the air around the track.
 func _update_haze() -> void:
 	var haze := HAZE_BASE
+	# the lights' own colour, which the scenery takes on (env_light, EnvSolid.gdshader)
+	var light := Color.BLACK
 	for m: ShaderMaterial in [diagonal_lasers_material, square_lasers_material, left_waving_lasers_material, right_waving_lasers_material]:
-		haze += (m.get_shader_parameter(&"light_color") as Color) * HAZE_LIGHT_WEIGHT
+		light += m.get_shader_parameter(&"light_color") as Color
 	if track_lights_holder.visible:
-		haze += floor_material.albedo_color * HAZE_LIGHT_WEIGHT
+		light += floor_material.albedo_color
+	haze += light * HAZE_LIGHT_WEIGHT
 	var pulse := _combo_pulse * _combo_pulse
-	haze *= (1.0 + COMBO_HAZE_BOOST * _combo_level + COMBO_PULSE * pulse) * (1.0 - MISTAKE_DIP * _mistake_dip) \
+	var level := (1.0 + COMBO_HAZE_BOOST * _combo_level + COMBO_PULSE * pulse) * (1.0 - MISTAKE_DIP * _mistake_dip) \
 			* (1.0 - QUIET_DIM * _quiet)
+	haze *= level
+	light *= level
 	if menu_focus:
 		haze *= MENU_HAZE_BOOST
 	var eerie := Settings.atmosphere == "Eerie"
 	if eerie:
 		haze *= EERIE_HAZE_DIM
+		light *= EERIE_HAZE_DIM
 	var grey := haze.r * 0.299 + haze.g * 0.587 + haze.b * 0.114
 	haze = haze.lerp(Color(grey, grey, grey), EERIE_HAZE_NEUTRAL if eerie else HAZE_NEUTRAL)
 	if eerie:
 		haze *= Constants.EERIE_HAZE_TINT
 	haze.a = 1.0
 	RenderingServer.global_shader_parameter_set(&"env_haze", haze)
+	light = light.clamp()
+	light.a = 1.0
+	RenderingServer.global_shader_parameter_set(&"env_light", light)
 	RenderingServer.global_shader_parameter_set(&"combo_glow", COMBO_LASER_BOOST * _combo_level + COMBO_PULSE_LASER * pulse
 			- QUIET_DIM * _quiet)
 
