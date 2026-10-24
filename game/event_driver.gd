@@ -134,7 +134,7 @@ var _quiet := 0.0
 ## light shows doesn't saturate at once; measured on 52 maps, rates run from 1 to 165 events a second and peaks
 ## 1.3-7.5 times the mean). Worked out once per song as a curve sampled every INTENSITY_STEP beats, then smoothed
 ## while playing, rising over INTENSITY_RISE_SECONDS and falling over INTENSITY_FALL_SECONDS. A map without light
-## events has no curve and stays dark and unbuilt. Untuned.
+## events has no curve and stays dark and unbuilt. The player found the timing right on the headset (2026-10-24).
 const INTENSITY_WINDOW_SECONDS := 4.0
 const INTENSITY_STEP := 0.5
 const INTENSITY_LOW := 0.2

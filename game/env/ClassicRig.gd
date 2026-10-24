@@ -37,7 +37,8 @@ const FIXTURE_Y := PEDESTAL_TOP + 0.54
 ## Building the tunnel during a song (the crew sets up its rig as the song builds, doc/world/GAME_BIBLE.md): each
 ## frame stands on its own share of the show's build-up (EventDriver), the far ones first, from FIRST_FRAME_AT to
 ## LAST_FRAME_AT; when its share is reached it rises out of the dark below the floor, DROP metres, over RISE_SECONDS,
-## and stays. Taken down at a song's start (during the opening blackout) and put back for the menus. Untuned.
+## and stays. Taken down at a song's start (during the opening blackout) and put back for the menus. The player found
+## the timing right on the headset (2026-10-24).
 const DROP := 18.0
 const RISE_SECONDS := 1.5
 const FIRST_FRAME_AT := 0.1
