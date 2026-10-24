@@ -614,13 +614,15 @@ func _update_show(delta: float) -> void:
 		_built = _intensity
 		classic_rig.set_built(_built)
 
-## In Classic the square light bars hang on the tunnel's frames, so they sink and rise with them (nothing floats).
+## In Classic the square light bars hang on the tunnel's frames: a frame that isn't standing yet has no lights on it
+## (the crew hangs them once it is up), so its bars are hidden until it stands. Lowered bars used to shine up through
+## the note track (the player saw it on the headset, 2026-10-24).
 func _follow_frames() -> void:
 	if environment != "classic" or (classic_rig.standing() and not _bars_lowered):
 		return
 	for bar in _square_bars():
 		var place: Transform3D = _classic_rig[bar]
-		bar.global_transform = Transform3D(place.basis, place.origin + Vector3.DOWN * classic_rig.drop_at(place.origin.z))
+		bar.visible = classic_rig.drop_at(place.origin.z) == 0.0
 	_bars_lowered = not classic_rig.standing()
 
 ## The intensity, 0 to 1, every INTENSITY_STEP beats from the song's start to its last light event (see
