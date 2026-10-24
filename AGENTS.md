@@ -195,7 +195,8 @@ channel), so brightness comes from contrast and the size of bright areas, not fr
     eye); glow, distortion and shadows are drawn in the object's own shader.
 
 For any shader work, follow `.claude/skills/shader-design/SKILL.md` (layers first, named knobs, then
-optimise with before/after GPU numbers).
+optimise with before/after GPU numbers). For any new or replaced model, follow
+`.claude/skills/game-model-creator/SKILL.md` (spec and budget first, Blender by script, shared unshaded material).
 
 Sources: James Gurney, "Color and Light" (luminance and saturation, limited palettes); Richard
 Pilbrow, "Stage Lighting Design" (direction, source and movement of stage light); W3C WCAG 2.2
