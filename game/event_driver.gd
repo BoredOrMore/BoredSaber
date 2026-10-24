@@ -105,6 +105,8 @@ var _sky_materials := {}
 ## 1 right after a combo milestone, falling to 0
 var _combo_pulse := 0.0
 var _dust := Dust.new()
+## the moving heads the lasers leave from
+var _fixtures := LaserFixtures.new()
 ## A good cut sends a ring of the saber's light out from the player along the scene's lights
 ## (player_light.gdshaderinc): how far each saber's ring has gone in metres, negative when there is none.
 var _cut_waves := Vector2(-1.0, -1.0)
@@ -181,8 +183,21 @@ const PLATFORM_LIGHTS := preload("res://game/env/platform_lights.tres")
 func _ready() -> void:
 	classic_sky_material.render_priority = SKY_RENDER_PRIORITY
 	$Level.add_child(_dust)
+	# each laser leaves a moving head on top of its pedestal (ClassicRig), not from inside it
 	for laser: Node3D in diagonal_lasers + _waving_lasers():
+		laser.global_position.y = ClassicRig.FIXTURE_Y
 		_classic_rig[laser] = laser.global_transform
+	var fixture_lasers: Array[Node3D] = []
+	var fixture_materials: Array[ShaderMaterial] = []
+	for laser: Node3D in diagonal_lasers:
+		fixture_lasers.append(laser)
+		fixture_materials.append(diagonal_lasers_material)
+	for laser in _waving_lasers():
+		fixture_lasers.append(laser)
+		fixture_materials.append(left_waving_lasers_material if laser.get_parent() == left_waving_lasers_holder
+				else right_waving_lasers_material)
+	_fixtures.setup(fixture_lasers, fixture_materials)
+	$Level.add_child(_fixtures)
 	_classic_rig[square_lasers_holder] = square_lasers_holder.transform
 	for bar in _square_bars():
 		_classic_rig[bar] = bar.global_transform
@@ -416,6 +431,7 @@ func show_scenery_for_mixed_reality() -> void:
 	night_city_rig.visible = environment == "night_city" and not Settings.mixed_reality
 	stage_smoke.visible = Settings.smoke and not Settings.mixed_reality
 	_dust.visible = not Settings.mixed_reality
+	_fixtures.visible = not Settings.mixed_reality
 
 func set_background() -> void:
 	var width_scale := 2 * Settings.LANE_DISTANCE_X / 3.
