@@ -7,9 +7,10 @@ description: Standard for designing or changing BoredSaber's environments (Class
 
 From the owner's "Godot Rhythm-World Agent Suite" (2026-10-24), adapted to this game. The focused rules are in
 `rules/` next to this file; the project's filled-in design records are in `doc/world/`. Where this skill or its
-`rules/` disagree with older repo rules (root `AGENTS.md` "Light" and "Colour rules", `game/AGENTS.md` playspace
-rule), this skill wins (the owner's decision, 2026-10-24); say so in the change and update the older rule. The
-"Pico 4 constraints" are hardware facts, not style, and still hold.
+`rules/` disagree with the repo's own rules (root `AGENTS.md` "Light", "Colour rules", "Pico 4 constraints";
+`game/AGENTS.md` playspace rule), the repo's rules win. If the suite's way would be clearly better, or at least no
+slower on the headset, suggest the change to the owner with the reason and the GPU numbers; don't apply it on your
+own (the owner's decision, 2026-10-24).
 
 Goal: an original, polished, music-driven performance space in the spirit of Beat Saber, never a copy of its assets
 or levels. Readable during fast play first, beautiful second, and cheap enough for the Pico 4.
