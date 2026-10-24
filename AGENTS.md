@@ -194,6 +194,15 @@ channel), so brightness comes from contrast and the size of bright areas, not fr
 10. Fake it cheaply: no post-processing or screen reads on the Pico (a screen read copies the frame per
     eye); glow, distortion and shadows are drawn in the object's own shader.
 
+For any shader work, follow `.claude/skills/shader-design/SKILL.md` (layers first, named knobs, then
+optimise with before/after GPU numbers). For any new or replaced model, follow
+`.claude/skills/game-model-creator/SKILL.md` (spec and budget first, Blender by script, shared unshaded material)
+and the asset pipeline in `tools/asset_pipeline/` (records in `doc/assets/`).
+For any environment or layout change, follow `.claude/skills/rhythm-world-design/SKILL.md` and keep the design
+records in `doc/world/` (game bible, visual style, spatial layout, audio-visual mapping) up to date. Where it
+disagrees with the Light, Colour or playspace rules here, these rules win; suggest a change to the owner when the
+skill's way is clearly better or at least no slower on the headset.
+
 Sources: James Gurney, "Color and Light" (luminance and saturation, limited palettes); Richard
 Pilbrow, "Stage Lighting Design" (direction, source and movement of stage light); W3C WCAG 2.2
 success criterion 2.3.1 (https://www.w3.org/WAI/WCAG22/Understanding/three-flashes-or-below-threshold);
@@ -216,4 +225,6 @@ Found from headset logs on Pico OS 5.12 (OpenXR runtime 2.1.12); don't undo them
 - `.github/workflows/build-pico4.yml` imports the project, runs the tests and exports the APK on every push.
   Pushes to `pico4-offline` or the default branch also replace the `pico4-latest` release, which the headset
   browser downloads from.
+- Look before the headset: `tools/capture/stage_capture.tscn` renders a stage on the desktop from the player's eye
+  with the game's own shaders (options in its header). Godot 4.6.2 is installed on the dev Mac as `godot`.
 - Anything touching XR, input or rendering needs a test on the headset, with `adb logcat` when it misbehaves.

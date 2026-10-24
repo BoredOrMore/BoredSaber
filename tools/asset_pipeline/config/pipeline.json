@@ -1,0 +1,14 @@
+{
+  "project_root": ".",
+  "godot_executable": "none locally: CI imports, tests and exports (.github/workflows/build-pico4.yml)",
+  "blender_executable": "/opt/homebrew/bin/blender",
+  "review_output_dir": "doc/assets",
+  "reference_dir": "doc/assets/<asset>/references",
+  "render": {"resolution_x": 1280, "resolution_y": 720, "samples": 32},
+  "gates": {
+    "human_approval_before_integration": true,
+    "require_reference_comparison": true,
+    "require_godot_smoke_check": true,
+    "require_in_engine_visual_review": true
+  }
+}

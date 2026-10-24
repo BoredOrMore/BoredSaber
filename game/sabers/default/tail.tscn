@@ -1,32 +1,18 @@
-[gd_scene load_steps=5 format=3 uid="uid://buhdimf18mwbo"]
+[gd_scene load_steps=4 format=3 uid="uid://buhdimf18mwbo"]
 
 [ext_resource type="Script" path="res://game/sabers/default/tail.gd" id="1_mawj2"]
+[ext_resource type="Shader" path="res://game/sabers/default/SaberTrail.gdshader" id="2_trail"]
 
-[sub_resource type="Gradient" id="Gradient_1mbrl"]
-offsets = PackedFloat32Array(0, 0.08, 0.5, 1)
-colors = PackedColorArray(1, 1, 1, 1, 0.7, 0.7, 0.7, 1, 0.3, 0.3, 0.3, 1, 0, 0, 0, 1)
-
-[sub_resource type="GradientTexture2D" id="GradientTexture2D_i1q2c"]
-gradient = SubResource("Gradient_1mbrl")
-height = 32
-fill_to = Vector2(1, 0.169139)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6viak"]
+[sub_resource type="ShaderMaterial" id="ShaderMaterial_trail"]
 resource_local_to_scene = true
-blend_mode = 1
-cull_mode = 2
-depth_draw_mode = 2
-shading_mode = 2
-albedo_texture = SubResource("GradientTexture2D_i1q2c")
-emission_enabled = true
-emission = Color(1, 1, 1, 1)
-emission_energy_multiplier = 2.4
-emission_operator = 1
-emission_texture = SubResource("GradientTexture2D_i1q2c")
+render_priority = 0
+shader = ExtResource("2_trail")
+shader_parameter/color = Color(1, 1, 1, 1)
+shader_parameter/energy = 2.4
 
 [node name="tail" type="Node3D"]
 script = ExtResource("1_mawj2")
 
 [node name="Mesh" type="MeshInstance3D" parent="."]
 layers = 3
-material_override = SubResource("StandardMaterial3D_6viak")
+material_override = SubResource("ShaderMaterial_trail")
