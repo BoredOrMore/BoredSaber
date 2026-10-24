@@ -225,4 +225,6 @@ Found from headset logs on Pico OS 5.12 (OpenXR runtime 2.1.12); don't undo them
 - `.github/workflows/build-pico4.yml` imports the project, runs the tests and exports the APK on every push.
   Pushes to `pico4-offline` or the default branch also replace the `pico4-latest` release, which the headset
   browser downloads from.
+- Look before the headset: `tools/capture/stage_capture.tscn` renders a stage on the desktop from the player's eye
+  with the game's own shaders (options in its header). Godot 4.6.2 is installed on the dev Mac as `godot`.
 - Anything touching XR, input or rendering needs a test on the headset, with `adb logcat` when it misbehaves.

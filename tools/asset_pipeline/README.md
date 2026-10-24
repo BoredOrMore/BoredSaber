@@ -27,9 +27,19 @@ blender -b --python-expr "import bpy; bpy.ops.wm.read_factory_settings(use_empty
 ```
 `doc/assets/laser_fixture/review.md` records the exact command used for the fixture.
 
+## In-game captures (no headset needed)
+`tools/capture/stage_capture.tscn` renders a stage on the Mac with the game's own scenery, lights and shaders from
+the player's eye; build-up, light colours, eye height, view direction and size are options (see the script's
+header). Use it for the in-engine views of a review before the headset check; the Pico's LCD shows colour and
+brightness somewhat differently, so the headset stays the final word.
+```sh
+godot --path . res://tools/capture/stage_capture.tscn -- --out /tmp/classic.png --env classic --built 0.5 --left 3d7bff --right ff3d5a
+```
+
 ## What isn't available here
-- No local Godot: `tools/run_godot_checks.sh` needs one. The Godot check is CI (import, tests, export) plus
-  logcat on the headset after install.
+- Godot 4.6.2 (same as CI) is at `/Applications/Godot_4.6.2.app`, command `godot`: import and tests run locally
+  (`test_menu_layout`'s two pointer-drag checks fail on macOS headless but pass in CI). CI stays the gate for the
+  APK; logcat on the headset after install.
 - `tools/compare_silhouettes.py` needs Pillow, which isn't installed (installing it is a download; ask first).
 - One agent does the work here, so the roles in `agents/` are hats worn in turn, not parallel sessions; the
   worktree advice in `docs/git_worktrees.md` applies only if the owner asks for parallel work.

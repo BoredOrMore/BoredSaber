@@ -97,9 +97,12 @@ func _process(delta: float) -> void:
 			continue
 		_lift[i] = move_toward(_lift[i], _target[i], delta / RISE_SECONDS)
 		var down := DROP * (1.0 - smoothstep(0.0, 1.0, _lift[i]))
+		# all the way down it isn't drawn: against the haze the sunken frames showed as a ladder under the track
+		# (desktop capture, tools/capture, 2026-10-24)
+		var size := 0.0 if _lift[i] == 0.0 else 1.0
 		for b in 3:
 			var box := _boxes[i * 3 + b]
-			_multimesh.set_instance_transform(i * 3 + b, Transform3D(box.basis, box.origin + Vector3.DOWN * down))
+			_multimesh.set_instance_transform(i * 3 + b, Transform3D(box.basis * size, box.origin + Vector3.DOWN * down))
 
 ## How far below its place the frame at this z is now (0 when standing or when no frame is there): the square light
 ## bars mounted on the frames go down and up with them (EventDriver).
