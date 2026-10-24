@@ -21,7 +21,7 @@ never depends on any of this.
 | Combo milestone | short haze pulse (`COMBO_PULSE`) | 0.6 s | below map flashes | — |
 | Mistake | scene dips (`MISTAKE_DIP` 0.5) | 0.6 s | — | — |
 | Quiet stretch (Eerie) | lights dim after 1.5 s without events | fade | — | — |
-| Song builds (intensity) | Classic: tunnel frames rise far to near and stay; square bars ride with them | 1.5 s per frame | built = highest smoothed intensity so far | outside the note corridor |
+| Song builds (intensity) | Classic: tunnel frames rise far to near and stay; a frame's light bars appear once it stands | 1.5 s per frame | built = highest smoothed intensity so far | outside the note corridor |
 | Light off for 2 s | its fixture head rests nose-down; wakes in ~0.1 s when the light returns | — | strobes don't trigger it | beam never shown off its lens for long |
 | Menu | dim house light that slowly breathes (12 s) | — | nothing near 0.2 Hz | comfort |
 
