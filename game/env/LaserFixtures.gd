@@ -1,8 +1,11 @@
 extends Node3D
 class_name LaserFixtures
-## A moving-head light at the pivot of every laser (AGENTS.md "Light", rule 5), built like a real one: a yoke standing
-## on the pedestal that only turns around the vertical toward the beam's heading, and the head between its arms that
-## tilts to the beam, its lens where the beam leaves. A soft glow in the beam's colour sits in front of each lens,
+## A moving-head light at the pivot of every laser (AGENTS.md "Light", rule 5), built like a real one: a yoke fixed to
+## the pedestal, and the head as its child, tilting about the one axis through the yoke's arms (the pivot, the head's
+## centre when it points straight up), its lens where the beam leaves; the beam turns around the same pivot. The yoke
+## is set once, its arms across the beam's sweep, and again only when its laser moves to another place (a rig change);
+## this scene never turns it. (It used to turn toward the beam's heading every frame, which flipped half a turn
+## whenever a waving laser swept through straight up: the player saw it glitch.) A soft glow in the beam's colour sits in front of each lens,
 ## always facing the player, so the bright spot where the beam leaves shows even when the lens faces away (from the
 ## player's place the heads point up and away; Blender render, 2026-10-24). Each part is one MultiMesh; every frame
 ## they copy their laser's place and turn, and lens and glow take the beam's colour (black when the light is off).
@@ -25,6 +28,9 @@ var _materials: Array[ShaderMaterial] = []
 var _heads: MultiMesh
 var _yokes: MultiMesh
 var _flares: MultiMesh
+## each yoke's fixed turn and the place it was set for
+var _yoke_bases: Array[Basis] = []
+var _yoke_places: Array[Vector3] = []
 
 ## One fixture per laser; `materials[i]` is the beam material whose light_color laser i shows.
 func setup(lasers: Array[Node3D], materials: Array[ShaderMaterial]) -> void:
@@ -38,6 +44,9 @@ func setup(lasers: Array[Node3D], materials: Array[ShaderMaterial]) -> void:
 	_heads = _add_part(_model_mesh(HEAD), body)
 	_yokes = _add_part(_model_mesh(YOKE), body)
 	_flares = _add_part(quad, flare)
+	_yoke_bases.resize(lasers.size())
+	_yoke_places.resize(lasers.size())
+	_yoke_places.fill(Vector3.INF)
 
 static func _model_mesh(scene: PackedScene) -> Mesh:
 	var model: Node = scene.instantiate()
@@ -63,13 +72,26 @@ func _process(_delta: float) -> void:
 		var laser := _lasers[i]
 		var at := laser.global_position
 		var beam := -laser.global_basis.z.normalized()
-		var heading := Vector3(beam.x, 0.0, beam.z)
-		if heading.length_squared() < 1e-4:
-			heading = Vector3.FORWARD
+		if at.distance_squared_to(_yoke_places[i]) > 1e-4:
+			_yoke_bases[i] = _yoke_basis(laser, beam)
+			_yoke_places[i] = at
+		var yoke := _yoke_bases[i]
+		# the head's tilt about the yoke's x axis that points its lens (-z) along the beam within the yoke's plane
+		var local := yoke.inverse() * beam
+		var head := yoke * Basis(Vector3.RIGHT, atan2(local.y, -local.z))
 		var color := _materials[i].get_shader_parameter(&"light_color") as Color
-		_heads.set_instance_transform(i, Transform3D(
-				Basis.looking_at(beam, Vector3.UP if absf(beam.y) < 0.999 else Vector3.FORWARD), at))
-		_yokes.set_instance_transform(i, Transform3D(Basis.looking_at(heading.normalized(), Vector3.UP), at))
+		_heads.set_instance_transform(i, Transform3D(head, at))
+		_yokes.set_instance_transform(i, Transform3D(yoke, at))
 		_flares.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3.ONE * FLARE_SIZE), at + beam * FLARE_FORWARD))
 		for part in [_heads, _yokes, _flares]:
 			(part as MultiMesh).set_instance_custom_data(i, color)
+
+## Upright, with its arms (x) across the plane the beam sweeps in: the beam's sideways axis, level. A laser that turns
+## about one level axis (the waving ones) keeps that axis whatever its angle, so the head follows it exactly.
+static func _yoke_basis(laser: Node3D, beam: Vector3) -> Basis:
+	var across := beam.cross(Vector3.UP)
+	if across.length_squared() < 1e-4:
+		across = laser.global_basis.x
+	across.y = 0.0
+	across = across.normalized() if across.length_squared() > 1e-6 else Vector3.RIGHT
+	return Basis(across, Vector3.UP, across.cross(Vector3.UP))
