@@ -1,5 +1,6 @@
 shader_type spatial;
-// The moving-head lights the lasers leave from (game/models/laser_fixture.glb, made by tools/models/laser_fixture.py).
+// The moving-head lights the lasers leave from: heads and yokes (game/models/laser_fixture(_yoke).glb, made by
+// tools/models/laser_fixture.py). The yokes have no lens (green 0), so they draw as body only.
 // One MultiMesh for all of them (LaserFixtures.gd); each copy's custom data is its beam's colour, black when off.
 // In layers:
 //   1. base: dark metal, a little lighter than the scenery so the fixtures read above it (AGENTS.md "Light", rule 1)
