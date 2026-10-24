@@ -7,7 +7,8 @@ never depends on any of this.
 - Authored: each map's light events (Beat Saber map format), per light group: diagonal lasers, square bars,
   left and right waving lasers, track lights. Each event turns a group on, off, flashes or fades it in a colour.
 - No live audio analysis.
-- Fallback when a map has no light events: open question (see `GAME_BIBLE.md`).
+- Fallback when a map has no light events: the stage stays dark (owner, 2026-10-24); notes, sabers and the
+  platform light themselves (`BeepSaber_Game.start_map`).
 
 ## Mapping
 | Event | Visual response | Duration | Limits | Safety |

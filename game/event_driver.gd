@@ -46,8 +46,6 @@ const HOUSE_COLOR := Color(0.62, 0.64, 0.68)
 const MENU_HOUSE_MIX := 0.85
 ## Seconds the menu lights take to fade in before they start breathing.
 const MENU_FADE_SECONDS := 1.0
-## When a song starts every light goes dark for this long before the show's lights come on, like a concert.
-const SHOW_BLACKOUT_SECONDS := 0.5
 ## A menu is showing: pre-show lighting (see MENU_BREATH_LOW), rings still.
 var menu_focus := false
 var _menu_time := 0.0

@@ -151,14 +151,9 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	_update_danger_color(Map.color_obstacle)
 	event_driver.set_background()
 	
-	# the show starts in the dark (EventDriver.SHOW_BLACKOUT_SECONDS); a map with its own light show turns
-	# lights on at its first event, one without gets them all on after the blackout
+	# the show starts in the dark; a map with its own light show turns lights on at its first event, and one without
+	# stays dark (the owner's choice, doc/world/GAME_BIBLE.md): the notes, sabers and platform light themselves
 	event_driver.set_all_off()
-	if Map.event_stack.is_empty():
-		get_tree().create_timer(EventDriver.SHOW_BLACKOUT_SECONDS).timeout.connect(func() -> void:
-			if gamestate == gamestate_playing or gamestate == gamestate_paused:
-				event_driver.set_all_on(Map.color_left, Map.color_right)
-		)
 	
 	var filename := info.filepath + info.song_filename
 	vr.log_info("loading: " + filename)
