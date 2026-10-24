@@ -194,6 +194,9 @@ channel), so brightness comes from contrast and the size of bright areas, not fr
 10. Fake it cheaply: no post-processing or screen reads on the Pico (a screen read copies the frame per
     eye); glow, distortion and shadows are drawn in the object's own shader.
 
+For any shader work, follow `.claude/skills/shader-design/SKILL.md` (layers first, named knobs, then
+optimise with before/after GPU numbers).
+
 Sources: James Gurney, "Color and Light" (luminance and saturation, limited palettes); Richard
 Pilbrow, "Stage Lighting Design" (direction, source and movement of stage light); W3C WCAG 2.2
 success criterion 2.3.1 (https://www.w3.org/WAI/WCAG22/Understanding/three-flashes-or-below-threshold);
