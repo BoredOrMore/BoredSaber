@@ -22,6 +22,13 @@ const FLARE_SHADER := preload("res://game/env/LaserFlare.gdshader")
 ## fixture (tools/models/laser_fixture.py SIZE). Untuned.
 const FLARE_FORWARD := 0.3
 const FLARE_SIZE := 0.8
+## A head whose light has been off for REST_AFTER_SECONDS lowers its nose to REST_TILT_DEG below level, as a rig
+## waiting for the show; it wakes and aims again when its light comes on, fast so the beam is not left behind.
+## The wait keeps strobing lights from making the heads nod. Speeds are per second (exponential approach). Untuned.
+const REST_AFTER_SECONDS := 2.0
+const REST_TILT_DEG := -35.0
+const REST_SPEED := 2.0
+const WAKE_SPEED := 25.0
 
 var _lasers: Array[Node3D] = []
 var _materials: Array[ShaderMaterial] = []
@@ -31,6 +38,9 @@ var _flares: MultiMesh
 ## each yoke's fixed turn and the place it was set for
 var _yoke_bases: Array[Basis] = []
 var _yoke_places: Array[Vector3] = []
+## each head's tilt now (radians about the yoke's arms) and how long its light has been off
+var _tilts := PackedFloat32Array()
+var _dark := PackedFloat32Array()
 
 ## One fixture per laser; `materials[i]` is the beam material whose light_color laser i shows.
 func setup(lasers: Array[Node3D], materials: Array[ShaderMaterial]) -> void:
@@ -47,6 +57,8 @@ func setup(lasers: Array[Node3D], materials: Array[ShaderMaterial]) -> void:
 	_yoke_bases.resize(lasers.size())
 	_yoke_places.resize(lasers.size())
 	_yoke_places.fill(Vector3.INF)
+	_tilts.resize(lasers.size())
+	_dark.resize(lasers.size())
 
 static func _model_mesh(scene: PackedScene) -> Mesh:
 	var model: Node = scene.instantiate()
@@ -67,7 +79,7 @@ func _add_part(mesh: Mesh, material: ShaderMaterial) -> MultiMesh:
 	add_child(instance)
 	return multimesh
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	for i in _lasers.size():
 		var laser := _lasers[i]
 		var at := laser.global_position
@@ -78,8 +90,12 @@ func _process(_delta: float) -> void:
 		var yoke := _yoke_bases[i]
 		# the head's tilt about the yoke's x axis that points its lens (-z) along the beam within the yoke's plane
 		var local := yoke.inverse() * beam
-		var head := yoke * Basis(Vector3.RIGHT, atan2(local.y, -local.z))
 		var color := _materials[i].get_shader_parameter(&"light_color") as Color
+		_dark[i] = _dark[i] + delta if color.get_luminance() <= 0.0 else 0.0
+		var resting := _dark[i] > REST_AFTER_SECONDS
+		var aim := deg_to_rad(REST_TILT_DEG) if resting else atan2(local.y, -local.z)
+		_tilts[i] = lerp_angle(_tilts[i], aim, 1.0 - exp(-delta * (REST_SPEED if resting else WAKE_SPEED)))
+		var head := yoke * Basis(Vector3.RIGHT, _tilts[i])
 		_heads.set_instance_transform(i, Transform3D(head, at))
 		_yokes.set_instance_transform(i, Transform3D(yoke, at))
 		_flares.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3.ONE * FLARE_SIZE), at + beam * FLARE_FORWARD))

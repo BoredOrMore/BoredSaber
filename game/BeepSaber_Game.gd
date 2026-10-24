@@ -154,6 +154,7 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	# the show starts in the dark; a map with its own light show turns lights on at its first event, and one without
 	# stays dark (the owner's choice, doc/world/GAME_BIBLE.md): the notes, sabers and platform light themselves
 	event_driver.set_all_off()
+	event_driver.start_show(Map.event_stack, info.beats_per_minute)
 	
 	var filename := info.filepath + info.song_filename
 	vr.log_info("loading: " + filename)
