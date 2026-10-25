@@ -165,6 +165,12 @@ func cut(saber: LightSaber, cut_speed: Vector3, cut_plane: Plane, controller: Be
 		var cut_angle_accuracy := clampf((base_cut_angle_accuracy-0.7)/0.3, 0.0, 1.0)
 		if is_dot or not Settings.arrows_enabled: #ignore angle if is a dot
 			cut_angle_accuracy = 1.0
+		if cut_angle_accuracy < 1e-10:
+			# a bad-angle cut, for working out the angle rule (owner, 2026-10-25): how far the swing was off the
+			# arrow, how fast, and which note
+			print("bad_angle off %.0f deg speed %.2f m/s beat %.2f arrow %.0f deg saber %d" % [
+				rad_to_deg(acos(clampf(base_cut_angle_accuracy, -1.0, 1.0))), cut_speed.length(), beat,
+				rad_to_deg(rotation.z), saber.type])
 		var cut_distance_accuracy := clampf((CUT_CENTRE_REACH - absf(cut_distance*distance_scale))
 				/ (CUT_CENTRE_REACH - CUT_CENTRE_FULL), 0.0, 1.0)
 		var travel_distance_factor := controller.movement_aabb.get_longest_axis_size()
