@@ -14,15 +14,15 @@
 | Check | Result | Evidence / notes |
 |---|---|---|
 | Reference fidelity | NOT CHECKED | no reference images |
-| Silhouette / proportions | NOT CHECKED | owner to look in Blender / the Godot editor |
+| Silhouette / proportions | PASS | owner, in Blender and the Godot editor ("good", 2026-10-25) |
 | Geometry / normals / transforms | PASS | flat shading, origin on the floor; die top at the hammer's landing height (1.5 m) |
 | Materials / lighting | NOT CHECKED | occlusion baked but not yet read by a game shader |
 | Gameplay readability | PASS | same place as the blockout's anvils (x ±8), outside the note corridor |
-| Godot import / resource paths | PASS | local import with Godot 4.6.2; CI after push |
-| In-engine visual inspection | NOT CHECKED | owner, in the Godot editor viewport (event_driver.tscn) |
+| Godot import / resource paths | PASS | local import with Godot 4.6.2; CI import and export succeed (commit 8a6f99e) |
+| In-engine visual inspection | PASS (desktop) | owner, Godot editor viewport (event_driver.tscn); headset not yet |
 | Performance budget | PASS | 68 triangles, 680 for ten, one MultiMesh (one more draw call) |
 | Scope / no unrelated changes | PASS | only the files above |
 
 Known limitations / assumptions: occlusion is baked on the anvil alone; the hammer doesn't darken it.
-Human decision: pending (owner)
-Reviewer / date:
+Human decision: APPROVED (owner, 2026-10-25); headset still to come
+Reviewer / date: owner, 2026-10-25
