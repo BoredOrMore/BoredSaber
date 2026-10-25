@@ -27,6 +27,11 @@ shader_type spatial;
 //   2b. Night City's canyon (side_shade, depth_shade > 0; 0 elsewhere): upright faces turned along the track darker
 //      than faces turned to it, so pilasters and setbacks read in relief, and walls darker toward the street than
 //      at their top (window_span), as the canyon's floor in shadow
+//   5b. a stage's own fog (canyon_fog.w > 0: Night City's canyon): a thick layer measured from canyon_fog.x (the
+//      cloud sea's level, CloudSea.gdshader), canyon_fog.y per metre there, thinning by canyon_fog.z per metre going up,
+//      so the towers' feet vanish into it where the clouds meet them; its density rolls with a slow drifting noise
+//      (fog_roll), so its edge moves instead of lying flat. With fog_per_pixel the whole haze is worked out per pixel:
+//      on faces a hundred metres across, a blend of the corners' fog is wrong in the middle (doc/research/fog.md)
 //   9. windows (windows > 0: Night City's canyon, NightCityRig): real-size windows on the buildings' upright faces
 //      farther than window_min_x from the track, worked out per pixel from the face's position (a texture or vertex
 //      mask would need too many vertices for towers of 57 floors): WINDOW_PITCH apart, FLOOR_HEIGHT a floor, each
@@ -119,6 +124,12 @@ uniform float fog_density = 0.03;
 uniform float floor_haze_falloff = 0.35;
 // how much of the height fog the solids take: less than the air, so buildings and frames read as dark shapes
 const float SOLID_HEIGHT_FOG = 0.55;
+// 5b. a stage's own fog: [level, density there, thinning per metre up, how much], how much its density rolls, per pixel
+uniform vec4 canyon_fog = vec4(0.0);
+uniform float fog_roll = 0.0;
+uniform bool fog_per_pixel = false;
+const float ROLL_SCALE = 0.04;
+const float ROLL_SPEED = 0.12;
 // the part of the haze the rings take
 const float RING_FOG = 0.5;
 // full haze from fade_z.x to fade_z.y metres out along the track (-z), for pieces that run on into the distance (the
@@ -137,6 +148,30 @@ varying float ao;
 // 9. the position and the face's direction in the world, for the windows
 varying vec3 world_pos;
 varying vec3 world_normal;
+
+// 5. how much of the haze covers a point at world, seen from cam
+float fog_at(vec3 world, vec3 cam, float time) {
+	float dist = length(world - cam);
+	float distance_fog = 1.0 - exp(-fog_density * dist);
+	float floor_haze = exp(-max(world.y, 0.0) * floor_haze_falloff);
+	float f = clamp(distance_fog * mix(0.5, 1.0, floor_haze), 0.0, 1.0);
+	// height fog lifts the solids' bottoms into the fog, but they stay darker than the air around them (silhouettes)
+	f = max(f, height_fog(world, cam) * SOLID_HEIGHT_FOG);
+	if (canyon_fog.w > 0.0) {
+		// 5b. the stage's own fog, its density rolling with two slow drifting waves
+		vec3 p = world * ROLL_SCALE;
+		float roll = sin(p.x * 1.3 + p.y * 0.7 + time * ROLL_SPEED) * sin(p.z * 1.1 - p.y * 0.9 - time * ROLL_SPEED * 0.8);
+		float density = canyon_fog.y * max(1.0 + fog_roll * roll, 0.0);
+		f = max(f, height_fog_from(world, cam, canyon_fog.x, density, canyon_fog.z) * canyon_fog.w);
+	}
+	if (ring_hole > 0.0) {
+		f *= RING_FOG;
+	}
+	if (fade_z.y > fade_z.x) {
+		f = max(f, smoothstep(fade_z.x, fade_z.y, -world.z));
+	}
+	return f;
+}
 
 void vertex() {
 	if ((debug_view & 8) != 0) {
@@ -160,18 +195,7 @@ void vertex() {
 	edge = ring_hole > 0.0 && max(abs(VERTEX.x), abs(VERTEX.z)) < ring_hole + 0.01 ? 1.0 : 0.0;
 
 	// 5. haze
-	float dist = length(world - CAMERA_POSITION_WORLD);
-	float distance_fog = 1.0 - exp(-fog_density * dist);
-	float floor_haze = exp(-max(world.y, 0.0) * floor_haze_falloff);
-	fog = clamp(distance_fog * mix(0.5, 1.0, floor_haze), 0.0, 1.0);
-	// height fog lifts the solids' bottoms into the fog, but they stay darker than the air around them (silhouettes)
-	fog = max(fog, height_fog(world, CAMERA_POSITION_WORLD) * SOLID_HEIGHT_FOG);
-	if (ring_hole > 0.0) {
-		fog *= RING_FOG;
-	}
-	if (fade_z.y > fade_z.x) {
-		fog = max(fog, smoothstep(fade_z.x, fade_z.y, -world.z));
-	}
+	fog = fog_at(world, CAMERA_POSITION_WORLD, TIME);
 
 	// 7. ambient occlusion
 	ao = mix(1.0, COLOR.r, AO_STRENGTH);
@@ -231,5 +255,7 @@ void fragment() {
 		vent_light = mix(vent, vec3(peak), VENT_CORE_WHITE * pow(facing, VENT_CORE_SHARPNESS));
 	}
 	// the windows go on after the shadow tone, which would grey their colour
-	ALBEDO = shadow_tone(mix(lit, env_haze.rgb, fog) + (env_light.rgb * glow + vent_light) * (1.0 - fog)) + windows_light() * (1.0 - fog);
+	// 5. per pixel on faces too big for a blend of their corners
+	float haze = fog_per_pixel ? fog_at(world_pos, CAMERA_POSITION_WORLD, TIME) : fog;
+	ALBEDO = shadow_tone(mix(lit, env_haze.rgb, haze) + (env_light.rgb * glow + vent_light) * (1.0 - haze)) + windows_light() * (1.0 - haze);
 }

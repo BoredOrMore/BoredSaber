@@ -40,8 +40,10 @@ const WALL_SIDE := -1.0
 ## the street the towers and low roofs stand on, below the player's rooftop (y 0)
 const STREET_Y := -45.0
 ## the tower wall: [inner face out from the track, z from, z to, top] of each tower
-const TOWERS: Array[Vector4] = [Vector4(25.0, 20.0, -45.0, 170.0), Vector4(28.0, -45.0, -110.0, 200.0),
-	Vector4(25.0, -110.0, -170.0, 150.0)]
+## The towers' ends on the window grid's 8 m (a pilaster's step), so each face's windows start and end with the
+## building, not cut by its edge (owner on the headset, 2026-10-25: the windows read as a texture).
+const TOWERS: Array[Vector4] = [Vector4(25.0, 16.0, -48.0, 170.0), Vector4(28.0, -48.0, -112.0, 200.0),
+	Vector4(25.0, -112.0, -168.0, 150.0)]
 const TOWER_DEPTH := 30.0
 ## Relief on the towers' faces, so the wall reads as buildings and not one flat sheet (owner on the headset,
 ## 2026-10-25: "the left towers have no depth"): pilasters standing out of the face every PILASTER_STEP metres, ledges
@@ -55,20 +57,34 @@ const PILASTER_STEP := 8.0
 const LEDGE := Vector2(0.6, 0.8)
 const LEDGE_FLOORS := 4
 const FLOOR_HEIGHT := 3.5
-const SETBACKS: Array[Vector2] = [Vector2(0.7, 6.0), Vector2(0.8, 9.0), Vector2(0.65, 5.0)]
+## The setback's step is snapped to a ledge line, its depth to whole window cells (so its ends stay on the grid).
+const SETBACKS: Array[Vector2] = [Vector2(0.7, 4.0), Vector2(0.8, 8.0), Vector2(0.65, 4.0)]
 ## the buildings' shading (EnvSolid): faces turned along the track (pilasters' and setbacks' sides) this much darker
 ## than faces turned to it, and the street end of a wall this much darker than its top (the canyon's floor in shadow)
 const SIDE_SHADE := 0.45
 const DEPTH_SHADE := 0.6
 ## the low roofs on the open side, stepping down: [inner edge out from the track, z from, z to, roof]
-const LOW_ROOFS: Array[Vector4] = [Vector4(8.0, 10.0, -20.0, -8.0), Vector4(10.0, -20.0, -50.0, -12.0),
-	Vector4(12.0, -50.0, -85.0, -15.0), Vector4(14.0, -85.0, -120.0, -18.0)]
+## (raised from 8-18 m below: from the player's roof only the water tanks' tops showed; owner, 2026-10-25)
+const LOW_ROOFS: Array[Vector4] = [Vector4(8.0, 10.0, -20.0, -3.0), Vector4(10.0, -20.0, -50.0, -5.0),
+	Vector4(12.0, -50.0, -85.0, -7.0), Vector4(14.0, -85.0, -120.0, -9.0)]
 const LOW_ROOF_DEPTH := 22.0
 ## The far city on the open side is the sky's own skyline (NightCitySky.gdshader): boxes out there took the haze's
 ## colour and read as pale grey blocks in front of it (blockout capture, 2026-10-25). The landmark tower beyond,
 ## [out, z, width, top], is a dark silhouette against the sky: its own material with almost no haze (LANDMARK_FOG).
 const LANDMARK := Vector4(350.0, -700.0, 40.0, 400.0)
 const LANDMARK_FOG := 0.0003
+## Fog with mass (doc/research/fog.md; owner, 2026-10-25: thick): a sea of cloud filling the canyon at SEA_Y, the
+## towers and low roofs rising out of it (CloudSea.gdshader, opaque), over SEA_SIZE metres centred at SEA_CENTRE
+## (x, z), SEA_CELLS a side; and a thick fog layer from just under it (EnvSolid canyon_fog: [level, density, thinning
+## per metre up, strength]) that hides where it meets them, rolling (CANYON_FOG_ROLL). The scenery's haze is worked
+## out per pixel here (the towers' faces are too big for a blend of their corners). Untuned.
+const CLOUD_SEA := preload("res://game/env/CloudSea.gdshader")
+const SEA_Y := -30.0
+const SEA_SIZE := Vector2(320.0, 320.0)
+const SEA_CENTRE := Vector2(90.0, -120.0)
+const SEA_CELLS := 56
+const CANYON_FOG := Vector4(SEA_Y - 2.0, 0.18, 0.22, 1.0)
+const CANYON_FOG_ROLL := 0.6
 ## The billboards on the tower wall (CityBillboard.gdshader), carrying the square bars' light: [tower, along the tower
 ## from its near end (0-1), height, width, tall, shape (0 circle, 1 triangle, 2 stripes, 3 frames)]. Different sizes
 ## and heights, not a row. Standing just off the pilasters' fronts.
@@ -78,7 +94,13 @@ const BILLBOARDS := [
 	[1, 0.2, 38.0, 20.0, 12.0, 3], [1, 0.6, 70.0, 12.0, 12.0, 1],
 	[2, 0.35, 30.0, 16.0, 8.0, 2], [2, 0.7, 48.0, 10.0, 10.0, 0],
 ]
-const BILLBOARD_OFF := 0.1
+## They stand off the pilasters' fronts on arms (owner, 2026-10-25: they must read as mounted things, not decals):
+## BILLBOARD_OFF metres out, in a box frame BILLBOARD_FRAME deep and BILLBOARD_RIM wider than the face, held by two
+## arms to the wall; frame and arms in the props' material.
+const BILLBOARD_OFF := 2.5
+const BILLBOARD_FRAME := 0.5
+const BILLBOARD_RIM := 0.4
+const BILLBOARD_ARM := 0.3
 ## Rooftop clutter on the low roofs (familiar-size cues; doc/assets/water_tank/spec.md): water tanks as [roof,
 ## across the roof from its inner edge (0-1), along it (0-1), turn]. In the props' material: the city's without
 ## windows.
@@ -105,7 +127,10 @@ var _instance: MultiMeshInstance3D
 var _landmark: MeshInstance3D
 var _billboards: MultiMeshInstance3D
 var _props: Array[MultiMeshInstance3D] = []
+## the billboards' frames and arms, drawn with the props
+var _mounts: Array[Transform3D] = []
 var _props_material: ShaderMaterial
+var _sea: MeshInstance3D
 ## the billboards' material, its light colour set each frame from the square bars' (EventDriver)
 var billboard_material: ShaderMaterial
 var _material: ShaderMaterial
@@ -153,8 +178,14 @@ func build(classic: bool) -> void:
 	for props in _props:
 		props.queue_free()
 	_props.clear()
+	if _sea:
+		_sea.queue_free()
+		_sea = null
 	var boxes := _classic_boxes() if classic else _canyon_boxes()
 	_material.set_shader_parameter(&"windows", 0.0 if classic else 1.0)
+	_material.set_shader_parameter(&"canyon_fog", Vector4.ZERO if classic else CANYON_FOG)
+	_material.set_shader_parameter(&"fog_roll", CANYON_FOG_ROLL)
+	_material.set_shader_parameter(&"fog_per_pixel", not classic)
 	_material.set_shader_parameter(&"window_min_x", RAILING_X + STAIR_HOUSE_SIZE.x + 2.0)
 	_material.set_shader_parameter(&"window_span", Vector2(STREET_Y, TOWERS[1].w))
 	_material.set_shader_parameter(&"side_shade", 0.0 if classic else SIDE_SHADE)
@@ -182,8 +213,27 @@ func build(classic: bool) -> void:
 		_landmark.material_override = far
 		_landmark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(_landmark)
+		_mounts.clear()
 		_add_billboards()
 		_add_props()
+		_add_sea()
+
+## The sea of cloud in the canyon.
+func _add_sea() -> void:
+	var plane := PlaneMesh.new()
+	plane.size = SEA_SIZE
+	plane.subdivide_width = SEA_CELLS
+	plane.subdivide_depth = SEA_CELLS
+	var material := ShaderMaterial.new()
+	material.shader = CLOUD_SEA
+	_sea = MeshInstance3D.new()
+	_sea.mesh = plane
+	_sea.material_override = material
+	_sea.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# the waves heave it up and down past its plane
+	_sea.extra_cull_margin = 4.0
+	_sea.position = Vector3(-WALL_SIDE * SEA_CENTRE.x, SEA_Y, SEA_CENTRE.y)
+	add_child(_sea)
 
 ## The rooftop clutter on the low roofs, one MultiMesh per model.
 func _add_props() -> void:
@@ -196,18 +246,21 @@ func _add_props() -> void:
 		var roof := LOW_ROOFS[int(t[0])]
 		var at := Vector3(o * (roof.x + LOW_ROOF_DEPTH * float(t[1])), roof.w, lerpf(roof.y, roof.z, float(t[2])))
 		tanks.append(Transform3D(Basis(Vector3.UP, float(t[3])), at))
-	var multimesh := MultiMesh.new()
-	multimesh.transform_format = MultiMesh.TRANSFORM_3D
-	multimesh.mesh = LaserFixtures._model_mesh(WATER_TANK)
-	multimesh.instance_count = tanks.size()
-	for i in tanks.size():
-		multimesh.set_instance_transform(i, tanks[i])
-	var instance := MultiMeshInstance3D.new()
-	instance.multimesh = multimesh
-	instance.material_override = _props_material
-	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(instance)
-	_props.append(instance)
+	for pair: Array in [[LaserFixtures._model_mesh(WATER_TANK), tanks], [BoxMesh.new(), _mounts]]:
+		var placed: Array[Transform3D] = []
+		placed.assign(pair[1])
+		var multimesh := MultiMesh.new()
+		multimesh.transform_format = MultiMesh.TRANSFORM_3D
+		multimesh.mesh = pair[0]
+		multimesh.instance_count = placed.size()
+		for i in placed.size():
+			multimesh.set_instance_transform(i, placed[i])
+		var instance := MultiMeshInstance3D.new()
+		instance.multimesh = multimesh
+		instance.material_override = _props_material
+		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(instance)
+		_props.append(instance)
 
 ## The billboards: one MultiMesh of quads facing the track off the tower wall's face.
 func _add_billboards() -> void:
@@ -229,6 +282,14 @@ func _add_billboards() -> void:
 		var origin := Vector3(w * (t.x - PILASTER.x - BILLBOARD_OFF), b[2], lerpf(t.y, t.z, b[1]))
 		multimesh.set_instance_transform(i, Transform3D(facing * Basis.from_scale(Vector3(b[3], b[4], 1.0)), origin))
 		multimesh.set_instance_custom_data(i, Color(float(b[5]), 0.0, 0.0, 0.0))
+		# the box frame behind the face, its rim showing round it, and the arms back to the pilasters
+		# just behind the face, toward the wall
+		var back := origin.x + w * 0.02
+		_mounts.append(_span(Vector3(back, origin.y - b[4] * 0.5 - BILLBOARD_RIM, origin.z - b[3] * 0.5 - BILLBOARD_RIM),
+			Vector3(back + w * BILLBOARD_FRAME, origin.y + b[4] * 0.5 + BILLBOARD_RIM, origin.z + b[3] * 0.5 + BILLBOARD_RIM)))
+		for arm_y: float in [origin.y - b[4] * 0.3, origin.y + b[4] * 0.3]:
+			_mounts.append(_span(Vector3(back + w * BILLBOARD_FRAME, arm_y - BILLBOARD_ARM * 0.5, origin.z - BILLBOARD_ARM * 0.5),
+				Vector3(w * (t.x - PILASTER.x), arm_y + BILLBOARD_ARM * 0.5, origin.z + BILLBOARD_ARM * 0.5)))
 	_billboards = MultiMeshInstance3D.new()
 	_billboards.multimesh = multimesh
 	_billboards.material_override = billboard_material
@@ -247,20 +308,24 @@ func _canyon_boxes() -> Array[Transform3D]:
 	for i in TOWERS.size():
 		var t := TOWERS[i]
 		var setback := SETBACKS[i % SETBACKS.size()]
-		var step_y := lerpf(STREET_Y, t.w, setback.x)
+		var band := FLOOR_HEIGHT * LEDGE_FLOORS
+		var step_y := STREET_Y + roundf((lerpf(STREET_Y, t.w, setback.x) - STREET_Y) / band) * band
 		boxes.append(_span(Vector3(w * t.x, STREET_Y, t.y), Vector3(w * (t.x + TOWER_DEPTH), step_y, t.z)))
 		boxes.append(_span(Vector3(w * (t.x + setback.y), step_y, t.y - setback.y * 0.5),
 			Vector3(w * (t.x + TOWER_DEPTH), t.w, t.z + setback.y * 0.5)))
-		# pilasters up the lower face, ledges along it
-		var z := floorf((t.y - PILASTER.y) / PILASTER_STEP) * PILASTER_STEP + PILASTER.y * 0.5
-		while z > t.z + PILASTER.y:
-			boxes.append(_span(Vector3(w * (t.x - PILASTER.x), STREET_Y, z + PILASTER.y * 0.5),
-				Vector3(w * t.x, step_y, z - PILASTER.y * 0.5)))
-			z -= PILASTER_STEP
-		var y := STREET_Y + FLOOR_HEIGHT * LEDGE_FLOORS
-		while y < step_y - FLOOR_HEIGHT:
-			boxes.append(_span(Vector3(w * (t.x - LEDGE.x), y - LEDGE.y * 0.6, t.y), Vector3(w * t.x, y + LEDGE.y * 0.4, t.z)))
-			y += FLOOR_HEIGHT * LEDGE_FLOORS
+		# pilasters and ledges on both faces, the lower one and the setback above it
+		for face: Vector4 in [Vector4(t.x, t.y, t.z, STREET_Y), Vector4(t.x + setback.y, t.y - setback.y * 0.5,
+				t.z + setback.y * 0.5, step_y)]:
+			var top := step_y if face.w == STREET_Y else t.w
+			var z := floorf((face.y - PILASTER.y) / PILASTER_STEP) * PILASTER_STEP + PILASTER.y * 0.5
+			while z > face.z + PILASTER.y:
+				boxes.append(_span(Vector3(w * (face.x - PILASTER.x), face.w, z + PILASTER.y * 0.5),
+					Vector3(w * face.x, top, z - PILASTER.y * 0.5)))
+				z -= PILASTER_STEP
+			var y := face.w + band
+			while y < top - FLOOR_HEIGHT:
+				boxes.append(_span(Vector3(w * (face.x - LEDGE.x), y - LEDGE.y * 0.6, face.y), Vector3(w * face.x, y + LEDGE.y * 0.4, face.z)))
+				y += band
 	for r in LOW_ROOFS:
 		boxes.append(_span(Vector3(o * r.x, STREET_Y, r.y), Vector3(o * (r.x + LOW_ROOF_DEPTH), r.w, r.z)))
 	# the rooftop under the player, down to the street, and its pieces
