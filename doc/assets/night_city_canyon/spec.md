@@ -16,7 +16,9 @@
 | Player's rooftop | around the platform | stair house on the wall side (3 m tall), open railing on the other side |
 | Street | y -45 under the canyon | the towers and low roofs stand on it |
 
-Familiar-size cue: real windows on the tower wall (about 1.5 m wide, 3.5 m floors, 57 floors on 200 m), drawn in the
+Depth (owner, 2026-10-25: the towers had none): pilasters every 8 m standing 0.8 m out on whole window cells (no
+windows on them), ledges every 4 floors just under a floor line, each tower's top stepped back, faces turned along the
+track darker than faces turned to it, and the walls darker toward the street. Familiar-size cue: real windows on the tower wall (about 1.5 m wide, 3.5 m floors, 57 floors on 200 m), drawn in the
 shader from the wall's position (no vertex mask: too many vertices), no extra draw call. Not in the blockout.
 
 ## Light carriers (the map's five groups, note colours)
@@ -25,6 +27,8 @@ shader from the wall's position (no vertex mask: too many vertices), no extra dr
 - Diagonal lasers: kept; from the tower wall's face and the low roofs' edges, crossing over the canyon.
 - Square bars: roof trims on the low roofs plus geometric billboards on the tower wall (shapes only, no text or brands).
 - Floor: the track's edge strips (shared).
+- Windows' colour: the map's light colour on each side with a slight warm room tint (owner approved the tint for Night
+  City's windows, 2026-10-25).
 - Windows (after the blockout): light floor by floor, bottom to top, near before far on build-up; all lit plus the
   landmark at the peak; dim in quiet parts but never fully dark; maps without lights stay dark.
 

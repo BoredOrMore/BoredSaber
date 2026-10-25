@@ -24,6 +24,9 @@ shader_type spatial;
 //      (tools/make_matcap.py) looked up by the face's view-space normal, giving a soft highlight from above and a rim
 //      toward grazing angles, as polished metal shows. Grey only: tinted with a neutral grey and the lights' colour
 //      (env_light), kept well under the fixtures in the brightness order (Light rules 1, 3 and 4). Off (0) elsewhere
+//   2b. Night City's canyon (side_shade, depth_shade > 0; 0 elsewhere): upright faces turned along the track darker
+//      than faces turned to it, so pilasters and setbacks read in relief, and walls darker toward the street than
+//      at their top (window_span), as the canyon's floor in shadow
 //   9. windows (windows > 0: Night City's canyon, NightCityRig): real-size windows on the buildings' upright faces
 //      farther than window_min_x from the track, worked out per pixel from the face's position (a texture or vertex
 //      mask would need too many vertices for towers of 57 floors): WINDOW_PITCH apart, FLOOR_HEIGHT a floor, each
@@ -85,6 +88,9 @@ const float METAL_GREY = 0.04;
 const float METAL_LIGHT = 0.12;
 // 9. windows: on (1) or off (0), the lights' colours either side, how far through the build-up the rooms are lit and how
 // bright, the faces nearer the track than window_min_x left plain, and the street and top the rooms count up between
+// 2b. the canyon's shading
+uniform float side_shade = 0.0;
+uniform float depth_shade = 0.0;
 uniform float windows = 0.0;
 uniform vec4 window_left_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
 uniform vec4 window_right_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
@@ -92,6 +98,8 @@ uniform float window_level = 0.0;
 uniform float window_glow = 0.0;
 uniform float window_min_x = 8.0;
 uniform vec2 window_span = vec2(-45.0, 200.0);
+// every this many cells along a wall a pilaster stands (Night City's canyon: cells 4k), so those cells get no window; 0 none
+uniform int window_pier_cells = 0;
 const float WINDOW_PITCH = 2.0;
 const float FLOOR_HEIGHT = 3.5;
 // the window inside its cell (parts of the cell, from the cell's corner), the rooms that ever light, the warm tint
@@ -139,6 +147,9 @@ void vertex() {
 
 	// 2. form
 	form = normal.y > 0.0 ? mix(FORM_SIDE, FORM_TOP, normal.y) : mix(FORM_SIDE, FORM_BOTTOM, -normal.y);
+	// 2b. the canyon's shading
+	form *= 1.0 - side_shade * abs(normal.z);
+	form *= 1.0 - depth_shade * (1.0 - smoothstep(window_span.x, window_span.y, world.y));
 
 	// 3. light spill: dot of the face's direction with the way to the track (1 facing it, -1 facing away)
 	vec2 to_track = vec2(-world.x, TRACK_AXIS_Y - world.y);
@@ -188,6 +199,9 @@ vec3 windows_light() {
 	// which face it is goes into the hash too, so the rooms of opposite faces differ
 	vec2 room = cell + sign(world_normal.xz) * 97.0;
 	float occupied = step(window_hash(room), WINDOW_OCCUPIED);
+	if (window_pier_cells > 0 && mod(cell.x, float(window_pier_cells)) < 0.5) {
+		occupied = 0.0;
+	}
 	float height = clamp((world_pos.y - window_span.x) / (window_span.y - window_span.x), 0.0, 1.0);
 	float order = dot(WINDOW_ORDER, vec3(height, clamp(-world_pos.z / WINDOW_REACH, 0.0, 1.0), window_hash(room + 31.0)));
 	float on = occupied * step(order, window_level);

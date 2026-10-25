@@ -43,6 +43,23 @@ const STREET_Y := -45.0
 const TOWERS: Array[Vector4] = [Vector4(25.0, 20.0, -45.0, 170.0), Vector4(28.0, -45.0, -110.0, 200.0),
 	Vector4(25.0, -110.0, -170.0, 150.0)]
 const TOWER_DEPTH := 30.0
+## Relief on the towers' faces, so the wall reads as buildings and not one flat sheet (owner on the headset,
+## 2026-10-25: "the left towers have no depth"): pilasters standing out of the face every PILASTER_STEP metres, ledges
+## running along it every LEDGE_FLOORS floors, and each tower's top stepped back (setback: the part of its height
+## where the step is, and how far back), different per tower. [out, wide] of a pilaster, [out, tall] of a ledge.
+## The pilasters stand on whole window cells (EnvSolid WINDOW_PITCH, 2 m: centres at PILASTER_STEP k + 1), and those
+## cells' windows are left out (window_pier_cells), so windows sit between them; a ledge runs just under a floor's
+## line, below its windows.
+const PILASTER := Vector2(0.8, 2.0)
+const PILASTER_STEP := 8.0
+const LEDGE := Vector2(0.6, 0.8)
+const LEDGE_FLOORS := 4
+const FLOOR_HEIGHT := 3.5
+const SETBACKS: Array[Vector2] = [Vector2(0.7, 6.0), Vector2(0.8, 9.0), Vector2(0.65, 5.0)]
+## the buildings' shading (EnvSolid): faces turned along the track (pilasters' and setbacks' sides) this much darker
+## than faces turned to it, and the street end of a wall this much darker than its top (the canyon's floor in shadow)
+const SIDE_SHADE := 0.45
+const DEPTH_SHADE := 0.6
 ## the low roofs on the open side, stepping down: [inner edge out from the track, z from, z to, roof]
 const LOW_ROOFS: Array[Vector4] = [Vector4(8.0, 10.0, -20.0, -8.0), Vector4(10.0, -20.0, -50.0, -12.0),
 	Vector4(12.0, -50.0, -85.0, -15.0), Vector4(14.0, -85.0, -120.0, -18.0)]
@@ -114,6 +131,9 @@ func build(classic: bool) -> void:
 	_material.set_shader_parameter(&"windows", 0.0 if classic else 1.0)
 	_material.set_shader_parameter(&"window_min_x", RAILING_X + STAIR_HOUSE_SIZE.x + 2.0)
 	_material.set_shader_parameter(&"window_span", Vector2(STREET_Y, TOWERS[1].w))
+	_material.set_shader_parameter(&"side_shade", 0.0 if classic else SIDE_SHADE)
+	_material.set_shader_parameter(&"window_pier_cells", int(PILASTER_STEP / PILASTER.y))
+	_material.set_shader_parameter(&"depth_shade", 0.0 if classic else DEPTH_SHADE)
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	multimesh.mesh = BoxMesh.new()
@@ -146,8 +166,23 @@ func _canyon_boxes() -> Array[Transform3D]:
 	var boxes: Array[Transform3D] = []
 	var w := WALL_SIDE
 	var o := -WALL_SIDE
-	for t in TOWERS:
-		boxes.append(_span(Vector3(w * t.x, STREET_Y, t.y), Vector3(w * (t.x + TOWER_DEPTH), t.w, t.z)))
+	for i in TOWERS.size():
+		var t := TOWERS[i]
+		var setback := SETBACKS[i % SETBACKS.size()]
+		var step_y := lerpf(STREET_Y, t.w, setback.x)
+		boxes.append(_span(Vector3(w * t.x, STREET_Y, t.y), Vector3(w * (t.x + TOWER_DEPTH), step_y, t.z)))
+		boxes.append(_span(Vector3(w * (t.x + setback.y), step_y, t.y - setback.y * 0.5),
+			Vector3(w * (t.x + TOWER_DEPTH), t.w, t.z + setback.y * 0.5)))
+		# pilasters up the lower face, ledges along it
+		var z := floorf((t.y - PILASTER.y) / PILASTER_STEP) * PILASTER_STEP + PILASTER.y * 0.5
+		while z > t.z + PILASTER.y:
+			boxes.append(_span(Vector3(w * (t.x - PILASTER.x), STREET_Y, z + PILASTER.y * 0.5),
+				Vector3(w * t.x, step_y, z - PILASTER.y * 0.5)))
+			z -= PILASTER_STEP
+		var y := STREET_Y + FLOOR_HEIGHT * LEDGE_FLOORS
+		while y < step_y - FLOOR_HEIGHT:
+			boxes.append(_span(Vector3(w * (t.x - LEDGE.x), y - LEDGE.y * 0.6, t.y), Vector3(w * t.x, y + LEDGE.y * 0.4, t.z)))
+			y += FLOOR_HEIGHT * LEDGE_FLOORS
 	for r in LOW_ROOFS:
 		boxes.append(_span(Vector3(o * r.x, STREET_Y, r.y), Vector3(o * (r.x + LOW_ROOF_DEPTH), r.w, r.z)))
 	# the rooftop under the player, down to the street, and its pieces
