@@ -148,6 +148,8 @@ const INTENSITY_RISE_SECONDS := 1.0
 const INTENSITY_FALL_SECONDS := 3.0
 ## the song's beat now, set by the Playing state; the curve and the smoothed intensity
 var show_beat := 0.0
+## the song's tempo, for the Metal Factory's pistons
+var _show_bpm := 0.0
 var _intensity_curve := PackedFloat32Array()
 var _intensity := 0.0
 ## the highest the smoothed intensity has been this song: what the crew has built so far (it never comes down)
@@ -635,6 +637,7 @@ func combo_pulse() -> void:
 ## A song starts: work out its intensity curve and take the stage down, to be built again as the song builds.
 func start_show(events: Array[EventInfo], bpm: float) -> void:
 	_intensity_curve = intensity_curve(events, bpm)
+	_show_bpm = bpm
 	_intensity = 0.0
 	_built = 0.0
 	show_beat = 0.0
@@ -649,6 +652,8 @@ func _update_show(delta: float) -> void:
 	if _intensity > _built:
 		_built = _intensity
 		classic_rig.set_built(_built)
+	if environment == "metal_factory":
+		metal_factory_rig.slam(show_beat, _show_bpm, _intensity)
 
 ## In Classic the square light bars hang on the tunnel's frames: a frame that isn't standing yet has no lights on it
 ## (the crew hangs them once it is up), so its bars are hidden until it stands. Lowered bars used to shine up through
@@ -713,8 +718,9 @@ func set_menu_focus(on: bool) -> void:
 		right_laser_anim_player.speed_scale = 1.0
 		return
 	_menu_time = 0.0
-	# between songs the rig stands complete
+	# between songs the rig stands complete and the pistons rest raised
 	classic_rig.set_built(1.0)
+	metal_factory_rig.slam(0.0, 0.0, 0.0)
 	stage_smoke.refill()
 	_combo_target = 0.0
 	ring_rot_speed = 0.0

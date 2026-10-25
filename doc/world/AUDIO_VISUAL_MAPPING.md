@@ -22,6 +22,7 @@ never depends on any of this.
 | Mistake | scene dips (`MISTAKE_DIP` 0.5) | 0.6 s | — | — |
 | Quiet stretch (Eerie) | lights dim after 1.5 s without events | fade | — | — |
 | Song builds (intensity) | Classic: tunnel frames rise far to near and stay; a frame's light bars appear once it stands | 1.5 s per frame | built = highest smoothed intensity so far | outside the note corridor |
+| Song's beat (BPM) while intensity is high | Metal Factory: every hammer slams onto its anvil together on the beat (every beat, or every 2 when a beat is under 0.5 s); rests 0.06 s, rises easing, falls the last 0.15 s like a weight; stroke grows from intensity 0.6 to full at 0.9 (`MetalFactoryRig.slam`) | one beat cycle | motion only, no flash yet; rests raised in menus | beside the track (x ±8), outside the note corridor |
 | Light off for 2 s | its fixture head rests nose-down; wakes in ~0.1 s when the light returns | — | strobes don't trigger it | beam never shown off its lens for long |
 | Menu | dim house light that slowly breathes (12 s) | — | nothing near 0.2 Hz | comfort |
 

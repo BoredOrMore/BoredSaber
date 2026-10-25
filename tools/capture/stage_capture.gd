@@ -8,12 +8,15 @@ extends Node3D
 ## Options: --env classic|neon_grid|night_city|pulse_void|metal_factory  --built 0..1 (how much of the stage the crew has put up)
 ##   --lights on|off|menu  --left RRGGBB --right RRGGBB  --eye 1.6 (eye height, m)  --pitch 0 (degrees, up +)
 ##   --yaw 0 (degrees, left +)  --fov 90 (vertical, degrees)  --size 1920x1080  --seconds 2.5 (settle time)
+##   --beat 0 (Metal Factory: the pistons at this beat of a 120 BPM song at full intensity; 0 is a hammer landing)
 
 const ENVIRONMENT_SCENE := preload("res://game/event_driver.tscn")
 const FLOOR_SCENE := preload("res://game/floor.tscn")
 const GAME_SCENE := "res://game/BeepSaber_Game.tscn"
 ## where the player stands (XROrigin3D)
 const PLAYER := Vector3(0.0, 0.0, 1.0)
+## the tempo --beat is read at
+const CAPTURE_BPM := 120.0
 
 func _ready() -> void:
 	var args := _args()
@@ -51,6 +54,8 @@ func _ready() -> void:
 		"menu": stage.set_menu_focus(true)
 		_: stage.set_all_on(left, right)
 	stage.classic_rig.set_built(float(args.get("built", "1")))
+	if args.has("beat"):
+		stage.metal_factory_rig.slam(float(args["beat"]), CAPTURE_BPM, 1.0)
 
 	await get_tree().create_timer(float(args.get("seconds", "2.5"))).timeout
 	await RenderingServer.frame_post_draw

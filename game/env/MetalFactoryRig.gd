@@ -34,6 +34,18 @@ const HOUSING_MODEL := preload("res://game/models/piston_housing.glb")
 const HAMMER_MODEL := preload("res://game/models/piston_hammer.glb")
 const HAMMER_BOTTOM := 3.8
 const HEADER_Y := 9.0
+## Slamming (doc/world/GAME_BIBLE.md, owner 2026-10-25): every hammer lands on its anvil together, on the map's beat:
+## every beat, or every 2 beats when a beat is shorter than SLAM_MIN_CYCLE_SECONDS (doubled again only for extreme
+## tempos), and only while the show's intensity is high: the stroke grows from nothing at SLAM_FROM to full at
+## SLAM_FULL. After landing a hammer rests SLAM_REST_SECONDS, rises slowly, easing in and out, and drops over the last
+## SLAM_FALL_SECONDS of the cycle, speeding up like a falling weight, so the blow is heavy and lands on the beat. All
+## hammers move as one, so one node moves, not ten instances. Untuned.
+const STROKE := HAMMER_BOTTOM - ANVIL.y
+const SLAM_MIN_CYCLE_SECONDS := 0.5
+const SLAM_FROM := 0.6
+const SLAM_FULL := 0.9
+const SLAM_REST_SECONDS := 0.06
+const SLAM_FALL_SECONDS := 0.15
 const HEADER := 0.6
 const POST_Z: Array[float] = [-8.0, -16.0, -24.0, -32.0, -40.0, -48.0]
 ## the diagonal lasers stand on each anvil's inner corner nearest the player, clear of the hammer
@@ -89,6 +101,8 @@ const AXLE := 1.0
 const FOUNDATION := Vector4(24.0, -14.0, -66.0, -70.0)
 const PIER_X := Vector2(14.0, 20.0)
 
+var _hammers: MultiMeshInstance3D
+
 ## Builds the boxes into one MultiMesh and the pistons into one per part, all with the hall's material.
 func _ready() -> void:
 	var boxes: Array[Transform3D] = []
@@ -124,10 +138,30 @@ func _ready() -> void:
 	material.set_shader_parameter(&"light_spill", LIGHT_SPILL)
 	_add_multimesh(BoxMesh.new(), boxes, material)
 	_add_multimesh(LaserFixtures._model_mesh(HOUSING_MODEL), housings, material)
-	_add_multimesh(LaserFixtures._model_mesh(HAMMER_MODEL), hammers, material)
+	_hammers = _add_multimesh(LaserFixtures._model_mesh(HAMMER_MODEL), hammers, material)
 
-## Draws `mesh` once at each of `places` in one MultiMesh, without shadows.
-func _add_multimesh(mesh: Mesh, places: Array[Transform3D], material: ShaderMaterial) -> void:
+## Moves the hammers for the song's `beat` at `bpm` and the show's `intensity` (0 to 1); a bpm of 0 rests them raised.
+func slam(beat: float, bpm: float, intensity: float) -> void:
+	var drop := 0.0
+	if bpm > 0.0:
+		var beats := 1.0
+		while beats * 60.0 / bpm < SLAM_MIN_CYCLE_SECONDS:
+			beats *= 2.0
+		drop = hammer_drop(fposmod(beat, beats) * 60.0 / bpm, beats * 60.0 / bpm) * smoothstep(SLAM_FROM, SLAM_FULL, intensity)
+	_hammers.position.y = -STROKE * drop
+
+## How far down a hammer is, 1 on the anvil to 0 raised, `t` seconds after it last landed in a slam every `cycle` seconds.
+static func hammer_drop(t: float, cycle: float) -> float:
+	var fall_start := cycle - SLAM_FALL_SECONDS
+	if t < SLAM_REST_SECONDS:
+		return 1.0
+	if t >= fall_start:
+		var u := (t - fall_start) / SLAM_FALL_SECONDS
+		return u * u
+	return 1.0 - smoothstep(SLAM_REST_SECONDS, fall_start, t)
+
+## Draws `mesh` once at each of `places` in one MultiMesh, without shadows; returns its node.
+func _add_multimesh(mesh: Mesh, places: Array[Transform3D], material: ShaderMaterial) -> MultiMeshInstance3D:
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	multimesh.mesh = mesh
@@ -139,6 +173,7 @@ func _add_multimesh(mesh: Mesh, places: Array[Transform3D], material: ShaderMate
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
+	return instance
 
 ## Adds one side's floor, rail, anvils, wall, ledge, machines and end pier (side -1 left, 1 right).
 static func _side(boxes: Array[Transform3D], side: float) -> void:
