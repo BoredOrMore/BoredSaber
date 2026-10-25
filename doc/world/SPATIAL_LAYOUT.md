@@ -24,7 +24,8 @@ suite (`.claude/skills/rhythm-world-design/`).
   Wide modifiers), 0.4 m deep, from the platform's front (z -0.1) on into the haze (below); along each side the track edge (`track_edge.glb`): a curb 0.08 m
   above the deck whose channel, 0.15 m out, houses the edge light strip (the floor-light group), and a skirt down to
   1.5 m below the deck, 0.42 m out. The deck's surface follows the stage (`TrackDeck.SKINS`): tread plate with rivets in
-  Metal Factory, dark glass in Neon Grid, plain plates elsewhere. It has no end to be seen (owner, 2026-10-25): the deck, its edges and their strips run on to z -150 (Metal Factory:
+  Metal Factory, dark glass in Neon Grid, plain plates elsewhere. Nothing runs across the deck (any such line read as a
+  beat line, owner 2026-10-25): only the lane grooves along it. It has no end to be seen (owner, 2026-10-25): the deck, its edges and their strips run on to z -150 (Metal Factory:
   -66, its foundation, before the gear pit) and fade fully into the haze from 45 m out to 2 m short of their end. The
   old track's far end piece (Endpath, z -85) shows only with the old track. The old see-through sheet stays for mixed reality and the Old track
   setting (Settings > Advanced).

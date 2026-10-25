@@ -1,7 +1,7 @@
 extends Node3D
 class_name TrackDeck
 ## The note track's deck (owner, 2026-10-25: the track looked flat, the lights beside it had no source): a solid deck
-## whose top is the track (y 0) with the plate seams and lane grooves of TrackDeck.gdshader, and along each side the
+## whose top is the track (y 0) with the lane grooves of TrackDeck.gdshader, and along each side the
 ## track's edge (track_edge.glb, tools/models/track_edge.py): a curb whose channel houses the edge light strip
 ## (EventDriver's track lights), so it sits flush in it instead of hanging in the air (AGENTS.md "Light", rule 5), and a
 ## skirt that carries the track down to the stage floor. The player's platform is part of it (owner: as solid as the
