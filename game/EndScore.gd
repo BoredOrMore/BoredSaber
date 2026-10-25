@@ -34,6 +34,12 @@ const HALO_REST := 0.6
 const PULSE_SCALE := 1.06
 const PULSE_SECONDS := 0.35
 const TOP_RANK_SPARKLE := 0.8
+## How wide the song's lines may run on the board (metres, from the name label's left edge): the first to the board's
+## right padding, the second (level and map author) to just before "New Record!" (NRMesh). Longer lines end in "…"
+## instead of spilling off the board (owner on the headset, 2026-10-25: the score board's content overflowed).
+const NAME_WIDTHS := [1.8, 1.3]
+## the name card's text, one line, at most this wide
+const CARD_TEXT_WIDTH := 1.5
 ## The name card under the score (where this run stands on the map's board, and the button to name it) lights its
 ## border once when the count lands, so the eye goes to it after the score (untuned).
 const CARD_GLOW_SECONDS := 0.8
@@ -138,7 +144,10 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 	var shown_rank := ""
 	fc_label.visible = is_full_combo
 	nr_label.visible = is_new_record
-	name_label.text = song_string
+	var lines := song_string.split("\n")
+	for i in lines.size():
+		lines[i] = _fit(($NameLabel as MeshInstance3D).mesh as TextMesh, lines[i], NAME_WIDTHS[mini(i, NAME_WIDTHS.size() - 1)])
+	name_label.text = "\n".join(lines)
 	details_mesh.text = "Score\n%d\n\nRecord\n%d" % [score,record]
 	# after a fail, trying again is the likely next step
 	var repeat_button := $Repeat as UIRaycastButton
@@ -243,7 +252,8 @@ func set_buttons_disabled(disabled: bool) -> void:
 ## Shows a line on the name card.
 func show_name_card(text: String) -> void:
 	_name_card.visible = true
-	_name_label.text = text
+	# one line: the card is one line tall
+	_name_label.text = _fit(_name_label, text.replace("\n", "  ·  "), CARD_TEXT_WIDTH)
 	($MainMenu as UIRaycastButton).set_primary(_finished)
 
 func hide_name_card() -> void:
@@ -261,3 +271,16 @@ func _on_Repeat_button_up() -> void:
 func _on_MainMenu_button_up() -> void:
 	set_buttons_disabled(true)
 	mainmenu.emit()
+
+## `text` cut to fit `width` metres in `mesh`'s font, ending in "…" when cut.
+static func _fit(mesh: TextMesh, text: String, width: float) -> String:
+	var font := mesh.font
+	var size := mesh.font_size
+	var fits := func(t: String) -> bool:
+		return font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x * mesh.pixel_size <= width
+	if fits.call(text):
+		return text
+	var cut := text.length()
+	while cut > 1 and not fits.call(text.substr(0, cut).strip_edges() + "…"):
+		cut -= 1
+	return text.substr(0, cut).strip_edges() + "…"
