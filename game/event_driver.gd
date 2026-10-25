@@ -227,6 +227,8 @@ func _ready() -> void:
 	_fixtures.setup(fixture_lasers, fixture_materials)
 	$Level.add_child(_fixtures)
 	_classic_rig[square_lasers_holder] = square_lasers_holder.transform
+	for strip: MeshInstance3D in [track_lights_left, track_lights_right]:
+		_strip_rest[strip] = strip.global_transform
 	for bar in _square_bars():
 		_classic_rig[bar] = bar.global_transform
 	track_lights_holder.hide()
@@ -303,7 +305,7 @@ func set_environment(id: String) -> void:
 	rings_enabled = id == "classic"
 	_apply_stinger_room(id)
 	_apply_rig(id)
-	track_deck.set_skin(id)
+	track_deck.set_stage(id)
 	show_scenery_for_mixed_reality()
 	set_background()
 
@@ -348,6 +350,8 @@ const FACTORY_STRIP_Z: Array[float] = [-8.0, -22.0, -36.0]
 const FACTORY_STRIP_LIFT := 0.01
 ## each laser's and the square bars' Classic transform, put back before another rig is hung
 var _classic_rig := {}
+## the edge light strips' transforms along the old track, put back with the Old track setting
+var _strip_rest := {}
 
 ## The waving lasers' fixtures, left side first.
 func _waving_lasers() -> Array[Node3D]:
@@ -507,11 +511,20 @@ func set_background() -> void:
 	end_path.visible = old_track
 	track_deck.visible = not old_track
 	track_deck.layout(Settings.LANE_DISTANCE_X)
-	if not old_track:
-		for strip: MeshInstance3D in [track_lights_left, track_lights_right]:
-			var side := signf(strip.global_position.x)
-			var place := TrackDeck.strip_position(Settings.LANE_DISTANCE_X, side, strip.get_aabb().size)
-			strip.global_position = Vector3(place.x, place.y, strip.global_position.z)
+	# the deck's strips run its whole length, out to where it fades into the haze, and fade with it; the old track's
+	# stop at its end, as they always did
+	var span := track_deck.strip_span()
+	track_lights_material.set_shader_parameter(&"fade_z", Vector2.ZERO if old_track else track_deck.fade_z())
+	for strip: MeshInstance3D in [track_lights_left, track_lights_right]:
+		var rest: Transform3D = _strip_rest[strip]
+		if old_track:
+			strip.global_transform = Transform3D(rest.basis, Vector3(strip.global_position.x, rest.origin.y, rest.origin.z))
+			continue
+		var side := signf(strip.global_position.x)
+		var place := TrackDeck.strip_position(Settings.LANE_DISTANCE_X, side, strip.get_aabb().size)
+		var stretch := (span.x - span.y) / strip.get_aabb().size.z
+		strip.global_transform = Transform3D(Basis.from_scale(Vector3(1.0, 1.0, stretch)),
+			Vector3(place.x, place.y, (span.x + span.y) * 0.5))
 	# the Classic rig spreads its diagonal lasers with the track's width; other rigs place them on their structure
 	if environment == "classic":
 		for laser in diagonal_lasers:

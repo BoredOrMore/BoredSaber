@@ -17,9 +17,10 @@ render_mode unshaded, shadows_disabled, fog_disabled;
 //        colour: with it a red light turned the far deck pink, too much saturated area (Light rule 3)
 //   4. floor light: the map's floor-light group (light_color, set each frame by EventDriver) tints the deck faintly,
 //      as the old track did
-//   5. haze: fades into the air's colour with distance, so the far end melts into the haze instead of ending in an
-//      edge; it takes DECK_HAZE of it, so the deck stays a dark ground under the notes (at full haze it read as pale as
-//      the scenery, desktop capture 2026-10-25)
+//   5. haze: fades into the air's colour with distance; it takes DECK_HAZE of it, so the deck stays a dark ground under
+//      the notes (at full haze it read as pale as the scenery, desktop capture 2026-10-25)
+//   6. the far fade: from fade_z.x to fade_z.y metres out the deck goes fully into the haze, so it runs on and melts
+//      away with no end to be seen (owner, 2026-10-25); its edges and strips fade over the same span
 // Grooves are thin and far away, so their width is antialiased with screen-space derivatives and they fade out with
 // the haze before they shimmer. Untuned.
 global uniform vec4 env_haze;
@@ -57,6 +58,8 @@ const float LIGHT_TINT = 0.06;
 // 5. haze per metre, and the share of it the deck takes
 const float FOG_DENSITY = 0.03;
 const float DECK_HAZE = 0.5;
+// 6. the far fade's start and end, metres out along the track (-z), set by TrackDeck.gd
+uniform vec2 fade_z = vec2(60.0, 140.0);
 
 varying vec3 world;
 varying float fog;
@@ -64,6 +67,7 @@ varying float fog;
 void vertex() {
 	world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	fog = (1.0 - exp(-FOG_DENSITY * length(world - CAMERA_POSITION_WORLD))) * DECK_HAZE;
+	fog = max(fog, smoothstep(fade_z.x, fade_z.y, -world.z));
 }
 
 // 1 on a line every `spacing` metres through `origin` along `x`, `half_width` wide, antialiased; 0 elsewhere.

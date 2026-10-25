@@ -2,8 +2,8 @@
 
 - Ticket / owner: track and platform plan T4 (owner, 2026-10-25: the edge lights "just disappear" where the track
   ends) / Claude, owner reviews.
-- Gameplay purpose / song / genre: none for gameplay; the deck's far end on every stage, which the edge light strips
-  run into.
+- Gameplay purpose / song / genre: none for gameplay. Since the owner chose a track with no end to be seen (it fades
+  into the haze, 2026-10-25), only the copy that closes the platform behind the player is used; the far one is gone.
 - Reference files and views: none.
 - Confidence and assumptions: a low block, not a gate: notes and walls appear well before the track's end, so it is
   behind them, and it stays below the horizon (Light rule 5: nothing in front of the horizon). A taller per-stage gate

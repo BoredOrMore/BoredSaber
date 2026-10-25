@@ -15,8 +15,8 @@ class_name TrackDeck
 const DECK_SHADER := preload("res://game/env/TrackDeck.gdshader")
 const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
 const EDGE_MODEL := preload("res://game/models/track_edge.glb")
-## the low block across the deck's far end the edge strips run into (track_end.glb, tools/models/track_end.py), 1 m wide
-## as built, stretched across the deck and both edges (EDGE_REACH out on each side)
+## the low block that closes the platform behind the player (track_end.glb, tools/models/track_end.py), 1 m wide as
+## built, stretched across the deck and both edges (EDGE_REACH out on each side), turned to face away from the track
 const END_MODEL := preload("res://game/models/track_end.glb")
 const EDGE_REACH := 0.42
 ## the platform: its pad's centre (the player's place, game/floor.tscn), the frame's half width (it reaches past the
@@ -26,9 +26,16 @@ const PLATFORM_Z := 1.0
 const FRAME_HALF := 1.1
 const PAD_DEPTH := 0.03
 const FRAME_MODEL := preload("res://game/models/platform_frame.glb")
-## the deck's length along the track, from the platform's front edge to the track's end, and its depth. Its top is the
-## track's surface, y 0: the notes, rows and hit plane are measured from it (game/AGENTS.md).
-const DECK_Z := Vector2(PLATFORM_Z - FRAME_HALF, -48.0)
+## the deck's near end (the platform's front edge) and its depth. Its top is the track's surface, y 0: the notes, rows
+## and hit plane are measured from it (game/AGENTS.md).
+const DECK_NEAR := PLATFORM_Z - FRAME_HALF
+## The deck has no end to be seen (owner, 2026-10-25): it runs on to FAR_Z and fades fully into the haze from FADE_START
+## metres out to FADE_TAIL short of its end, edges and strips with it, past where notes and walls appear. A stage whose
+## scenery is in the way stops it sooner (FAR_Z_BY_STAGE): Metal Factory's at its foundation, before the gear pit.
+const FAR_Z := -150.0
+const FAR_Z_BY_STAGE := {"metal_factory": -66.0}
+const FADE_START := 45.0
+const FADE_TAIL := 2.0
 ## the back of the platform, where the edges end and the second end stop closes it
 const BACK_Z := PLATFORM_Z + FRAME_HALF
 const DECK_DEPTH := 0.4
@@ -45,6 +52,10 @@ var _curbs: MultiMesh
 var _ends: MultiMesh
 var _base: MeshInstance3D
 var _fillers: MultiMesh
+var _curb_material: ShaderMaterial
+## the lanes' spacing and the stage's far end the deck is laid out for
+var _lane_width := Constants.DEFAULT_LANE_DISTANCE_X
+var _far_z := FAR_Z
 ## the deck's material, for the floor light's colour
 var deck_material: ShaderMaterial
 
@@ -65,10 +76,11 @@ func _ready() -> void:
 	curbs.multimesh = _curbs
 	var curb_material := ShaderMaterial.new()
 	curb_material.shader = ENV_SOLID
+	_curb_material = curb_material
 	curbs.material_override = curb_material
 	curbs.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(curbs)
-	_ends = _add_multimesh(LaserFixtures._model_mesh(END_MODEL), 2, curb_material)
+	_ends = _add_multimesh(LaserFixtures._model_mesh(END_MODEL), 1, curb_material)
 	_base = MeshInstance3D.new()
 	_base.mesh = BoxMesh.new()
 	_base.material_override = deck_material
@@ -81,7 +93,7 @@ func _ready() -> void:
 	frame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	frame.position = Vector3(0.0, 0.0, PLATFORM_Z)
 	add_child(frame)
-	layout(Constants.DEFAULT_LANE_DISTANCE_X)
+	layout(_lane_width)
 
 ## A MultiMesh of `count` copies of `mesh` with `material`, without shadows, added as a child.
 func _add_multimesh(mesh: Mesh, count: int, material: ShaderMaterial) -> MultiMesh:
@@ -96,26 +108,24 @@ func _add_multimesh(mesh: Mesh, count: int, material: ShaderMaterial) -> MultiMe
 	add_child(instance)
 	return multimesh
 
-## Sizes the deck for lanes `lane_width` apart (four lanes): the edges at its sides, the end stops across its far end and
-## behind the platform, and the platform's base and fillers out to the deck's width.
+## Sizes the deck for lanes `lane_width` apart (four lanes): the edges at its sides out to the stage's far end, the end
+## stop behind the platform, and the platform's base and fillers out to the deck's width.
 func layout(lane_width: float) -> void:
+	_lane_width = lane_width
 	var half := 2.0 * lane_width
-	var length := DECK_Z.x - DECK_Z.y
+	var length := DECK_NEAR - _far_z
 	_deck.transform = Transform3D(Basis.from_scale(Vector3(half * 2.0, DECK_DEPTH, length)),
-		Vector3(0.0, -DECK_DEPTH * 0.5, (DECK_Z.x + DECK_Z.y) * 0.5))
+		Vector3(0.0, -DECK_DEPTH * 0.5, (DECK_NEAR + _far_z) * 0.5))
 	deck_material.set_shader_parameter(&"lane_width", lane_width)
-	var edge_length := BACK_Z - DECK_Z.y
-	var edge_z := (BACK_Z + DECK_Z.y) * 0.5
-	var width := (half + EDGE_REACH) * 2.0
+	var edge_length := BACK_Z - _far_z
+	var edge_z := (BACK_Z + _far_z) * 0.5
+	_ends.set_instance_transform(0, Transform3D(Basis(Vector3.UP, PI) * Basis.from_scale(Vector3((half + EDGE_REACH) * 2.0, 1.0, 1.0)),
+		Vector3(0.0, 0.0, BACK_Z)))
 	for i in 2:
 		var side := -1.0 if i == 0 else 1.0
-		# the edge model is the right edge, 1 m long; the left is it turned half round. The end stop faces the player as
-		# built; the one behind the platform is turned to face the other way.
+		# the edge model is the right edge, 1 m long; the left is it turned half round
 		var turn := Basis.IDENTITY if side > 0.0 else Basis(Vector3.UP, PI)
 		_curbs.set_instance_transform(i, Transform3D(turn * Basis.from_scale(Vector3(1.0, 1.0, edge_length)), Vector3(side * half, 0.0, edge_z)))
-		var end_turn := Basis.IDENTITY if i == 0 else Basis(Vector3.UP, PI)
-		_ends.set_instance_transform(i, Transform3D(end_turn * Basis.from_scale(Vector3(width, 1.0, 1.0)),
-			Vector3(0.0, 0.0, DECK_Z.y if i == 0 else BACK_Z)))
 		# the plain plates from the frame out to the deck's edge (none at the narrowest width)
 		var filler := maxf(half - FRAME_HALF, 0.001)
 		_fillers.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3(filler, PAD_DEPTH, FRAME_HALF * 2.0)),
@@ -123,13 +133,26 @@ func layout(lane_width: float) -> void:
 	_base.transform = Transform3D(Basis.from_scale(Vector3(half * 2.0, DECK_DEPTH - PAD_DEPTH, FRAME_HALF * 2.0)),
 		Vector3(0.0, -PAD_DEPTH - (DECK_DEPTH - PAD_DEPTH) * 0.5, PLATFORM_Z))
 
-## Dresses the deck for environment `id` (TrackDeck.gdshader's skins): Metal Factory's tread plate, Neon Grid's dark
-## glass, plain plates elsewhere.
-func set_skin(id: String) -> void:
+## Fits the deck to environment `id`: its skin (TrackDeck.gdshader: Metal Factory's tread plate, Neon Grid's dark glass,
+## plain plates elsewhere) and its far end and fade.
+func set_stage(id: String) -> void:
 	deck_material.set_shader_parameter(&"skin", SKINS.get(id, 0))
+	_far_z = FAR_Z_BY_STAGE.get(id, FAR_Z)
+	var fade := fade_z()
+	deck_material.set_shader_parameter(&"fade_z", fade)
+	_curb_material.set_shader_parameter(&"fade_z", fade)
+	layout(_lane_width)
+
+## Where the deck fades into the haze: from and to, in metres out along the track (-z).
+func fade_z() -> Vector2:
+	return Vector2(minf(FADE_START, -_far_z * 0.6), -_far_z - FADE_TAIL)
+
+## The span along the track the edge strips run over: from the deck's near end to its far end (z).
+func strip_span() -> Vector2:
+	return Vector2(DECK_NEAR, _far_z)
 
 ## Where an edge light strip `strip_size` big sits in the edge's channel on `side` (-1 left, 1 right), its top
 ## STRIP_PROUD above the curb's. Level with it, the two tops fought for depth and the strip vanished a few metres out
 ## (desktop capture, 2026-10-25).
 static func strip_position(lane_width: float, side: float, strip_size: Vector3) -> Vector3:
-	return Vector3(side * (2.0 * lane_width + STRIP_OUT), CURB_RISE + STRIP_PROUD - strip_size.y * 0.5, (DECK_Z.x + DECK_Z.y) * 0.5)
+	return Vector3(side * (2.0 * lane_width + STRIP_OUT), CURB_RISE + STRIP_PROUD - strip_size.y * 0.5, 0.0)

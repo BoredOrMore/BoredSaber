@@ -69,6 +69,9 @@ uniform float floor_haze_falloff = 0.35;
 const float SOLID_HEIGHT_FOG = 0.55;
 // the part of the haze the rings take
 const float RING_FOG = 0.5;
+// full haze from fade_z.x to fade_z.y metres out along the track (-z), for pieces that run on into the distance (the
+// track's edges, TrackDeck.gd); off (0, 0) for the rest
+uniform vec2 fade_z = vec2(0.0);
 
 varying float fog;
 varying float form;
@@ -105,6 +108,9 @@ void vertex() {
 	fog = max(fog, height_fog(world, CAMERA_POSITION_WORLD) * SOLID_HEIGHT_FOG);
 	if (ring_hole > 0.0) {
 		fog *= RING_FOG;
+	}
+	if (fade_z.y > fade_z.x) {
+		fog = max(fog, smoothstep(fade_z.x, fade_z.y, -world.z));
 	}
 
 	// 6. vents: the model's marks pick the row; the panel's side of the track picks the wall

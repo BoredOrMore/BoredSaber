@@ -21,13 +21,12 @@ suite (`.claude/skills/rhythm-world-design/`).
 
 ## Environment layout (Classic)
 - Track: a deck (`TrackDeck.gd`, 2026-10-25) whose top is y 0, four lanes wide (2.4 m at normal width, wider with the
-  Wide modifiers), 0.4 m deep, from the platform's front (z -0.1) to -48; along each side the track edge (`track_edge.glb`): a curb 0.08 m
+  Wide modifiers), 0.4 m deep, from the platform's front (z -0.1) on into the haze (below); along each side the track edge (`track_edge.glb`): a curb 0.08 m
   above the deck whose channel, 0.15 m out, houses the edge light strip (the floor-light group), and a skirt down to
   1.5 m below the deck, 0.42 m out. The deck's surface follows the stage (`TrackDeck.SKINS`): tread plate with rivets in
-  Metal Factory, dark glass in Neon Grid, plain plates elsewhere. At its far end (z -48) a low end stop (`track_end.glb`)
-  0.5 m above the deck spans the deck and both edges; the edge strips run into it. It stays below the horizon and behind
-  where notes and walls appear, so there is no gate frame over the track. The old track's far end piece (Endpath, z -85)
-  shows only with the old track. The old see-through sheet stays for mixed reality and the Old track
+  Metal Factory, dark glass in Neon Grid, plain plates elsewhere. It has no end to be seen (owner, 2026-10-25): the deck, its edges and their strips run on to z -150 (Metal Factory:
+  -66, its foundation, before the gear pit) and fade fully into the haze from 45 m out to 2 m short of their end. The
+  old track's far end piece (Endpath, z -85) shows only with the old track. The old see-through sheet stays for mixed reality and the Old track
   setting (Settings > Advanced).
 - Tunnel frames: every 10 m from z -10 to -60, inner edges at x ±11.6, top y 11.6 (`ClassicRig.gd`).
 - Near gate around the player: z 0.5, half-width 3.5, top 4.5, for parallax.
