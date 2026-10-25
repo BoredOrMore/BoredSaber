@@ -79,6 +79,11 @@ const BILLBOARDS := [
 	[2, 0.35, 30.0, 16.0, 8.0, 2], [2, 0.7, 48.0, 10.0, 10.0, 0],
 ]
 const BILLBOARD_OFF := 0.1
+## Rooftop clutter on the low roofs (familiar-size cues; doc/assets/water_tank/spec.md): water tanks as [roof,
+## across the roof from its inner edge (0-1), along it (0-1), turn]. In the props' material: the city's without
+## windows.
+const WATER_TANK := preload("res://game/models/water_tank.glb")
+const WATER_TANKS := [[0, 0.55, 0.3, 0.2], [1, 0.3, 0.7, 1.1], [2, 0.65, 0.25, 0.6], [3, 0.4, 0.55, 2.0], [1, 0.8, 0.2, 0.0]]
 ## the player's rooftop: a stair house on the wall side [out, z, size x/y/z], an open railing on the other side
 ## the rooftop's surface, level with the platform's base (TrackDeck.PAD_DEPTH below the deck's top), so the track and
 ## platform sit on the roof; the stair house, parapet and railing stand on it
@@ -99,6 +104,8 @@ const PARAPET := Vector2(0.3, 0.35)
 var _instance: MultiMeshInstance3D
 var _landmark: MeshInstance3D
 var _billboards: MultiMeshInstance3D
+var _props: Array[MultiMeshInstance3D] = []
+var _props_material: ShaderMaterial
 ## the billboards' material, its light colour set each frame from the square bars' (EventDriver)
 var billboard_material: ShaderMaterial
 var _material: ShaderMaterial
@@ -143,6 +150,9 @@ func build(classic: bool) -> void:
 	if _billboards:
 		_billboards.queue_free()
 		_billboards = null
+	for props in _props:
+		props.queue_free()
+	_props.clear()
 	var boxes := _classic_boxes() if classic else _canyon_boxes()
 	_material.set_shader_parameter(&"windows", 0.0 if classic else 1.0)
 	_material.set_shader_parameter(&"window_min_x", RAILING_X + STAIR_HOUSE_SIZE.x + 2.0)
@@ -173,6 +183,31 @@ func build(classic: bool) -> void:
 		_landmark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(_landmark)
 		_add_billboards()
+		_add_props()
+
+## The rooftop clutter on the low roofs, one MultiMesh per model.
+func _add_props() -> void:
+	if _props_material == null:
+		_props_material = _material.duplicate() as ShaderMaterial
+	_props_material.set_shader_parameter(&"windows", 0.0)
+	var o := -WALL_SIDE
+	var tanks: Array[Transform3D] = []
+	for t: Array in WATER_TANKS:
+		var roof := LOW_ROOFS[int(t[0])]
+		var at := Vector3(o * (roof.x + LOW_ROOF_DEPTH * float(t[1])), roof.w, lerpf(roof.y, roof.z, float(t[2])))
+		tanks.append(Transform3D(Basis(Vector3.UP, float(t[3])), at))
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.mesh = LaserFixtures._model_mesh(WATER_TANK)
+	multimesh.instance_count = tanks.size()
+	for i in tanks.size():
+		multimesh.set_instance_transform(i, tanks[i])
+	var instance := MultiMeshInstance3D.new()
+	instance.multimesh = multimesh
+	instance.material_override = _props_material
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(instance)
+	_props.append(instance)
 
 ## The billboards: one MultiMesh of quads facing the track off the tower wall's face.
 func _add_billboards() -> void:
