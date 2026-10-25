@@ -118,18 +118,24 @@ const CEILING_THICKNESS := 1.0
 const TRUSS_BEAM := 0.6
 const TRUSS_Z: Array[float] = [0.0, -8.0, -16.0, -24.0, -32.0, -40.0, -48.0, -56.0, -64.0]
 const TRUSS_CHORD_X := 9.0
-## Drive gears at the far end, facing the player (x, y centre, z, radius): a big one each side, half in the wall's end
-## pier, and a smaller one meshing below it in the pit, its top just above the floor. Each has an axle back into the
-## foundation or the pier. The view straight ahead stays open above the foundation.
-const DRIVE_GEARS: Array[Vector4] = [
-	Vector4(-17.0, 2.0, -58.0, 10.0), Vector4(17.0, 2.0, -58.0, 10.0),
-	Vector4(-9.0, -6.0, -62.0, 7.5), Vector4(9.0, -6.0, -62.0, 7.5),
-]
-const GEAR_RIM := Vector2(1.2, 1.0)
-const GEAR_SEGMENTS := 16
-const GEAR_TOOTH := 1.2
-const GEAR_HUB := 2.0
+## Drive gears at the far end, facing the player (drive_gear_large/small.glb, tools/models/gears.py): a large one each
+## side (centre, left first), half in the wall's end pier, and a small one meshing below it in the pit, its top just
+## above the floor. Each has an axle back into the foundation or the pier. The view straight ahead stays open above the
+## foundation.
+const LARGE_GEARS: Array[Vector3] = [Vector3(-17.0, 2.0, -58.0), Vector3(17.0, 2.0, -58.0)]
+const SMALL_GEARS: Array[Vector3] = [Vector3(-9.0, -6.0, -62.0), Vector3(9.0, -6.0, -62.0)]
+const LARGE_GEAR_MODEL := preload("res://game/models/drive_gear_large.glb")
+const SMALL_GEAR_MODEL := preload("res://game/models/drive_gear_small.glb")
 const AXLE := 1.0
+## They turn with the show (owner, 2026-10-25): still while it is quiet, slowly as it builds, full speed at the drop:
+## GEAR_SPEED radians a second for the large gears, scaled from nothing at intensity GEAR_FROM to full at GEAR_FULL.
+## Each small gear turns the other way, faster by the tooth ratio (24 to 18), as meshed gears do; the right pair
+## mirrors the left. Kept slow (about 20 degrees a second at most) and far off (58-62 m): only side and far pieces
+## turn, never the floor or the track (vection, plan doc). Untuned.
+const GEAR_SPEED := 0.35
+const GEAR_FROM := 0.1
+const GEAR_FULL := 0.9
+const GEAR_RATIO := 24.0 / 18.0
 ## the foundation the pit's gears turn in, across the far end, its top at the floor (half width, bottom, near z, far z);
 ## the walls reach down to its bottom past the pit, and end in piers
 const FOUNDATION := Vector4(24.0, -14.0, -66.0, -70.0)
@@ -137,6 +143,8 @@ const PIER_X := Vector2(14.0, 20.0)
 
 var _hammers: MultiMesh
 var _rings: MultiMesh
+var _large_gears: MultiMesh
+var _small_gears: MultiMesh
 ## each anvil's sparks (left row first, near to far) and the slam cycle each hammer last landed in
 var _sparks: Array[CPUParticles3D] = []
 var _landed := PackedFloat32Array()
@@ -160,12 +168,7 @@ func _ready() -> void:
 	for side in [-1.0, 1.0]:
 		boxes.append(_span(Vector3(side * TRUSS_CHORD_X - TRUSS_BEAM * 0.5, TRUSS_Y + TRUSS_BEAM * 0.5, TRUSS_Z[0]),
 			Vector3(side * TRUSS_CHORD_X + TRUSS_BEAM * 0.5, TRUSS_Y + TRUSS_BEAM * 1.5, TRUSS_Z[-1])))
-	for gear in DRIVE_GEARS:
-		var centre := Vector3(gear.x, gear.y, gear.z)
-		_gear(boxes, centre, gear.w, GEAR_RIM, GEAR_SEGMENTS, GEAR_TOOTH)
-		for angle in [0.0, PI * 0.5]:
-			boxes.append(Transform3D(Basis(Vector3.BACK, angle) * Basis.from_scale(Vector3(gear.w * 2.0, GEAR_RIM.x, GEAR_RIM.y)), centre))
-		boxes.append(_box(centre, Vector3(GEAR_HUB, GEAR_HUB, GEAR_HUB)))
+	for gear in LARGE_GEARS + SMALL_GEARS:
 		var axle_end := FOUNDATION.z
 		boxes.append(_box(Vector3(gear.x, gear.y, (gear.z + axle_end) * 0.5), Vector3(AXLE, AXLE, gear.z - axle_end)))
 	boxes.append(_span(Vector3(-FLOOR_X.x, -FLOOR_THICKNESS, FLOOR_Z.x), Vector3(FLOOR_X.x, -UNDER_TRACK, FLOOR_Z.y)))
@@ -182,6 +185,13 @@ func _ready() -> void:
 	for z in RING_Z:
 		rings.append(Transform3D(Basis.IDENTITY, Vector3(0.0, RING_Y, z)))
 	_rings = _add_multimesh(LaserFixtures._model_mesh(RING_MODEL), rings, material).multimesh
+	var large: Array[Transform3D] = []
+	var small: Array[Transform3D] = []
+	for i in LARGE_GEARS.size():
+		large.append(Transform3D(Basis.IDENTITY, LARGE_GEARS[i]))
+		small.append(Transform3D(Basis.IDENTITY, SMALL_GEARS[i]))
+	_large_gears = _add_multimesh(LaserFixtures._model_mesh(LARGE_GEAR_MODEL), large, material).multimesh
+	_small_gears = _add_multimesh(LaserFixtures._model_mesh(SMALL_GEAR_MODEL), small, material).multimesh
 	assert(SLAM_LAG_SECONDS.size() == anvils.size(), "one SLAM_LAG_SECONDS per piston")
 	for anvil in anvils:
 		_sparks.append(_add_sparks(anvil.origin))
@@ -257,14 +267,27 @@ func slam(beat: float, bpm: float, intensity: float) -> void:
 				_sparks[i].color_ramp.set_color(0, Color(1.0, 1.0, 1.0, stroke))
 				_sparks[i].restart()
 
+## Turns the drive gears for `delta` seconds at the show's `intensity` (0 to 1).
+func turn_gears(delta: float, intensity: float) -> void:
+	var turn := GEAR_SPEED * smoothstep(GEAR_FROM, GEAR_FULL, intensity) * delta
+	for i in _large_gears.instance_count:
+		# the left pair one way, the right pair mirrored
+		var side := 1.0 if i == 0 else -1.0
+		_turn(_large_gears, i, turn * side)
+		_turn(_small_gears, i, -turn * side * GEAR_RATIO)
+
+## Turns instance `i` of `gears` by `angle` radians about its axle (z).
+static func _turn(gears: MultiMesh, i: int, angle: float) -> void:
+	var place := gears.get_instance_transform(i)
+	place.basis = place.basis.rotated(Vector3.BACK, angle)
+	gears.set_instance_transform(i, place)
+
 ## Turns the gear rings for `delta` seconds at `speed` radians a second (EventDriver.ring_rot_speed, signed), each
 ## the other way from its neighbours.
 func spin_rings(delta: float, speed: float) -> void:
 	for i in _rings.instance_count:
-		var place := _rings.get_instance_transform(i)
 		var direction := 1.0 if i % 2 == 0 else -1.0
-		place.basis = place.basis.rotated(Vector3.BACK, speed * RING_SPIN * direction * delta)
-		_rings.set_instance_transform(i, place)
+		_turn(_rings, i, speed * RING_SPIN * direction * delta)
 
 ## How far down a hammer is, 1 on the anvil to 0 raised, `t` seconds after it last landed in a slam every `cycle` seconds.
 static func hammer_drop(t: float, cycle: float) -> float:
@@ -305,16 +328,6 @@ static func _side(boxes: Array[Transform3D], side: float) -> void:
 		var height := MACHINE_HEIGHTS[i % MACHINE_HEIGHTS.size()]
 		boxes.append(_span(Vector3(side * MACHINE_X, -SINK, z + MACHINE_DEPTH * 0.5), Vector3(side * WALL_X.x, height, z - MACHINE_DEPTH * 0.5)))
 	boxes.append(_span(Vector3(side * PIER_X.x, FOUNDATION.y, FOUNDATION.z + 2.0), Vector3(side * PIER_X.y, WALL_TOP, FOUNDATION.w)))
-
-## Adds a gear facing the player (axis along z): a rim of straight pieces with a tooth on each, outside.
-static func _gear(boxes: Array[Transform3D], centre: Vector3, radius: float, rim: Vector2, segments: int, tooth: float) -> void:
-	var chord := 2.0 * radius * sin(PI / segments)
-	for i in segments:
-		var angle := TAU * (i + 0.5) / segments
-		var basis := Basis(Vector3.BACK, angle + PI * 0.5)
-		var out := Vector3(cos(angle), sin(angle), 0.0)
-		boxes.append(Transform3D(basis * Basis.from_scale(Vector3(chord, rim.x, rim.y)), centre + out * radius))
-		boxes.append(Transform3D(basis * Basis.from_scale(Vector3(tooth, tooth, rim.y)), centre + out * (radius + (rim.x + tooth) * 0.5)))
 
 ## Where a diagonal laser stands on anvil `i` (left row first), its foot on the anvil's shelf.
 static func anvil_fixture(i: int) -> Vector3:

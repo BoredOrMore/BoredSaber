@@ -656,6 +656,7 @@ func _update_show(delta: float) -> void:
 		classic_rig.set_built(_built)
 	if environment == "metal_factory":
 		metal_factory_rig.slam(show_beat, _show_bpm, _intensity)
+		metal_factory_rig.turn_gears(delta, _intensity)
 
 ## In Classic the square light bars hang on the tunnel's frames: a frame that isn't standing yet has no lights on it
 ## (the crew hangs them once it is up), so its bars are hidden until it stands. Lowered bars used to shine up through
