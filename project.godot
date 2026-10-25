@@ -212,6 +212,10 @@ debug_view={
 "type": "int",
 "value": 0
 }
+fog_key={
+"type": "vec4",
+"value": Vector4(0, 0, -1, 0)
+}
 
 [xr]
 

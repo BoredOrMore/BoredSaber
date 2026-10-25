@@ -39,6 +39,7 @@ uniform lowp float bg_4_intensity = 0.0;
 uniform lowp float contrast = 1.0;
 global uniform vec4 env_haze;
 #include \"res://game/env/shadow_tone.gdshaderinc\"
+#include \"res://game/env/fog_light.gdshaderinc\"
 // DebugView.SKY draws the sky plain black, without its textures
 global uniform int debug_view;
 // how much of the haze colour fills the whole sky, and how fast the brighter band at the horizon thins out (untuned;
@@ -64,6 +65,8 @@ vec3 get_from_map(sampler2D maptx, vec2 uv, float intensity, vec3 albedo, vec4 t
 }
 
 void fragment(){
+	// the haze lit from the stage's key light, seen this way (fog_light.gdshaderinc)
+	vec3 haze = fog_lit(env_haze.rgb, (INV_VIEW_MATRIX * vec4(-VIEW, 0.0)).xyz);
 	if ((debug_view & 16) != 0) {
 		ALBEDO = vec3(0.0);
 	} else {
@@ -75,8 +78,8 @@ void fragment(){
 	if (bg_3_intensity>0.0){ALBEDO = get_from_map(bg_3, xinv_uv, (bg_3_intensity*bg_3_intensity_mult), ALBEDO, bg_3_tint);}
 	if (bg_4_intensity>0.0){ALBEDO = get_from_map(bg_4, xinv_uv, (bg_4_intensity*bg_4_intensity_mult), ALBEDO, bg_4_tint);}
 	ALBEDO.rgb = vec3(pow(ALBEDO.r, contrast), pow(ALBEDO.g, contrast), pow(ALBEDO.b, contrast));
-	ALBEDO += env_haze.rgb * (SKY_HAZE + exp(-abs(UV.y - 0.5) * HORIZON_SHARPNESS));
-	ALBEDO = shadow_tone(ALBEDO);
+	ALBEDO += haze * (SKY_HAZE + exp(-abs(UV.y - 0.5) * HORIZON_SHARPNESS));
+	ALBEDO = fog_dither(shadow_tone(ALBEDO), FRAGCOORD.xy);
 	}
 }"
 

@@ -10,6 +10,7 @@ render_mode unshaded, cull_back, shadows_disabled, fog_disabled;
 //   3. distance: fades into the plain haze far away, where it meets the sky
 // The fog layer just above it (EnvSolid 5b, canyon_fog) hides where it meets the towers. All values untuned.
 global uniform vec4 env_haze;
+#include "res://game/env/fog_light.gdshaderinc"
 global uniform vec4 env_light;
 // how high the waves heave (metres), how wide (per metre) and how fast
 const float HEAVE = 1.6;
@@ -34,6 +35,8 @@ void vertex() {
 }
 
 void fragment() {
-	vec3 body = env_haze.rgb * mix(BODY.x, BODY.y, crest) + env_light.rgb * CREST_LIGHT * crest;
-	ALBEDO = mix(body, env_haze.rgb, far);
+	// the haze lit from the stage's key light, seen this way (fog_light.gdshaderinc)
+	vec3 haze = fog_lit(env_haze.rgb, (INV_VIEW_MATRIX * vec4(-VIEW, 0.0)).xyz);
+	vec3 body = haze * mix(BODY.x, BODY.y, crest) + env_light.rgb * CREST_LIGHT * crest;
+	ALBEDO = fog_dither(mix(body, haze, far), FRAGCOORD.xy);
 }

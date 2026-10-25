@@ -7,6 +7,7 @@ render_mode unshaded, fog_disabled, shadows_disabled;
 // The bg_<type> uniforms EventDriver sets on every sky are left out on purpose. Value untuned.
 global uniform vec4 env_haze;
 #include "res://game/env/shadow_tone.gdshaderinc"
+#include "res://game/env/fog_light.gdshaderinc"
 // DebugView.SKY draws the sky plain black
 global uniform int debug_view;
 
@@ -14,5 +15,7 @@ global uniform int debug_view;
 const float SKY_HAZE = 0.03;
 
 void fragment() {
-	ALBEDO = (debug_view & 16) != 0 ? vec3(0.0) : shadow_tone(env_haze.rgb * SKY_HAZE);
+	// the haze lit from the stage's key light, seen this way (fog_light.gdshaderinc)
+	vec3 haze = fog_lit(env_haze.rgb, (INV_VIEW_MATRIX * vec4(-VIEW, 0.0)).xyz);
+	ALBEDO = (debug_view & 16) != 0 ? vec3(0.0) : fog_dither(shadow_tone(haze * SKY_HAZE), FRAGCOORD.xy);
 }

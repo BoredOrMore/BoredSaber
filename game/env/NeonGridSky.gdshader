@@ -10,6 +10,7 @@ render_mode unshaded, fog_disabled, shadows_disabled;
 // side, 4 centre lights -> the sun.
 global uniform vec4 env_haze;
 #include "res://game/env/shadow_tone.gdshaderinc"
+#include "res://game/env/fog_light.gdshaderinc"
 // DebugView.SKY draws the sky plain black
 global uniform int debug_view;
 // r haze, g sun, b ring lights (horizon line and rims)
@@ -53,6 +54,8 @@ vec3 traced(vec3 tint, float mask) {
 }
 
 void fragment() {
+	// the haze lit from the stage's key light, seen this way (fog_light.gdshaderinc)
+	vec3 haze = fog_lit(env_haze.rgb, (INV_VIEW_MATRIX * vec4(-VIEW, 0.0)).xyz);
 	if ((debug_view & 16) != 0) {
 		ALBEDO = vec3(0.0);
 	} else {
@@ -61,11 +64,11 @@ void fragment() {
 		mediump vec3 sharp = texture(sharp_masks, band_uv).rgb;
 		mediump vec2 soft = texture(soft_masks, band_uv).rg;
 		mediump vec3 side_light = mix(bg_3_tint.rgb * bg_3_intensity, bg_2_tint.rgb * bg_2_intensity, step(0.5, UV.x));
-		ALBEDO = env_haze.rgb * (sharp.r * HAZE_SCALE)
+		ALBEDO = haze * (sharp.r * HAZE_SCALE)
 				+ traced(bg_4_tint.rgb, sharp.g) * (mix(SUN_FLOOR, 1.0, bg_4_intensity) * sharp.g * SUN_SCALE * SUN_GAIN)
 				+ traced(bg_1_tint.rgb, sharp.b) * (bg_1_intensity * sharp.b * RING_SCALE * RING_GAIN)
 				+ bg_0_tint.rgb * (bg_0_intensity * soft.r * BAND_SCALE)
 				+ side_light * (soft.g * SIDE_SCALE);
-		ALBEDO = shadow_tone(ALBEDO);
+		ALBEDO = fog_dither(shadow_tone(ALBEDO), FRAGCOORD.xy);
 	}
 }

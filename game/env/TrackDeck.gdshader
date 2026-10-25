@@ -27,6 +27,7 @@ render_mode unshaded, shadows_disabled, fog_disabled;
 // the haze before they shimmer. Untuned.
 global uniform vec4 env_haze;
 #include "res://game/env/shadow_tone.gdshaderinc"
+#include "res://game/env/fog_light.gdshaderinc"
 
 // 1. base: near-black, the lane grooves just visible in it (owner, 2026-10-25: the deck read too bright; it was 0.06)
 uniform vec4 albedo : source_color = vec4(0.035, 0.035, 0.04, 1.0);
@@ -97,6 +98,8 @@ float rivets(vec2 p) {
 }
 
 void fragment() {
+	// the haze lit from the stage's key light, seen this way (fog_light.gdshaderinc)
+	vec3 haze = fog_lit(env_haze.rgb, (INV_VIEW_MATRIX * vec4(-VIEW, 0.0)).xyz);
 	// 3 and the skin's pattern only on the deck's top (its sides are plain)
 	float top = step(-0.01, world.y);
 	float groove = lines(world.x, 0.0, lane_width, GROOVE_HALF_WIDTH) * top;
@@ -108,9 +111,9 @@ void fragment() {
 	} else if (skin == 2) {
 		base *= GLASS_BASE;
 		float grazing = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), GLASS_SHARPNESS);
-		sheen = env_haze.rgb * GLASS_SHEEN * grazing * top;
+		sheen = haze * GLASS_SHEEN * grazing * top;
 	}
 	vec3 lit = base * (1.0 - GROOVE_DARK * groove);
 	lit += light_color.rgb * LIGHT_TINT + sheen;
-	ALBEDO = shadow_tone(mix(lit, env_haze.rgb, fog));
+	ALBEDO = fog_dither(shadow_tone(mix(lit, haze, fog)), FRAGCOORD.xy);
 }

@@ -415,6 +415,18 @@ func _hang_canyon(waving: Array[Node3D]) -> void:
 				CANYON_BILLBOARD_Y[j % CANYON_BILLBOARD_Y.size()], lerpf(t.y, t.z, 0.25 + 0.15 * j)))
 		k += 1
 
+## Each stage's key light for the fog's in-scattering (fog_light.gdshaderinc): the way to it from the player (x, y, z)
+## and how strongly the haze brightens toward it (w). Classic: the stage ahead and above; Neon Grid: the sun on the
+## horizon; Night City: the glow at the canyon's far end, a little toward the open side; Pulse Void: the tunnel's
+## bright end; Metal Factory: the gear pit ahead, gently. Untuned.
+const FOG_KEYS := {
+	"classic": Vector4(0.0, 0.3, -1.0, 0.12),
+	"neon_grid": Vector4(0.0, 0.12, -1.0, 0.2),
+	"night_city": Vector4(0.2, 0.1, -1.0, 0.15),
+	"pulse_void": Vector4(0.0, 0.0, -1.0, 0.2),
+	"metal_factory": Vector4(0.0, 0.05, -1.0, 0.08),
+}
+
 ## Pulse Void's beams: their width and brightness, parts of the beams' own (untuned)
 const VOID_BEAM_WIDTH := 0.5
 const VOID_BEAM_BRIGHTNESS := 0.55
@@ -473,6 +485,10 @@ func _apply_rig(id: String) -> void:
 	# the sky sphere (100 m) would hide the canyon's far city and landmark tower (to 800 m out): there it is drawn
 	# CANYON_SKY_SCALE times as far; elsewhere at its size, where it hides the beams' far ends
 	($Level/Sphere as Node3D).scale = Vector3.ONE * (CANYON_SKY_SCALE if id == "night_city" and not Settings.classic_night_city else 1.0)
+	# the haze lit from the stage's key light (fog_light.gdshaderinc)
+	var key: Vector4 = FOG_KEYS.get(id, Vector4(0.0, 0.0, -1.0, 0.0))
+	var key_dir := Vector3(key.x, key.y, key.z).normalized()
+	RenderingServer.global_shader_parameter_set(&"fog_key", Vector4(key_dir.x, key_dir.y, key_dir.z, key.w))
 	# Pulse Void's beams narrower and dimmer, so its rings lead and the notes stay brightest (Light rule 1; owner,
 	# 2026-10-25: too bright); the rest keep the beams' own width and brightness
 	for material: ShaderMaterial in [diagonal_lasers_material, left_waving_lasers_material, right_waving_lasers_material]:

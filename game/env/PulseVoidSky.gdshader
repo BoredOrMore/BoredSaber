@@ -8,6 +8,7 @@ render_mode unshaded, fog_disabled, shadows_disabled;
 // 4 centre lights -> the core at the track end. All values untuned.
 global uniform vec4 env_haze;
 #include "res://game/env/shadow_tone.gdshaderinc"
+#include "res://game/env/fog_light.gdshaderinc"
 // DebugView.SKY draws the sky plain black
 global uniform int debug_view;
 uniform lowp vec4 bg_0_tint;
@@ -39,13 +40,15 @@ void vertex() {
 }
 
 void fragment() {
+	// the haze lit from the stage's key light, seen this way (fog_light.gdshaderinc)
+	vec3 haze = fog_lit(env_haze.rgb, (INV_VIEW_MATRIX * vec4(-VIEW, 0.0)).xyz);
 	if ((debug_view & 16) != 0) {
 		ALBEDO = vec3(0.0);
 	} else {
 		vec3 d = normalize(dir);
 		// 0 looking straight down the track, 2 looking straight back
 		float off_axis = 1.0 - dot(d, TRACK_DIR);
-		vec3 sky = env_haze.rgb * (SKY_HAZE + exp(-off_axis / HALO_WIDTH) * 0.3);
+		vec3 sky = haze * (SKY_HAZE + exp(-off_axis / HALO_WIDTH) * 0.3);
 		sky += bg_4_tint.rgb * bg_4_intensity * CORE_STRENGTH * exp(-off_axis / CORE_WIDTH);
 		sky += bg_0_tint.rgb * bg_0_intensity * HALO_STRENGTH * exp(-off_axis / HALO_WIDTH);
 		sky += bg_1_tint.rgb * bg_1_intensity * BAND_STRENGTH * exp(-abs(d.y) * BAND_SHARPNESS);
@@ -53,6 +56,6 @@ void fragment() {
 		sky += bg_2_tint.rgb * bg_2_intensity * smoothstep(0.2, 1.0, -d.x) * side_fade;
 		sky += bg_3_tint.rgb * bg_3_intensity * smoothstep(0.2, 1.0, d.x) * side_fade;
 		ALBEDO = sky;
-		ALBEDO = shadow_tone(ALBEDO);
+		ALBEDO = fog_dither(shadow_tone(ALBEDO), FRAGCOORD.xy);
 	}
 }

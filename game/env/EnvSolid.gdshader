@@ -47,6 +47,7 @@ render_mode unshaded, fog_disabled, shadows_disabled;
 global uniform vec4 env_haze;
 global uniform vec4 env_light;
 #include "res://game/env/shadow_tone.gdshaderinc"
+#include "res://game/env/fog_light.gdshaderinc"
 #include "res://game/env/height_fog.gdshaderinc"
 // DebugView.RINGS leaves these out (no area, so nothing is drawn)
 global uniform int debug_view;
@@ -240,6 +241,8 @@ vec3 windows_light() {
 }
 
 void fragment() {
+	// the haze lit from the stage's key light, seen this way (fog_light.gdshaderinc)
+	vec3 haze = fog_lit(env_haze.rgb, (INV_VIEW_MATRIX * vec4(-VIEW, 0.0)).xyz);
 	// edge is interpolated linearly across the ring's band; the power pulls the glow in tight against the hole
 	float glow = pow(edge, EDGE_TIGHTNESS) * EDGE_LIGHT;
 	vec3 lit = (albedo.rgb * form + env_light.rgb * spill * form) * ao;
@@ -256,6 +259,6 @@ void fragment() {
 	}
 	// the windows go on after the shadow tone, which would grey their colour
 	// 5. per pixel on faces too big for a blend of their corners
-	float haze = fog_per_pixel ? fog_at(world_pos, CAMERA_POSITION_WORLD, TIME) : fog;
-	ALBEDO = shadow_tone(mix(lit, env_haze.rgb, haze) + (env_light.rgb * glow + vent_light) * (1.0 - haze)) + windows_light() * (1.0 - haze);
+	float haze_amount = fog_per_pixel ? fog_at(world_pos, CAMERA_POSITION_WORLD, TIME) : fog;
+	ALBEDO = fog_dither(shadow_tone(mix(lit, haze, haze_amount) + (env_light.rgb * glow + vent_light) * (1.0 - haze_amount)) + windows_light() * (1.0 - haze_amount), FRAGCOORD.xy);
 }
