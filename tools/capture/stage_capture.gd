@@ -13,7 +13,7 @@ extends Node3D
 ##   --map <folder or song name> (play a Beat Saber map: its song, light show, colours and show intensity drive the stage
 ##   as in the game; a name without a / is a folder or song name in the game's Songs folder, e.g. --map Psycho; the stage is the one the map picks on Auto
 ##   unless --env is given; runs to the song's end unless --seconds is given)  --difficulty ExpertPlus (default the
-##   hardest)  --start 0 (seconds into the song)
+##   hardest)  --start 0 (seconds into the song)  --at 124.6 (capture when the song reaches this second)
 ##   --notes 1 (with --map: the map's notes, bombs, walls, arcs and chains fly in, spawned, timed and sped as in the game
 ##   (GameStatePlaying.spawn_due); nobody cuts them, so they pass and are missed, which costs nothing here; 0 leaves them out)
 ##   --note left|right (one note held still NOTE_AHEAD in front of the eye, to look at its shading; pair with
@@ -22,6 +22,8 @@ extends Node3D
 ##   near fade), --wall-x 0.6 to its centre's side; --wall classic for the Classic walls look)  --danger RRGGBB
 ##   --saber left|right (the default saber turned on, held --saber-dist metres in front of the eye, default 0.35, its
 ##   blade leaning away to the side, to look at it up close)
+##   --bomb 1|classic (with --map: the map's bombs, classic = the two-mesh bomb; otherwise two bombs held still, one
+##   --bomb-dist metres ahead (default 0.8) and one at play distance, 6 m)
 ##   --stats 1 (print the frame's triangles, draw calls and objects as drawn, RenderingServer's counters, one view)
 ##   --dot 1 (a dot note)  --note-style 2 (0 Solid, 1 Neon: the Classic notes looks; 2 the glossy default)
 
@@ -51,6 +53,7 @@ const NOTE_SCENES := {
 }
 var _notes := false
 const NOTE_SCENE := preload("res://game/BeepCube/BeepCube.tscn")
+const BOMB_SCENE := preload("res://game/Bomb/Bomb.tscn")
 const SABER_SCENE := preload("res://game/sabers/default/default_saber.tscn")
 ## --wall: the held wall's size (metres)
 const WALL_SIZE := Vector3(1.2, 1.6, 3.0)
@@ -104,6 +107,19 @@ func _ready() -> void:
 	Settings.classic_walls = args.get("wall", "") == "classic"
 	if args.has("wall") and not args.has("map"):
 		_hold_wall(camera, args)
+	Bomb.classic = args.get("bomb", "") == "classic"
+	(Bomb.MERGED_MATERIAL as ShaderMaterial).set_shader_parameter(&"danger_color", Color(args.get("danger", "ff3030") as String))
+	(load("res://game/Bomb/bomb_glow.tres") as ShaderMaterial).set_shader_parameter(&"danger_color", Color(args.get("danger", "ff3030") as String))
+	if args.has("bomb") and not args.has("map"):
+		for z: float in [float(args.get("bomb-dist", "0.8")), 6.0]:
+			var bomb := BOMB_SCENE.instantiate() as Bomb
+			add_child(bomb)
+			bomb.position = camera.position + Vector3(0.0 if z < 2.0 else 0.6, -0.15, -z)
+			# where its fly-in ends (Bomb.tscn starts it small and further out)
+			var anim := bomb.get_node(^"AnimationPlayer") as AnimationPlayer
+			anim.play(&"Spawn")
+			anim.seek(anim.current_animation_length, true)
+			anim.pause()
 	if args.has("saber"):
 		_hold_saber(camera, left if args["saber"] == "left" else right, float(args.get("saber-dist", "0.35")))
 	if args.has("note"):
@@ -112,7 +128,11 @@ func _ready() -> void:
 		get_tree().quit(1)
 		return
 
-	if _song and not args.has("seconds"):
+	if _song and args.has("at"):
+		# the song's own clock, so the moment doesn't drift with load time
+		while _song.playing and _song.get_playback_position() < float(args["at"]):
+			await get_tree().process_frame
+	elif _song and not args.has("seconds"):
 		await _song.finished
 	else:
 		await get_tree().create_timer(float(args.get("seconds", "2.5"))).timeout

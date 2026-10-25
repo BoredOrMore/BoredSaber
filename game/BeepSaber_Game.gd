@@ -737,6 +737,7 @@ static func _update_danger_color(danger: Color) -> void:
 	(DANGER_WALL_MATERIAL as ShaderMaterial).set_shader_parameter(&"danger_color", danger)
 	(Wall.FRAMED_MATERIAL as ShaderMaterial).set_shader_parameter(&"danger_color", danger)
 	(BOMB_GLOW_MATERIAL as ShaderMaterial).set_shader_parameter(&"danger_color", danger)
+	(Bomb.MERGED_MATERIAL as ShaderMaterial).set_shader_parameter(&"danger_color", danger)
 
 func update_left_color(color: Color) -> void:
 	if !left_saber:
