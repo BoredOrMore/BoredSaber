@@ -121,6 +121,9 @@ func _play_map(stage: EventDriver, args: Dictionary) -> bool:
 	stage.update_left_color(Map.color_left)
 	stage.update_right_color(Map.color_right)
 	stage.set_background()
+	# the show plays whatever the desktop's own Background setting is ("static" there would drop every light and ring
+	# event); the saved setting is left alone
+	stage.disabled = false
 	stage.set_all_off()
 	stage.start_show(Map.event_stack, info.beats_per_minute)
 	_song = AudioStreamPlayer.new()
