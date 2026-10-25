@@ -59,6 +59,10 @@ func _ready() -> void:
 	var early := MetalFactoryRig.hammer_drop(cycle - fall * 0.75, cycle) - MetalFactoryRig.hammer_drop(cycle - fall, cycle)
 	var late := MetalFactoryRig.hammer_drop(cycle - 0.0001, cycle) -MetalFactoryRig.hammer_drop(cycle - fall * 0.25, cycle)
 	check(late > early, "a hammer speeds up as it falls")
+	var in_sync := true
+	for lag in MetalFactoryRig.SLAM_LAG_SECONDS:
+		in_sync = in_sync and lag >= 0.0 and lag <= 0.08
+	check(in_sync, "every hammer lands after the beat and within 80 ms of it")
 
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
