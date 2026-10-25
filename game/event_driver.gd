@@ -192,6 +192,7 @@ var _bars_lowered := false
 @onready var track_lights_right := $Level/TrackLights/Bar1 as MeshInstance3D
 @onready var track_lights_left := $Level/TrackLights/Bar2 as MeshInstance3D
 @onready var end_path := $Level/Endpath as MeshInstance3D
+@onready var track_deck := $Level/TrackDeck as TrackDeck
 @onready var stage_smoke := $Level/StageSmoke as StageSmoke
 ## the player's platform border (game/floor.tscn): always lit, white-hot with the right note colour at its edges,
 ## whatever the map's light show does, so the player always sees where they stand
@@ -497,6 +498,17 @@ func set_background() -> void:
 	($Level/floor/line3).global_transform.origin.x = 2 * Settings.LANE_DISTANCE_X
 	($Level/floor/line4).global_transform.origin.x = -2 * Settings.LANE_DISTANCE_X
 	($Level/floor).scale.z = 1
+	# the deck with its curbs (TrackDeck), whose curbs house the edge light strips; or the old see-through sheet, with
+	# its strips at its edges, in mixed reality (the room must show through) and with the Old track setting
+	var old_track := Settings.old_track or Settings.mixed_reality
+	($Level/floor as Node3D).visible = old_track
+	track_deck.visible = not old_track
+	track_deck.layout(Settings.LANE_DISTANCE_X)
+	if not old_track:
+		for strip: MeshInstance3D in [track_lights_left, track_lights_right]:
+			var side := signf(strip.global_position.x)
+			var place := TrackDeck.strip_position(Settings.LANE_DISTANCE_X, side, strip.get_aabb().size)
+			strip.global_position = Vector3(place.x, place.y, strip.global_position.z)
 	# the Classic rig spreads its diagonal lasers with the track's width; other rigs place them on their structure
 	if environment == "classic":
 		for laser in diagonal_lasers:
@@ -570,6 +582,8 @@ func _process(delta: float) -> void:
 	var quiet := not menu_focus and Settings.atmosphere == "Eerie" and _since_event > QUIET_AFTER_SECONDS
 	_quiet = move_toward(_quiet, 1.0 if quiet else 0.0, delta / (QUIET_FADE_SECONDS if quiet else QUIET_RISE_SECONDS))
 	_update_haze()
+	if track_deck.visible:
+		track_deck.deck_material.set_shader_parameter(&"light_color", floor_material.albedo_color)
 	if environment == "metal_factory":
 		metal_factory_rig.set_vent_colors(diagonal_lasers_material.get_shader_parameter(&"light_color"),
 				left_waving_lasers_material.get_shader_parameter(&"light_color"),

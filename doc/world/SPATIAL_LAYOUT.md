@@ -18,7 +18,10 @@ suite (`.claude/skills/rhythm-world-design/`).
 - Platform: the player's lit border (`game/floor.tscn`).
 
 ## Environment layout (Classic)
-- Track floor: about 7 m wide at normal width (`EventDriver.set_background`), from z -1.5 to -48.
+- Track: a deck (`TrackDeck.gd`, 2026-10-25) whose top is y 0, four lanes wide (2.4 m at normal width, wider with the
+  Wide modifiers), 0.4 m deep, from z -1.5 to -48; a curb 0.3 m wide along each side, 0.08 m above the deck, housing
+  the edge light strips (the floor-light group). The old see-through sheet stays for mixed reality and the Old track
+  setting (Settings > Advanced).
 - Tunnel frames: every 10 m from z -10 to -60, inner edges at x ±11.6, top y 11.6 (`ClassicRig.gd`).
 - Near gate around the player: z 0.5, half-width 3.5, top 4.5, for parallax.
 - Rings: square frames 12.4 m across, out to z -55, spinning on light events.

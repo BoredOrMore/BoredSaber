@@ -814,6 +814,10 @@ text = "Spectator view"
 layout_mode = 2
 text = "Score on spectator view"
 
+[node name="old_track" type="CheckButton" parent="Tabs/Advanced/VBox"]
+layout_mode = 2
+text = "Old track"
+
 [node name="defaults" type="Button" parent="."]
 layout_mode = 0
 offset_left = 24.0
@@ -894,5 +898,6 @@ scroll_without_pointer = true
 [connection signal="toggled" from="Tabs/Advanced/VBox/show_debug" to="." method="_on_show_debug_toggled"]
 [connection signal="toggled" from="Tabs/Advanced/VBox/spectator_view" to="." method="_on_spectator_view_toggled"]
 [connection signal="toggled" from="Tabs/Advanced/VBox/spectator_hud" to="." method="_on_spectator_hud_toggled"]
+[connection signal="toggled" from="Tabs/Advanced/VBox/old_track" to="." method="_on_old_track_toggled"]
 [connection signal="confirmed" from="defaults" to="." method="_restore_defaults"]
 [connection signal="pressed" from="apply" to="." method="_on_apply_pressed"]

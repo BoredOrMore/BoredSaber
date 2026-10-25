@@ -44,6 +44,7 @@ signal benchmark_requested()
 @onready var audio_sfx_control := $Tabs/Audio/VBox/audio/sfx/sfx_slider as HSlider
 @onready var spectator_view_control := $Tabs/Advanced/VBox/spectator_view as CheckButton
 @onready var spectator_hud_control := $Tabs/Advanced/VBox/spectator_hud as CheckButton
+@onready var old_track_control := $Tabs/Advanced/VBox/old_track as CheckButton
 @onready var background_mode_control := $Tabs/Visuals/VBox/background_mode_grid/background_mode as OptionButton
 @onready var background_texture_control := $Tabs/Visuals/VBox/background_texture_grid/background_texture as OptionButton
 @onready var note_style_control := $Tabs/Visuals/VBox/note_style_grid/note_style as OptionButton
@@ -180,6 +181,7 @@ func set_controls_from_settings() -> void:
 	audio_sfx_control.value = Settings.audio_sfx
 	spectator_view_control.button_pressed = Settings.spectator_view
 	spectator_hud_control.button_pressed = Settings.spectator_hud
+	old_track_control.button_pressed = Settings.old_track
 
 func _restore_defaults() -> void:
 	Settings.restore_defaults()
@@ -523,6 +525,10 @@ func _on_spectator_view_toggled(value: bool) -> void:
 
 func _on_spectator_hud_toggled(value: bool) -> void:
 	Settings.spectator_hud = value
+
+## Switches between the old see-through track and the deck with curbs.
+func _on_old_track_toggled(value: bool) -> void:
+	Settings.old_track = value
 
 
 func _on_recenter_button_up() -> void:
