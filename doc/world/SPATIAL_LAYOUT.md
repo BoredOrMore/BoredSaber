@@ -25,6 +25,24 @@ suite (`.claude/skills/rhythm-world-design/`).
 - Laser fixtures: diagonal at x ±4.5, z -30 to -50; waving at x ±12.43, z -21 to -30, each on a pedestal
   (top y 0.05) with a moving head whose tilt axis is 0.54 m above it (`ClassicRig.FIXTURE_Y`, `LaserFixtures.gd`).
 
+## Environment layout (Metal Factory, blockout 2026-10-25)
+Plain boxes in `MetalFactoryRig.gd`, every size a named constant there; detail models still to come.
+- Factory floor: either side of the track from x ±3.6 to ±18, z 4 to -56 (top y 0), closing the gap past the
+  track's end (z -48); a pit beyond it to the foundation (z -66 to -70, top y 0).
+- Pistons: two rows at x ±8, z -12 to -44 every 8 m. Anvil 3.6 × 1.5 × 3.6 m; hammer 2.2 m, raised (bottom y 3.8);
+  housing under a header beam at y 9, carried by posts at z -8 to -48 every 8 m.
+- Gear rings: around the track at z -15 to -55 every 8 m, centre y 2, radius 6.5 m (13 m across), 12 teeth,
+  running down through the floor; inner edge 6.2 m from the centre.
+- Energy rails: x ±4, z 2 to -48, top y 0.3, 0.4 m wide; the square bars run as strips flush on top.
+- Machinery walls: solid at x ±18 to ±20, up to y 18, z 6 to -68; catwalk ledge along the inner face at x ±16, top
+  y 8; machine blocks against the wall (x ±15) every 8 m from z -4 to -52, 5.5 and 3.5 m high in turn.
+- Ceiling truss: cross beams at y 18 every 8 m from z 0 to -64, two chords at x ±9.
+- Drive gears at the far end, facing the player: radius 10 at x ±17, y 2, z -58 (half in the walls' end piers);
+  radius 7.5 at x ±9, y -6, z -62 in the pit (top about y 2.7). Axles into the piers and foundation. The view straight
+  ahead above the foundation stays open.
+- Laser fixtures: diagonal on each anvil's inner corner nearest the player (x ±6.55, z piston + 1.45, foot y 1.5);
+  waving on the ledges at x ±16.5, z -16 to -40, foot y 8.
+
 ## Exclusion zones
 - The note corridor: lanes ±1.2 m (more when wide), y 0 to 2.5, from the player to the far spawn. No scenery,
   particles or bright light inside it.
@@ -36,4 +54,6 @@ suite (`.claude/skills/rhythm-world-design/`).
 - Each environment's signature view toward the horizon.
 
 ## Validation
+Metal Factory blockout captures (Godot `tools/capture/stage_capture.tscn`): `captures/metal_factory_blockout_*.png`.
+
 Blender render from (0, 1.6, 1) looking down -z before building; headset screenshots in play after.

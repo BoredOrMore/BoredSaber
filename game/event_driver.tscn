@@ -1,4 +1,4 @@
-[gd_scene load_steps=44 format=3 uid="uid://qjvg3reomvyk"]
+[gd_scene load_steps=45 format=3 uid="uid://qjvg3reomvyk"]
 
 [ext_resource type="Shader" path="res://game/env/EnvSolid.gdshader" id="env_solid"]
 [ext_resource type="Shader" path="res://game/env/NeonRibbon.gdshader" id="neon_ribbon"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://game/env/ClassicRig.gd" id="classic_rig"]
 [ext_resource type="Script" path="res://game/env/NeonGridRig.gd" id="neon_grid_rig"]
 [ext_resource type="Script" path="res://game/env/NightCityRig.gd" id="night_city_rig"]
+[ext_resource type="Script" path="res://game/env/MetalFactoryRig.gd" id="metal_factory_rig"]
 [ext_resource type="Material" path="res://game/env/floor_lights.tres" id="floor_lights"]
 [ext_resource type="Shader" path="res://game/env/NeonGridFloor.gdshader" id="neon_grid_floor"]
 [ext_resource type="Script" path="res://game/env/PulseVoid.gd" id="pulse_void"]
@@ -994,6 +995,9 @@ script = ExtResource("neon_grid_rig")
 
 [node name="NightCityRig" type="Node3D" parent="Level"]
 script = ExtResource("night_city_rig")
+
+[node name="MetalFactoryRig" type="Node3D" parent="Level"]
+script = ExtResource("metal_factory_rig")
 
 [node name="NeonGrid" type="Node3D" parent="Level"]
 visible = false

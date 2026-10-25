@@ -5,7 +5,7 @@ extends Node3D
 ## brightness on the Pico's LCD differ somewhat; the headset stays the final check.
 ## Run (a window opens for a moment; headless can't render):
 ##   godot --path . res://tools/capture/stage_capture.tscn -- --out /tmp/stage.png [options]
-## Options: --env classic|neon_grid|night_city|pulse_void  --built 0..1 (how much of the stage the crew has put up)
+## Options: --env classic|neon_grid|night_city|pulse_void|metal_factory  --built 0..1 (how much of the stage the crew has put up)
 ##   --lights on|off|menu  --left RRGGBB --right RRGGBB  --eye 1.6 (eye height, m)  --pitch 0 (degrees, up +)
 ##   --yaw 0 (degrees, left +)  --fov 90 (vertical, degrees)  --size 1920x1080  --seconds 2.5 (settle time)
 

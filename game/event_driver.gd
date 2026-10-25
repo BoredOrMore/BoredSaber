@@ -93,6 +93,10 @@ const STINGER_ROOMS := {
 			&"tap2_active": true, &"tap2_delay_ms": 190.0, &"tap2_level_db": -16.0, &"tap2_pan": 0.3}],
 	"pulse_void": [{&"room_size": 0.7, &"damping": 0.8, &"wet": 0.15},
 			{&"tap1_active": false, &"tap2_active": false}],
+	# Metal Factory: a big hard hall, bright and long-ish, with a slap off the side walls (18 m away, ~105 ms)
+	"metal_factory": [{&"room_size": 0.6, &"damping": 0.3, &"wet": 0.2},
+			{&"tap1_active": true, &"tap1_delay_ms": 105.0, &"tap1_level_db": -14.0, &"tap1_pan": 0.0,
+			&"tap2_active": false}],
 }
 
 ## The scenery around the track, one of the ids in Settings.ENVIRONMENTS other than "auto".
@@ -192,6 +196,7 @@ const PLATFORM_LIGHTS := preload("res://game/env/platform_lights.tres")
 @onready var classic_rig := $Level/ClassicRig as ClassicRig
 @onready var neon_grid_rig := $Level/NeonGridRig as NeonGridRig
 @onready var night_city_rig := $Level/NightCityRig as NightCityRig
+@onready var metal_factory_rig := $Level/MetalFactoryRig as MetalFactoryRig
 
 @onready var ring_anim_player := $Level/rings/AnimationPlayer as AnimationPlayer
 @onready var left_laser_anim_player := $Level/LeftWavingLasers/AnimationPlayer as AnimationPlayer
@@ -332,6 +337,13 @@ const VOID_HIGH_DEG := 85.0
 ## where the waving lasers stand on their rings, in degrees above level
 const VOID_WAVING_DEG := 20.0
 const RIG_WAVING_Y := -1.26
+## A fixture's pivot sits this far above the surface its yoke stands on (ClassicRig.FIXTURE_Y over its pedestal).
+const FIXTURE_LIFT := ClassicRig.FIXTURE_Y - ClassicRig.PEDESTAL_TOP
+## Metal Factory: the waving lasers stand this far out from the ledge's inner edge; the energy strips' centres along each
+## rail (each 9.6 m long with RAIL_BASIS), just above the rail's top so they don't flicker into it
+const FACTORY_LEDGE_INSET := 0.5
+const FACTORY_STRIP_Z: Array[float] = [-8.0, -22.0, -36.0]
+const FACTORY_STRIP_LIFT := 0.01
 ## each laser's and the square bars' Classic transform, put back before another rig is hung
 var _classic_rig := {}
 
@@ -438,6 +450,28 @@ func _apply_rig(id: String) -> void:
 			# the rings carry the square lasers' light (PulseRing.gdshader), so the bars would only float in the void
 			for bar in _square_bars():
 				bar.visible = false
+		"metal_factory":
+			# diagonal lasers on the anvils' inner corners, leaning up over the track
+			for i in diagonal_lasers.size():
+				var side := -1.0 if i < diagonal_lasers.size() >> 1 else 1.0
+				_aim(diagonal_lasers[i], MetalFactoryRig.anvil_fixture(i) + Vector3.UP * FIXTURE_LIFT,
+						Vector3(-side * 0.3, 1.0, -0.15))
+			# waving lasers stand on the catwalk ledges along the walls
+			for i in waving.size():
+				var side := -1.0 if i < half else 1.0
+				waving[i].global_position = Vector3(side * (MetalFactoryRig.LEDGE_X + FACTORY_LEDGE_INSET),
+						MetalFactoryRig.LEDGE_TOP + FIXTURE_LIFT, MetalFactoryRig.WAVING_Z[i % half])
+			# the horizontal square bars become energy strips flush on the rails' tops; the vertical ones are left out
+			var strip := 0
+			var per_side := FACTORY_STRIP_Z.size()
+			for bar in _square_bars():
+				if bar.get_parent() != square_lasers_holder:
+					bar.visible = false
+					continue
+				var side := -1.0 if strip < per_side else 1.0
+				bar.global_transform = Transform3D(RAIL_BASIS, Vector3(side * MetalFactoryRig.RAIL_X,
+						MetalFactoryRig.RAIL_TOP + FACTORY_STRIP_LIFT, FACTORY_STRIP_Z[strip % per_side]))
+				strip += 1
 
 ## Shows the environment's own scenery (Neon Grid's floor, Pulse Void's rings, the smoke) except in mixed reality,
 ## where opaque scenery would cover the player's room: there only the track, notes and light beams are drawn
@@ -448,6 +482,7 @@ func show_scenery_for_mixed_reality() -> void:
 	classic_rig.visible = environment == "classic" and not Settings.mixed_reality
 	neon_grid_rig.visible = environment == "neon_grid" and not Settings.mixed_reality
 	night_city_rig.visible = environment == "night_city" and not Settings.mixed_reality
+	metal_factory_rig.visible = environment == "metal_factory" and not Settings.mixed_reality
 	stage_smoke.visible = Settings.smoke and not Settings.mixed_reality
 	_dust.visible = not Settings.mixed_reality
 	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple"
