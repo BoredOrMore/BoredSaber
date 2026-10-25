@@ -47,6 +47,21 @@ later notes (fixed da7109c) inflated logged approach scores, so these use the me
 Same songs: Renai Circulation Normal 65% → 77%, Psycho Easy 57% → 80%. The player: "feels much better", arcs and
 chains stay on their notes. Beat Saber's 100°/60° targets stay; lowering them is no longer needed.
 
+## Cut angle: 60° like Beat Saber (2026-10-25)
+
+`score_summary` from two songs on the headset (cc0fb30) split where the grade went:
+
+| Song | Score | Full multiplier | Perfect cuts | Hits / lost | Per cut | Multiplier drops |
+|---|---|---|---|---|---|---|
+| Silhouette Normal | 41.2% (C) | 63.7% | 58.0% | 219 / 24 | 0.70 | bad cut 16, wrong saber 2, wall 2, miss 2 |
+| Crossing Field Normal | 26.0% (D) | 55.4% | 36.2% | 163 / 46 | 0.71 | bad cut 20, wrong saber 2, miss 3 |
+
+The multiplier lost more than the cuts did, and most of its drops were bad-angle cuts: a cut counted only within
+about 46° of the arrow (dot 0.7). Beat Saber allows 60°, a community figure from the decompiled game, not
+published by Beat Games. The owner picked 60°: `BeepCube.GOOD_CUT_DOT` 0.5, the angle points (OpenSaber scoring)
+ramping 0 to 1 over the new range. Each bad-angle cut now logs `bad_angle off <deg> speed <m/s> beat <b> arrow
+<deg> saber <n>`, to check the rule against real swings.
+
 ## Sources
 
 - Points, targets, grades: BSMG Ranking & Scoring Guide, https://bsmg.wiki/ranking-guide.html; AccSaber wiki,

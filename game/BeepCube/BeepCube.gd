@@ -13,6 +13,9 @@ const WRONG_SABER_RUMBLE := 0.2
 ## 0.1 m before, so 54% of headset cuts that hit the block cleanly got no centre points.
 const CUT_CENTRE_FULL := 0.02
 const CUT_CENTRE_REACH := 0.19
+## A cut counts when the swing is within 60° of the arrow (dot >= cos 60°), as Beat Saber does (owner's pick,
+## 2026-10-25); it was about 46° (dot 0.7). The angle points ramp 0 to 1 across that range.
+const GOOD_CUT_DOT := 0.5
 
 @onready var mi := $BeepCubeMesh as MeshInstance3D
 @onready var collision_big := $BeepCube_Big/CollisionBig as CollisionShape3D
@@ -162,7 +165,7 @@ func cut(saber: LightSaber, cut_speed: Vector3, cut_plane: Plane, controller: Be
 	var distance_scale := 100./Settings.block_size
 	
 	if saber.type == which_saber or Map.one_saber or Settings.handedness != 0:
-		var cut_angle_accuracy := clampf((base_cut_angle_accuracy-0.7)/0.3, 0.0, 1.0)
+		var cut_angle_accuracy := clampf((base_cut_angle_accuracy-GOOD_CUT_DOT)/(1.0-GOOD_CUT_DOT), 0.0, 1.0)
 		if is_dot or not Settings.arrows_enabled: #ignore angle if is a dot
 			cut_angle_accuracy = 1.0
 		if cut_angle_accuracy < 1e-10:
