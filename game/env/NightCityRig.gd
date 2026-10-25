@@ -10,7 +10,7 @@ class_name NightCityRig
 ## edges, and the square bars trim the roof edges facing the track. Dark boxes in one MultiMesh with the scenery's
 ## fog shader. Sizes in metres, untuned.
 
-const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
+const ENV_SOLID := preload("res://game/env/EnvSolidCanyon.gdshader")
 ## How much of the lights' colour the buildings' faces take (EnvSolid light_spill, 1 elsewhere): at 1 the near
 ## buildings read as flat grey boxes, brighter than the skyline (owner, 2026-10-25: too bright), as Metal Factory's
 ## walls did. Untuned.

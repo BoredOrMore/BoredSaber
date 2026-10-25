@@ -13,7 +13,7 @@ class_name MetalFactoryRig
 ## A tool script, so the hall also shows in the editor's viewport (event_driver.tscn); its parts are built at load and
 ## never saved into the scene (they have no owner).
 
-const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
+const ENV_SOLID := preload("res://game/env/EnvSolidMetal.gdshader")
 ## How much of the lights' colour the hall's faces take (EnvSolid light_spill, 1 elsewhere): at 1 the big wall and
 ## ceiling faces turned toward the track read as grey sheets (luma about 39 of 255 in the eye capture with the lights
 ## on), against "blacks stay black" (doc/world/VISUAL_STYLE.md). Untuned.

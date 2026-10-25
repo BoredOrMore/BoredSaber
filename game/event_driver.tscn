@@ -1,6 +1,7 @@
-[gd_scene load_steps=46 format=3 uid="uid://qjvg3reomvyk"]
+[gd_scene load_steps=47 format=3 uid="uid://qjvg3reomvyk"]
 
 [ext_resource type="Shader" path="res://game/env/EnvSolid.gdshader" id="env_solid"]
+[ext_resource type="Shader" path="res://game/env/EnvSolidRing.gdshader" id="env_solid_ring"]
 [ext_resource type="Shader" path="res://game/env/NeonRibbon.gdshader" id="neon_ribbon"]
 [ext_resource type="Script" path="res://game/env/StageSmoke.gd" id="stage_smoke"]
 [ext_resource type="Script" path="res://game/env/ClassicRig.gd" id="classic_rig"]
@@ -303,7 +304,7 @@ shader = ExtResource("env_solid")
 
 [sub_resource type="ShaderMaterial" id="ring_material"]
 render_priority = 0
-shader = ExtResource("env_solid")
+shader = ExtResource("env_solid_ring")
 shader_parameter/ring_hole = 0.936
 
 [sub_resource type="Animation" id="21"]

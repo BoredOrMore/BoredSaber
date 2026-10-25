@@ -13,7 +13,7 @@ class_name TrackDeck
 ## Sizes in metres; untuned.
 
 const DECK_SHADER := preload("res://game/env/TrackDeck.gdshader")
-const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
+const ENV_SOLID := preload("res://game/env/EnvSolidMetal.gdshader")
 const EDGE_MODEL := preload("res://game/models/track_edge.glb")
 ## the low block that closes the platform behind the player (track_end.glb, tools/models/track_end.py), 1 m wide as
 ## built, stretched across the deck and both edges (EDGE_REACH out on each side), turned to face away from the track
