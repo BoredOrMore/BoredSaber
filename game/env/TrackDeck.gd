@@ -44,6 +44,9 @@ const DECK_DEPTH := 0.4
 const STRIP_OUT := 0.15
 const CURB_RISE := 0.08
 const STRIP_PROUD := 0.004
+## how far out from the deck's edge the curb's top reaches (the edge model's outer bevel); walls standing over it start
+## above the strip (Wall.gd)
+const CURB_OUT := 0.3
 ## each environment's skin (TrackDeck.gdshader); the rest get 0, plain plates
 const SKINS := {"metal_factory": 1, "neon_grid": 2}
 ## the edges' metal sheen on stages whose metal shines (EnvSolid layer 8); none elsewhere

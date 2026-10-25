@@ -80,6 +80,7 @@ func spawn(wall_info: ObstacleInfo, current_beat: float) -> void:
 	
 	var x := (0.5 * wall_info.width + wall_info.line_index - 2) * Settings.LANE_DISTANCE_X
 	var y := bottom + 0.5 * y_size
+	_fit_over_curb(mesh, x, x_size, bottom, y_size)
 	var z := (current_beat - wall_info.beat) * Map.beat_distance - depth
 	
 	var c := cos(wall_info.rotation)
@@ -93,6 +94,25 @@ func spawn(wall_info: ObstacleInfo, current_beat: float) -> void:
 	
 	speed = Map.beat_distance * Map.beats_per_second()
 	($AnimationPlayer as AnimationPlayer).play(&"Spawn")
+
+## A wall standing on the track's level with part of it over the curb beside the deck (TrackDeck: outside the lanes, a
+## lighting or decor wall) is drawn from the edge strip's top up, so the curb and strip don't run through its bottom
+## (owner, 2026-10-25). Only its look: its hitbox keeps the whole height. Lane walls, walls wholly past the curb and
+## raised walls stay as they are, and nothing changes with the old track sheet (Old track, mixed reality), which has no
+## curb. `x` is its middle across the track and `x_size` its width, `bottom` and `y_size` its base and height.
+func _fit_over_curb(mesh: MeshInstance3D, x: float, x_size: float, bottom: float, y_size: float) -> void:
+	var lift := TrackDeck.CURB_RISE + TrackDeck.STRIP_PROUD
+	var edge := 2.0 * Settings.LANE_DISTANCE_X
+	var reach := absf(x) + absf(x_size) * 0.5
+	var inner := absf(x) - absf(x_size) * 0.5
+	var over := reach > edge + 0.001 and inner < edge + TrackDeck.CURB_OUT and bottom < 0.01 and y_size > lift \
+		and not (Settings.old_track or Settings.mixed_reality)
+	var height := y_size - lift if over else y_size
+	mesh.position.y = lift * 0.5 if over else 0.0
+	if mesh.mesh == _box:
+		_box.size.y = height
+	else:
+		mesh.scale.y = height
 
 ## The default wall's mesh, shared by every wall: a unit box (the glass, its faces with their normals) and a bar on each
 ## of its twelve edges, all drawn by FramedWall.gdshader in one draw call. Each vertex sits at a corner of the unit box;

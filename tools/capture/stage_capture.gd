@@ -24,6 +24,8 @@ extends Node3D
 ##   blade leaning away to the side, to look at it up close)
 ##   --bomb 1|classic (with --map: the map's bombs, classic = the two-mesh bomb; otherwise two bombs held still, one
 ##   --bomb-dist metres ahead (default 0.8) and one at play distance, 6 m)
+##   --audit 1 (with --stats: what is drawn, grouped by where it sits in the tree, each visible mesh, MultiMesh or
+##   particle system in view counted once, and every viewport that renders)
 ##   --stats 1 (print the frame's triangles, draw calls and objects as drawn, RenderingServer's counters, one view)
 ##   --dot 1 (a dot note)  --note-style 2 (0 Solid, 1 Neon: the Classic notes looks; 2 the glossy default)
 
@@ -154,6 +156,8 @@ func _ready() -> void:
 					return true
 			return false)
 		print("stage_capture walls: %d spawned, %d in view" % [walls.size(), seen.size()])
+		if args.get("audit", "0") == "1":
+			_audit(camera)
 	var out := args.get("out", "user://stage_capture.png") as String
 	var error := get_viewport().get_texture().get_image().save_png(out)
 	print("stage_capture %s -> %s" % [error_string(error), out])
@@ -220,6 +224,49 @@ func _hold_saber(camera: Camera3D, color: Color, distance: float) -> void:
 	saber.rotation_degrees = Vector3(-50.0, 0.0, -25.0)
 	saber.set_color(color)
 	saber._show()
+
+## Prints the drawn instances in view of `camera`, grouped by the first two names of their path under this node, the
+## material's shader where it tells more, and every viewport and how often it renders.
+func _audit(camera: Camera3D) -> void:
+	var groups := {}
+	for node: Node in find_children("*", "GeometryInstance3D", true, false):
+		var g := node as GeometryInstance3D
+		if not g.is_visible_in_tree():
+			continue
+		# culled only when all its box's corners lie outside one of the frustum's planes
+		var local := g.custom_aabb if g.custom_aabb.has_volume() else g.get_aabb()
+		var box := g.global_transform * local.grow(g.extra_cull_margin)
+		var culled := false
+		for plane: Plane in camera.get_frustum():
+			var outside := 0
+			for i in 8:
+				if plane.is_point_over(box.get_endpoint(i)):
+					outside += 1
+			if outside == 8:
+				culled = true
+				break
+		if culled:
+			groups["(culled) " + String(get_path_to(g)).get_slice("/", 0) + "/" + String(get_path_to(g)).get_slice("/", 1) + "/" + String(get_path_to(g)).get_slice("/", 2)] = groups.get("(culled) " + String(get_path_to(g)).get_slice("/", 0) + "/" + String(get_path_to(g)).get_slice("/", 1) + "/" + String(get_path_to(g)).get_slice("/", 2), 0) + 1
+			continue
+		if g is MeshInstance3D and (g as MeshInstance3D).mesh == null:
+			continue
+		var path := String(get_path_to(g)).split("/")
+		var key := path[0] if not path[0].begins_with("@") else "(spawned)"
+		if path.size() > 2 and path[0] == "event_driver":
+			key += "/" + path[1] + "/" + path[2]
+		var shader := ""
+		var material := g.material_override as ShaderMaterial
+		if material and material.shader:
+			shader = material.shader.resource_path.get_file()
+		key += " [%s %s]" % [g.get_class(), shader]
+		groups[key] = groups.get(key, 0) + 1
+	var keys := groups.keys()
+	keys.sort_custom(func(a: String, b: String) -> bool: return groups[a] > groups[b])
+	for key: String in keys:
+		print("audit %4d  %s" % [groups[key], key])
+	for vp: Node in get_tree().root.find_children("*", "SubViewport", true, false):
+		var sub := vp as SubViewport
+		print("audit viewport %s: update mode %d, size %s" % [get_path_to(sub), sub.render_target_update_mode, sub.size])
 
 ## Puts one wall (the game's own) in front of `camera` as --wall says. Without a map it doesn't move.
 func _hold_wall(camera: Camera3D, args: Dictionary) -> void:
