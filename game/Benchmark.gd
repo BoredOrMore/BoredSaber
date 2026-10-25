@@ -41,8 +41,10 @@ const TOTAL := "total"
 const HZ90 := "hz90"
 ## The flag file's mode for the fog and Night City's new parts (tools/bench.sh --only fog): in a song on Night City
 ## (the canyon), everything on, then one part off at a time, then all on again: the fog's colour toward the key light,
-## the dither, the haze worked out per pixel, the canyon's fog layer, the sea of cloud, the windows. Each phase sets
-## its state every frame, as the song's start hangs the stage again.
+## the dither, the haze worked out per pixel, the canyon's fog layer, the sea of cloud, the windows; then, for the rest of
+## the frame, the glow, the beams, all the scenery (EnvSolid: towers, roofs, deck edges) and the sky; then all on for a
+## whole SONG_SECONDS, which reaches further into the song than 20 s. Each phase sets its state every frame, as the
+## song's start hangs the stage again.
 const FOG := "fog"
 const FOG_SONG_SECONDS := 20.0
 const HZ_SONG_SECONDS := 20.0
@@ -123,6 +125,11 @@ func _fog_parts(off: String) -> void:
 	material.set_shader_parameter(&"windows", 0.0 if off == "windows" else 1.0)
 	if rig._sea:
 		rig._sea.visible = off != "cloud_sea"
+	var glare := off != "glow"
+	if Settings.glare != glare:
+		Settings.glare = glare
+	var hidden := {"lasers": DebugView.LASERS, "scenery": DebugView.RINGS, "sky": DebugView.SKY}
+	RenderingServer.global_shader_parameter_set(&"debug_view", hidden.get(off, 0))
 
 ## Puts back and saves the settings of a run the game closed in the middle of; call at launch.
 static func restore_interrupted() -> void:
@@ -168,9 +175,11 @@ func _phases(mode: String) -> Array:
 	if mode == FOG:
 		var off_none := func(_t: float) -> void: _fog_parts("")
 		var phases := [["fog_all_on_song", off_none, _night_city, FOG_SONG_SECONDS, true]]
-		for part: String in ["inscatter", "dither", "per_pixel", "canyon_fog", "cloud_sea", "windows"]:
+		for part: String in ["inscatter", "dither", "per_pixel", "canyon_fog", "cloud_sea", "windows", "glow", "lasers",
+				"scenery", "sky"]:
 			phases.append(["fog_no_%s_song" % part, func(_t: float) -> void: _fog_parts(part), _night_city, FOG_SONG_SECONDS, true])
 		phases.append(["fog_all_on_again_song", off_none, _night_city, FOG_SONG_SECONDS, true])
+		phases.append(["fog_all_on_long_song", off_none, _night_city, SONG_SECONDS, true])
 		return phases
 	if mode == HZ90:
 		var phases := []

@@ -14,8 +14,15 @@ global uniform int debug_view;
 // how much of the haze's colour the dark takes: well below the hall's far, hazed faces, so it reads as depth
 const float SKY_HAZE = 0.03;
 
+// the haze lit from the key light, per vertex: the sky and the cloud sea are fine enough meshes that it looks the same
+// as per pixel, for less work (fog benchmark, 2026-10-25)
+varying vec3 haze_v;
+void vertex() {
+	haze_v = fog_lit(env_haze.rgb, (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz - CAMERA_POSITION_WORLD);
+}
+
 void fragment() {
 	// the haze lit from the stage's key light, seen this way (fog_light.gdshaderinc)
-	vec3 haze = fog_lit(env_haze.rgb, (INV_VIEW_MATRIX * vec4(-VIEW, 0.0)).xyz);
+	vec3 haze = haze_v;
 	ALBEDO = (debug_view & 16) != 0 ? vec3(0.0) : fog_dither(shadow_tone(haze * SKY_HAZE), FRAGCOORD.xy);
 }

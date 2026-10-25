@@ -25,7 +25,11 @@ const vec2 FAR_FADE = vec2(80.0, 220.0);
 varying float crest;
 varying float far;
 
+// the haze lit from the key light, per vertex: the sky and the cloud sea are fine enough meshes that it looks the same
+// as per pixel, for less work (fog benchmark, 2026-10-25)
+varying vec3 haze_v;
 void vertex() {
+	haze_v = fog_lit(env_haze.rgb, (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz - CAMERA_POSITION_WORLD);
 	vec3 world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	float w = sin(world.x * WAVE_SCALE.x + TIME * WAVE_SPEED) * sin(world.z * WAVE_SCALE.y - TIME * WAVE_SPEED * 0.7)
 		+ 0.5 * sin((world.x + world.z) * WAVE_SCALE.y * 1.7 + TIME * WAVE_SPEED * 1.3);
@@ -36,7 +40,7 @@ void vertex() {
 
 void fragment() {
 	// the haze lit from the stage's key light, seen this way (fog_light.gdshaderinc)
-	vec3 haze = fog_lit(env_haze.rgb, (INV_VIEW_MATRIX * vec4(-VIEW, 0.0)).xyz);
+	vec3 haze = haze_v;
 	vec3 body = haze * mix(BODY.x, BODY.y, crest) + env_light.rgb * CREST_LIGHT * crest;
 	ALBEDO = fog_dither(mix(body, haze, far), FRAGCOORD.xy);
 }

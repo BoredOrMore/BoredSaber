@@ -20,8 +20,16 @@ func _ready() -> void:
 		no_levels)
 	var rank := int(args.get("rank", "1"))
 	if args.get("mods", "0") == "1":
-		# every modifier on: the longest title
-		rank = 4 | Constants.DIFFICULTY_NO_WALLS | Constants.DIFFICULTY_CLAWS
+		# every modifier on at once, in memory only: the longest title (the rank key comes from the settings)
+		Settings.health_mode = false
+		Settings.arrows_enabled = false
+		Settings.bombs_enabled = false
+		Settings.claws = true
+		Settings.walls_enabled = false
+		Settings.width = 200
+		Settings.music_speed = 175
+		Settings.flip = 3
+		Settings.handedness = Constants.HANDEDNESS_IGNORE
 	if args.has("table"):
 		var table: Variant = JSON.parse_string(FileAccess.get_file_as_string(args["table"]))
 		Highscores._hs_table = table
@@ -35,7 +43,7 @@ func _ready() -> void:
 		var rows := []
 		var name := "Bartholomew Longname-Smithson the Third" if args.get("names", "") == "long" else "Bomb"
 		for i in int(args.get("rows", "10")):
-			rows.append({"player_name": name if i % 2 == 0 else "Anfield", "score": 1234567 - i * 100000, "epoch_time": 0})
+			rows.append({"player_name": name if i % 2 == 0 else "Anfield", "score": 98765432 - i * 1000000, "epoch_time": 0})
 		Highscores._hs_table = {info.get_key(): {str(HighscoreTable.get_rank_key(rank)): rows}}
 	panel.load_highscores(info, rank)
 	await get_tree().create_timer(1.0).timeout
