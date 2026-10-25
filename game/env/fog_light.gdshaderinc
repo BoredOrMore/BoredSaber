@@ -7,11 +7,17 @@
 //   the dark gradients of haze and sky don't break into bands.
 // Values untuned.
 global uniform vec4 fog_key;
+// the dither on (1) or off (0); the benchmark's fog mode turns it off to measure it (Benchmark.gd)
+global uniform float fog_dither_on;
 // how much the scatter leans forward (0 even, toward 1 a tight glow round the light)
 const float FOG_PHASE_G = 0.55;
 
 // The haze's colour `haze` seen along `dir` (world, from the eye; any length).
 vec3 fog_lit(vec3 haze, vec3 dir) {
+	// a stage without a key light skips the work (a uniform branch costs next to nothing)
+	if (fog_key.w <= 0.0) {
+		return haze;
+	}
 	float c = dot(normalize(dir), fog_key.xyz);
 	float g = FOG_PHASE_G;
 	float d = 1.0 + g * g - 2.0 * g * c;
@@ -22,6 +28,9 @@ vec3 fog_lit(vec3 haze, vec3 dir) {
 
 // `color` with a dither under one 8-bit step, by the pixel's place on screen.
 vec3 fog_dither(vec3 color, vec2 frag) {
+	if (fog_dither_on <= 0.0) {
+		return color;
+	}
 	float n = fract(52.9829189 * fract(dot(frag, vec2(0.06711056, 0.00583715))));
 	return color + (n - 0.5) / 255.0;
 }
