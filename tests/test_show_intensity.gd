@@ -70,5 +70,13 @@ func _ready() -> void:
 		steady = steady and seconds >= MetalFactoryRig.BREATH_SECONDS.x and seconds <= MetalFactoryRig.BREATH_SECONDS.y
 	check(steady, "the walls breathe once every 1.4 to 3 s at any tempo")
 
+	# on Auto, metal, dubstep and drum-and-bass songs (BeatSaver's tag spellings) play in the Metal Factory, which the
+	# environment menu lists too
+	var heavy := true
+	for tag in ["metal", "dubstep", "drum-and-bass"]:
+		heavy = heavy and Constants.TAG_ENVIRONMENTS.get(tag) == "metal_factory"
+	check(heavy, "metal, dubstep and drum-and-bass pick the Metal Factory")
+	check(Settings.ENVIRONMENTS.any(func(e: Array) -> bool: return e[0] == "metal_factory"), "the menu offers the Metal Factory")
+
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)

@@ -26,7 +26,9 @@ See `SPATIAL_LAYOUT.md` (origin, bounds, corridor, exclusion zones) and the root
 - Pistons slam on the map's beat (from its BPM, every beat or every 2 beats), only while the show's intensity is high.
 - At the drop only the side and far pieces turn, on different axes and in different directions; the floor and the
   track never move (a rest frame against vection).
-- On "Auto" the genre tags metal, industrial, dubstep and drum-and-bass will pick it, once the stage is finished.
+- On "Auto" a song tagged metal, dubstep or drum-and-bass on BeatSaver plays in it (on since 2026-10-25; BeatSaver has
+  no "industrial" tag). A map that names a Beat Saber environment in `Constants.MAP_ENVIRONMENTS` keeps that one first,
+  and of several tags the first the table knows wins.
 
 ## Stage stories (agreed with the owner, 2026-10-24, as a first version)
 - Classic: a steel tunnel where a lighting crew rehearses its show. The rings are calibration gates; the moving

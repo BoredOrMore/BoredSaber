@@ -220,11 +220,11 @@ const MAP_ENVIRONMENTS := {
 # Environment for a map whose environment is Default, by the first of its BeatSaver genre tags found here.
 const TAG_ENVIRONMENTS := {
 	"electronic": "neon_grid", "house": "neon_grid", "techno": "neon_grid", "trance": "neon_grid",
-	"dubstep": "neon_grid", "drum-and-bass": "neon_grid",
 	"pop": "night_city", "k-pop": "night_city", "j-pop": "night_city", "hip-hop-rap": "night_city",
 	"rb": "night_city", "dance": "night_city", "anime": "night_city", "vocaloid": "night_city",
-	"rock": "pulse_void", "metal": "pulse_void", "punk": "pulse_void", "hardcore": "pulse_void",
-	"alternative": "pulse_void",
+	"rock": "pulse_void", "punk": "pulse_void", "hardcore": "pulse_void", "alternative": "pulse_void",
+	# the owner's pick, 2026-10-25 (BeatSaver has no "industrial" tag)
+	"metal": "metal_factory", "dubstep": "metal_factory", "drum-and-bass": "metal_factory",
 	"classical-orchestral": "classic", "jazz": "classic", "ambient": "classic", "kids-family": "classic",
 	"tv-movie-soundtrack": "classic", "video-game-soundtrack": "classic",
 }
