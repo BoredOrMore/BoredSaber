@@ -291,7 +291,6 @@ const RESOLUTION_HINTS := {
 	"Sharp": "Sharper",
 	"Full": "Sharpest",
 }
-const RESOLUTION_NEEDS_LOW := "Needs Graphics: Low"
 const GLOW_HINTS := {
 	"Soft": "Soft light around the lasers",
 	"Crisp": "Crisper light around the lasers",
@@ -322,7 +321,7 @@ var _glow_chips := {}
 var _glow_hint := Label.new()
 
 ## At the top of Visuals: "Graphics: Low | Normal" chips setting the effects below (a third chip, Custom, can't be
-## picked and lights up when the effects match neither), then "Resolution: Normal | Sharp | Full", only on Low.
+## picked and lights up when the effects match neither), then "Resolution: Normal | Sharp | Full", on any preset.
 func _add_graphics_row() -> void:
 	_graphics_chips = _add_chip_row(0, "Graphics", Settings.GRAPHICS_PRESETS.keys() + [Settings.GRAPHICS_CUSTOM],
 			Settings.set_graphics_preset, _graphics_hint)
@@ -380,7 +379,7 @@ func _add_chip_row(index: int, title: String, names: Array, pick: Callable, hint
 	UI_AudioEngine.attach_children(row)
 	return chips
 
-## Lights the chips of the preset the effects match and of the resolution (greyed off Low), and shows the effects'
+## Lights the chips of the preset the effects match and of the resolution, and shows the effects'
 ## switches as set (a preset sets them).
 func _sync_graphics() -> void:
 	var preset := Settings.graphics_preset()
@@ -389,12 +388,9 @@ func _sync_graphics() -> void:
 	_graphics_hint.text = GRAPHICS_HINTS[preset]
 	# Custom only reads as a choice while it applies
 	(_graphics_chips[Settings.GRAPHICS_CUSTOM] as Button).modulate.a = 1.0 if preset == Settings.GRAPHICS_CUSTOM else 0.4
-	var low := preset == "Low"
 	for name: String in _resolution_chips:
-		var chip := _resolution_chips[name] as Button
-		chip.disabled = not low
-		chip.set_pressed_no_signal(name == (Settings.resolution if low else "Normal"))
-	_resolution_hint.text = RESOLUTION_HINTS.get(Settings.resolution, "") if low else RESOLUTION_NEEDS_LOW
+		(_resolution_chips[name] as Button).set_pressed_no_signal(name == Settings.resolution)
+	_resolution_hint.text = RESOLUTION_HINTS.get(Settings.resolution, "")
 	for name: String in _msaa_chips:
 		(_msaa_chips[name] as Button).set_pressed_no_signal(name == Settings.msaa)
 	_msaa_hint.text = MSAA_HINTS.get(Settings.msaa, "")

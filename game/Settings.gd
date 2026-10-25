@@ -41,19 +41,18 @@ const GRAPHICS_PRESETS := {
 	"Normal": {&"glare": true, &"smoke": true, &"saber_tail": true, &"cube_cuts_falloff": true, &"background": "dynamic"},
 }
 const GRAPHICS_CUSTOM := "Custom"
-## Render scales (OpenXR render target size multiplier) the Low preset may use: [name, scale]. Measured on the
-## headset: Low at 1.44x takes about 11 of the 13.9 ms frame in a song; Normal is over budget already at 1.2x, so
-## everything but Low renders at 1x.
+## Render scales (OpenXR render target size multiplier) the player may pick: [name, scale]. Measured on the headset:
+## Low at 1.44x takes about 11 of the 13.9 ms frame in a song; Normal was over budget already at 1.2x, so only Low
+## could pick one, until the owner unlocked it on every preset (2026-10-25); a song that stutters still lowers Full to
+## Sharp (resolution_cap).
 const RESOLUTIONS := [["Normal", 1.0], ["Sharp", 1.2], ["Full", 1.44]]
 
 ## A RESOLUTIONS name the render scale is held at or below for the rest of the session ("" none): the game lowers
 ## Full to Sharp when a song stutters, leaving the picked resolution as it is.
 var resolution_cap := ""
 
-## The render scale in use: the picked resolution on Low (at most resolution_cap), 1 otherwise.
+## The render scale in use: the picked resolution, at most resolution_cap.
 func render_scale() -> float:
-	if graphics_preset() != "Low":
-		return 1.0
 	var scale := _resolution_scale(resolution)
 	if not resolution_cap.is_empty():
 		scale = minf(scale, _resolution_scale(resolution_cap))
@@ -330,7 +329,7 @@ func msaa_mode() -> Viewport.MSAA:
 			return entry[1]
 	return Viewport.MSAA_DISABLED
 
-## The resolution picked for the Low preset (a RESOLUTIONS name), kept while on another preset.
+## The resolution picked (a RESOLUTIONS name), on any preset.
 var resolution: String:
 	set(value):
 		resolution = value

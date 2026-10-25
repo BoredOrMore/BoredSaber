@@ -661,9 +661,9 @@ func _process(delta: float) -> void:
 func on_settings_changed(key: StringName) -> void:
 	# ensures proper initialization of tree for proper first frame setting loading
 	await get_tree().process_frame
-	# the render scale follows the Low preset's resolution (Settings.render_scale)
+	# the render scale follows the picked resolution (Settings.render_scale)
 	# (not while the benchmark sets scales itself)
-	if (key == &"resolution" or key in Settings.GRAPHICS_PRESETS["Low"]) and not has_node(^"Benchmark"):
+	if key == &"resolution" and not has_node(^"Benchmark"):
 		_apply_render_scale()
 	match key:
 		&"left_handed":
