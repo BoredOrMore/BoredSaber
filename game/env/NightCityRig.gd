@@ -53,11 +53,21 @@ const LOW_ROOF_DEPTH := 22.0
 const LANDMARK := Vector4(350.0, -700.0, 40.0, 400.0)
 const LANDMARK_FOG := 0.0003
 ## the player's rooftop: a stair house on the wall side [out, z, size x/y/z], an open railing on the other side
+## the rooftop's surface, level with the platform's base (TrackDeck.PAD_DEPTH below the deck's top), so the track and
+## platform sit on the roof; the stair house, parapet and railing stand on it
+const ROOF_Y := -TrackDeck.PAD_DEPTH
 const STAIR_HOUSE := Vector3(6.0, -1.0, 0.0)
 const STAIR_HOUSE_SIZE := Vector3(3.0, 3.0, 4.0)
 const RAILING_X := 4.0
 const RAILING_HEIGHT := 1.1
 const RAILING_POST_STEP := 1.5
+## the railing's posts and rails thick enough to read at 4 m (they were 6 cm and looked like lines in the air)
+const RAILING_POST := 0.09
+const RAILING_RAIL := 0.07
+## the rooftop's length along the track, from and to
+const ROOF_Z := Vector2(6.0, -8.0)
+## the low parapet (kick plate) along the rooftop's open edge the railing stands on: [thickness, height]
+const PARAPET := Vector2(0.3, 0.35)
 
 var _instance: MultiMeshInstance3D
 var _landmark: MeshInstance3D
@@ -141,14 +151,26 @@ func _canyon_boxes() -> Array[Transform3D]:
 	for r in LOW_ROOFS:
 		boxes.append(_span(Vector3(o * r.x, STREET_Y, r.y), Vector3(o * (r.x + LOW_ROOF_DEPTH), r.w, r.z)))
 	# the rooftop under the player, down to the street, and its pieces
-	boxes.append(_span(Vector3(-RAILING_X, STREET_Y, 6.0), Vector3(RAILING_X, -0.45, -8.0)))
+	# the rooftop reaches under the stair house on the wall side and to the parapet on the open side
+	var reach := STAIR_HOUSE.x + STAIR_HOUSE_SIZE.x
+	boxes.append(_span(Vector3(w * reach, STREET_Y, ROOF_Z.x), Vector3(o * RAILING_X, ROOF_Y, ROOF_Z.y)))
 	boxes.append(Transform3D(Basis.from_scale(STAIR_HOUSE_SIZE),
-		Vector3(w * STAIR_HOUSE.x, STAIR_HOUSE_SIZE.y * 0.5, STAIR_HOUSE.y)))
-	var z := 5.0
-	while z > -5.0:
-		boxes.append(Transform3D(Basis.from_scale(Vector3(0.06, RAILING_HEIGHT, 0.06)), Vector3(o * RAILING_X, RAILING_HEIGHT * 0.5, z)))
-		z -= RAILING_POST_STEP
-	boxes.append(_span(Vector3(o * (RAILING_X - 0.04), RAILING_HEIGHT - 0.05, 5.0), Vector3(o * (RAILING_X + 0.04), RAILING_HEIGHT + 0.03, -5.0)))
+		Vector3(w * STAIR_HOUSE.x, ROOF_Y + STAIR_HOUSE_SIZE.y * 0.5, STAIR_HOUSE.y)))
+	# the railing stands on a low parapet along the open edge, not on air (owner on the headset, 2026-10-25)
+	var parapet_x := RAILING_X - PARAPET.x * 0.5
+	boxes.append(_span(Vector3(o * (RAILING_X - PARAPET.x), ROOF_Y, ROOF_Z.x), Vector3(o * RAILING_X, ROOF_Y + PARAPET.y, ROOF_Z.y)))
+	var top := ROOF_Y + PARAPET.y
+	# posts the whole length, one at each end
+	var length := ROOF_Z.x - ROOF_Z.y - RAILING_POST
+	var posts := ceili(length / RAILING_POST_STEP)
+	for i in posts + 1:
+		var post_z := ROOF_Z.x - RAILING_POST * 0.5 - length * float(i) / posts
+		boxes.append(_span(Vector3(o * parapet_x - RAILING_POST * 0.5, top, post_z + RAILING_POST * 0.5),
+			Vector3(o * parapet_x + RAILING_POST * 0.5, top + RAILING_HEIGHT, post_z - RAILING_POST * 0.5)))
+	# the top rail and a middle rail
+	for rail_y: float in [RAILING_HEIGHT - RAILING_RAIL, RAILING_HEIGHT * 0.5]:
+		boxes.append(_span(Vector3(o * parapet_x - RAILING_RAIL * 0.5, top + rail_y, ROOF_Z.x),
+			Vector3(o * parapet_x + RAILING_RAIL * 0.5, top + rail_y + RAILING_RAIL, ROOF_Z.y)))
 	return boxes
 
 ## The classic layout's boxes.
