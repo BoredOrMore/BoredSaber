@@ -24,6 +24,14 @@ shader_type spatial;
 //      (tools/make_matcap.py) looked up by the face's view-space normal, giving a soft highlight from above and a rim
 //      toward grazing angles, as polished metal shows. Grey only: tinted with a neutral grey and the lights' colour
 //      (env_light), kept well under the fixtures in the brightness order (Light rules 1, 3 and 4). Off (0) elsewhere
+//   9. windows (windows > 0: Night City's canyon, NightCityRig): real-size windows on the buildings' upright faces
+//      farther than window_min_x from the track, worked out per pixel from the face's position (a texture or vertex
+//      mask would need too many vertices for towers of 57 floors): WINDOW_PITCH apart, FLOOR_HEIGHT a floor, each
+//      room lit or not by a hash. window_level (0-1, the show's build-up) lights the rooms in order, bottom to top and
+//      near before far; window_glow dims them in quiet parts but never to dark; the colour is the map's light colour
+//      on that side of the track (window_left_color, window_right_color) with a warm room tint. Where a room is
+//      smaller than a pixel the windows blend into their average, so far walls don't sparkle. Light, after the haze,
+//      kept well under the notes (Light rule 1)
 // The scene has no real lights (AGENTS.md "Light", rule 10), so layers 2-4 are faked here. Everything but the edge's
 // falloff is worked out per vertex: the faces are flat, so per pixel would give the same picture. Values untuned.
 render_mode unshaded, fog_disabled, shadows_disabled;
@@ -75,6 +83,27 @@ uniform float metal = 0.0;
 uniform sampler2D matcap : hint_default_black, filter_linear_mipmap;
 const float METAL_GREY = 0.04;
 const float METAL_LIGHT = 0.12;
+// 9. windows: on (1) or off (0), the lights' colours either side, how far through the build-up the rooms are lit and how
+// bright, the faces nearer the track than window_min_x left plain, and the street and top the rooms count up between
+uniform float windows = 0.0;
+uniform vec4 window_left_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
+uniform vec4 window_right_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
+uniform float window_level = 0.0;
+uniform float window_glow = 0.0;
+uniform float window_min_x = 8.0;
+uniform vec2 window_span = vec2(-45.0, 200.0);
+const float WINDOW_PITCH = 2.0;
+const float FLOOR_HEIGHT = 3.5;
+// the window inside its cell (parts of the cell, from the cell's corner), the rooms that ever light, the warm tint
+const vec4 WINDOW_RECT = vec4(0.125, 0.25, 0.875, 0.85);
+const float WINDOW_OCCUPIED = 0.65;
+const vec3 ROOM_WARM = vec3(1.0, 0.8, 0.6);
+const float ROOM_WARMTH = 0.25;
+// at most about the notes' own body (0.55, note_gloss.gdshaderinc), so they stay the brightest (Light rule 1)
+const float WINDOW_LIGHT = 0.6;
+// how the build-up orders the rooms: height, distance along the track (over WINDOW_REACH metres) and chance
+const vec3 WINDOW_ORDER = vec3(0.6, 0.3, 0.1);
+const float WINDOW_REACH = 200.0;
 
 // 5. haze: per metre
 uniform float fog_density = 0.03;
@@ -97,6 +126,9 @@ varying float edge;
 varying vec3 vent;
 // 7. how lit this vertex is after its baked occlusion
 varying float ao;
+// 9. the position and the face's direction in the world, for the windows
+varying vec3 world_pos;
+varying vec3 world_normal;
 
 void vertex() {
 	if ((debug_view & 8) != 0) {
@@ -132,10 +164,41 @@ void vertex() {
 
 	// 7. ambient occlusion
 	ao = mix(1.0, COLOR.r, AO_STRENGTH);
+	world_pos = world;
+	world_normal = normal;
 
 	// 6. vents: the model's marks pick the row; the panel's side of the track picks the wall
 	vec3 lower = mix(vent_left_color.rgb, vent_right_color.rgb, step(0.0, MODEL_MATRIX[3].x));
 	vent = (vent_upper_color.rgb * COLOR.g + lower * COLOR.b) * VENT_GLOW;
+}
+
+float window_hash(vec2 p) {
+	return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+// 9. the windows' light on this pixel (black off the buildings' upright faces)
+vec3 windows_light() {
+	if (windows <= 0.0 || abs(world_normal.y) > 0.5 || abs(world_pos.x) < window_min_x) {
+		return vec3(0.0);
+	}
+	float along = abs(world_normal.x) > 0.5 ? world_pos.z : world_pos.x;
+	vec2 g = vec2(along / WINDOW_PITCH, (world_pos.y - window_span.x) / FLOOR_HEIGHT);
+	vec2 cell = floor(g);
+	vec2 f = fract(g);
+	// which face it is goes into the hash too, so the rooms of opposite faces differ
+	vec2 room = cell + sign(world_normal.xz) * 97.0;
+	float occupied = step(window_hash(room), WINDOW_OCCUPIED);
+	float height = clamp((world_pos.y - window_span.x) / (window_span.y - window_span.x), 0.0, 1.0);
+	float order = dot(WINDOW_ORDER, vec3(height, clamp(-world_pos.z / WINDOW_REACH, 0.0, 1.0), window_hash(room + 31.0)));
+	float on = occupied * step(order, window_level);
+	vec2 aa = fwidth(g);
+	vec2 inside = smoothstep(WINDOW_RECT.xy - aa, WINDOW_RECT.xy + aa, f) * (1.0 - smoothstep(WINDOW_RECT.zw - aa, WINDOW_RECT.zw + aa, f));
+	float shape = inside.x * inside.y * on;
+	// far: the cell is under about a pixel; the windows' average instead (the lit share of the area the build-up has reached)
+	float average = (WINDOW_RECT.z - WINDOW_RECT.x) * (WINDOW_RECT.w - WINDOW_RECT.y) * WINDOW_OCCUPIED * clamp(window_level / max(order, 1e-3), 0.0, 1.0);
+	float m = mix(shape, average, clamp(max(aa.x, aa.y) * 2.0 - 0.5, 0.0, 1.0));
+	vec3 color = world_pos.x < 0.0 ? window_left_color.rgb : window_right_color.rgb;
+	return mix(color, color * ROOM_WARM, ROOM_WARMTH) * m * window_glow * WINDOW_LIGHT * windows;
 }
 
 void fragment() {
@@ -153,5 +216,6 @@ void fragment() {
 		float facing = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
 		vent_light = mix(vent, vec3(peak), VENT_CORE_WHITE * pow(facing, VENT_CORE_SHARPNESS));
 	}
-	ALBEDO = shadow_tone(mix(lit, env_haze.rgb, fog) + (env_light.rgb * glow + vent_light) * (1.0 - fog));
+	// the windows go on after the shadow tone, which would grey their colour
+	ALBEDO = shadow_tone(mix(lit, env_haze.rgb, fog) + (env_light.rgb * glow + vent_light) * (1.0 - fog)) + windows_light() * (1.0 - fog);
 }

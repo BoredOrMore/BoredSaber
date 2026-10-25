@@ -82,6 +82,17 @@ func _ready() -> void:
 	_material.set_shader_parameter(&"fog_density", FOG_DENSITY)
 	build(Settings.classic_night_city)
 
+## The canyon's windows (EnvSolid layer 9): the map's light colours either side, how far the show has built them up
+## (0-1) and how bright they burn (never quite dark once lit).
+func set_windows(left: Color, right: Color, level: float, glow: float) -> void:
+	for material: ShaderMaterial in [_material, _landmark.material_override if _landmark else null]:
+		if material == null:
+			continue
+		material.set_shader_parameter(&"window_left_color", left)
+		material.set_shader_parameter(&"window_right_color", right)
+		material.set_shader_parameter(&"window_level", level)
+		material.set_shader_parameter(&"window_glow", glow)
+
 ## Builds the classic layout or the canyon.
 func build(classic: bool) -> void:
 	if _instance:
@@ -90,6 +101,9 @@ func build(classic: bool) -> void:
 		_landmark.queue_free()
 		_landmark = null
 	var boxes := _classic_boxes() if classic else _canyon_boxes()
+	_material.set_shader_parameter(&"windows", 0.0 if classic else 1.0)
+	_material.set_shader_parameter(&"window_min_x", RAILING_X + STAIR_HOUSE_SIZE.x + 2.0)
+	_material.set_shader_parameter(&"window_span", Vector2(STREET_Y, TOWERS[1].w))
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	multimesh.mesh = BoxMesh.new()

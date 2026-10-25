@@ -367,6 +367,9 @@ var _strip_rest := {}
 ## face at several heights and on the low roofs; the horizontal square bars alternate between trims on the low roofs'
 ## inner edges and billboards on the wall's face; the vertical ones are left out. Heights in metres, untuned.
 const CANYON_SKY_SCALE := 9.5
+## the canyon's windows: how many the menu shows lit and how bright, and how bright they stay in a song's quiet parts
+const MENU_WINDOWS := 0.35
+const WINDOWS_QUIET := 0.4
 const CANYON_DIAGONAL_Y := [18.0, 34.0, 52.0, 72.0, 96.0]
 const CANYON_SEARCHLIGHT_Y := [12.0, 40.0, 80.0, 120.0]
 const CANYON_BILLBOARD_Y := [22.0, 30.0, 46.0, 58.0]
@@ -688,6 +691,11 @@ func _process(delta: float) -> void:
 				left_waving_lasers_material.get_shader_parameter(&"light_color"),
 				right_waving_lasers_material.get_shader_parameter(&"light_color"))
 	_update_show(delta)
+	if environment == "night_city" and not Settings.classic_night_city:
+		# the canyon's windows: the rooms the show has built light up (the menu shows a few), dimmer in quiet parts
+		var level := MENU_WINDOWS if menu_focus else _built
+		var glow := MENU_WINDOWS if menu_focus else lerpf(WINDOWS_QUIET, 1.0, _intensity)
+		night_city_rig.set_windows(left_color, right_color, level, glow)
 	_follow_frames()
 	# update the level animations
 	#procces ring rotations
