@@ -112,10 +112,14 @@ void fragment() {
 }
 """
 
+## The composite. Its A/B tests and debug view (TESTS) are compiled in only while one is on: carried in every pixel of
+## both eyes, the unused paths cost frame time (one shader for all of the scenery's layers cost ~4 ms, bench
+## 2026-10-26).
 const COMPOSITE_SHADER := """
 shader_type spatial;
 render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 uniform sampler2D glow : filter_linear, repeat_disable, source_color;
+#ifdef TESTS
 // DebugView.GLOW_ALIGN: the unblurred glow image, solid magenta, to see where it lands
 uniform sampler2D raw : filter_nearest, repeat_disable, source_color;
 uniform bool debug = false;
@@ -141,6 +145,7 @@ vec3 bspline(vec2 uv) {
 	return g0.y * (g0.x * texture(glow, h0).rgb + g1.x * texture(glow, vec2(h1.x, h0.y)).rgb)
 		+ g1.y * (g0.x * texture(glow, vec2(h0.x, h1.y)).rgb + g1.x * texture(glow, h1).rgb);
 }
+#endif
 // the glow camera's projection times its view rotation (no translation): reprojects by rotation only
 uniform mat4 glow_rotation;
 uniform float intensity = 0.8;
@@ -168,6 +173,7 @@ void vertex() {
 void fragment() {
 	vec2 uv = glow_clip.xy / glow_clip.w * 0.5 + 0.5;
 	uv.y = 1.0 - uv.y;
+#ifdef TESTS
 	ALBEDO = (bicubic ? bspline(uv) : texture(glow, uv).rgb) * intensity;
 	if (dither) {
 		int x = int(FRAGCOORD.x) & 3;
@@ -178,6 +184,9 @@ void fragment() {
 	if (debug) {
 		ALBEDO = dot(texture(raw, uv).rgb, vec3(1.0)) > 0.1 ? vec3(1.0, 0.0, 1.0) : vec3(0.0);
 	}
+#else
+	ALBEDO = texture(glow, uv).rgb * intensity;
+#endif
 }
 """
 
@@ -193,6 +202,8 @@ var _blurs: Array[SubViewport] = []
 var _blur_materials: Array[ShaderMaterial] = []
 var _quad := MeshInstance3D.new()
 var _quad_material := ShaderMaterial.new()
+var _composite := Shader.new()
+var _composite_tests := Shader.new()
 
 func _init(game: BeepSaber_Game) -> void:
 	_game = game
@@ -202,6 +213,7 @@ func _ready() -> void:
 	black.background_mode = Environment.BG_COLOR
 	black.background_color = Color.BLACK
 	_view.size = Vector2i(height, height)
+	_shown_height = height
 	# beams thinner than a pixel at this size would come out as dashes; on a tiled GPU the resolve stays in tile memory
 	_view.msaa_3d = Viewport.MSAA_4X
 	_camera.cull_mask = GLOW_LAYER
@@ -243,9 +255,9 @@ func _ready() -> void:
 		_blur_materials.append(material)
 		source = blur.get_texture()
 
-	var shader := Shader.new()
-	shader.code = COMPOSITE_SHADER
-	_quad_material.shader = shader
+	_composite.code = COMPOSITE_SHADER
+	_composite_tests.code = COMPOSITE_SHADER.replace("shader_type spatial;\n", "shader_type spatial;\n#define TESTS\n")
+	_quad_material.shader = _composite
 	_quad_material.render_priority = Material.RENDER_PRIORITY_MAX
 	_quad_material.set_shader_parameter(&"intensity", INTENSITY)
 	_quad_material.set_shader_parameter(&"glow", _blurs[-1].get_texture())
@@ -299,6 +311,8 @@ func _apply_stage() -> void:
 func _process(_delta: float) -> void:
 	if stage == 0:
 		return
+	if height != _shown_height:
+		_resize()
 	var xr := XRServer.primary_interface
 	var head := _game.get_node(^"XROrigin3D/XRCamera3D") as Camera3D
 	# the frustum's left, right, bottom and top as tangents, over both eyes
@@ -332,11 +346,24 @@ func _process(_delta: float) -> void:
 	var read := _blurs[-1] if mode == "pass" else (_blurs[0] if _short_shown else _blurs[2])
 	_quad_material.set_shader_parameter(&"glow", read.get_texture())
 	_quad_material.set_shader_parameter(&"bicubic", mode == "composite")
+	var tests := debug or mode == "composite" or DebugView.flags & DebugView.GLOW_DITHER != 0
+	var composite := _composite_tests if tests else _composite
+	if _quad_material.shader != composite:
+		_quad_material.shader = composite
 	_quad_material.set_shader_parameter(&"glow_size", Vector2(read.size))
 	_test_foveation(xr, DebugView.flags & DebugView.GLOW_NO_FOVEATION != 0)
 	# the log also runs during a benchmark, to have the numbers with each measurement
 	if (debug or _game.has_node(^"Benchmark")) and xr and xr.is_initialized() and xr.get_view_count() == 2:
 		_log_offsets(xr, head)
+
+## The glow image's height its viewports have (height may change after _ready: the benchmark's lighter glow).
+var _shown_height := 0
+
+func _resize() -> void:
+	_shown_height = height
+	_view.size = Vector2i(height, height)
+	for i in _blurs.size():
+		_blurs[i].size = Vector2i(Vector2(height, height) * float(BLUR_CHAIN[i][0]))
 
 ## The foveation level before DebugView.GLOW_NO_FOVEATION turned it off (-1: not off).
 var _foveation_before := -1
