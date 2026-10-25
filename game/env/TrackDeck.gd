@@ -20,6 +20,8 @@ const DECK_DEPTH := 0.4
 const STRIP_OUT := 0.15
 const CURB_RISE := 0.08
 const STRIP_PROUD := 0.004
+## each environment's skin (TrackDeck.gdshader); the rest get 0, plain plates
+const SKINS := {"metal_factory": 1, "neon_grid": 2}
 
 var _deck: MeshInstance3D
 var _curbs: MultiMesh
@@ -60,6 +62,11 @@ func layout(lane_width: float) -> void:
 		# the model is the right edge, 1 m long; the left is it turned half round
 		var turn := Basis.IDENTITY if side > 0.0 else Basis(Vector3.UP, PI)
 		_curbs.set_instance_transform(i, Transform3D(turn * Basis.from_scale(Vector3(1.0, 1.0, length)), Vector3(side * half, 0.0, z)))
+
+## Dresses the deck for environment `id` (TrackDeck.gdshader's skins): Metal Factory's tread plate, Neon Grid's dark
+## glass, plain plates elsewhere.
+func set_skin(id: String) -> void:
+	deck_material.set_shader_parameter(&"skin", SKINS.get(id, 0))
 
 ## Where an edge light strip `strip_size` big sits in the edge's channel on `side` (-1 left, 1 right), its top
 ## STRIP_PROUD above the curb's. Level with it, the two tops fought for depth and the strip vanished a few metres out

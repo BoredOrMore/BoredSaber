@@ -303,6 +303,7 @@ func set_environment(id: String) -> void:
 	rings_enabled = id == "classic"
 	_apply_stinger_room(id)
 	_apply_rig(id)
+	track_deck.set_skin(id)
 	show_scenery_for_mixed_reality()
 	set_background()
 
