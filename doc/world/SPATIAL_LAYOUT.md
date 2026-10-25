@@ -30,8 +30,9 @@ Plain boxes in `MetalFactoryRig.gd`, every size a named constant there; detail m
 - Factory floor: either side of the track from x ±3.6 to ±18, z 4 to -56 (top y 0), and under the track and the
   player's platform (top y -0.02), so no sky shows between or past them; a pit beyond it to the foundation
   (z -66 to -70, top y 0).
-- Pistons: two rows at x ±8, z -12 to -44 every 8 m. Anvil 3.6 × 1.5 × 3.6 m; hammer 2.2 m, raised (bottom y 3.8);
-  housing under a header beam at y 9, carried by posts at z -8 to -48 every 8 m.
+- Pistons: two rows at x ±8, z -12 to -44 every 8 m. Anvil (`anvil_base.glb`) 3.6 m square at its foot, a shelf
+  at 1.2 m and a 2.4 m strike die on top at 1.5 m; hammer 2.2 m, raised (bottom y 3.8); housing under a header beam
+  at y 9, carried by posts at z -8 to -48 every 8 m.
 - Gear rings: around the track at z -15 to -55 every 8 m, centre y 2, radius 6.5 m (13 m across), 12 teeth,
   running down through the floor; inner edge 6.2 m from the centre.
 - Energy rails: x ±4, z 2 to -48, top y 0.3, 0.4 m wide; the square bars run as strips flush on top.
@@ -45,7 +46,8 @@ Plain boxes in `MetalFactoryRig.gd`, every size a named constant there; detail m
   radius 7.5 at x ±9, y -6, z -62 in the pit (top about y 2.7). Axles into the piers and foundation. The view straight
   ahead above the foundation stays open; beyond it is the stage's own dark sky (`MetalFactorySky.gdshader`, near-black
   navy, no light colours), the darkest thing in view (eye capture, lights on: far opening luma 104 → 16 of 255).
-- Laser fixtures: diagonal on each anvil's inner corner nearest the player (x ±6.55, z piston + 1.45, foot y 1.5);
+- Laser fixtures: diagonal on each anvil's shelf at the inner corner nearest the player (x ±6.6, z piston + 1.4, foot
+  y 1.2);
   waving on the ledges at x ±16.5, z -16 to -40, foot y 8.
 
 ## Exclusion zones

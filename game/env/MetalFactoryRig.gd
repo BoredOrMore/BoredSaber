@@ -3,11 +3,13 @@ extends Node3D
 class_name MetalFactoryRig
 ## The Metal Factory environment's structure (doc/world/GAME_BIBLE.md: an underground power plant that the player's
 ## signal wakes up), which its lights are mounted on (AGENTS.md "Light", rule 5). Blockout (approved 2026-10-25):
-## plain dark boxes for silhouette and composition, standing in for the detail models to come; the pistons are models.
+## plain dark boxes for silhouette and composition, standing in for the detail models to come; the pistons and anvils
+## are models.
 ## Two rows of pistons over anvils beside the track, gear rings around it, energy rails along it, machinery walls and a
 ## ceiling truss closing the hall, and drive gears at the far end, beside and below the horizon. Everything stands on
 ## the floor, a wall or the far foundation; nothing enters the note corridor (lanes +-1.2 m, y 0 to 2.5).
-## Dark boxes in one MultiMesh and each piston part in its own, all with the scenery's fog shader. Sizes in metres; untuned.
+## Dark boxes in one MultiMesh, and each piston part and the anvils in their own, all with the scenery's fog shader.
+## Sizes in metres; untuned.
 ## A tool script, so the hall also shows in the editor's viewport (event_driver.tscn); its parts are built at load and
 ## never saved into the scene (they have no owner).
 
@@ -26,13 +28,16 @@ const FLOOR_Z := Vector2(4.0, -56.0)
 ## between or past them.
 const UNDER_TRACK := 0.02
 const FLOOR_THICKNESS := 0.5
-## Pistons: one over each anvil, a row each side, every 8 m. The anvil (width x, height above the floor, depth z)
-## takes the blow; the hammer hangs raised from its housing (models made by tools/models/piston_hammer.py,
-## doc/assets/piston_hammer), under a header beam carried by posts between the pistons. The housing's origin is its
-## top, against the header's underside; the hammer's is its striking face, HAMMER_BOTTOM up when raised.
+## Pistons: one over each anvil, a row each side, every 8 m. The anvil takes the blow; the hammer hangs raised from its
+## housing, under a header beam carried by posts between the pistons (models made by tools/models/piston_hammer.py and
+## anvil_base.py, records in doc/assets/). The anvil's origin is its foot, on the floor; the housing's is its top,
+## against the header's underside; the hammer's is its striking face, HAMMER_BOTTOM up when raised. ANVIL_TOP is the
+## anvil's strike die, where the hammer lands; ANVIL_SHELF the top of its body around the die (height, half width).
 const PISTON_X := 8.0
 const PISTON_Z: Array[float] = [-12.0, -20.0, -28.0, -36.0, -44.0]
-const ANVIL := Vector3(3.6, 1.5, 3.6)
+const ANVIL_MODEL := preload("res://game/models/anvil_base.glb")
+const ANVIL_TOP := 1.5
+const ANVIL_SHELF := Vector2(1.2, 1.7)
 const HOUSING_MODEL := preload("res://game/models/piston_housing.glb")
 const HAMMER_MODEL := preload("res://game/models/piston_hammer.glb")
 const HAMMER_BOTTOM := 3.8
@@ -43,7 +48,7 @@ const HEADER_Y := 9.0
 ## SLAM_FULL. After landing a hammer rests SLAM_REST_SECONDS, rises slowly, easing in and out, and drops over the last
 ## SLAM_FALL_SECONDS of the cycle, speeding up like a falling weight, so the blow is heavy and lands on the beat. All
 ## hammers move as one, so one node moves, not ten instances. Untuned.
-const STROKE := HAMMER_BOTTOM - ANVIL.y
+const STROKE := HAMMER_BOTTOM - ANVIL_TOP
 const SLAM_MIN_CYCLE_SECONDS := 0.5
 const SLAM_FROM := 0.6
 const SLAM_FULL := 0.9
@@ -51,8 +56,9 @@ const SLAM_REST_SECONDS := 0.06
 const SLAM_FALL_SECONDS := 0.15
 const HEADER := 0.6
 const POST_Z: Array[float] = [-8.0, -16.0, -24.0, -32.0, -40.0, -48.0]
-## the diagonal lasers stand on each anvil's inner corner nearest the player, clear of the hammer
-const ANVIL_FIXTURE_INSET := 0.35
+## the diagonal lasers stand on each anvil's shelf at its inner corner nearest the player, this far in from both edges:
+## clear of the die and of the hammer's face
+const ANVIL_FIXTURE_INSET := 0.3
 ## Gear rings around the track: centre height, radius to the rim's middle, rim thickness and depth, how many
 ## straight pieces make the rim, and the teeth on its outer edge. The rims run down through the floor.
 const RING_Y := 2.0
@@ -106,13 +112,15 @@ const PIER_X := Vector2(14.0, 20.0)
 
 var _hammers: MultiMeshInstance3D
 
-## Builds the boxes into one MultiMesh and the pistons into one per part, all with the hall's material.
+## Builds the boxes into one MultiMesh and the pistons and anvils into one per part, all with the hall's material.
 func _ready() -> void:
 	var boxes: Array[Transform3D] = []
 	var housings: Array[Transform3D] = []
 	var hammers: Array[Transform3D] = []
+	var anvils: Array[Transform3D] = []
 	for side in [-1.0, 1.0]:
 		for z in PISTON_Z:
+			anvils.append(Transform3D(Basis.IDENTITY, Vector3(side * PISTON_X, 0.0, z)))
 			housings.append(Transform3D(Basis.IDENTITY, Vector3(side * PISTON_X, HEADER_Y, z)))
 			hammers.append(Transform3D(Basis.IDENTITY, Vector3(side * PISTON_X, HAMMER_BOTTOM, z)))
 	for side in [-1.0, 1.0]:
@@ -142,6 +150,7 @@ func _ready() -> void:
 	_add_multimesh(BoxMesh.new(), boxes, material)
 	_add_multimesh(LaserFixtures._model_mesh(HOUSING_MODEL), housings, material)
 	_hammers = _add_multimesh(LaserFixtures._model_mesh(HAMMER_MODEL), hammers, material)
+	_add_multimesh(LaserFixtures._model_mesh(ANVIL_MODEL), anvils, material)
 
 ## Moves the hammers for the song's `beat` at `bpm` and the show's `intensity` (0 to 1); a bpm of 0 rests them raised.
 func slam(beat: float, bpm: float, intensity: float) -> void:
@@ -178,12 +187,10 @@ func _add_multimesh(mesh: Mesh, places: Array[Transform3D], material: ShaderMate
 	add_child(instance)
 	return instance
 
-## Adds one side's floor, rail, anvils, wall, ledge, machines and end pier (side -1 left, 1 right).
+## Adds one side's floor, rail, piston posts and header, wall, ledge, machines and end pier (side -1 left, 1 right).
 static func _side(boxes: Array[Transform3D], side: float) -> void:
 	boxes.append(_span(Vector3(side * FLOOR_X.x, -FLOOR_THICKNESS, FLOOR_Z.x), Vector3(side * FLOOR_X.y, 0.0, FLOOR_Z.y)))
 	boxes.append(_span(Vector3(side * (RAIL_X - RAIL_WIDTH * 0.5), -SINK, RAIL_Z.x), Vector3(side * (RAIL_X + RAIL_WIDTH * 0.5), RAIL_TOP, RAIL_Z.y)))
-	for z in PISTON_Z:
-		boxes.append(_box(Vector3(side * PISTON_X, (ANVIL.y - SINK) * 0.5, z), Vector3(ANVIL.x, ANVIL.y + SINK, ANVIL.z)))
 	for z in POST_Z:
 		boxes.append(_box(Vector3(side * PISTON_X, (HEADER_Y - SINK) * 0.5, z), Vector3(HEADER, HEADER_Y + SINK, HEADER)))
 	boxes.append(_span(Vector3(side * (PISTON_X - HEADER * 0.5), HEADER_Y, POST_Z[0]), Vector3(side * (PISTON_X + HEADER * 0.5), HEADER_Y + HEADER, POST_Z[-1])))
@@ -205,11 +212,12 @@ static func _gear(boxes: Array[Transform3D], centre: Vector3, radius: float, rim
 		boxes.append(Transform3D(basis * Basis.from_scale(Vector3(chord, rim.x, rim.y)), centre + out * radius))
 		boxes.append(Transform3D(basis * Basis.from_scale(Vector3(tooth, tooth, rim.y)), centre + out * (radius + (rim.x + tooth) * 0.5)))
 
-## Where a diagonal laser stands on anvil `i` (left row first), its foot on the anvil's top.
+## Where a diagonal laser stands on anvil `i` (left row first), its foot on the anvil's shelf.
 static func anvil_fixture(i: int) -> Vector3:
 	var side := -1.0 if i < PISTON_Z.size() else 1.0
 	var z := PISTON_Z[i % PISTON_Z.size()]
-	return Vector3(side * (PISTON_X - ANVIL.x * 0.5 + ANVIL_FIXTURE_INSET), ANVIL.y, z + ANVIL.z * 0.5 - ANVIL_FIXTURE_INSET)
+	var offset := ANVIL_SHELF.y - ANVIL_FIXTURE_INSET
+	return Vector3(side * (PISTON_X - offset), ANVIL_SHELF.x, z + offset)
 
 ## A unit box scaled to size and placed at centre.
 static func _box(centre: Vector3, size: Vector3) -> Transform3D:
