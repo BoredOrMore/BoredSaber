@@ -15,11 +15,13 @@ suite (`.claude/skills/rhythm-world-design/`).
 - Hit plane: the `Track` node sits at z 0.35 (`HIT_PLANE_Z`), so a note is on the beat 0.65 m in front of the player.
 - Travel: notes move toward +z, 4 m per beat (`BEAT_DISTANCE`); a note past z 2.5 is a miss (`MISS_Z`).
 - Crouch walls start at y 1.3 (`CROUCH_WALL_BOTTOM`).
-- Platform: the player's lit border (`game/floor.tscn`).
+- Platform: the player's lit border (`game/floor.tscn`), a 2 m pad at z 1. With the deck (`TrackDeck.gd`) it is part of the
+  track: the deck runs from its front (z -0.1), a ring (`platform_frame.glb`) round the pad holds the border lights in its
+  channel, plain plates fill out to the deck's width, the edges run on along its sides and an end stop closes it at z 2.1.
 
 ## Environment layout (Classic)
 - Track: a deck (`TrackDeck.gd`, 2026-10-25) whose top is y 0, four lanes wide (2.4 m at normal width, wider with the
-  Wide modifiers), 0.4 m deep, from z -1.5 to -48; along each side the track edge (`track_edge.glb`): a curb 0.08 m
+  Wide modifiers), 0.4 m deep, from the platform's front (z -0.1) to -48; along each side the track edge (`track_edge.glb`): a curb 0.08 m
   above the deck whose channel, 0.15 m out, houses the edge light strip (the floor-light group), and a skirt down to
   1.5 m below the deck, 0.42 m out. The deck's surface follows the stage (`TrackDeck.SKINS`): tread plate with rivets in
   Metal Factory, dark glass in Neon Grid, plain plates elsewhere. At its far end (z -48) a low end stop (`track_end.glb`)
