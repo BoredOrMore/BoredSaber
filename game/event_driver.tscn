@@ -41,8 +41,9 @@ global uniform vec4 env_haze;
 #include \"res://game/env/shadow_tone.gdshaderinc\"
 // DebugView.SKY draws the sky plain black, without its textures
 global uniform int debug_view;
-// how much of the haze colour fills the whole sky, and how fast the brighter band at the horizon thins out (untuned)
-const float SKY_HAZE = 0.25;
+// how much of the haze colour fills the whole sky, and how fast the brighter band at the horizon thins out (untuned;
+// 0.25 washed the whole background purple with the lights on, against \"blacks stay black\", owner 2026-10-25)
+const float SKY_HAZE = 0.08;
 const float HORIZON_SHARPNESS = 10.0;
 uniform lowp vec4 bg_0_tint;
 uniform lowp vec4 bg_1_tint;
@@ -99,11 +100,11 @@ shader_parameter/bg_1_tint = Vector4(1, 0, 0, 0)
 shader_parameter/bg_2_tint = Vector4(1, 0, 0, 0)
 shader_parameter/bg_3_tint = Vector4(1, 0, 0, 0)
 shader_parameter/bg_4_tint = Vector4(1, 0, 0, 0)
-shader_parameter/bg_0_intensity_mult = 0.25
-shader_parameter/bg_1_intensity_mult = 0.15
-shader_parameter/bg_2_intensity_mult = 0.25
-shader_parameter/bg_3_intensity_mult = 0.25
-shader_parameter/bg_4_intensity_mult = 0.4
+shader_parameter/bg_0_intensity_mult = 0.1
+shader_parameter/bg_1_intensity_mult = 0.06
+shader_parameter/bg_2_intensity_mult = 0.1
+shader_parameter/bg_3_intensity_mult = 0.1
+shader_parameter/bg_4_intensity_mult = 0.16
 
 [sub_resource type="SphereMesh" id="6"]
 flip_faces = true

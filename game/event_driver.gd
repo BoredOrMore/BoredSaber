@@ -356,6 +356,12 @@ var _classic_rig := {}
 ## the edge light strips' transforms along the old track, put back with the Old track setting
 var _strip_rest := {}
 
+## Pulse Void's beams: their width and brightness, parts of the beams' own (untuned)
+const VOID_BEAM_WIDTH := 0.5
+const VOID_BEAM_BRIGHTNESS := 0.55
+## each beam material's own width and brightness, put back on the other stages
+var _beam_rest := {}
+
 ## The waving lasers' fixtures, left side first.
 func _waving_lasers() -> Array[Node3D]:
 	var out: Array[Node3D] = []
@@ -405,6 +411,19 @@ func _apply_rig(id: String) -> void:
 		for beam in laser.get_children():
 			if beam is MeshInstance3D:
 				(beam as MeshInstance3D).visible = id != "metal_factory"
+	# Pulse Void's beams narrower and dimmer, so its rings lead and the notes stay brightest (Light rule 1; owner,
+	# 2026-10-25: too bright); the rest keep the beams' own width and brightness
+	for material: ShaderMaterial in [diagonal_lasers_material, left_waving_lasers_material, right_waving_lasers_material]:
+		if not _beam_rest.has(material):
+			# a value the material doesn't set is the shader's own default
+			var rest_of := func(param: StringName) -> float:
+				var value: Variant = material.get_shader_parameter(param)
+				return value if value != null else RenderingServer.shader_get_parameter_default(material.shader.get_rid(), param)
+			_beam_rest[material] = [rest_of.call(&"width"), rest_of.call(&"brightness")]
+		var rest: Array = _beam_rest[material]
+		var void_stage := id == "pulse_void"
+		material.set_shader_parameter(&"width", rest[0] * VOID_BEAM_WIDTH if void_stage else rest[0])
+		material.set_shader_parameter(&"brightness", rest[1] * VOID_BEAM_BRIGHTNESS if void_stage else rest[1])
 	match id:
 		"neon_grid":
 			var per_side := diagonal_lasers.size() >> 1

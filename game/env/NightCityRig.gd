@@ -7,6 +7,14 @@ class_name NightCityRig
 ## fog shader. Sizes in metres, untuned.
 
 const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
+## How much of the lights' colour the buildings' faces take (EnvSolid light_spill, 1 elsewhere): at 1 the near
+## buildings read as flat grey boxes, brighter than the skyline (owner, 2026-10-25: too bright), as Metal Factory's
+## walls did. Untuned.
+const LIGHT_SPILL := 0.3
+## the buildings' metal darker than EnvSolid's (0.094), and less of the haze (0.03 a metre: the near ones, 20 m out,
+## went half haze-grey). Untuned.
+const ALBEDO := Color(0.05, 0.05, 0.06)
+const FOG_DENSITY := 0.015
 const INNER_FACE_X := 19.0
 const DEPTH_X := 7.0
 ## [z centre, length along the track, height] of each building, left side then right side
@@ -51,6 +59,9 @@ func _ready() -> void:
 		multimesh.set_instance_transform(i, boxes[i])
 	var material := ShaderMaterial.new()
 	material.shader = ENV_SOLID
+	material.set_shader_parameter(&"light_spill", LIGHT_SPILL)
+	material.set_shader_parameter(&"albedo", ALBEDO)
+	material.set_shader_parameter(&"fog_density", FOG_DENSITY)
 	var instance := MultiMeshInstance3D.new()
 	instance.multimesh = multimesh
 	instance.material_override = material

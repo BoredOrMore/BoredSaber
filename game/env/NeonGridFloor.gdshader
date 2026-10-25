@@ -16,7 +16,8 @@ global uniform vec4 env_haze;
 const float SPACING = 2.0;
 const float LINE_WIDTH = 0.04;
 const float MIN_LINE_PIXELS = 1.0;
-const float LINE_GAIN = 2.5;
+// 2.5 lit the whole floor's lines brighter than the stage (owner, 2026-10-25: too bright)
+const float LINE_GAIN = 1.2;
 // how bright a cut's wave runs along the lines (player_light.gdshaderinc)
 const float CUT_WAVE_GAIN = 2.0;
 // the floor lines are a big area, so they stay part grey (AGENTS.md "Light", rule 3). Untuned.
@@ -25,7 +26,7 @@ const float GROUND_SHADE = 0.3;
 const float FADE_DISTANCE = 60.0;
 // metres from the player where the lines start fading, and where they are gone
 const float LINE_FADE_START = 8.0;
-const float LINE_FADE_END = 35.0;
+const float LINE_FADE_END = 25.0;
 // the skies' haze at the horizon (SKY_HAZE + 1 in both), so the floor meets the sky without a seam
 const float HORIZON_HAZE = 1.25;
 
