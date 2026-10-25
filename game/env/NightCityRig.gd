@@ -85,6 +85,10 @@ const SEA_CENTRE := Vector2(90.0, -120.0)
 const SEA_CELLS := 56
 const CANYON_FOG := Vector4(SEA_Y - 2.0, 0.18, 0.22, 1.0)
 const CANYON_FOG_ROLL := 0.6
+## Nothing below the sea of cloud shows (it is opaque and covers the whole canyon), so the boxes stop HIDDEN_Y,
+## under its lowest trough, instead of at the street: the GPU shades none of what it would hide (bench, 2026-10-25: the
+## scenery is Night City's largest cost). The shading still goes by the street's height (window_span).
+const HIDDEN_Y := SEA_Y - 4.0
 ## The billboards on the tower wall (CityBillboard.gdshader), carrying the square bars' light: [tower, along the tower
 ## from its near end (0-1), height, width, tall, shape (0 circle, 1 triangle, 2 stripes, 3 frames)]. Different sizes
 ## and heights, not a row. Standing just off the pilasters' fronts.
@@ -181,7 +185,7 @@ func build(classic: bool) -> void:
 	if _sea:
 		_sea.queue_free()
 		_sea = null
-	var boxes := _classic_boxes() if classic else _canyon_boxes()
+	var boxes := _classic_boxes() if classic else _drawn_boxes(_canyon_boxes())
 	_material.set_shader_parameter(&"windows", 0.0 if classic else 1.0)
 	_material.set_shader_parameter(&"canyon_fog", Vector4.ZERO if classic else CANYON_FOG)
 	_material.set_shader_parameter(&"fog_roll", CANYON_FOG_ROLL)
@@ -350,6 +354,29 @@ func _canyon_boxes() -> Array[Transform3D]:
 		boxes.append(_span(Vector3(o * parapet_x - RAILING_RAIL * 0.5, top + rail_y, ROOF_Z.x),
 			Vector3(o * parapet_x + RAILING_RAIL * 0.5, top + rail_y + RAILING_RAIL, ROOF_Z.y)))
 	return boxes
+
+## The canyon's boxes as drawn: cut at HIDDEN_Y, those wholly below it left out, nearest the player first, so the
+## nearer faces fill the depth buffer before the big walls behind them and those pixels are shaded once (the boxes are
+## one MultiMesh, drawn in this order; opaque, so the order changes nothing that shows).
+static func _drawn_boxes(boxes: Array[Transform3D]) -> Array[Transform3D]:
+	var drawn: Array[Transform3D] = []
+	for box in boxes:
+		var low := box.origin.y - box.basis.y.y * 0.5
+		var high := box.origin.y + box.basis.y.y * 0.5
+		if high <= HIDDEN_Y:
+			continue
+		if low < HIDDEN_Y:
+			box = _span(Vector3(box.origin.x - box.basis.x.x * 0.5, HIDDEN_Y, box.origin.z - box.basis.z.z * 0.5),
+				Vector3(box.origin.x + box.basis.x.x * 0.5, high, box.origin.z + box.basis.z.z * 0.5))
+		drawn.append(box)
+	drawn.sort_custom(func(a: Transform3D, b: Transform3D) -> bool: return _nearest(a) < _nearest(b))
+	return drawn
+
+## How far a box's nearest point is from the player's head.
+static func _nearest(box: Transform3D) -> float:
+	var half := Vector3(box.basis.x.x, box.basis.y.y, box.basis.z.z).abs() * 0.5
+	var head := Vector3(0.0, 1.7, 0.0)
+	return (head - head.clamp(box.origin - half, box.origin + half)).length()
 
 ## The classic layout's boxes.
 func _classic_boxes() -> Array[Transform3D]:
