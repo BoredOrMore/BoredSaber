@@ -163,6 +163,9 @@ func note_cut(saber: LightSaber, position: Vector3, _rotation: float, beat_accur
 ## A note lost to a miss or a bad cut still counts toward max_points; best is what it could have given
 ## (0 uses a normal note's best). Bombs are not notes.
 func bad_cut(position: Vector3, _rotation: float, description: String, best: float = 0.0) -> void:
+	# no game (the stage preview, tools/capture/stage_capture.gd --notes): a miss just passes, nothing dims
+	if GlobalReferences.main_game_scene == null:
+		return
 	GlobalReferences.main_game_scene.event_driver.mistake_dip()
 	if description != "bomb":
 		_count_note(best if best > 0.0 else note_best_score())

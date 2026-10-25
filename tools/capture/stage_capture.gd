@@ -14,6 +14,8 @@ extends Node3D
 ##   as in the game; a name without a / is a folder or song name in the game's Songs folder, e.g. --map Psycho; the stage is the one the map picks on Auto
 ##   unless --env is given; runs to the song's end unless --seconds is given)  --difficulty ExpertPlus (default the
 ##   hardest)  --start 0 (seconds into the song)
+##   --notes 1 (with --map: the map's notes, bombs, walls, arcs and chains fly in, spawned, timed and sped as in the game
+##   (GameStatePlaying.spawn_due); nobody cuts them, so they pass and are missed, which costs nothing here; 0 leaves them out)
 
 const ENVIRONMENT_SCENE := preload("res://game/event_driver.tscn")
 const FLOOR_SCENE := preload("res://game/floor.tscn")
@@ -30,6 +32,16 @@ var _beat := 0.0
 var _show: EventDriver
 var _song: AudioStreamPlayer
 var _bpm := 0.0
+## --notes: the notes' pools (BeepSaber_Game.tscn's) and the track they fly along
+const POOL_SCENE := preload("res://game/scripts/ScenePool/ScenePool.tscn")
+const NOTE_SCENES := {
+	&"cube_pool": preload("res://game/BeepCube/BeepCube.tscn"),
+	&"link_pool": preload("res://game/Chain/ChainLink.tscn"),
+	&"bomb_pool": preload("res://game/Bomb/Bomb.tscn"),
+	&"wall_pool": preload("res://game/Wall/Wall.tscn"),
+	&"arc_pool": preload("res://game/Arc/Arc.tscn"),
+}
+var _notes := false
 
 func _ready() -> void:
 	var args := _args()
@@ -94,6 +106,8 @@ func _process(delta: float) -> void:
 	if _song:
 		var beat := _song.get_playback_position() * _bpm / 60.0
 		_show.show_beat = beat
+		if _notes:
+			GameStatePlaying.spawn_due(beat)
 		while not Map.event_stack.is_empty() and Map.event_stack[-1].beat <= beat:
 			_show.process_event(Map.event_stack.pop_back() as EventInfo)
 
@@ -132,8 +146,30 @@ func _play_map(stage: EventDriver, args: Dictionary) -> bool:
 	_song.play(float(args.get("start", "0")))
 	_show = stage
 	_bpm = info.beats_per_minute
+	if args.get("notes", "1") != "0":
+		_add_notes(float(args.get("start", "0")) * _bpm / 60.0)
 	print("stage_capture: %s (%s), %s, %.0f BPM" % [info.song_name, difficulty.difficulty, stage.environment, _bpm])
 	return true
+
+## Sets up the notes' pools on a track at the hit plane, as BeepSaber_Game does, and drops what comes before
+## `start_beat` (the song starts there; they would all fly in at once).
+func _add_notes(start_beat: float) -> void:
+	var track := Node3D.new()
+	track.position.z = Constants.HIT_PLANE_Z
+	add_child(track)
+	for pool_name: StringName in NOTE_SCENES:
+		var pool := POOL_SCENE.instantiate() as ScenePool
+		pool.scene = NOTE_SCENES[pool_name]
+		pool.new_scene_instanced.connect(func(obj: Node3D, _presizing: bool) -> void: track.add_child(obj))
+		add_child(pool)
+		GlobalReferences.set(pool_name, pool)
+	for stack: Array in [Map.note_stack, Map.bomb_stack, Map.obstacle_stack]:
+		while not stack.is_empty() and stack[-1].beat < start_beat:
+			stack.pop_back()
+	for stack: Array in [Map.arc_stack, Map.chain_stack]:
+		while not stack.is_empty() and stack[-1].head_beat < start_beat:
+			stack.pop_back()
+	_notes = true
 
 ## The folder in the game's Songs folder named `name`, or else of the first song whose name contains it (any case).
 func _find_song(name: String) -> String:
