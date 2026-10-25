@@ -124,13 +124,12 @@ const WALL_KIT := {
 ## The vault over the hall (owner's sketch, 2026-10-25: the top half of an octagon tube): from the walls' tops (the
 ## springline, WALL_TOP) each side turns in at 45 degrees for VAULT_RUN metres, then a flat crown, all a solid shell
 ## VAULT_SHELL thick, so no sky shows overhead: the hall is underground. Ribs follow that outline at every TRUSS_Z (the
-## columns' spacing and on to the far end), standing RIB proud of the shell; beams run along the hall at its four
-## corner lines; and a tie beam spans the hall at each rib, resting on the walls' tops.
+## columns' spacing and on to the far end), standing RIB proud of the shell, and beams run along the hall at its four
+## corner lines. Nothing spans the hall below the vault (the owner had the old ceiling's cross beams taken out).
 const VAULT_RUN := 9.0
 const VAULT_SHELL := 1.0
 const RIB := Vector2(0.6, 0.6)
 const CORNER_BEAM := 0.6
-const TRUSS_BEAM := 0.6
 const TRUSS_Z: Array[float] = [0.0, -8.0, -16.0, -24.0, -32.0, -40.0, -48.0, -56.0, -64.0]
 ## Drive gears at the far end, facing the player (drive_gear_large/small.glb, tools/models/gears.py): a large one each
 ## side (centre, left first), half in the wall's end pier, and a small one meshing below it in the pit, its top just
@@ -339,7 +338,7 @@ func _add_multimesh(mesh: Mesh, places: Array[Transform3D], material: ShaderMate
 	add_child(instance)
 	return instance
 
-## Adds the vault: its shell along the whole hall, the ribs and tie beams at every TRUSS_Z and the corner beams.
+## Adds the vault: its shell along the whole hall, the ribs at every TRUSS_Z and the corner beams.
 static func _vault(boxes: Array[Transform3D]) -> void:
 	var crown_x := WALL_X.x - VAULT_RUN
 	var crown_y := WALL_TOP + VAULT_RUN
@@ -359,7 +358,6 @@ static func _vault(boxes: Array[Transform3D]) -> void:
 			boxes.append(_box(beam, Vector3(CORNER_BEAM, CORNER_BEAM, hall)))
 	for z in TRUSS_Z:
 		boxes.append(_box(Vector3(0.0, crown_y - RIB.x * 0.5, z), Vector3(crown_x * 2.0, RIB.x, RIB.y)))
-		boxes.append(_box(Vector3(0.0, WALL_TOP + TRUSS_BEAM * 0.5, z), Vector3(WALL_X.x * 2.0, TRUSS_BEAM, TRUSS_BEAM)))
 
 ## A slab along the line from `a` to `b` (in x and y), `thickness` thick off the line on the side whose x sign is
 ## `toward` (away from the hall's middle for the shell, toward it for a rib), `extra` longer at each end so the joints

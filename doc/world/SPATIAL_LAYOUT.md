@@ -43,8 +43,8 @@ Plain boxes in `MetalFactoryRig.gd`, every size a named constant there; detail m
   turn).
 - Vault (owner's sketch, 2026-10-25: the top half of an octagon tube): the walls rise to the springline at y 17,
   then each side turns in at 45 degrees for 9 m to a flat crown at y 26, x ±9; a solid 1 m shell from z 6 to -68, so
-  no sky shows overhead (underground). Ribs (0.6 m) follow the outline every 8 m from z 0 to -64, with a tie beam across
-  the hall at the springline at each; beams run the hall's length at the four corner lines (MetalFactoryRig._vault).
+  no sky shows overhead (underground). Ribs (0.6 m) follow the outline every 8 m from z 0 to -64 and beams run the hall's
+  length at the four corner lines (MetalFactoryRig._vault); nothing spans the hall below the vault.
 - The hall's faces take 0.3 of the lights' spill (`MetalFactoryRig.LIGHT_SPILL`, EnvSolid `light_spill`), so the
   big walls and ceiling stay near black (eye capture, lights on: wall luma 39 → 29 of 255; lights off 24).
 - Drive gears at the far end, facing the player (`drive_gear_large/small.glb`): root radius 10 (22.4 m across the
