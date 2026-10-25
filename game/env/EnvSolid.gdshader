@@ -33,6 +33,8 @@ const float FORM_BOTTOM = 0.45;
 // Kept low so scenery stays below fixtures and beams in the brightness order (AGENTS.md "Light", rule 1).
 const float SPILL_AWAY = 0.04;
 const float SPILL_TOWARD = 0.14;
+// all of the spill, per material: lower for an environment whose large faces would otherwise read as grey sheets
+uniform float light_spill = 1.0;
 // the track's axis the lights gather around: x 0, this high (metres)
 const float TRACK_AXIS_Y = 2.0;
 
@@ -71,7 +73,7 @@ void vertex() {
 	// 3. light spill: dot of the face's direction with the way to the track (1 facing it, -1 facing away)
 	vec2 to_track = vec2(-world.x, TRACK_AXIS_Y - world.y);
 	float facing = length(to_track) > 1e-3 ? dot(normal.xy, normalize(to_track)) : 0.0;
-	spill = mix(SPILL_AWAY, SPILL_TOWARD, facing * 0.5 + 0.5);
+	spill = mix(SPILL_AWAY, SPILL_TOWARD, facing * 0.5 + 0.5) * light_spill;
 
 	// 4. lit edge: the ring mesh is flat in its own xz plane; vertices around the hole are marked 1
 	edge = ring_hole > 0.0 && max(abs(VERTEX.x), abs(VERTEX.z)) < ring_hole + 0.01 ? 1.0 : 0.0;

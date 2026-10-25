@@ -27,16 +27,20 @@ suite (`.claude/skills/rhythm-world-design/`).
 
 ## Environment layout (Metal Factory, blockout 2026-10-25)
 Plain boxes in `MetalFactoryRig.gd`, every size a named constant there; detail models still to come.
-- Factory floor: either side of the track from x ±3.6 to ±18, z 4 to -56 (top y 0), closing the gap past the
-  track's end (z -48); a pit beyond it to the foundation (z -66 to -70, top y 0).
+- Factory floor: either side of the track from x ±3.6 to ±18, z 4 to -56 (top y 0), and under the track and the
+  player's platform (top y -0.02), so no sky shows between or past them; a pit beyond it to the foundation
+  (z -66 to -70, top y 0).
 - Pistons: two rows at x ±8, z -12 to -44 every 8 m. Anvil 3.6 × 1.5 × 3.6 m; hammer 2.2 m, raised (bottom y 3.8);
   housing under a header beam at y 9, carried by posts at z -8 to -48 every 8 m.
 - Gear rings: around the track at z -15 to -55 every 8 m, centre y 2, radius 6.5 m (13 m across), 12 teeth,
   running down through the floor; inner edge 6.2 m from the centre.
 - Energy rails: x ±4, z 2 to -48, top y 0.3, 0.4 m wide; the square bars run as strips flush on top.
-- Machinery walls: solid at x ±18 to ±20, up to y 18, z 6 to -68; catwalk ledge along the inner face at x ±16, top
+- Machinery walls: solid at x ±18 to ±20, up to y 19, z 6 to -68; catwalk ledge along the inner face at x ±16, top
   y 8; machine blocks against the wall (x ±15) every 8 m from z -4 to -52, 5.5 and 3.5 m high in turn.
-- Ceiling truss: cross beams at y 18 every 8 m from z 0 to -64, two chords at x ±9.
+- Ceiling: a solid slab from y 19 to 20 resting on the walls, z 6 to -68, so no sky shows overhead (underground);
+  under it a truss of cross beams at y 18.1 every 8 m from z 0 to -64, two chords at x ±9.
+- The hall's faces take 0.3 of the lights' spill (`MetalFactoryRig.LIGHT_SPILL`, EnvSolid `light_spill`), so the
+  big walls and ceiling stay near black (eye capture, lights on: wall luma 39 → 29 of 255; lights off 24).
 - Drive gears at the far end, facing the player: radius 10 at x ±17, y 2, z -58 (half in the walls' end piers);
   radius 7.5 at x ±9, y -6, z -62 in the pit (top about y 2.7). Axles into the piers and foundation. The view straight
   ahead above the foundation stays open.

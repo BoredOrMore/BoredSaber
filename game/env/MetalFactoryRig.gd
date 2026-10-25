@@ -9,14 +9,19 @@ class_name MetalFactoryRig
 ## Dark boxes drawn in one MultiMesh with the scenery's fog shader. Sizes in metres; untuned.
 
 const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
+## How much of the lights' colour the hall's faces take (EnvSolid light_spill, 1 elsewhere): at 1 the big wall and
+## ceiling faces turned toward the track read as grey sheets (luma about 39 of 255 in the eye capture with the lights
+## on), against "blacks stay black" (doc/world/VISUAL_STYLE.md). Untuned.
+const LIGHT_SPILL := 0.3
 ## how far below the floor (y 0) structure that stands on it starts, so no base shows a gap
 const SINK := 1.0
 ## the factory floor either side of the track (the track floor is about 7 m wide): from x INNER to OUTER, from z
 ## NEAR to FAR, where the drive gears' pit opens
 const FLOOR_X := Vector2(3.6, 18.0)
 const FLOOR_Z := Vector2(4.0, -56.0)
-## the track floor ends at z -48 (SPATIAL_LAYOUT.md); the factory floor closes the gap between its end and the pit
-const TRACK_END_Z := -48.0
+## The factory floor also runs under the track and the player's platform, this far below their surface, so no sky shows
+## between or past them.
+const UNDER_TRACK := 0.02
 const FLOOR_THICKNESS := 0.5
 ## Pistons: one over each anvil, a row each side, every 8 m. The anvil (width x, height above the floor, depth z)
 ## takes the blow; the hammer hangs raised from its housing, under a header beam carried by posts between the pistons.
@@ -49,7 +54,7 @@ const RAIL_Z := Vector2(2.0, -48.0)
 ## Machinery walls: a solid wall from x WALL_X.x to WALL_X.y, WALL_TOP high; a catwalk ledge along its inner face
 ## (the waving lasers stand on it); and machine blocks on the floor against the wall, every 8 m, two heights in turn.
 const WALL_X := Vector2(18.0, 20.0)
-const WALL_TOP := 18.0
+const WALL_TOP := 19.0
 const WALL_Z := Vector2(6.0, -68.0)
 const LEDGE_X := 16.0
 const LEDGE_TOP := 8.0
@@ -59,8 +64,10 @@ const MACHINE_X := 15.0
 const MACHINE_DEPTH := 4.0
 const MACHINE_HEIGHTS: Array[float] = [5.5, 3.5]
 const MACHINE_Z: Array[float] = [-4.0, -12.0, -20.0, -28.0, -36.0, -44.0, -52.0]
-## Ceiling truss: cross beams from wall to wall every 8 m and two chords along the hall, at TRUSS_Y.
-const TRUSS_Y := 18.0
+## Ceiling truss: cross beams from wall to wall every 8 m and two chords along the hall on top of them, at TRUSS_Y,
+## under a solid ceiling slab resting on the walls (WALL_TOP), so no sky shows overhead: the hall is underground.
+const TRUSS_Y := 18.1
+const CEILING_THICKNESS := 1.0
 const TRUSS_BEAM := 0.6
 const TRUSS_Z: Array[float] = [0.0, -8.0, -16.0, -24.0, -32.0, -40.0, -48.0, -56.0, -64.0]
 const TRUSS_CHORD_X := 9.0
@@ -88,6 +95,7 @@ func _ready() -> void:
 		_side(boxes, side)
 	for z in TRUSS_Z:
 		boxes.append(_box(Vector3(0.0, TRUSS_Y, z), Vector3(WALL_X.x * 2.0, TRUSS_BEAM, TRUSS_BEAM)))
+	boxes.append(_span(Vector3(-WALL_X.y, WALL_TOP, WALL_Z.x), Vector3(WALL_X.y, WALL_TOP + CEILING_THICKNESS, WALL_Z.y)))
 	for side in [-1.0, 1.0]:
 		boxes.append(_span(Vector3(side * TRUSS_CHORD_X - TRUSS_BEAM * 0.5, TRUSS_Y + TRUSS_BEAM * 0.5, TRUSS_Z[0]),
 			Vector3(side * TRUSS_CHORD_X + TRUSS_BEAM * 0.5, TRUSS_Y + TRUSS_BEAM * 1.5, TRUSS_Z[-1])))
@@ -101,7 +109,7 @@ func _ready() -> void:
 		boxes.append(_box(centre, Vector3(GEAR_HUB, GEAR_HUB, GEAR_HUB)))
 		var axle_end := FOUNDATION.z
 		boxes.append(_box(Vector3(gear.x, gear.y, (gear.z + axle_end) * 0.5), Vector3(AXLE, AXLE, gear.z - axle_end)))
-	boxes.append(_span(Vector3(-FLOOR_X.x, -FLOOR_THICKNESS, TRACK_END_Z), Vector3(FLOOR_X.x, 0.0, FLOOR_Z.y)))
+	boxes.append(_span(Vector3(-FLOOR_X.x, -FLOOR_THICKNESS, FLOOR_Z.x), Vector3(FLOOR_X.x, -UNDER_TRACK, FLOOR_Z.y)))
 	boxes.append(_box(Vector3(0.0, FOUNDATION.y * 0.5, (FOUNDATION.z + FOUNDATION.w) * 0.5),
 		Vector3(FOUNDATION.x * 2.0, -FOUNDATION.y, FOUNDATION.z - FOUNDATION.w)))
 	var multimesh := MultiMesh.new()
@@ -112,6 +120,7 @@ func _ready() -> void:
 		multimesh.set_instance_transform(i, boxes[i])
 	var material := ShaderMaterial.new()
 	material.shader = ENV_SOLID
+	material.set_shader_parameter(&"light_spill", LIGHT_SPILL)
 	var instance := MultiMeshInstance3D.new()
 	instance.multimesh = multimesh
 	instance.material_override = material
