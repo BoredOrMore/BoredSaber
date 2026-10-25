@@ -68,6 +68,7 @@ const SKY_SHADERS := {
 	"neon_grid": preload("res://game/env/NeonGridSky.gdshader"),
 	"pulse_void": preload("res://game/env/PulseVoidSky.gdshader"),
 	"night_city": preload("res://game/env/NightCitySky.gdshader"),
+	"metal_factory": preload("res://game/env/MetalFactorySky.gdshader"),
 }
 
 var ring_rot_speed := 0.0

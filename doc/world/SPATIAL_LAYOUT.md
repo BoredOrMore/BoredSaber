@@ -43,7 +43,8 @@ Plain boxes in `MetalFactoryRig.gd`, every size a named constant there; detail m
   big walls and ceiling stay near black (eye capture, lights on: wall luma 39 → 29 of 255; lights off 24).
 - Drive gears at the far end, facing the player: radius 10 at x ±17, y 2, z -58 (half in the walls' end piers);
   radius 7.5 at x ±9, y -6, z -62 in the pit (top about y 2.7). Axles into the piers and foundation. The view straight
-  ahead above the foundation stays open.
+  ahead above the foundation stays open; beyond it is the stage's own dark sky (`MetalFactorySky.gdshader`, near-black
+  navy, no light colours), the darkest thing in view (eye capture, lights on: far opening luma 104 → 16 of 255).
 - Laser fixtures: diagonal on each anvil's inner corner nearest the player (x ±6.55, z piston + 1.45, foot y 1.5);
   waving on the ledges at x ±16.5, z -16 to -40, foot y 8.
 
