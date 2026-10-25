@@ -758,6 +758,7 @@ func _breathe(delta: float) -> void:
 
 func update_left_color(color: Color) -> void:
 	left_color = color
+	metal_factory_rig.set_spark_colors(left_color, right_color)
 	if menu_focus:
 		_apply_menu_lights()
 		return
@@ -767,6 +768,7 @@ func update_left_color(color: Color) -> void:
 
 func update_right_color(color: Color) -> void:
 	right_color = color
+	metal_factory_rig.set_spark_colors(left_color, right_color)
 	PLATFORM_LIGHTS.set_shader_parameter(&"light_color", color)
 	if menu_focus:
 		_apply_menu_lights()

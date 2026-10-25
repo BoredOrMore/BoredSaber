@@ -54,6 +54,26 @@ const SLAM_FROM := 0.6
 const SLAM_FULL := 0.9
 const SLAM_REST_SECONDS := 0.06
 const SLAM_FALL_SECONDS := 0.15
+## Sparks on a blow (owner, 2026-10-25): as each hammer lands they burst out sideways from under its face, off the die's
+## top edge, and fall away; hot white cooling to the note colour of that side's lights (left row left, right row
+## right), as the cut sparks do (CutFlash). Only a blow of at least SPARK_FROM of the full stroke throws them, at most
+## once a slam cycle, so never more than 2 bursts a second (Light rule 8). One emitter per side, firing from points
+## round every die on that side. The cut sparks' streak mesh, SPARK_SCALE times larger to read at 10-45 m. Untuned.
+const SPARK_FROM := 0.5
+const SPARK_POINTS_PER_EDGE := 3
+const SPARK_LIFT := 0.05
+const SPARKS_PER_SIDE := 60
+const SPARK_SECONDS := 0.7
+const SPARK_SPEED := Vector2(2.5, 5.0)
+const SPARK_SPREAD_DEG := 30.0
+## how far the sparks lean upward from flat as they leave the edge
+const SPARK_RISE := 0.3
+const SPARK_GRAVITY := 9.8
+const SPARK_SCALE := 4.0
+## (at most about 3.5 m out from the die's edge before they fade, so from the inner edge (x ±6.8) they stay beyond the
+## energy rails (x ±4) and well clear of the note corridor)
+## the die's half width (tools/models/anvil_base.py DIE)
+const DIE_HALF := 1.2
 const HEADER := 0.6
 const POST_Z: Array[float] = [-8.0, -16.0, -24.0, -32.0, -40.0, -48.0]
 ## the diagonal lasers stand on each anvil's shelf at its inner corner nearest the player, this far in from both edges:
@@ -111,6 +131,9 @@ const FOUNDATION := Vector4(24.0, -14.0, -66.0, -70.0)
 const PIER_X := Vector2(14.0, 20.0)
 
 var _hammers: MultiMeshInstance3D
+## the sparks of the left and right rows, and the slam cycle that last threw them
+var _sparks: Array[CPUParticles3D] = []
+var _sparked_cycle := -1.0
 
 ## Builds the boxes into one MultiMesh and the pistons and anvils into one per part, all with the hall's material.
 func _ready() -> void:
@@ -151,6 +174,49 @@ func _ready() -> void:
 	_add_multimesh(LaserFixtures._model_mesh(HOUSING_MODEL), housings, material)
 	_hammers = _add_multimesh(LaserFixtures._model_mesh(HAMMER_MODEL), hammers, material)
 	_add_multimesh(LaserFixtures._model_mesh(ANVIL_MODEL), anvils, material)
+	for side in [-1.0, 1.0]:
+		_sparks.append(_add_sparks(side))
+
+## Sets the sparks' colours: the left row cools to `left`, the right to `right`.
+func set_spark_colors(left: Color, right: Color) -> void:
+	for i in 2:
+		var color := left if i == 0 else right
+		_sparks[i].color_ramp.set_color(1, Color(color.r, color.g, color.b, 0.0))
+
+## The spark emitter of one row (side -1 left, 1 right): directed points along the top edges of its dies, each pointing
+## out from the die and a little up.
+func _add_sparks(side: float) -> CPUParticles3D:
+	var points := PackedVector3Array()
+	var normals := PackedVector3Array()
+	for z in PISTON_Z:
+		var centre := Vector3(side * PISTON_X, ANVIL_TOP + SPARK_LIFT, z)
+		for out: Vector3 in [Vector3.RIGHT, Vector3.LEFT, Vector3.FORWARD, Vector3.BACK]:
+			var along := out.cross(Vector3.UP)
+			for k in SPARK_POINTS_PER_EDGE:
+				var t := (k + 0.5) / SPARK_POINTS_PER_EDGE * 2.0 - 1.0
+				points.append(centre + (out + along * t) * DIE_HALF)
+				normals.append((out + Vector3.UP * SPARK_RISE).normalized())
+	var sparks := CPUParticles3D.new()
+	sparks.mesh = CutFlash.spark_mesh()
+	sparks.particle_flag_align_y = true
+	sparks.amount = SPARKS_PER_SIDE
+	sparks.lifetime = SPARK_SECONDS
+	sparks.one_shot = true
+	sparks.explosiveness = 1.0
+	sparks.emitting = false
+	sparks.emission_shape = CPUParticles3D.EMISSION_SHAPE_DIRECTED_POINTS
+	sparks.emission_points = points
+	sparks.emission_normals = normals
+	sparks.spread = SPARK_SPREAD_DEG
+	sparks.initial_velocity_min = SPARK_SPEED.x
+	sparks.initial_velocity_max = SPARK_SPEED.y
+	sparks.gravity = Vector3(0.0, -SPARK_GRAVITY, 0.0)
+	sparks.scale_amount_min = SPARK_SCALE
+	sparks.scale_amount_max = SPARK_SCALE
+	sparks.color_ramp = Gradient.new()
+	sparks.color_ramp.set_color(0, Color.WHITE)
+	add_child(sparks)
+	return sparks
 
 ## Moves the hammers for the song's `beat` at `bpm` and the show's `intensity` (0 to 1); a bpm of 0 rests them raised.
 func slam(beat: float, bpm: float, intensity: float) -> void:
@@ -159,7 +225,16 @@ func slam(beat: float, bpm: float, intensity: float) -> void:
 		var beats := 1.0
 		while beats * 60.0 / bpm < SLAM_MIN_CYCLE_SECONDS:
 			beats *= 2.0
-		drop = hammer_drop(fposmod(beat, beats) * 60.0 / bpm, beats * 60.0 / bpm) * smoothstep(SLAM_FROM, SLAM_FULL, intensity)
+		var stroke := smoothstep(SLAM_FROM, SLAM_FULL, intensity)
+		drop = hammer_drop(fposmod(beat, beats) * 60.0 / bpm, beats * 60.0 / bpm) * stroke
+		# a new cycle has started: the hammers have just landed
+		var cycle := floorf(beat / beats)
+		if cycle != _sparked_cycle:
+			_sparked_cycle = cycle
+			if stroke >= SPARK_FROM:
+				for sparks in _sparks:
+					sparks.color_ramp.set_color(0, Color(1.0, 1.0, 1.0, stroke))
+					sparks.restart()
 	_hammers.position.y = -STROKE * drop
 
 ## How far down a hammer is, 1 on the anvil to 0 raised, `t` seconds after it last landed in a slam every `cycle` seconds.
