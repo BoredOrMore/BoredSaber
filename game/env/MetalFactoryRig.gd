@@ -208,6 +208,9 @@ func _add_sparks(side: float) -> CPUParticles3D:
 	sparks.emission_shape = CPUParticles3D.EMISSION_SHAPE_DIRECTED_POINTS
 	sparks.emission_points = points
 	sparks.emission_normals = normals
+	# directed points turn `direction` into each point's frame, whose z is the normal: +z flies out along it (the
+	# default +x flew along the die's edge, across the anvil)
+	sparks.direction = Vector3.BACK
 	sparks.spread = SPARK_SPREAD_DEG
 	sparks.initial_velocity_min = SPARK_SPEED.x
 	sparks.initial_velocity_max = SPARK_SPEED.y
