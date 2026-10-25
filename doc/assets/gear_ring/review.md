@@ -15,15 +15,15 @@
 | Check | Result | Evidence / notes |
 |---|---|---|
 | Reference fidelity | NOT CHECKED | no reference images |
-| Silhouette / proportions | NOT CHECKED | owner, in Blender and the Godot editor |
+| Silhouette / proportions | PASS | owner, in Blender, the Godot editor and `stage_capture --map` (2026-10-25) |
 | Geometry / normals / transforms | PASS | front and edges only (never seen from behind); normals recalculated; origin at the centre |
 | Materials / lighting | NOT CHECKED | occlusion baked but not yet read by a game shader |
 | Gameplay readability | PASS | inner edge 6.2 m from the track's axis, outside the note corridor |
-| Godot import / resource paths | PASS | local import; CI after push |
-| In-engine visual inspection | NOT CHECKED | owner; the spin needs a map with ring events (or the headset) |
+| Godot import / resource paths | PASS | local import; CI import and export succeed (commit 8b4f95d) |
+| In-engine visual inspection | PASS (desktop) | owner saw the rings turn with Blinding Lights' ring events (`stage_capture --map`, after the Background fix a97236b); headset not yet |
 | Performance budget | PASS | 180 triangles, 1080 for six, one MultiMesh; six transforms a frame while spinning |
 | Scope / no unrelated changes | PASS | only the files above |
 
 Known limitations / assumptions: rings pass through the floor as they turn (as in the blockout); no back faces.
-Human decision: pending (owner)
-Reviewer / date:
+Human decision: APPROVED (owner, 2026-10-25); headset still to come
+Reviewer / date: owner, 2026-10-25
