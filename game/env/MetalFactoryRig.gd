@@ -98,13 +98,13 @@ const RAIL_X := 4.0
 const RAIL_TOP := 0.3
 const RAIL_WIDTH := 0.4
 const RAIL_Z := Vector2(2.0, -48.0)
-## Machinery walls: a solid wall from x WALL_X.x to WALL_X.y, WALL_TOP high; a catwalk ledge along its inner face
+## Machinery walls: a solid wall from x WALL_X.x to WALL_X.y, up to the vault's springline (WALL_TOP); a catwalk ledge along its inner face
 ## (the waving lasers stand on it). Against the wall's face, the wall kit (tools/models/wall_kit.py,
 ## doc/assets/wall_kit): an I-beam column at every COLUMN_Z, and in each bay between (BAY_Z) a framed, louvered panel
 ## above the catwalk (its foot PANEL_Y up), a run of pipes under the catwalk (centred PIPES_Y up) and a machine on the
 ## floor, tall and low in turn. Each piece's front faces the track: the right wall's are turned half round.
 const WALL_X := Vector2(18.0, 20.0)
-const WALL_TOP := 19.0
+const WALL_TOP := 17.0
 const WALL_Z := Vector2(6.0, -68.0)
 const LEDGE_X := 16.0
 const LEDGE_TOP := 8.0
@@ -121,13 +121,17 @@ const WALL_KIT := {
 	"machine": preload("res://game/models/wall_machine.glb"),
 	"machine_low": preload("res://game/models/wall_machine_low.glb"),
 }
-## Ceiling truss: cross beams from wall to wall every 8 m and two chords along the hall on top of them, at TRUSS_Y,
-## under a solid ceiling slab resting on the walls (WALL_TOP), so no sky shows overhead: the hall is underground.
-const TRUSS_Y := 18.1
-const CEILING_THICKNESS := 1.0
+## The vault over the hall (owner's sketch, 2026-10-25: the top half of an octagon tube): from the walls' tops (the
+## springline, WALL_TOP) each side turns in at 45 degrees for VAULT_RUN metres, then a flat crown, all a solid shell
+## VAULT_SHELL thick, so no sky shows overhead: the hall is underground. Ribs follow that outline at every TRUSS_Z (the
+## columns' spacing and on to the far end), standing RIB proud of the shell; beams run along the hall at its four
+## corner lines; and a tie beam spans the hall at each rib, resting on the walls' tops.
+const VAULT_RUN := 9.0
+const VAULT_SHELL := 1.0
+const RIB := Vector2(0.6, 0.6)
+const CORNER_BEAM := 0.6
 const TRUSS_BEAM := 0.6
 const TRUSS_Z: Array[float] = [0.0, -8.0, -16.0, -24.0, -32.0, -40.0, -48.0, -56.0, -64.0]
-const TRUSS_CHORD_X := 9.0
 ## Drive gears at the far end, facing the player (drive_gear_large/small.glb, tools/models/gears.py): a large one each
 ## side (centre, left first), half in the wall's end pier, and a small one meshing below it in the pit, its top just
 ## above the floor. Each has an axle back into the foundation or the pier. The view straight ahead stays open above the
@@ -172,12 +176,7 @@ func _ready() -> void:
 			hammers.append(Transform3D(Basis.IDENTITY, Vector3(side * PISTON_X, HAMMER_BOTTOM, z)))
 	for side in [-1.0, 1.0]:
 		_side(boxes, side)
-	for z in TRUSS_Z:
-		boxes.append(_box(Vector3(0.0, TRUSS_Y, z), Vector3(WALL_X.x * 2.0, TRUSS_BEAM, TRUSS_BEAM)))
-	boxes.append(_span(Vector3(-WALL_X.y, WALL_TOP, WALL_Z.x), Vector3(WALL_X.y, WALL_TOP + CEILING_THICKNESS, WALL_Z.y)))
-	for side in [-1.0, 1.0]:
-		boxes.append(_span(Vector3(side * TRUSS_CHORD_X - TRUSS_BEAM * 0.5, TRUSS_Y + TRUSS_BEAM * 0.5, TRUSS_Z[0]),
-			Vector3(side * TRUSS_CHORD_X + TRUSS_BEAM * 0.5, TRUSS_Y + TRUSS_BEAM * 1.5, TRUSS_Z[-1])))
+	_vault(boxes)
 	for gear in LARGE_GEARS + SMALL_GEARS:
 		var axle_end := FOUNDATION.z
 		boxes.append(_box(Vector3(gear.x, gear.y, (gear.z + axle_end) * 0.5), Vector3(AXLE, AXLE, gear.z - axle_end)))
@@ -339,6 +338,44 @@ func _add_multimesh(mesh: Mesh, places: Array[Transform3D], material: ShaderMate
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
 	return instance
+
+## Adds the vault: its shell along the whole hall, the ribs and tie beams at every TRUSS_Z and the corner beams.
+static func _vault(boxes: Array[Transform3D]) -> void:
+	var crown_x := WALL_X.x - VAULT_RUN
+	var crown_y := WALL_TOP + VAULT_RUN
+	var hall := WALL_Z.x - WALL_Z.y
+	var hall_z := (WALL_Z.x + WALL_Z.y) * 0.5
+	# the crown, its underside at crown_y, overlapping the chamfers' ends
+	boxes.append(_box(Vector3(0.0, crown_y + VAULT_SHELL * 0.5, hall_z), Vector3((crown_x + VAULT_SHELL) * 2.0, VAULT_SHELL, hall)))
+	for side in [-1.0, 1.0]:
+		var foot := Vector3(side * WALL_X.x, WALL_TOP, 0.0)
+		var head := Vector3(side * crown_x, crown_y, 0.0)
+		# the chamfer's shell, its inner face on the line from the wall's top to the crown's edge
+		boxes.append(_slab(foot, head, side, VAULT_SHELL, VAULT_SHELL, hall, hall_z))
+		for z in TRUSS_Z:
+			boxes.append(_slab(foot, head, -side, RIB.x, 0.0, RIB.y, z))
+		for corner in [foot, head]:
+			var beam := Vector3(corner.x - side * CORNER_BEAM * 0.5, corner.y - CORNER_BEAM * 0.5, hall_z)
+			boxes.append(_box(beam, Vector3(CORNER_BEAM, CORNER_BEAM, hall)))
+	for z in TRUSS_Z:
+		boxes.append(_box(Vector3(0.0, crown_y - RIB.x * 0.5, z), Vector3(crown_x * 2.0, RIB.x, RIB.y)))
+		boxes.append(_box(Vector3(0.0, WALL_TOP + TRUSS_BEAM * 0.5, z), Vector3(WALL_X.x * 2.0, TRUSS_BEAM, TRUSS_BEAM)))
+
+## A slab along the line from `a` to `b` (in x and y), `thickness` thick off the line on the side whose x sign is
+## `toward` (away from the hall's middle for the shell, toward it for a rib), `extra` longer at each end so the joints
+## close, `depth` along the hall, centred on `z`.
+static func _slab(a: Vector3, b: Vector3, toward: float, thickness: float, extra: float, depth: float, z: float) -> Transform3D:
+	var along := Vector3(b.x - a.x, b.y - a.y, 0.0)
+	var length := along.length() + extra * 2.0
+	along = along.normalized()
+	# the normal on the chosen side, in the x-y plane
+	var normal := Vector3(-along.y, along.x, 0.0)
+	if signf(normal.x) != signf(toward):
+		normal = -normal
+	var centre := (a + b) * 0.5 + normal * thickness * 0.5
+	centre.z = z
+	# a right-handed basis, so the box isn't mirrored (its faces would turn inside out)
+	return Transform3D(Basis(along, normal, along.cross(normal)) * Basis.from_scale(Vector3(length, thickness, depth)), centre)
 
 ## Adds one side's floor, rail, piston posts and header, wall, ledge and end pier (side -1 left, 1 right).
 static func _side(boxes: Array[Transform3D], side: float) -> void:

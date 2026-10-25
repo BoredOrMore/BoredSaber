@@ -36,13 +36,15 @@ Plain boxes in `MetalFactoryRig.gd`, every size a named constant there; detail m
 - Gear rings (`gear_ring.glb`): around the track at z -15 to -55 every 8 m, centre y 2, rim 6.2 to 6.8 m out, 12 teeth
   to 13.6 m across, running down through the floor; inner edge 6.2 m from the centre.
 - Energy rails: x ±4, z 2 to -48, top y 0.3, 0.4 m wide; the square bars run as strips flush on top.
-- Machinery walls: solid at x ±18 to ±20, up to y 19, z 6 to -68; catwalk ledge along the inner face at x ±16, top
+- Machinery walls: solid at x ±18 to ±20, up to y 17 (the vault's springline), z 6 to -68; catwalk ledge along the inner face at x ±16, top
   y 8. On the wall's face the wall kit (`wall_*.glb`): I-beam columns every 8 m from z 0 to -56 (floor to ceiling);
   in each bay between (z -4 to -52) a louvered panel above the catwalk (y 8.5 to 16.1), a run of three pipes under
   it (centred y 6.7, out to x ±15.9) and a machine on the floor (3 m deep, 4 m long; tall to y 6, low to y 4.2, in
   turn).
-- Ceiling: a solid slab from y 19 to 20 resting on the walls, z 6 to -68, so no sky shows overhead (underground);
-  under it a truss of cross beams at y 18.1 every 8 m from z 0 to -64, two chords at x ±9.
+- Vault (owner's sketch, 2026-10-25: the top half of an octagon tube): the walls rise to the springline at y 17,
+  then each side turns in at 45 degrees for 9 m to a flat crown at y 26, x ±9; a solid 1 m shell from z 6 to -68, so
+  no sky shows overhead (underground). Ribs (0.6 m) follow the outline every 8 m from z 0 to -64, with a tie beam across
+  the hall at the springline at each; beams run the hall's length at the four corner lines (MetalFactoryRig._vault).
 - The hall's faces take 0.3 of the lights' spill (`MetalFactoryRig.LIGHT_SPILL`, EnvSolid `light_spill`), so the
   big walls and ceiling stay near black (eye capture, lights on: wall luma 39 → 29 of 255; lights off 24).
 - Drive gears at the far end, facing the player (`drive_gear_large/small.glb`): root radius 10 (22.4 m across the

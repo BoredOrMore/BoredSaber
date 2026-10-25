@@ -8,7 +8,8 @@
 - Confidence and assumptions: an original, generic industrial kit; sizes from the blockout.
 - Dimensions / units / origin / axes: metres. Every piece's back is on the wall's face, its front toward the track;
   origin at the back, centred along the hall, at its foot (pipes: the run's middle).
-  - column: I-beam 0.8 m wide, 0.6 m deep, 19 m high (floor to ceiling slab), 1 m base plate.
+  - column: I-beam 0.8 m wide, 0.6 m deep, 19 m high, 1 m base plate; since the vault (springline 17 m) its top runs
+    up into the vault's shell and the rib above it continues its line.
   - panel: 7.2 m along the hall, 7.6 m high, framed, four louvers 6 m long; set above the catwalk (foot 8.5 m up).
   - pipes: three 0.6 m pipes side by side, 0.4-1.8 m out, 8 m long, two brackets; under the catwalk (6.7 m up), clear
     of the tall machine's tank (top 6 m) and the catwalk (underside 7.4 m).
