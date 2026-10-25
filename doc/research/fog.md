@@ -48,3 +48,19 @@ measurement shows room. Every value untuned until the headset.
 [2]: https://realtimevfx.com/t/cheap-mobile-fog-unity/15447
 [3]: https://rankrebellion.itch.io/tomb-defense/devlog/749457/improving-performance
 [4]: https://iquilezles.org/articles/fog/
+
+## Fog with mass (owner, 2026-10-25: "fog that has condensed mass")
+Not a tint over everything but fog you can see as a body: banks, a sea of cloud, layers with edges. Real volumetric
+fog (ray marching, froxels) is out on the Pico 4 (Compatibility renderer, no depth reads). Cheap ways to fake a body:
+| # | What | Look | Cost (reasoned) |
+|---|---|---|---|
+| M1 | **Rolling density** in the existing height fog: a slow 3D noise (per vertex, drifting with time) varies how thick it is | the fog's edge on buildings rolls and breathes instead of a flat band | free (per vertex) |
+| M2 | **Opaque cloud sea**: a solid, gently heaving surface (a subdivided plane, vertices moved by noise) coloured like lit fog, e.g. filling Night City's canyon 25-35 m below the roofs; buildings rise out of it | strong mass and depth: a sea of cloud below, the scale cue the owner wants | opaque: no blending, drawn once per pixel like any wall; a few thousand vertices. Cheapest "mass" there is |
+| M3 | **Fog banks**: a few big lumpy meshes (low-poly spheres) far away, see-through with an inverted-Fresnel edge (thick in the middle, fading at the silhouette) and drifting noise, no depth fade ([80.lv][5], [realtimevfx][2]) | distinct clouds of fog with soft edges | each bank is a see-through layer over the part of the view it covers: keep them few and far (small on screen); measure |
+| M4 | Alpha-dithered cloud cards | — | reported too expensive for VR ([Meta forum][6]); not recommended |
+
+Recommendation: M2 for Night City's canyon (the cloud sea; it fits the "tiny in something huge" rule), M1 for every
+stage, M3 only after a headset measurement.
+
+[5]: https://80.lv/articles/unity-made-pseudo-volumetric-smoke-optimized-for-low-end-mobile-devices/
+[6]: https://communityforums.atmeta.com/discussions/dev-unreal/distance-fog-using-forward-renderer---how-to-make-it-cheap/890002
