@@ -11,6 +11,10 @@ class_name TrackDeck
 const DECK_SHADER := preload("res://game/env/TrackDeck.gdshader")
 const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
 const EDGE_MODEL := preload("res://game/models/track_edge.glb")
+## the low block across the deck's far end the edge strips run into (track_end.glb, tools/models/track_end.py), 1 m wide
+## as built, stretched across the deck and both edges (EDGE_REACH out on each side)
+const END_MODEL := preload("res://game/models/track_end.glb")
+const EDGE_REACH := 0.42
 ## the deck's length along the track (as the old sheet: from just ahead of the platform to the track's end) and depth.
 ## Its top is the track's surface, y 0: the notes, rows and hit plane are measured from it (game/AGENTS.md).
 const DECK_Z := Vector2(-1.5, -48.0)
@@ -25,6 +29,7 @@ const SKINS := {"metal_factory": 1, "neon_grid": 2}
 
 var _deck: MeshInstance3D
 var _curbs: MultiMesh
+var _end: MeshInstance3D
 ## the deck's material, for the floor light's colour
 var deck_material: ShaderMaterial
 
@@ -48,9 +53,14 @@ func _ready() -> void:
 	curbs.material_override = curb_material
 	curbs.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(curbs)
+	_end = MeshInstance3D.new()
+	_end.mesh = LaserFixtures._model_mesh(END_MODEL)
+	_end.material_override = curb_material
+	_end.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_end)
 	layout(Constants.DEFAULT_LANE_DISTANCE_X)
 
-## Sizes the deck for lanes `lane_width` apart (four lanes) and puts the edges at its sides.
+## Sizes the deck for lanes `lane_width` apart (four lanes), puts the edges at its sides and the end stop across its end.
 func layout(lane_width: float) -> void:
 	var half := 2.0 * lane_width
 	var length := DECK_Z.x - DECK_Z.y
@@ -62,6 +72,7 @@ func layout(lane_width: float) -> void:
 		# the model is the right edge, 1 m long; the left is it turned half round
 		var turn := Basis.IDENTITY if side > 0.0 else Basis(Vector3.UP, PI)
 		_curbs.set_instance_transform(i, Transform3D(turn * Basis.from_scale(Vector3(1.0, 1.0, length)), Vector3(side * half, 0.0, z)))
+	_end.transform = Transform3D(Basis.from_scale(Vector3((half + EDGE_REACH) * 2.0, 1.0, 1.0)), Vector3(0.0, 0.0, DECK_Z.y))
 
 ## Dresses the deck for environment `id` (TrackDeck.gdshader's skins): Metal Factory's tread plate, Neon Grid's dark
 ## glass, plain plates elsewhere.

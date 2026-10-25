@@ -503,6 +503,8 @@ func set_background() -> void:
 	# its strips at its edges, in mixed reality (the room must show through) and with the Old track setting
 	var old_track := Settings.old_track or Settings.mixed_reality
 	($Level/floor as Node3D).visible = old_track
+	# the old track's far end piece; the deck ends in its own low stop (it rose over the horizon straight ahead)
+	end_path.visible = old_track
 	track_deck.visible = not old_track
 	track_deck.layout(Settings.LANE_DISTANCE_X)
 	if not old_track:
