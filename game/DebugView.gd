@@ -8,6 +8,9 @@ const PLAIN_NOTES := 2
 const LASERS := 4
 const RINGS := 8
 const SKY := 16
+## The scenery (EnvSolid) drawn one flat colour: the same pixels with none of the shading, to split its cost into
+## the area it covers and its shader (benchmark only, tools/bench.sh --only fog).
+const FLAT_SCENERY := 32
 const DUST := 128
 ## Not read by shaders: while on, a song steps through CYCLE_STEPS by itself (cycle_tick), so one run measures
 ## every part; the log line "debug_view N" marks each step for matching with the headset's GPU timings.

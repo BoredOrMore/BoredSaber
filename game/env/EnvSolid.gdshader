@@ -49,7 +49,7 @@ global uniform vec4 env_light;
 #include "res://game/env/shadow_tone.gdshaderinc"
 #include "res://game/env/fog_light.gdshaderinc"
 #include "res://game/env/height_fog.gdshaderinc"
-// DebugView.RINGS leaves these out (no area, so nothing is drawn)
+// DebugView.RINGS leaves these out (no area, so nothing is drawn); DebugView.FLAT_SCENERY draws them one flat colour
 global uniform int debug_view;
 
 // 1. base
@@ -241,24 +241,28 @@ vec3 windows_light() {
 }
 
 void fragment() {
-	// the haze lit from the stage's key light, seen this way (fog_light.gdshaderinc)
-	vec3 haze = fog_lit(env_haze.rgb, (INV_VIEW_MATRIX * vec4(-VIEW, 0.0)).xyz);
-	// edge is interpolated linearly across the ring's band; the power pulls the glow in tight against the hole
-	float glow = pow(edge, EDGE_TIGHTNESS) * EDGE_LIGHT;
-	vec3 lit = (albedo.rgb * form + env_light.rgb * spill * form) * ao;
-	if (metal > 0.0) {
-		// view-space normal to the matcap's picture: x right, y up (the picture's rows run down)
-		float sheen = texture(matcap, NORMAL.xy * vec2(0.5, -0.5) + 0.5).r;
-		lit += metal * sheen * ao * (vec3(METAL_GREY) + env_light.rgb * METAL_LIGHT);
+	if ((debug_view & 32) != 0) {
+		ALBEDO = albedo.rgb;
+	} else {
+		// the haze lit from the stage's key light, seen this way (fog_light.gdshaderinc)
+		vec3 haze = fog_lit(env_haze.rgb, (INV_VIEW_MATRIX * vec4(-VIEW, 0.0)).xyz);
+		// edge is interpolated linearly across the ring's band; the power pulls the glow in tight against the hole
+		float glow = pow(edge, EDGE_TIGHTNESS) * EDGE_LIGHT;
+		vec3 lit = (albedo.rgb * form + env_light.rgb * spill * form) * ao;
+		if (metal > 0.0) {
+			// view-space normal to the matcap's picture: x right, y up (the picture's rows run down)
+			float sheen = texture(matcap, NORMAL.xy * vec2(0.5, -0.5) + 0.5).r;
+			lit += metal * sheen * ao * (vec3(METAL_GREY) + env_light.rgb * METAL_LIGHT);
+		}
+		vec3 vent_light = vec3(0.0);
+		if (max(vent.r, max(vent.g, vent.b)) > 0.0) {
+			float peak = max(vent.r, max(vent.g, vent.b));
+			float facing = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
+			vent_light = mix(vent, vec3(peak), VENT_CORE_WHITE * pow(facing, VENT_CORE_SHARPNESS));
+		}
+		// the windows go on after the shadow tone, which would grey their colour
+		// 5. per pixel on faces too big for a blend of their corners
+		float haze_amount = fog_per_pixel ? fog_at(world_pos, CAMERA_POSITION_WORLD, TIME) : fog;
+		ALBEDO = fog_dither(shadow_tone(mix(lit, haze, haze_amount) + (env_light.rgb * glow + vent_light) * (1.0 - haze_amount)) + windows_light() * (1.0 - haze_amount), FRAGCOORD.xy);
 	}
-	vec3 vent_light = vec3(0.0);
-	if (max(vent.r, max(vent.g, vent.b)) > 0.0) {
-		float peak = max(vent.r, max(vent.g, vent.b));
-		float facing = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
-		vent_light = mix(vent, vec3(peak), VENT_CORE_WHITE * pow(facing, VENT_CORE_SHARPNESS));
-	}
-	// the windows go on after the shadow tone, which would grey their colour
-	// 5. per pixel on faces too big for a blend of their corners
-	float haze_amount = fog_per_pixel ? fog_at(world_pos, CAMERA_POSITION_WORLD, TIME) : fog;
-	ALBEDO = fog_dither(shadow_tone(mix(lit, haze, haze_amount) + (env_light.rgb * glow + vent_light) * (1.0 - haze_amount)) + windows_light() * (1.0 - haze_amount), FRAGCOORD.xy);
 }
