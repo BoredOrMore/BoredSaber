@@ -46,8 +46,6 @@ const HOUSE_COLOR := Color(0.62, 0.64, 0.68)
 const MENU_HOUSE_MIX := 0.85
 ## Seconds the menu lights take to fade in before they start breathing.
 const MENU_FADE_SECONDS := 1.0
-## When a song starts every light goes dark for this long before the show's lights come on, like a concert.
-const SHOW_BLACKOUT_SECONDS := 0.5
 ## A menu is showing: pre-show lighting (see MENU_BREATH_LOW), rings still.
 var menu_focus := false
 var _menu_time := 0.0
@@ -105,6 +103,8 @@ var _sky_materials := {}
 ## 1 right after a combo milestone, falling to 0
 var _combo_pulse := 0.0
 var _dust := Dust.new()
+## the moving heads the lasers leave from
+var _fixtures := LaserFixtures.new()
 ## A good cut sends a ring of the saber's light out from the player along the scene's lights
 ## (player_light.gdshaderinc): how far each saber's ring has gone in metres, negative when there is none.
 var _cut_waves := Vector2(-1.0, -1.0)
@@ -128,6 +128,27 @@ const QUIET_DIM := 0.4
 var _since_event := 0.0
 ## 0 lit to 1 fully sunk
 var _quiet := 0.0
+## The show's intensity, which builds the stage as the song builds (doc/world/AUDIO_VISUAL_MAPPING.md): how many
+## light events the map fires in the last INTENSITY_WINDOW_SECONDS, against the song's own range (between its
+## INTENSITY_LOW and INTENSITY_HIGH percentiles, so a song whose lights barely vary still builds and one with dense
+## light shows doesn't saturate at once; measured on 52 maps, rates run from 1 to 165 events a second and peaks
+## 1.3-7.5 times the mean). Worked out once per song as a curve sampled every INTENSITY_STEP beats, then smoothed
+## while playing, rising over INTENSITY_RISE_SECONDS and falling over INTENSITY_FALL_SECONDS. A map without light
+## events has no curve and stays dark and unbuilt. The player found the timing right on the headset (2026-10-24).
+const INTENSITY_WINDOW_SECONDS := 4.0
+const INTENSITY_STEP := 0.5
+const INTENSITY_LOW := 0.2
+const INTENSITY_HIGH := 0.9
+const INTENSITY_RISE_SECONDS := 1.0
+const INTENSITY_FALL_SECONDS := 3.0
+## the song's beat now, set by the Playing state; the curve and the smoothed intensity
+var show_beat := 0.0
+var _intensity_curve := PackedFloat32Array()
+var _intensity := 0.0
+## the highest the smoothed intensity has been this song: what the crew has built so far (it never comes down)
+var _built := 0.0
+## whether the square bars were last left lowered with Classic's frames
+var _bars_lowered := false
 
 @onready var ring_holder := $Level/rings as Node3D
 @onready var diagonal_lasers_holder := $Level/DiagonalLasers as Node3D
@@ -181,8 +202,21 @@ const PLATFORM_LIGHTS := preload("res://game/env/platform_lights.tres")
 func _ready() -> void:
 	classic_sky_material.render_priority = SKY_RENDER_PRIORITY
 	$Level.add_child(_dust)
+	# each laser leaves a moving head on top of its pedestal (ClassicRig), not from inside it
 	for laser: Node3D in diagonal_lasers + _waving_lasers():
+		laser.global_position.y = ClassicRig.FIXTURE_Y
 		_classic_rig[laser] = laser.global_transform
+	var fixture_lasers: Array[Node3D] = []
+	var fixture_materials: Array[ShaderMaterial] = []
+	for laser: Node3D in diagonal_lasers:
+		fixture_lasers.append(laser)
+		fixture_materials.append(diagonal_lasers_material)
+	for laser in _waving_lasers():
+		fixture_lasers.append(laser)
+		fixture_materials.append(left_waving_lasers_material if laser.get_parent() == left_waving_lasers_holder
+				else right_waving_lasers_material)
+	_fixtures.setup(fixture_lasers, fixture_materials)
+	$Level.add_child(_fixtures)
 	_classic_rig[square_lasers_holder] = square_lasers_holder.transform
 	for bar in _square_bars():
 		_classic_rig[bar] = bar.global_transform
@@ -416,6 +450,7 @@ func show_scenery_for_mixed_reality() -> void:
 	night_city_rig.visible = environment == "night_city" and not Settings.mixed_reality
 	stage_smoke.visible = Settings.smoke and not Settings.mixed_reality
 	_dust.visible = not Settings.mixed_reality
+	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple"
 
 func set_background() -> void:
 	var width_scale := 2 * Settings.LANE_DISTANCE_X / 3.
@@ -434,6 +469,7 @@ func set_background() -> void:
 		for laser in diagonal_lasers:
 			laser.transform.origin.x = 4.5 * width_scale * sign(laser.transform.origin.x)
 	
+	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple"
 	if Settings.background == "simple":
 		ring_holder.hide()
 		diagonal_lasers_holder.hide()
@@ -500,6 +536,8 @@ func _process(delta: float) -> void:
 	var quiet := not menu_focus and Settings.atmosphere == "Eerie" and _since_event > QUIET_AFTER_SECONDS
 	_quiet = move_toward(_quiet, 1.0 if quiet else 0.0, delta / (QUIET_FADE_SECONDS if quiet else QUIET_RISE_SECONDS))
 	_update_haze()
+	_update_show(delta)
+	_follow_frames()
 	# update the level animations
 	#procces ring rotations
 	if ring_rot_speed > 0:
@@ -512,24 +550,33 @@ func _process(delta: float) -> void:
 ## Tints the shared haze with the light groups that are on, so a flash lights up the air around the track.
 func _update_haze() -> void:
 	var haze := HAZE_BASE
+	# the lights' own colour, which the scenery takes on (env_light, EnvSolid.gdshader)
+	var light := Color.BLACK
 	for m: ShaderMaterial in [diagonal_lasers_material, square_lasers_material, left_waving_lasers_material, right_waving_lasers_material]:
-		haze += (m.get_shader_parameter(&"light_color") as Color) * HAZE_LIGHT_WEIGHT
+		light += m.get_shader_parameter(&"light_color") as Color
 	if track_lights_holder.visible:
-		haze += floor_material.albedo_color * HAZE_LIGHT_WEIGHT
+		light += floor_material.albedo_color
+	haze += light * HAZE_LIGHT_WEIGHT
 	var pulse := _combo_pulse * _combo_pulse
-	haze *= (1.0 + COMBO_HAZE_BOOST * _combo_level + COMBO_PULSE * pulse) * (1.0 - MISTAKE_DIP * _mistake_dip) \
+	var level := (1.0 + COMBO_HAZE_BOOST * _combo_level + COMBO_PULSE * pulse) * (1.0 - MISTAKE_DIP * _mistake_dip) \
 			* (1.0 - QUIET_DIM * _quiet)
+	haze *= level
+	light *= level
 	if menu_focus:
 		haze *= MENU_HAZE_BOOST
 	var eerie := Settings.atmosphere == "Eerie"
 	if eerie:
 		haze *= EERIE_HAZE_DIM
+		light *= EERIE_HAZE_DIM
 	var grey := haze.r * 0.299 + haze.g * 0.587 + haze.b * 0.114
 	haze = haze.lerp(Color(grey, grey, grey), EERIE_HAZE_NEUTRAL if eerie else HAZE_NEUTRAL)
 	if eerie:
 		haze *= Constants.EERIE_HAZE_TINT
 	haze.a = 1.0
 	RenderingServer.global_shader_parameter_set(&"env_haze", haze)
+	light = light.clamp()
+	light.a = 1.0
+	RenderingServer.global_shader_parameter_set(&"env_light", light)
 	RenderingServer.global_shader_parameter_set(&"combo_glow", COMBO_LASER_BOOST * _combo_level + COMBO_PULSE_LASER * pulse
 			- QUIET_DIM * _quiet)
 
@@ -549,6 +596,70 @@ func mistake_dip() -> void:
 func combo_pulse() -> void:
 	_combo_pulse = 1.0
 
+## A song starts: work out its intensity curve and take the stage down, to be built again as the song builds.
+func start_show(events: Array[EventInfo], bpm: float) -> void:
+	_intensity_curve = intensity_curve(events, bpm)
+	_intensity = 0.0
+	_built = 0.0
+	show_beat = 0.0
+	classic_rig.set_built(0.0)
+
+func _update_show(delta: float) -> void:
+	if menu_focus or _intensity_curve.is_empty():
+		return
+	var target := _intensity_curve[clampi(int(show_beat / INTENSITY_STEP), 0, _intensity_curve.size() - 1)]
+	var seconds := INTENSITY_RISE_SECONDS if target > _intensity else INTENSITY_FALL_SECONDS
+	_intensity = move_toward(_intensity, target, delta / seconds)
+	if _intensity > _built:
+		_built = _intensity
+		classic_rig.set_built(_built)
+
+## In Classic the square light bars hang on the tunnel's frames: a frame that isn't standing yet has no lights on it
+## (the crew hangs them once it is up), so its bars are hidden until it stands. Lowered bars used to shine up through
+## the note track (the player saw it on the headset, 2026-10-24).
+func _follow_frames() -> void:
+	if environment != "classic" or (classic_rig.standing() and not _bars_lowered):
+		return
+	for bar in _square_bars():
+		var place: Transform3D = _classic_rig[bar]
+		bar.visible = classic_rig.drop_at(place.origin.z) == 0.0
+	_bars_lowered = not classic_rig.standing()
+
+## The intensity, 0 to 1, every INTENSITY_STEP beats from the song's start to its last light event (see
+## INTENSITY_WINDOW_SECONDS). Empty when the map has no light events.
+static func intensity_curve(events: Array[EventInfo], bpm: float) -> PackedFloat32Array:
+	var last := -1.0
+	for e in events:
+		if e.type >= EventInfo.TYPE_DIAGONAL_LASERS and e.type <= EventInfo.TYPE_FLOOR_LIGHTS:
+			last = maxf(last, e.beat)
+	if last < 0.0 or bpm <= 0.0:
+		return PackedFloat32Array()
+	var count := int(last / INTENSITY_STEP) + 1
+	var per_step := PackedFloat32Array()
+	per_step.resize(count)
+	for e in events:
+		if e.type >= EventInfo.TYPE_DIAGONAL_LASERS and e.type <= EventInfo.TYPE_FLOOR_LIGHTS and e.beat >= 0.0:
+			per_step[int(e.beat / INTENSITY_STEP)] += 1.0
+	# events in the window ending at each step
+	var window := maxi(1, roundi(INTENSITY_WINDOW_SECONDS * bpm / 60.0 / INTENSITY_STEP))
+	var rates := PackedFloat32Array()
+	rates.resize(count)
+	var sum := 0.0
+	for i in count:
+		sum += per_step[i]
+		if i >= window:
+			sum -= per_step[i - window]
+		rates[i] = sum
+	var sorted := rates.duplicate()
+	sorted.sort()
+	var low := sorted[int(INTENSITY_LOW * (count - 1))]
+	var high := maxf(sorted[int(INTENSITY_HIGH * (count - 1))], low + 1.0)
+	var curve := PackedFloat32Array()
+	curve.resize(count)
+	for i in count:
+		curve[i] = clampf((rates[i] - low) / (high - low), 0.0, 1.0)
+	return curve
+
 ## Dims the scene for the menus, fading over a second, and fills the stage with smoke; off, it clears the smoke and
 ## leaves the lights to the song, which sets them next.
 func set_menu_focus(on: bool) -> void:
@@ -566,6 +677,8 @@ func set_menu_focus(on: bool) -> void:
 		right_laser_anim_player.speed_scale = 1.0
 		return
 	_menu_time = 0.0
+	# between songs the rig stands complete
+	classic_rig.set_built(1.0)
 	stage_smoke.refill()
 	_combo_target = 0.0
 	ring_rot_speed = 0.0

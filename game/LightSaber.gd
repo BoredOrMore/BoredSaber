@@ -26,6 +26,8 @@ var second_extra_offset_rot := Vector3.ZERO
 var saber_end := Vector3.ZERO
 var saber_end_past := Vector3.ZERO
 var last_dt := 0.0
+## how hard the controller buzzes while the blade touches the floor or the platform
+const FLOOR_RUMBLE := 0.3
 
 var history := Array()
 const history_size := 300
@@ -248,6 +250,8 @@ func _physics_process(delta: float) -> void:
 			var floor_body := raycoli as Floor
 			var colipoint := _ray_cast.get_collision_point()
 			floor_body.burn_mark(colipoint,type)
+			# the blade scraping the floor buzzes the hand
+			controller.simple_rumble(FLOOR_RUMBLE, 0.05)
 	# a blade that is off lights nothing (PlayerLight.gdshader)
 	RenderingServer.global_shader_parameter_set(&"left_saber" if type == 0 else &"right_saber", saber_end if is_extended() else Vector3.DOWN * 100.0)
 

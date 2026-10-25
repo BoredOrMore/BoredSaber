@@ -127,5 +127,6 @@ func _process_map(game: BeepSaber_Game) -> void:
 		if chain_info.slice_count > 1: # skip if the chain doesn't have any links
 			ChainLink.construct_chain(chain_info, current_beat, note_info_refs, cube_refs)
 	
+	game.event_driver.show_beat = current_beat
 	while not Map.event_stack.is_empty() and Map.event_stack[-1].beat <= current_beat:
 		game.event_driver.process_event(Map.event_stack.pop_back() as EventInfo)

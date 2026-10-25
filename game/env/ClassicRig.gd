@@ -31,9 +31,28 @@ const WAVING_FIXTURES: Array[Vector2] = [
 ]
 const PEDESTAL := Vector3(1.6, 3.0, 1.2)
 const PEDESTAL_TOP := 0.05
+## the laser fixtures' tilt axes (their pivots, LaserFixtures.gd) sit this high: the yoke's foot is 0.54 m below its
+## tilt axis (tools/models/laser_fixture.py prints it), standing on the pedestal's top
+const FIXTURE_Y := PEDESTAL_TOP + 0.54
+## Building the tunnel during a song (the crew sets up its rig as the song builds, doc/world/GAME_BIBLE.md): each
+## frame stands on its own share of the show's build-up (EventDriver), the far ones first, from FIRST_FRAME_AT to
+## LAST_FRAME_AT; when its share is reached it rises out of the dark below the floor, DROP metres, over RISE_SECONDS,
+## and stays. Taken down at a song's start (during the opening blackout) and put back for the menus. The player found
+## the timing right on the headset (2026-10-24).
+const DROP := 18.0
+const RISE_SECONDS := 1.5
+const FIRST_FRAME_AT := 0.1
+const LAST_FRAME_AT := 0.8
+
+var _multimesh: MultiMesh
+var _boxes: Array[Transform3D] = []
+## per frame (FRAME_Z order): how far up it is (0 down, 1 standing) and where it is heading
+var _lift := PackedFloat32Array()
+var _target := PackedFloat32Array()
 
 func _ready() -> void:
 	var boxes: Array[Transform3D] = []
+	# the frames' boxes come first, three per frame in FRAME_Z order (set_built moves them)
 	for z in FRAME_Z:
 		var height := FRAME_TOP - FRAME_BOTTOM
 		for side in [-1.0, 1.0]:
@@ -51,6 +70,11 @@ func _ready() -> void:
 	multimesh.instance_count = boxes.size()
 	for i in boxes.size():
 		multimesh.set_instance_transform(i, boxes[i])
+	_multimesh = multimesh
+	_boxes = boxes
+	_lift.resize(FRAME_Z.size())
+	_lift.fill(1.0)
+	_target = _lift.duplicate()
 	var material := ShaderMaterial.new()
 	material.shader = ENV_SOLID
 	var instance := MultiMeshInstance3D.new()
@@ -58,6 +82,39 @@ func _ready() -> void:
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
+
+## How much of the show has been built, 0 to 1: frames whose share is reached rise, the rest go (or stay) down.
+func set_built(built: float) -> void:
+	var count := FRAME_Z.size()
+	for i in count:
+		# FRAME_Z runs near to far; the far frames go up first
+		var share := lerpf(FIRST_FRAME_AT, LAST_FRAME_AT, float(count - 1 - i) / maxf(count - 1, 1))
+		_target[i] = 1.0 if built >= share else 0.0
+
+func _process(delta: float) -> void:
+	for i in _lift.size():
+		if _lift[i] == _target[i]:
+			continue
+		_lift[i] = move_toward(_lift[i], _target[i], delta / RISE_SECONDS)
+		var down := DROP * (1.0 - smoothstep(0.0, 1.0, _lift[i]))
+		# all the way down it isn't drawn: against the haze the sunken frames showed as a ladder under the track
+		# (desktop capture, tools/capture, 2026-10-24)
+		var size := 0.0 if _lift[i] == 0.0 else 1.0
+		for b in 3:
+			var box := _boxes[i * 3 + b]
+			_multimesh.set_instance_transform(i * 3 + b, Transform3D(box.basis * size, box.origin + Vector3.DOWN * down))
+
+## How far below its place the frame at this z is now (0 when standing or when no frame is there): the square light
+## bars mounted on the frames go down and up with them (EventDriver).
+func drop_at(z: float) -> float:
+	for i in FRAME_Z.size():
+		if absf(FRAME_Z[i] - z) < 1.0:
+			return DROP * (1.0 - smoothstep(0.0, 1.0, _lift[i]))
+	return 0.0
+
+## True while every frame stands.
+func standing() -> bool:
+	return _lift.count(1.0) == _lift.size()
 
 ## A unit box scaled to size and placed at centre.
 static func _box(centre: Vector3, size: Vector3) -> Transform3D:

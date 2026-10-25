@@ -1,0 +1,14 @@
+# Asset spec
+- Ticket / owner:
+- Gameplay purpose / song / genre:
+- Reference files and views:
+- Confidence and assumptions:
+- Dimensions / units / origin / axes:
+- Silhouette landmarks / required features:
+- Materials / palette / emission:
+- Collision or hitbox requirements:
+- Geometry / texture / material budgets:
+- Export format / destination:
+- Existing Godot resources affected:
+- Required previews and automated checks:
+- Human acceptance criteria:

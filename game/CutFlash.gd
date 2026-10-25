@@ -17,29 +17,35 @@ const SPARK_SHADER := preload("res://game/SparkStreak.gdshader")
 const CUT_LINE_HALF := 0.18
 ## the fountain thrown back against the swing
 const FOUNTAIN_SPARKS := 28
-const FOUNTAIN_SPEED_MIN := 2.0
-const FOUNTAIN_SPEED_MAX := 4.5
+## speeds at a full swing, spread wide so some sparks shoot far and some drop short along the same narrow line
+## (the player asked for random speeds within a plume that doesn't open out)
+const FOUNTAIN_SPEED_MIN := 1.8
+const FOUNTAIN_SPEED_MAX := 4.8
 const FOUNTAIN_SPREAD_DEG := 40.0
 const FOUNTAIN_SECONDS := 0.5
 ## the few carried on along the swing
 const SPRAY_SPARKS := 8
-const SPRAY_SPEED_MIN := 2.5
+const SPRAY_SPEED_MIN := 2.0
 const SPRAY_SPEED_MAX := 5.0
-const SPRAY_SPREAD_DEG := 15.0
+const SPRAY_SPREAD_DEG := 8.0
 const SPRAY_SECONDS := 0.4
 ## pulls the sparks into falling arcs (m/s²)
 const SPARK_GRAVITY := 9.0
-## The swing drives the sparks: at REFERENCE_SWING (m/s at the blade tip) they fly at the speeds above; a harder or
-## softer swing scales their speed (so the fountain's height) by its share of that, within SWING_SCALE_MIN..MAX,
-## widens or narrows the fountain toward FOUNTAIN_SPREAD_MAX_DEG, and pulls them down faster or slower.
-const REFERENCE_SWING := 5.0
-const SWING_SCALE_MIN := 0.5
-const SWING_SCALE_MAX := 2.0
-const FOUNTAIN_SPREAD_MIN_DEG := 20.0
-const FOUNTAIN_SPREAD_MAX_DEG := 60.0
-## sparks vary in length (and width) by this much
-const SPARK_SCALE_MIN := 0.5
-const SPARK_SCALE_MAX := 1.3
+## The swing drives the sparks through one exponential curve, as the saber trail's opacity does: the tip's speed as
+## a share x of SWING_FULL (m/s), eased as (e^(SWING_CURVE x) - 1) / (e^SWING_CURVE - 1), so a soft cut gives a
+## small, dim, narrow puff and only a real swing a full fountain. It scales the sparks' speed (the fountain's
+## height) from SPEED_SCALE_MIN to 1, their brightness from BRIGHTNESS_MIN to 1, the fountain's spread between the
+## two angles below, and the pull down by the speed's square root.
+const SWING_FULL := 6.0
+const SWING_CURVE := 3.0
+const SPEED_SCALE_MIN := 0.35
+const BRIGHTNESS_MIN := 0.2
+## a narrow plume close along the swing, not a fan (the player's sketch: within about 20 degrees)
+const FOUNTAIN_SPREAD_MIN_DEG := 6.0
+const FOUNTAIN_SPREAD_MAX_DEG := 9.0
+## sparks vary in length (and width) only this much, so the burst looks even
+const SPARK_SCALE_MIN := 0.85
+const SPARK_SCALE_MAX := 1.15
 
 var _next := 0
 var _fountains: Array[CPUParticles3D] = []
@@ -115,18 +121,19 @@ func flash(at: Vector3, swing: Vector3, color: Color) -> void:
 	var back := -_across_view(sight, swing)
 	var toward := -sight
 	var basis := Basis(back.cross(toward), back, toward).orthonormalized()
-	var swing_scale := clampf(swing.length() / REFERENCE_SWING, SWING_SCALE_MIN, SWING_SCALE_MAX)
+	var x := clampf(swing.length() / SWING_FULL, 0.0, 1.0)
+	var power := (exp(SWING_CURVE * x) - 1.0) / (exp(SWING_CURVE) - 1.0)
+	var speed_scale := lerpf(SPEED_SCALE_MIN, 1.0, power)
 	var fountain := _fountains[i]
 	var spray := _sprays[i]
-	fountain.initial_velocity_min = FOUNTAIN_SPEED_MIN * swing_scale
-	fountain.initial_velocity_max = FOUNTAIN_SPEED_MAX * swing_scale
-	fountain.spread = lerpf(FOUNTAIN_SPREAD_MIN_DEG, FOUNTAIN_SPREAD_MAX_DEG,
-			inverse_lerp(SWING_SCALE_MIN, SWING_SCALE_MAX, swing_scale))
-	spray.initial_velocity_min = SPRAY_SPEED_MIN * swing_scale
-	spray.initial_velocity_max = SPRAY_SPEED_MAX * swing_scale
+	fountain.initial_velocity_min = FOUNTAIN_SPEED_MIN * speed_scale
+	fountain.initial_velocity_max = FOUNTAIN_SPEED_MAX * speed_scale
+	fountain.spread = lerpf(FOUNTAIN_SPREAD_MIN_DEG, FOUNTAIN_SPREAD_MAX_DEG, power)
+	spray.initial_velocity_min = SPRAY_SPEED_MIN * speed_scale
+	spray.initial_velocity_max = SPRAY_SPEED_MAX * speed_scale
 	for sparks: CPUParticles3D in [fountain, spray]:
-		sparks.gravity = Vector3(0.0, -SPARK_GRAVITY * sqrt(swing_scale), 0.0)
+		sparks.gravity = Vector3(0.0, -SPARK_GRAVITY * sqrt(speed_scale), 0.0)
 		sparks.global_transform = Transform3D(basis, at)
-		sparks.color_ramp.set_color(0, Color(1.0, 1.0, 1.0))
+		sparks.color_ramp.set_color(0, Color(1.0, 1.0, 1.0, lerpf(BRIGHTNESS_MIN, 1.0, power)))
 		sparks.color_ramp.set_color(1, Color(color.r, color.g, color.b, 0.0))
 		sparks.restart()
