@@ -52,9 +52,9 @@ Plain boxes in `MetalFactoryRig.gd`, every size a named constant there; detail m
   the pit (top about y 2.7). Axles into the piers and foundation. The view straight
   ahead above the foundation stays open; beyond it is the stage's own dark sky (`MetalFactorySky.gdshader`, near-black
   navy, no light colours), the darkest thing in view (eye capture, lights on: far opening luma 104 → 16 of 255).
-- Laser fixtures: diagonal on each anvil's shelf at the inner corner nearest the player (x ±6.6, z piston + 1.4, foot
-  y 1.2);
-  waving on the ledges at x ±16.5, z -16 to -40, foot y 8.
+- No laser beams or moving heads (owner, 2026-10-25): the diagonal and waving lasers' light glows in the wall panels'
+  vent louvers (upper row both walls: diagonal; lower row: the left or right waving group by wall); the square bars
+  are the energy rails' strips; the centre and floor lights are unchanged.
 
 ## Exclusion zones
 - The note corridor: lanes ±1.2 m (more when wide), y 0 to 2.5, from the player to the far spawn. No scenery,

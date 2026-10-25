@@ -26,6 +26,23 @@ Classic Style Frame": target look, look spec, materials).
 - Fixtures: dark metal with baked occlusion; lens and glow in the beam's colour.
 - Haze reveals light; far things lose contrast toward it. Rings take half the haze to stay dark shapes.
 
+## Light carriers (owner, 2026-10-25)
+Each stage hangs the map's five light groups (diagonal lasers, square bars, left and right waving lasers, centre and
+floor) on something; beams from moving heads are one way, not a rule. Options to pick from for a stage, all in the note
+colours, mounted on its structure (AGENTS.md "Light", rule 5), in the order of their GPU cost on the Pico 4, cheapest
+first. The order is reasoned from how each draws (opaque or see-through, extra draws, overdraw), not measured on the
+headset: measure with `tools/bench.sh` before relying on it.
+1. Emissive vertex mask in an existing model: faces a model marks in vertex colour glow in their group's colour in the
+   scenery shader (EnvSolid layer 6). No extra mesh or draw call. Used: Metal Factory's glowing wall vents.
+2. Opaque light strips (`LightStrip.gdshader`): thin boxes flush on a surface, white-hot where they face the eye. One
+   draw call per MultiMesh, no overdraw. Used: the track's edge lights, Metal Factory's energy rails. Option: strips
+   along a vault's ribs.
+3. Caged lamp model on a column (option, not built): a small fixture model; its glow, if it gets an additive halo,
+   adds overdraw, so keep halos small and few.
+4. Transparent beams from moving heads (Classic, Neon Grid, Night City, Pulse Void): long see-through beams that stack
+   over much of the screen; the main overdraw cost of a stage.
+5. Real Godot lights, shadows, volumetric fog or post-processing bloom: not used (Light rule 10).
+
 ## Prohibited
 Floating primitives, decoration without a purpose, glow that erases silhouettes, uncontrolled flashing, detail that
 doesn't read at play distance, large saturated or pure-white areas.

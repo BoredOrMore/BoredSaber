@@ -32,12 +32,11 @@ const FLOOR_THICKNESS := 0.5
 ## housing, under a header beam carried by posts between the pistons (models made by tools/models/piston_hammer.py and
 ## anvil_base.py, records in doc/assets/). The anvil's origin is its foot, on the floor; the housing's is its top,
 ## against the header's underside; the hammer's is its striking face, HAMMER_BOTTOM up when raised. ANVIL_TOP is the
-## anvil's strike die, where the hammer lands; ANVIL_SHELF the top of its body around the die (height, half width).
+## anvil's strike die, where the hammer lands.
 const PISTON_X := 8.0
 const PISTON_Z: Array[float] = [-12.0, -20.0, -28.0, -36.0, -44.0]
 const ANVIL_MODEL := preload("res://game/models/anvil_base.glb")
 const ANVIL_TOP := 1.5
-const ANVIL_SHELF := Vector2(1.2, 1.7)
 const HOUSING_MODEL := preload("res://game/models/piston_housing.glb")
 const HAMMER_MODEL := preload("res://game/models/piston_hammer.glb")
 const HAMMER_BOTTOM := 3.8
@@ -81,9 +80,6 @@ const SPARK_SCALE := 4.0
 const DIE_HALF := 1.2
 const HEADER := 0.6
 const POST_Z: Array[float] = [-8.0, -16.0, -24.0, -32.0, -40.0, -48.0]
-## the diagonal lasers stand on each anvil's shelf at its inner corner nearest the player, this far in from both edges:
-## clear of the die and of the hammer's face
-const ANVIL_FIXTURE_INSET := 0.3
 ## Gear rings around the track (gear_ring.glb, tools/models/gears.py: 13.6 m across at the rim, 12 teeth), their
 ## centres RING_Y up, running down through the floor. They turn on the map's ring-spin events like Classic's rings
 ## (EventDriver.ring_rot_speed), RING_SPIN of its speed, neighbours in opposite directions as meshed gears do, so the
@@ -99,7 +95,7 @@ const RAIL_TOP := 0.3
 const RAIL_WIDTH := 0.4
 const RAIL_Z := Vector2(2.0, -48.0)
 ## Machinery walls: a solid wall from x WALL_X.x to WALL_X.y, up to the vault's springline (WALL_TOP); a catwalk ledge along its inner face
-## (the waving lasers stand on it). Against the wall's face, the wall kit (tools/models/wall_kit.py,
+## (a walkway along the machinery). Against the wall's face, the wall kit (tools/models/wall_kit.py,
 ## doc/assets/wall_kit): an I-beam column at every COLUMN_Z, and in each bay between (BAY_Z) a framed, louvered panel
 ## above the catwalk (its foot PANEL_Y up), a run of pipes under the catwalk (centred PIPES_Y up) and a machine on the
 ## floor, tall and low in turn. Each piece's front faces the track: the right wall's are turned half round.
@@ -109,10 +105,14 @@ const WALL_Z := Vector2(6.0, -68.0)
 const LEDGE_X := 16.0
 const LEDGE_TOP := 8.0
 const LEDGE_THICKNESS := 0.6
-const WAVING_Z: Array[float] = [-16.0, -24.0, -32.0, -40.0]
 const COLUMN_Z: Array[float] = [0.0, -8.0, -16.0, -24.0, -32.0, -40.0, -48.0, -56.0]
 const BAY_Z: Array[float] = [-4.0, -12.0, -20.0, -28.0, -36.0, -44.0, -52.0]
 const PANEL_Y := 8.5
+## The hall has no laser beams or moving heads (owner, 2026-10-25: they read as a concert, not a plant): the light groups
+## glow in the panels' vent louvers instead (EnvSolid layer 6, the louvers marked in tools/models/wall_kit.py), set each
+## frame from EventDriver: the upper row on both walls in the diagonal lasers' colour, the lower row in the left or
+## right waving lasers' by wall (the shader tells by the panel's side of the track). The panels have their own copy of
+## the hall's material, so this adds no draw call.
 ## The walls breathe (plan doc, owner 2026-10-25): while the show's intensity is high the panels push out toward the
 ## track and settle back, BREATH_DEPTH at full, growing from nothing at BREATH_FROM to full at BREATH_FULL. One breath
 ## every 4 beats, halved or doubled until a breath lasts BREATH_SECONDS.x to .y seconds, so it follows the song but
@@ -170,6 +170,7 @@ var _small_gears: MultiMesh
 ## the wall panels and where each rests
 var _panels: MultiMesh
 var _panel_rest: Array[Transform3D] = []
+var _vent_material: ShaderMaterial
 ## each anvil's sparks (left row first, near to far) and the slam cycle each hammer last landed in
 var _sparks: Array[CPUParticles3D] = []
 var _landed := PackedFloat32Array()
@@ -225,11 +226,13 @@ func _ready() -> void:
 			kit["panel"].append(Transform3D(basis, Vector3(face, PANEL_Y, z)))
 			kit["pipes"].append(Transform3D(basis, Vector3(face, PIPES_Y, z)))
 			kit["machine" if i % 2 == 0 else "machine_low"].append(Transform3D(basis, Vector3(face, 0.0, z)))
+	_vent_material = material.duplicate() as ShaderMaterial
 	for piece: String in WALL_KIT:
-		var instance := _add_multimesh(LaserFixtures._model_mesh(WALL_KIT[piece]), kit[piece], material)
 		if piece == "panel":
-			_panels = instance.multimesh
+			_panels = _add_multimesh(LaserFixtures._model_mesh(WALL_KIT[piece]), kit[piece], _vent_material).multimesh
 			_panel_rest.assign(kit[piece])
+		else:
+			_add_multimesh(LaserFixtures._model_mesh(WALL_KIT[piece]), kit[piece], material)
 	_small_gears = _add_multimesh(LaserFixtures._model_mesh(SMALL_GEAR_MODEL), small, material).multimesh
 	assert(SLAM_LAG_SECONDS.size() == anvils.size(), "one SLAM_LAG_SECONDS per piston")
 	for anvil in anvils:
@@ -305,6 +308,13 @@ func slam(beat: float, bpm: float, intensity: float) -> void:
 			if stroke >= SPARK_FROM:
 				_sparks[i].color_ramp.set_color(0, Color(1.0, 1.0, 1.0, stroke))
 				_sparks[i].restart()
+
+## Lights the vents: the upper row in `upper` (the diagonal lasers' colour), the lower in `left` or `right` (the
+## waving lasers') by wall; black is off.
+func set_vent_colors(upper: Color, left: Color, right: Color) -> void:
+	_vent_material.set_shader_parameter(&"vent_upper_color", upper)
+	_vent_material.set_shader_parameter(&"vent_left_color", left)
+	_vent_material.set_shader_parameter(&"vent_right_color", right)
 
 ## Moves the wall panels for the song's `beat` at `bpm` and the show's `intensity` (0 to 1).
 func breathe(beat: float, bpm: float, intensity: float) -> void:
@@ -420,13 +430,6 @@ static func _side(boxes: Array[Transform3D], side: float) -> void:
 	boxes.append(_span(Vector3(side * WALL_X.x, FOUNDATION.y, WALL_Z.x), Vector3(side * WALL_X.y, WALL_TOP, WALL_Z.y)))
 	boxes.append(_span(Vector3(side * LEDGE_X, LEDGE_TOP - LEDGE_THICKNESS, WALL_Z.x), Vector3(side * WALL_X.x, LEDGE_TOP, WALL_Z.y)))
 	boxes.append(_span(Vector3(side * PIER_X.x, FOUNDATION.y, FOUNDATION.z + 2.0), Vector3(side * PIER_X.y, WALL_TOP, FOUNDATION.w)))
-
-## Where a diagonal laser stands on anvil `i` (left row first), its foot on the anvil's shelf.
-static func anvil_fixture(i: int) -> Vector3:
-	var side := -1.0 if i < PISTON_Z.size() else 1.0
-	var z := PISTON_Z[i % PISTON_Z.size()]
-	var offset := ANVIL_SHELF.y - ANVIL_FIXTURE_INSET
-	return Vector3(side * (PISTON_X - offset), ANVIL_SHELF.x, z + offset)
 
 ## A unit box scaled to size and placed at centre.
 static func _box(centre: Vector3, size: Vector3) -> Transform3D:

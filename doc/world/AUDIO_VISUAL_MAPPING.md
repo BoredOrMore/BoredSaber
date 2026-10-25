@@ -14,6 +14,7 @@ never depends on any of this.
 | Event | Visual response | Duration | Limits | Safety |
 |---|---|---|---|---|
 | Light on / colour | the group's beams, fixture lenses and glows, `env_light` on the scenery | colour changes fade | note colours only | — |
+| Light on / colour (Metal Factory) | no beams or heads: diagonal → upper vent louvers on both walls, left/right waving → lower louvers on that wall (`EnvSolid` layer 6, `MetalFactoryRig.set_vent_colors` each frame); square bars → rail strips; centre/floor unchanged | follows the group's fades and flashes | note colours only | same flash limits |
 | Flash | overshoot of the base colour (`FLASH_BOOST` 1.6) | short | fewer than 3 a second, no large red flashes (Light rule 8) | WCAG 2.3.1 |
 | Light off | beams and glows go dark; fixtures stay | instant | — | fixtures are objects, not light |
 | Good cut | a ring of the saber's colour runs out along the lights (`cut_waves`) | 30 m/s, to 80 m | — | — |

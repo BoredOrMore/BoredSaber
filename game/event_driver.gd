@@ -340,11 +340,8 @@ const VOID_HIGH_DEG := 85.0
 ## where the waving lasers stand on their rings, in degrees above level
 const VOID_WAVING_DEG := 20.0
 const RIG_WAVING_Y := -1.26
-## A fixture's pivot sits this far above the surface its yoke stands on (ClassicRig.FIXTURE_Y over its pedestal).
-const FIXTURE_LIFT := ClassicRig.FIXTURE_Y - ClassicRig.PEDESTAL_TOP
-## Metal Factory: the waving lasers stand this far out from the ledge's inner edge; the energy strips' centres along each
-## rail (each 9.6 m long with RAIL_BASIS), just above the rail's top so they don't flicker into it
-const FACTORY_LEDGE_INSET := 0.5
+## Metal Factory: the energy strips' centres along each rail (each 9.6 m long with RAIL_BASIS), just above the rail's
+## top so they don't flicker into it
 const FACTORY_STRIP_Z: Array[float] = [-8.0, -22.0, -36.0]
 const FACTORY_STRIP_LIFT := 0.01
 ## each laser's and the square bars' Classic transform, put back before another rig is hung
@@ -393,6 +390,12 @@ func _apply_rig(id: String) -> void:
 	var waving := _waving_lasers()
 	@warning_ignore("integer_division")
 	var half := waving.size() / 2
+	# Metal Factory has no beams: the diagonal and waving lasers' light glows in its wall vents. The beam meshes are hidden
+	# rather than their holders, which the light events show and hide.
+	for laser: Node3D in diagonal_lasers + waving:
+		for beam in laser.get_children():
+			if beam is MeshInstance3D:
+				(beam as MeshInstance3D).visible = id != "metal_factory"
 	match id:
 		"neon_grid":
 			var per_side := diagonal_lasers.size() >> 1
@@ -454,17 +457,8 @@ func _apply_rig(id: String) -> void:
 			for bar in _square_bars():
 				bar.visible = false
 		"metal_factory":
-			# diagonal lasers on the anvils' inner corners, leaning up over the track
-			for i in diagonal_lasers.size():
-				var side := -1.0 if i < diagonal_lasers.size() >> 1 else 1.0
-				_aim(diagonal_lasers[i], MetalFactoryRig.anvil_fixture(i) + Vector3.UP * FIXTURE_LIFT,
-						Vector3(-side * 0.3, 1.0, -0.15))
-			# waving lasers stand on the catwalk ledges along the walls
-			for i in waving.size():
-				var side := -1.0 if i < half else 1.0
-				waving[i].global_position = Vector3(side * (MetalFactoryRig.LEDGE_X + FACTORY_LEDGE_INSET),
-						MetalFactoryRig.LEDGE_TOP + FIXTURE_LIFT, MetalFactoryRig.WAVING_Z[i % half])
-			# the horizontal square bars become energy strips flush on the rails' tops; the vertical ones are left out
+			# no lasers here: their light glows in the wall vents (MetalFactoryRig.set_vent_colors, _process; the beams are
+			# hidden above, the heads in show_scenery_for_mixed_reality and set_background). The horizontal square bars become energy strips flush on the rails' tops; the vertical ones are left out
 			var strip := 0
 			var per_side := FACTORY_STRIP_Z.size()
 			for bar in _square_bars():
@@ -488,7 +482,8 @@ func show_scenery_for_mixed_reality() -> void:
 	metal_factory_rig.visible = environment == "metal_factory" and not Settings.mixed_reality
 	stage_smoke.visible = Settings.smoke and not Settings.mixed_reality
 	_dust.visible = not Settings.mixed_reality
-	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple"
+	# Metal Factory has no moving heads: its lights glow in the wall vents
+	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple" and environment != "metal_factory"
 
 func set_background() -> void:
 	var width_scale := 2 * Settings.LANE_DISTANCE_X / 3.
@@ -507,7 +502,8 @@ func set_background() -> void:
 		for laser in diagonal_lasers:
 			laser.transform.origin.x = 4.5 * width_scale * sign(laser.transform.origin.x)
 	
-	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple"
+	# Metal Factory has no moving heads: its lights glow in the wall vents
+	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple" and environment != "metal_factory"
 	if Settings.background == "simple":
 		ring_holder.hide()
 		diagonal_lasers_holder.hide()
@@ -574,6 +570,10 @@ func _process(delta: float) -> void:
 	var quiet := not menu_focus and Settings.atmosphere == "Eerie" and _since_event > QUIET_AFTER_SECONDS
 	_quiet = move_toward(_quiet, 1.0 if quiet else 0.0, delta / (QUIET_FADE_SECONDS if quiet else QUIET_RISE_SECONDS))
 	_update_haze()
+	if environment == "metal_factory":
+		metal_factory_rig.set_vent_colors(diagonal_lasers_material.get_shader_parameter(&"light_color"),
+				left_waving_lasers_material.get_shader_parameter(&"light_color"),
+				right_waving_lasers_material.get_shader_parameter(&"light_color"))
 	_update_show(delta)
 	_follow_frames()
 	# update the level animations

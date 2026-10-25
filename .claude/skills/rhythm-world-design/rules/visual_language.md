@@ -28,6 +28,8 @@ Never change a gameplay color's meaning merely for variety. Keep gameplay cues d
 - Control bloom and exposure to preserve silhouettes and edge definition.
 - Keep material roughness, metallic response, and transparency consistent with the art direction.
 - Limit overlapping transparent effects.
+- Light carriers: a stage need not use beams; pick from the options and cost order in `doc/world/VISUAL_STYLE.md`
+  ("Light carriers").
 - Prefer large readable forms over noisy surface detail.
 
 ## Composition

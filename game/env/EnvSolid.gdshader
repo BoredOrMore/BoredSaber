@@ -10,6 +10,13 @@ shader_type spatial;
 //   5. haze: fades into the air's colour with distance and more so near the floor (Quilez, "Better fog", 2010).
 //      Rings take less of it, so they stay dark shapes against the sky instead of turning haze-grey (headset,
 //      2026-10-24: at 30 m the full haze left them flat grey and hid their lit edge)
+//   6. vents (Metal Factory's wall panels only): the louvers the model marks in vertex colour (green the upper row,
+//      blue the lower, tools/models/wall_kit.py) glow in their light group's colour, set each frame by the rig: the
+//      upper row in vent_upper_color, the lower in vent_left_color or vent_right_color by the panel's wall (which side
+//      of the track its origin is; MultiMesh custom data would do, but in the Compatibility renderer turning it on lost
+//      the mesh's vertex colours, desktop capture 2026-10-25). Hot core toward white where a louver faces the eye, its colour on the
+//      faces turned away, as LightStrip.gdshader (AGENTS.md "Light", rule 2). Light, so after the haze, which only
+//      dims it; black on every other material (the colours default to black)
 // The scene has no real lights (AGENTS.md "Light", rule 10), so layers 2-4 are faked here. Everything but the edge's
 // falloff is worked out per vertex: the faces are flat, so per pixel would give the same picture. Values untuned.
 render_mode unshaded, fog_disabled, shadows_disabled;
@@ -45,6 +52,15 @@ uniform float ring_hole = 0.0;
 const float EDGE_LIGHT = 0.7;
 const float EDGE_TIGHTNESS = 2.0;
 
+// 6. vents: the light groups' colours (black is off), how bright the louvers burn and how far their facing faces go
+// toward white
+uniform vec4 vent_upper_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
+uniform vec4 vent_left_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
+uniform vec4 vent_right_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
+const float VENT_GLOW = 0.9;
+const float VENT_CORE_WHITE = 0.6;
+const float VENT_CORE_SHARPNESS = 2.0;
+
 // 5. haze: per metre
 uniform float fog_density = 0.03;
 // how fast the extra floor haze thins out going up, per metre
@@ -59,6 +75,8 @@ varying float form;
 varying float spill;
 // 1 at the ring's hole, 0 at its outside; 0 for anything that isn't a ring
 varying float edge;
+// 6. this vertex's vent glow, before the hot core
+varying vec3 vent;
 
 void vertex() {
 	if ((debug_view & 8) != 0) {
@@ -88,11 +106,21 @@ void vertex() {
 	if (ring_hole > 0.0) {
 		fog *= RING_FOG;
 	}
+
+	// 6. vents: the model's marks pick the row; the panel's side of the track picks the wall
+	vec3 lower = mix(vent_left_color.rgb, vent_right_color.rgb, step(0.0, MODEL_MATRIX[3].x));
+	vent = (vent_upper_color.rgb * COLOR.g + lower * COLOR.b) * VENT_GLOW;
 }
 
 void fragment() {
 	// edge is interpolated linearly across the ring's band; the power pulls the glow in tight against the hole
 	float glow = pow(edge, EDGE_TIGHTNESS) * EDGE_LIGHT;
 	vec3 lit = albedo.rgb * form + env_light.rgb * spill * form;
-	ALBEDO = shadow_tone(mix(lit, env_haze.rgb, fog) + env_light.rgb * glow * (1.0 - fog));
+	vec3 vent_light = vec3(0.0);
+	if (max(vent.r, max(vent.g, vent.b)) > 0.0) {
+		float peak = max(vent.r, max(vent.g, vent.b));
+		float facing = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
+		vent_light = mix(vent, vec3(peak), VENT_CORE_WHITE * pow(facing, VENT_CORE_SHARPNESS));
+	}
+	ALBEDO = shadow_tone(mix(lit, env_haze.rgb, fog) + (env_light.rgb * glow + vent_light) * (1.0 - fog));
 }

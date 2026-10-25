@@ -1,8 +1,8 @@
 # The Metal Factory's machinery walls (doc/assets/wall_kit/spec.md): a kit of pieces set against the side walls'
 # inner face, which the rig repeats along the hall (MetalFactoryRig.gd):
 #  - wall_column.glb: an I-beam column, floor to ceiling, at every 8 m.
-#  - wall_panel.glb: a framed panel set in the wall above the catwalk, with horizontal vent louvers (the vents are
-#    where the "breathing" light can show later).
+#  - wall_panel.glb: a framed panel set in the wall above the catwalk, with horizontal vent louvers that glow: the
+#    upper two are marked 1 (green), the lower two 2 (blue), so the shader lights them in two light groups.
 #  - wall_pipes.glb: three pipes side by side along the wall between two columns, on two brackets, run under the
 #    catwalk (they clear the tall machine's tank below it and the catwalk above).
 #  - wall_machine.glb, wall_machine_low.glb: a generator on the floor against the wall: plinth, body, ribs on its front,
@@ -49,13 +49,16 @@ RIBS = (3, 0.25, 0.15)
 TANK = (0.8, 8)
 
 
-def box(bm, lo, hi):
-	"""Adds a box between corners lo and hi (Blender axes)."""
+def box(bm, lo, hi, glow=0):
+	"""Adds a box between corners lo and hi (Blender axes), its faces marked with glow (model_export.py)."""
 	result = bmesh.ops.create_cube(bm, size=1.0)
 	size = [hi[i] - lo[i] for i in range(3)]
 	centre = [(hi[i] + lo[i]) * 0.5 for i in range(3)]
 	bmesh.ops.scale(bm, vec=size, verts=result["verts"])
 	bmesh.ops.translate(bm, vec=centre, verts=result["verts"])
+	layer = bm.faces.layers.int.get("glow") or bm.faces.layers.int.new("glow")
+	for face in {f for v in result["verts"] for f in v.link_faces}:
+		face[layer] = glow
 
 
 def cylinder_along_y(bm, x, z, radius, length, sides, caps):
@@ -88,7 +91,8 @@ def panel(bm):
 	count, length, louver_h, louver_d = LOUVERS
 	for k in range(count):
 		z = height * (k + 1) / (count + 1)
-		box(bm, (plate, -length * 0.5, z - louver_h * 0.5), (plate + louver_d, length * 0.5, z + louver_h * 0.5))
+		box(bm, (plate, -length * 0.5, z - louver_h * 0.5), (plate + louver_d, length * 0.5, z + louver_h * 0.5),
+				1 if k >= count // 2 else 2)
 
 
 def pipes(bm):
