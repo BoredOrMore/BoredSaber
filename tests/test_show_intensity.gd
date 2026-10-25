@@ -63,6 +63,12 @@ func _ready() -> void:
 	for lag in MetalFactoryRig.SLAM_LAG_SECONDS:
 		in_sync = in_sync and lag >= 0.0 and lag <= 0.08
 	check(in_sync, "every hammer lands after the beat and within 80 ms of it")
+	# the walls' breath stays between 1.4 and 3 s (far from 0.2 Hz) at any tempo
+	var steady := true
+	for bpm in [40.0, 60.0, 90.0, 120.0, 174.0, 240.0, 400.0]:
+		var seconds: float = MetalFactoryRig.breath_beats(bpm) * 60.0 / bpm
+		steady = steady and seconds >= MetalFactoryRig.BREATH_SECONDS.x and seconds <= MetalFactoryRig.BREATH_SECONDS.y
+	check(steady, "the walls breathe once every 1.4 to 3 s at any tempo")
 
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)

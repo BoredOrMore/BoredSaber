@@ -113,6 +113,15 @@ const WAVING_Z: Array[float] = [-16.0, -24.0, -32.0, -40.0]
 const COLUMN_Z: Array[float] = [0.0, -8.0, -16.0, -24.0, -32.0, -40.0, -48.0, -56.0]
 const BAY_Z: Array[float] = [-4.0, -12.0, -20.0, -28.0, -36.0, -44.0, -52.0]
 const PANEL_Y := 8.5
+## The walls breathe (plan doc, owner 2026-10-25): while the show's intensity is high the panels push out toward the
+## track and settle back, BREATH_DEPTH at full, growing from nothing at BREATH_FROM to full at BREATH_FULL. One breath
+## every 4 beats, halved or doubled until a breath lasts BREATH_SECONDS.x to .y seconds, so it follows the song but
+## never comes near 0.2 Hz, where slow motion makes people sickest (O'Hanlon & McCauley 1974). Untuned.
+const BREATH_DEPTH := 0.12
+const BREATH_FROM := 0.5
+const BREATH_FULL := 0.9
+const BREATH_BEATS := 4.0
+const BREATH_SECONDS := Vector2(1.4, 3.0)
 const PIPES_Y := 6.7
 const WALL_KIT := {
 	"column": preload("res://game/models/wall_column.glb"),
@@ -158,6 +167,9 @@ var _hammers: MultiMesh
 var _rings: MultiMesh
 var _large_gears: MultiMesh
 var _small_gears: MultiMesh
+## the wall panels and where each rests
+var _panels: MultiMesh
+var _panel_rest: Array[Transform3D] = []
 ## each anvil's sparks (left row first, near to far) and the slam cycle each hammer last landed in
 var _sparks: Array[CPUParticles3D] = []
 var _landed := PackedFloat32Array()
@@ -214,7 +226,10 @@ func _ready() -> void:
 			kit["pipes"].append(Transform3D(basis, Vector3(face, PIPES_Y, z)))
 			kit["machine" if i % 2 == 0 else "machine_low"].append(Transform3D(basis, Vector3(face, 0.0, z)))
 	for piece: String in WALL_KIT:
-		_add_multimesh(LaserFixtures._model_mesh(WALL_KIT[piece]), kit[piece], material)
+		var instance := _add_multimesh(LaserFixtures._model_mesh(WALL_KIT[piece]), kit[piece], material)
+		if piece == "panel":
+			_panels = instance.multimesh
+			_panel_rest.assign(kit[piece])
 	_small_gears = _add_multimesh(LaserFixtures._model_mesh(SMALL_GEAR_MODEL), small, material).multimesh
 	assert(SLAM_LAG_SECONDS.size() == anvils.size(), "one SLAM_LAG_SECONDS per piston")
 	for anvil in anvils:
@@ -290,6 +305,26 @@ func slam(beat: float, bpm: float, intensity: float) -> void:
 			if stroke >= SPARK_FROM:
 				_sparks[i].color_ramp.set_color(0, Color(1.0, 1.0, 1.0, stroke))
 				_sparks[i].restart()
+
+## Moves the wall panels for the song's `beat` at `bpm` and the show's `intensity` (0 to 1).
+func breathe(beat: float, bpm: float, intensity: float) -> void:
+	var depth := 0.0
+	if bpm > 0.0:
+		var beats := breath_beats(bpm)
+		depth = BREATH_DEPTH * smoothstep(BREATH_FROM, BREATH_FULL, intensity) * (0.5 - 0.5 * cos(TAU * beat / beats))
+	for i in _panel_rest.size():
+		var rest := _panel_rest[i]
+		# each panel's front is its local +x, toward the track
+		_panels.set_instance_transform(i, Transform3D(rest.basis, rest.origin + rest.basis.x * depth))
+
+## How many beats one breath of the walls takes at `bpm`: BREATH_BEATS, halved or doubled into BREATH_SECONDS.
+static func breath_beats(bpm: float) -> float:
+	var beats := BREATH_BEATS
+	while beats * 60.0 / bpm > BREATH_SECONDS.y:
+		beats *= 0.5
+	while beats * 60.0 / bpm < BREATH_SECONDS.x:
+		beats *= 2.0
+	return beats
 
 ## Turns the drive gears for `delta` seconds at the show's `intensity` (0 to 1).
 func turn_gears(delta: float, intensity: float) -> void:
