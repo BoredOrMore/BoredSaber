@@ -1,3 +1,4 @@
+@tool
 extends Node3D
 class_name MetalFactoryRig
 ## The Metal Factory environment's structure (doc/world/GAME_BIBLE.md: an underground power plant that the player's
@@ -7,6 +8,8 @@ class_name MetalFactoryRig
 ## ceiling truss closing the hall, and drive gears at the far end, beside and below the horizon. Everything stands on
 ## the floor, a wall or the far foundation; nothing enters the note corridor (lanes +-1.2 m, y 0 to 2.5).
 ## Dark boxes in one MultiMesh and each piston part in its own, all with the scenery's fog shader. Sizes in metres; untuned.
+## A tool script, so the hall also shows in the editor's viewport (event_driver.tscn); its parts are built at load and
+## never saved into the scene (they have no owner).
 
 const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
 ## How much of the lights' colour the hall's faces take (EnvSolid light_spill, 1 elsewhere): at 1 the big wall and

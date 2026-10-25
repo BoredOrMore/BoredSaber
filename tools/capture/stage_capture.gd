@@ -9,6 +9,7 @@ extends Node3D
 ##   --lights on|off|menu  --left RRGGBB --right RRGGBB  --eye 1.6 (eye height, m)  --pitch 0 (degrees, up +)
 ##   --yaw 0 (degrees, left +)  --fov 90 (vertical, degrees)  --size 1920x1080  --seconds 2.5 (settle time)
 ##   --beat 0 (Metal Factory: the pistons at this beat of a 120 BPM song at full intensity; 0 is a hammer landing)
+##   --animate 1 (Metal Factory: the pistons keep slamming at that tempo while the window is open; pair with --seconds)
 
 const ENVIRONMENT_SCENE := preload("res://game/event_driver.tscn")
 const FLOOR_SCENE := preload("res://game/floor.tscn")
@@ -17,6 +18,10 @@ const GAME_SCENE := "res://game/BeepSaber_Game.tscn"
 const PLAYER := Vector3(0.0, 0.0, 1.0)
 ## the tempo --beat is read at
 const CAPTURE_BPM := 120.0
+
+## the stage while --animate plays its beat, and the beat it is at
+var _animated: EventDriver
+var _beat := 0.0
 
 func _ready() -> void:
 	var args := _args()
@@ -55,7 +60,10 @@ func _ready() -> void:
 		_: stage.set_all_on(left, right)
 	stage.classic_rig.set_built(float(args.get("built", "1")))
 	if args.has("beat"):
-		stage.metal_factory_rig.slam(float(args["beat"]), CAPTURE_BPM, 1.0)
+		_beat = float(args["beat"])
+		stage.metal_factory_rig.slam(_beat, CAPTURE_BPM, 1.0)
+	if args.has("animate"):
+		_animated = stage
 
 	await get_tree().create_timer(float(args.get("seconds", "2.5"))).timeout
 	await RenderingServer.frame_post_draw
@@ -63,6 +71,12 @@ func _ready() -> void:
 	var error := get_viewport().get_texture().get_image().save_png(out)
 	print("stage_capture %s -> %s" % [error_string(error), out])
 	get_tree().quit(0 if error == OK else 1)
+
+## Plays the beat on the stage for --animate.
+func _process(delta: float) -> void:
+	if _animated:
+		_beat += delta * CAPTURE_BPM / 60.0
+		_animated.metal_factory_rig.slam(_beat, CAPTURE_BPM, 1.0)
 
 ## The game scene's WorldEnvironment resource, read from the packed scene without instancing the game (XR and all).
 func _game_environment() -> Environment:
