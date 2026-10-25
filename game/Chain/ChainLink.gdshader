@@ -2,7 +2,8 @@ shader_type spatial;
 render_mode unshaded, cull_disabled;
 
 // Same fake light and the same two looks (note_style) as BeepCube.gdshader, since the scene has no lights; see there.
-// The link has no bevelled edges, so its Neon look has no bevel highlight.
+// The link has no bevelled edges, so its Neon look has no bevel highlight, nor its glossy look (note_style 2) a
+// highlight streak.
 const vec3 LIGHT_DIR = vec3(-0.3, 0.8, 0.5);
 const float SHADE_FLOOR = 0.45;
 const float RIM_STRENGTH = 0.35;
@@ -14,6 +15,7 @@ const float HAZE_REFLECT = 1.0;
 
 global uniform vec4 env_haze;
 global uniform int note_style;
+#include "res://game/BeepCube/note_gloss.gdshaderinc"
 // Darker Notes: the body colour's HSV value is capped here, so hue and saturation stay (1.0 = off)
 global uniform float note_max_value;
 const float NEON_GLOW = 0.12;
@@ -75,6 +77,9 @@ void fragment() {
 			float n_dot_v = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
 			float rim = pow(1.0 - n_dot_v, 3.0) * RIM_STRENGTH;
 			vec3 base = body * (shade + sub_emission_energy + rim);
+			if (note_style == 2) {
+				base = note_gloss(body, world_normal, normalize((INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz), 0.0);
+			}
 			if (note_style == 1) {
 				vec3 view_world = normalize((INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz);
 				vec3 r = reflect(-view_world, world_normal);

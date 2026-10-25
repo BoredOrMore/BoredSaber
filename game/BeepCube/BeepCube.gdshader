@@ -9,7 +9,9 @@ const vec3 LIGHT_DIR = vec3(-0.3, 0.8, 0.5);
 // brightness of a face turned fully away from the light
 const float SHADE_FLOOR = 0.45;
 const float RIM_STRENGTH = 0.35;
-// The player picks one of two looks in the settings (note_style): 0 "Solid" is only the fake light and rim above;
+// The default look (note_style 2) is glossy plastic as in Beat Saber: note_gloss.gdshaderinc, with the arrow and dot
+// below. With Classic notes on (Settings.classic_notes) the player picks one of the two older looks (note_style): 0
+// "Solid" is only the fake light and rim above;
 // 1 "Neon" is self-lit coloured plastic, as in Beat Saber: its note shaders are "Lit Glow" kinds, a full-colour body that
 // glows on its own (BSMG Custom Notes Guide, bsmg.wiki/models/notes-guide.html). On top: bright bevels, a faint
 // soft reflection of a made-up studio (a band near the horizon and a soft light overhead) and a broad soft
@@ -39,6 +41,19 @@ const float ARROW_HALO_BLUR = 3.0;
 const float ARROW_HALO = 0.35;
 
 global uniform vec4 env_haze;
+#include "res://game/BeepCube/note_gloss.gdshaderinc"
+// the glossy look's arrow and dot: how far the core goes toward white, its brightness, the halo's, and the dot's disc
+// (the texture's dot is a ring; Beat Saber's is solid) in the dot's UVs: its centre and radius, and its soft edge
+const float MARK_WHITE = 0.75;
+const float MARK_GAIN = 1.4;
+const float MARK_HALO = 0.6;
+const vec2 DOT_CENTRE = vec2(0.75, 0.25);
+// the round mesh's bevels (tools/models/note_round.py: flat to 0.1625, rounded out to 0.25), as BEVEL_START and
+// BEVEL_FULL are the classic mesh's
+const float ROUND_BEVEL_START = 0.16;
+const float ROUND_BEVEL_FULL = 0.21;
+const float DOT_RADIUS = 0.065;
+const float DOT_EDGE = 0.01;
 
 // brightness of the made-up studio seen along direction r
 float studio(vec3 r) {
@@ -107,6 +122,20 @@ void fragment() {
 		float n_dot_v = clamp(dot(NORMAL, VIEW), 0.0, 1.0);
 		float rim = pow(1.0 - n_dot_v, 3.0) * RIM_STRENGTH;
 		vec3 base = body * (shade + sub_emission_energy + rim);
+		vec2 dot_uv = vec2(UV.x+0.5, UV.y);
+		if (note_style == 2) {
+			vec3 view_world = normalize((INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz);
+			float bevel = smoothstep(ROUND_BEVEL_START, ROUND_BEVEL_FULL, middle(abs(local_pos)));
+			base = note_gloss(body, world_normal, view_world, bevel);
+			if (is_dot || arrows_enabled) {
+				vec2 mark_uv = is_dot ? dot_uv : UV;
+				float mark = is_dot ? smoothstep(DOT_RADIUS + DOT_EDGE, DOT_RADIUS, distance(dot_uv, DOT_CENTRE))
+					: texture(texture_emission, mark_uv).r;
+				float halo = texture(texture_emission, mark_uv, ARROW_HALO_BLUR).r;
+				base += body * halo * MARK_HALO;
+				base = mix(base, mix(body, vec3(1.0), MARK_WHITE) * MARK_GAIN, mark);
+			}
+		}
 		bool neon = note_style == 1;
 		if (neon) {
 			vec3 view_world = normalize((INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz);
@@ -119,8 +148,7 @@ void fragment() {
 				+ mix(body, vec3(1.0), BEVEL_WHITE) * bevel * BEVEL_STRENGTH * shade
 				+ reflection + vec3(spec);
 		}
-		vec2 dot_uv = vec2(UV.x+0.5, UV.y);
-		if (is_dot || arrows_enabled) {
+		if (note_style != 2 && (is_dot || arrows_enabled)) {
 			vec2 mark_uv = is_dot ? dot_uv : UV;
 			base += texture(texture_emission, mark_uv).rgb;
 			if (neon)

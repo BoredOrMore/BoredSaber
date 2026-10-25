@@ -694,7 +694,7 @@ func on_settings_changed(key: StringName) -> void:
 			_apply_glow()
 		&"msaa":
 			_apply_msaa()
-		&"note_style", &"darker_notes":
+		&"note_style", &"darker_notes", &"classic_notes":
 			_apply_note_style()
 		&"environment":
 			_apply_environment()
@@ -702,9 +702,12 @@ func on_settings_changed(key: StringName) -> void:
 			if not _height_held:
 				xr_origin.transform.origin.y = Constants.view_shift(Settings.player_height_offset)
 
-## Tells the note shaders which look the player picked, and how bright their colours may be.
+## Tells the note shaders which look the player picked (the glossy one, 2, unless Classic notes is on), and how
+## bright their colours may be.
 func _apply_note_style() -> void:
 	var style := maxi(Settings.NOTE_STYLES.map(func(s: Array) -> String: return s[0]).find(Settings.note_style), 0)
+	if not Settings.classic_notes:
+		style = 2
 	RenderingServer.global_shader_parameter_set(&"note_style", style)
 	RenderingServer.global_shader_parameter_set(&"note_max_value", Settings.NOTE_DARK_VALUE if Settings.darker_notes else 1.0)
 

@@ -274,6 +274,12 @@ var old_track: bool:
 	set(value):
 		old_track = value
 		set_and_emit(&"old_track", value)
+## the older note looks (Solid or Neon, note_style) instead of the glossy default one (BeepCube.gdshader), to compare
+## them (owner, 2026-10-25)
+var classic_notes: bool:
+	set(value):
+		classic_notes = value
+		set_and_emit(&"classic_notes", value)
 var spectator_hud: bool:
 	set(value):
 		spectator_hud = value
@@ -468,6 +474,7 @@ var default_values = {
 	spectator_view = false,
 	spectator_hud = true,
 	old_track = false,
+	classic_notes = false,
 	background = "dynamic",
 	environment = "auto",
 	note_style = "solid",

@@ -25,6 +25,10 @@ var is_dot: bool
 # we store the mesh here as part of the BeepCube for easier access because we will
 # reuse it when we create the cut cube pieces
 var _mesh: Mesh
+## the glossy default look's rounder body (tools/models/note_round.py); Classic notes keeps the scene's own mesh
+const ROUND_MESH := preload("res://game/BeepCube/note_round.glb")
+static var _round: Mesh
+var _classic: Mesh
 var _mat: ShaderMaterial
 @export var min_speed := 0.5
 
@@ -36,7 +40,11 @@ var chain_head = false
 
 func _ready() -> void:
 	_mat = mi.material_override as ShaderMaterial
-	_mesh = mi.mesh
+	_classic = mi.mesh
+	if _round == null:
+		_round = LaserFixtures._model_mesh(ROUND_MESH)
+	_mesh = _classic if Settings.classic_notes else _round
+	mi.mesh = _mesh
 	
 	# init our cut pieces with unique copies of our own material for reference,
 	# and enable "bouncy" physics behavior
@@ -50,6 +58,7 @@ func spawn(note_info: ColorNoteInfo, current_beat: float) -> void:
 	# re-enable our process_mode first otherwise it seems like Godot-internals
 	# can behave weirdly (ex. AnimationPlayer won't always play correctly)
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	_set_mesh(_classic if Settings.classic_notes else _round)
 	
 	var color := Map.color_left if note_info.color == 0 else Map.color_right
 	speed = Map.beat_distance * Map.beats_per_second()
@@ -210,3 +219,12 @@ func _start_cut_pieces(cutplane: Plane) -> void:
 	#slice_particles.global_transform.origin = global_transform.origin
 	#slice_particles.rotation.z = cut_angle_abs+TAU*0.25
 	#slice_particles.fire()
+
+## Draws the note and its cut halves with `mesh` (Classic notes switched since the pool made it).
+func _set_mesh(mesh: Mesh) -> void:
+	if mesh == _mesh:
+		return
+	_mesh = mesh
+	mi.mesh = mesh
+	piece_left.mesh.mesh = mesh
+	piece_right.mesh.mesh = mesh

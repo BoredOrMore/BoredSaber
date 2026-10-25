@@ -16,6 +16,9 @@ extends Node3D
 ##   hardest)  --start 0 (seconds into the song)
 ##   --notes 1 (with --map: the map's notes, bombs, walls, arcs and chains fly in, spawned, timed and sped as in the game
 ##   (GameStatePlaying.spawn_due); nobody cuts them, so they pass and are missed, which costs nothing here; 0 leaves them out)
+##   --note left|right (one note held still NOTE_AHEAD in front of the eye, to look at its shading; pair with
+##   --seconds 600 to keep the window open)  --note-yaw 0 --note-pitch 0 (degrees, turn it to see its sides and top)
+##   --dot 1 (a dot note)  --note-style 2 (0 Solid, 1 Neon: the Classic notes looks; 2 the glossy default)
 
 const ENVIRONMENT_SCENE := preload("res://game/event_driver.tscn")
 const FLOOR_SCENE := preload("res://game/floor.tscn")
@@ -42,6 +45,9 @@ const NOTE_SCENES := {
 	&"arc_pool": preload("res://game/Arc/Arc.tscn"),
 }
 var _notes := false
+const NOTE_SCENE := preload("res://game/BeepCube/BeepCube.tscn")
+## --note: how far in front of the eye the note is held, metres
+const NOTE_AHEAD := 0.9
 
 func _ready() -> void:
 	var args := _args()
@@ -52,6 +58,7 @@ func _ready() -> void:
 	RenderingServer.global_shader_parameter_set(&"shadow_tint", Constants.SHADOW_TINT)
 	RenderingServer.global_shader_parameter_set(&"left_saber_color", left)
 	RenderingServer.global_shader_parameter_set(&"right_saber_color", right)
+	RenderingServer.global_shader_parameter_set(&"note_style", int(args.get("note-style", "2")))
 
 	var world := WorldEnvironment.new()
 	world.environment = _game_environment()
@@ -84,6 +91,8 @@ func _ready() -> void:
 		stage.metal_factory_rig.slam(_beat, CAPTURE_BPM, 1.0)
 	if args.has("animate"):
 		_animated = stage
+	if args.has("note"):
+		_hold_note(camera, left if args["note"] == "left" else right, args)
 	if args.has("map") and not _play_map(stage, args):
 		get_tree().quit(1)
 		return
@@ -150,6 +159,20 @@ func _play_map(stage: EventDriver, args: Dictionary) -> bool:
 		_add_notes(float(args.get("start", "0")) * _bpm / 60.0)
 	print("stage_capture: %s (%s), %s, %.0f BPM" % [info.song_name, difficulty.difficulty, stage.environment, _bpm])
 	return true
+
+## Puts one note (the game's own BeepCube) NOTE_AHEAD in front of `camera`, in `color`, turned by --note-yaw and
+## --note-pitch. Without a map it doesn't move.
+func _hold_note(camera: Camera3D, color: Color, args: Dictionary) -> void:
+	var note := NOTE_SCENE.instantiate() as BeepCube
+	add_child(note)
+	note.position = camera.position + Vector3.FORWARD * NOTE_AHEAD
+	note.rotation_degrees = Vector3(float(args.get("note-pitch", "0")), float(args.get("note-yaw", "0")), 0.0)
+	var material := note.mi.material_override as ShaderMaterial
+	material.set_shader_parameter(&"color", color)
+	material.set_shader_parameter(&"is_dot", args.get("dot", "0") == "1")
+	# the Classic notes looks come with the classic mesh, as in the game
+	if args.get("note-style", "2") != "2":
+		note._set_mesh(note._classic)
 
 ## Sets up the notes' pools on a track at the hit plane, as BeepSaber_Game does, and drops what comes before
 ## `start_beat` (the song starts there; they would all fly in at once).
