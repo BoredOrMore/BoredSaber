@@ -584,6 +584,8 @@ func _process(delta: float) -> void:
 				var rot := ring_rot_speed
 				if ring_rot_inv_dir: rot *= -1
 				(ring as Node3D).rotate_z((rot * delta) * (float(ring.get_index()+1)/5))
+		if environment == "metal_factory":
+			metal_factory_rig.spin_rings(delta, -ring_rot_speed if ring_rot_inv_dir else ring_rot_speed)
 
 ## Tints the shared haze with the light groups that are on, so a flash lights up the air around the track.
 func _update_haze() -> void:

@@ -84,13 +84,13 @@ const POST_Z: Array[float] = [-8.0, -16.0, -24.0, -32.0, -40.0, -48.0]
 ## the diagonal lasers stand on each anvil's shelf at its inner corner nearest the player, this far in from both edges:
 ## clear of the die and of the hammer's face
 const ANVIL_FIXTURE_INSET := 0.3
-## Gear rings around the track: centre height, radius to the rim's middle, rim thickness and depth, how many
-## straight pieces make the rim, and the teeth on its outer edge. The rims run down through the floor.
+## Gear rings around the track (gear_ring.glb, tools/models/gears.py: 13.6 m across at the rim, 12 teeth), their
+## centres RING_Y up, running down through the floor. They turn on the map's ring-spin events like Classic's rings
+## (EventDriver.ring_rot_speed), RING_SPIN of its speed, neighbours in opposite directions as meshed gears do, so the
+## view round the track never all flows one way.
+const RING_MODEL := preload("res://game/models/gear_ring.glb")
 const RING_Y := 2.0
-const RING_RADIUS := 6.5
-const RING_RIM := Vector2(0.6, 0.6)
-const RING_SEGMENTS := 12
-const RING_TOOTH := 0.6
+const RING_SPIN := 0.5
 const RING_Z: Array[float] = [-15.0, -23.0, -31.0, -39.0, -47.0, -55.0]
 ## Energy rails either side of the track, from just behind the player to near the track's end; the square bars run as
 ## light strips flush on their tops (EventDriver).
@@ -136,6 +136,7 @@ const FOUNDATION := Vector4(24.0, -14.0, -66.0, -70.0)
 const PIER_X := Vector2(14.0, 20.0)
 
 var _hammers: MultiMesh
+var _rings: MultiMesh
 ## each anvil's sparks (left row first, near to far) and the slam cycle each hammer last landed in
 var _sparks: Array[CPUParticles3D] = []
 var _landed := PackedFloat32Array()
@@ -159,8 +160,6 @@ func _ready() -> void:
 	for side in [-1.0, 1.0]:
 		boxes.append(_span(Vector3(side * TRUSS_CHORD_X - TRUSS_BEAM * 0.5, TRUSS_Y + TRUSS_BEAM * 0.5, TRUSS_Z[0]),
 			Vector3(side * TRUSS_CHORD_X + TRUSS_BEAM * 0.5, TRUSS_Y + TRUSS_BEAM * 1.5, TRUSS_Z[-1])))
-	for z in RING_Z:
-		_gear(boxes, Vector3(0.0, RING_Y, z), RING_RADIUS, RING_RIM, RING_SEGMENTS, RING_TOOTH)
 	for gear in DRIVE_GEARS:
 		var centre := Vector3(gear.x, gear.y, gear.z)
 		_gear(boxes, centre, gear.w, GEAR_RIM, GEAR_SEGMENTS, GEAR_TOOTH)
@@ -179,6 +178,10 @@ func _ready() -> void:
 	_add_multimesh(LaserFixtures._model_mesh(HOUSING_MODEL), housings, material)
 	_hammers = _add_multimesh(LaserFixtures._model_mesh(HAMMER_MODEL), hammers, material).multimesh
 	_add_multimesh(LaserFixtures._model_mesh(ANVIL_MODEL), anvils, material)
+	var rings: Array[Transform3D] = []
+	for z in RING_Z:
+		rings.append(Transform3D(Basis.IDENTITY, Vector3(0.0, RING_Y, z)))
+	_rings = _add_multimesh(LaserFixtures._model_mesh(RING_MODEL), rings, material).multimesh
 	assert(SLAM_LAG_SECONDS.size() == anvils.size(), "one SLAM_LAG_SECONDS per piston")
 	for anvil in anvils:
 		_sparks.append(_add_sparks(anvil.origin))
@@ -253,6 +256,15 @@ func slam(beat: float, bpm: float, intensity: float) -> void:
 			if stroke >= SPARK_FROM:
 				_sparks[i].color_ramp.set_color(0, Color(1.0, 1.0, 1.0, stroke))
 				_sparks[i].restart()
+
+## Turns the gear rings for `delta` seconds at `speed` radians a second (EventDriver.ring_rot_speed, signed), each
+## the other way from its neighbours.
+func spin_rings(delta: float, speed: float) -> void:
+	for i in _rings.instance_count:
+		var place := _rings.get_instance_transform(i)
+		var direction := 1.0 if i % 2 == 0 else -1.0
+		place.basis = place.basis.rotated(Vector3.BACK, speed * RING_SPIN * direction * delta)
+		_rings.set_instance_transform(i, place)
 
 ## How far down a hammer is, 1 on the anvil to 0 raised, `t` seconds after it last landed in a slam every `cycle` seconds.
 static func hammer_drop(t: float, cycle: float) -> float:

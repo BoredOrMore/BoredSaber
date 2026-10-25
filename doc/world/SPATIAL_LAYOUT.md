@@ -33,8 +33,8 @@ Plain boxes in `MetalFactoryRig.gd`, every size a named constant there; detail m
 - Pistons: two rows at x ±8, z -12 to -44 every 8 m. Anvil (`anvil_base.glb`) 3.6 m square at its foot, a shelf
   at 1.2 m and a 2.4 m strike die on top at 1.5 m; hammer 2.2 m, raised (bottom y 3.8); housing under a header beam
   at y 9, carried by posts at z -8 to -48 every 8 m.
-- Gear rings: around the track at z -15 to -55 every 8 m, centre y 2, radius 6.5 m (13 m across), 12 teeth,
-  running down through the floor; inner edge 6.2 m from the centre.
+- Gear rings (`gear_ring.glb`): around the track at z -15 to -55 every 8 m, centre y 2, rim 6.2 to 6.8 m out, 12 teeth
+  to 13.6 m across, running down through the floor; inner edge 6.2 m from the centre.
 - Energy rails: x ±4, z 2 to -48, top y 0.3, 0.4 m wide; the square bars run as strips flush on top.
 - Machinery walls: solid at x ±18 to ±20, up to y 19, z 6 to -68; catwalk ledge along the inner face at x ±16, top
   y 8; machine blocks against the wall (x ±15) every 8 m from z -4 to -52, 5.5 and 3.5 m high in turn.
