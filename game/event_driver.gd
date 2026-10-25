@@ -226,6 +226,9 @@ func _ready() -> void:
 				else right_waving_lasers_material)
 	_fixtures.setup(fixture_lasers, fixture_materials)
 	$Level.add_child(_fixtures)
+	# each group's bars in one draw call (LaserBatch)
+	for holder: Node3D in [diagonal_lasers_holder, square_lasers_holder, left_waving_lasers_holder, right_waving_lasers_holder]:
+		LaserBatch.make(holder, $Level)
 	_classic_rig[square_lasers_holder] = square_lasers_holder.transform
 	for strip: MeshInstance3D in [track_lights_left, track_lights_right]:
 		_strip_rest[strip] = strip.global_transform
