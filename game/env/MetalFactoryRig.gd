@@ -18,6 +18,10 @@ const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
 ## ceiling faces turned toward the track read as grey sheets (luma about 39 of 255 in the eye capture with the lights
 ## on), against "blacks stay black" (doc/world/VISUAL_STYLE.md). Untuned.
 const LIGHT_SPILL := 0.3
+## the metal pieces' sheen (EnvSolid layer 8, the matcap made by tools/make_matcap.py); the same for the track's edges here
+## (TrackDeck.METAL_BY_STAGE). Untuned.
+const METAL_SHEEN := 1.0
+const MATCAP := preload("res://game/env/metal_matcap.png")
 ## how far below the floor (y 0) structure that stands on it starts, so no base shows a gap
 const SINK := 1.0
 ## the factory floor either side of the track (the track floor is about 7 m wide): from x INNER to OUTER, from z
@@ -198,20 +202,24 @@ func _ready() -> void:
 	var material := ShaderMaterial.new()
 	material.shader = ENV_SOLID
 	material.set_shader_parameter(&"light_spill", LIGHT_SPILL)
+	# the metal pieces (pistons, anvils, gears) get the metal sheen (EnvSolid layer 8); walls and plain boxes don't
+	var metal_material := material.duplicate() as ShaderMaterial
+	metal_material.set_shader_parameter(&"metal", METAL_SHEEN)
+	metal_material.set_shader_parameter(&"matcap", MATCAP)
 	_add_multimesh(BoxMesh.new(), boxes, material)
-	_add_multimesh(LaserFixtures._model_mesh(HOUSING_MODEL), housings, material)
-	_hammers = _add_multimesh(LaserFixtures._model_mesh(HAMMER_MODEL), hammers, material).multimesh
-	_add_multimesh(LaserFixtures._model_mesh(ANVIL_MODEL), anvils, material)
+	_add_multimesh(LaserFixtures._model_mesh(HOUSING_MODEL), housings, metal_material)
+	_hammers = _add_multimesh(LaserFixtures._model_mesh(HAMMER_MODEL), hammers, metal_material).multimesh
+	_add_multimesh(LaserFixtures._model_mesh(ANVIL_MODEL), anvils, metal_material)
 	var rings: Array[Transform3D] = []
 	for z in RING_Z:
 		rings.append(Transform3D(Basis.IDENTITY, Vector3(0.0, RING_Y, z)))
-	_rings = _add_multimesh(LaserFixtures._model_mesh(RING_MODEL), rings, material).multimesh
+	_rings = _add_multimesh(LaserFixtures._model_mesh(RING_MODEL), rings, metal_material).multimesh
 	var large: Array[Transform3D] = []
 	var small: Array[Transform3D] = []
 	for i in LARGE_GEARS.size():
 		large.append(Transform3D(Basis.IDENTITY, LARGE_GEARS[i]))
 		small.append(Transform3D(Basis.IDENTITY, SMALL_GEARS[i]))
-	_large_gears = _add_multimesh(LaserFixtures._model_mesh(LARGE_GEAR_MODEL), large, material).multimesh
+	_large_gears = _add_multimesh(LaserFixtures._model_mesh(LARGE_GEAR_MODEL), large, metal_material).multimesh
 	var kit := {}
 	for piece: String in WALL_KIT:
 		kit[piece] = [] as Array[Transform3D]
@@ -233,7 +241,7 @@ func _ready() -> void:
 			_panel_rest.assign(kit[piece])
 		else:
 			_add_multimesh(LaserFixtures._model_mesh(WALL_KIT[piece]), kit[piece], material)
-	_small_gears = _add_multimesh(LaserFixtures._model_mesh(SMALL_GEAR_MODEL), small, material).multimesh
+	_small_gears = _add_multimesh(LaserFixtures._model_mesh(SMALL_GEAR_MODEL), small, metal_material).multimesh
 	assert(SLAM_LAG_SECONDS.size() == anvils.size(), "one SLAM_LAG_SECONDS per piston")
 	for anvil in anvils:
 		_sparks.append(_add_sparks(anvil.origin))

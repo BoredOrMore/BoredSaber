@@ -46,6 +46,8 @@ const CURB_RISE := 0.08
 const STRIP_PROUD := 0.004
 ## each environment's skin (TrackDeck.gdshader); the rest get 0, plain plates
 const SKINS := {"metal_factory": 1, "neon_grid": 2}
+## the edges' metal sheen on stages whose metal shines (EnvSolid layer 8); none elsewhere
+const METAL_BY_STAGE := {"metal_factory": MetalFactoryRig.METAL_SHEEN}
 
 var _deck: MeshInstance3D
 var _curbs: MultiMesh
@@ -141,6 +143,8 @@ func set_stage(id: String) -> void:
 	var fade := fade_z()
 	deck_material.set_shader_parameter(&"fade_z", fade)
 	_curb_material.set_shader_parameter(&"fade_z", fade)
+	_curb_material.set_shader_parameter(&"metal", METAL_BY_STAGE.get(id, 0.0))
+	_curb_material.set_shader_parameter(&"matcap", MetalFactoryRig.MATCAP)
 	layout(_lane_width)
 
 ## Where the deck fades into the haze: from and to, in metres out along the track (-z).

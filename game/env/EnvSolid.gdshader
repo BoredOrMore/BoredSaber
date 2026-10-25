@@ -17,6 +17,13 @@ shader_type spatial;
 //      the mesh's vertex colours, desktop capture 2026-10-25). Hot core toward white where a louver faces the eye, its colour on the
 //      faces turned away, as LightStrip.gdshader (AGENTS.md "Light", rule 2). Light, so after the haze, which only
 //      dims it; black on every other material (the colours default to black)
+//   7. ambient occlusion: models bake it into vertex colour red (tools/models/model_export.py; green and blue are the
+//      vents' marks); it darkens the metal, form, spill and sheen in creases and where pieces meet. A mesh without vertex
+//      colours (plain boxes, older meshes) reads white, so it isn't darkened
+//   8. metal sheen (matcap, metal > 0: Metal Factory's metal pieces): a small grey picture of a lit sphere
+//      (tools/make_matcap.py) looked up by the face's view-space normal, giving a soft highlight from above and a rim
+//      toward grazing angles, as polished metal shows. Grey only: tinted with a neutral grey and the lights' colour
+//      (env_light), kept well under the fixtures in the brightness order (Light rules 1, 3 and 4). Off (0) elsewhere
 // The scene has no real lights (AGENTS.md "Light", rule 10), so layers 2-4 are faked here. Everything but the edge's
 // falloff is worked out per vertex: the faces are flat, so per pixel would give the same picture. Values untuned.
 render_mode unshaded, fog_disabled, shadows_disabled;
@@ -61,6 +68,14 @@ const float VENT_GLOW = 0.9;
 const float VENT_CORE_WHITE = 0.6;
 const float VENT_CORE_SHARPNESS = 2.0;
 
+// 7. ambient occlusion: how much of the baked occlusion shows (0 none, 1 all)
+const float AO_STRENGTH = 0.8;
+// 8. metal sheen: how much (0 off), the matcap picture, and the sheen's neutral grey and share of the lights' colour
+uniform float metal = 0.0;
+uniform sampler2D matcap : hint_default_black, filter_linear_mipmap;
+const float METAL_GREY = 0.12;
+const float METAL_LIGHT = 0.3;
+
 // 5. haze: per metre
 uniform float fog_density = 0.03;
 // how fast the extra floor haze thins out going up, per metre
@@ -80,6 +95,8 @@ varying float spill;
 varying float edge;
 // 6. this vertex's vent glow, before the hot core
 varying vec3 vent;
+// 7. how lit this vertex is after its baked occlusion
+varying float ao;
 
 void vertex() {
 	if ((debug_view & 8) != 0) {
@@ -113,6 +130,9 @@ void vertex() {
 		fog = max(fog, smoothstep(fade_z.x, fade_z.y, -world.z));
 	}
 
+	// 7. ambient occlusion
+	ao = mix(1.0, COLOR.r, AO_STRENGTH);
+
 	// 6. vents: the model's marks pick the row; the panel's side of the track picks the wall
 	vec3 lower = mix(vent_left_color.rgb, vent_right_color.rgb, step(0.0, MODEL_MATRIX[3].x));
 	vent = (vent_upper_color.rgb * COLOR.g + lower * COLOR.b) * VENT_GLOW;
@@ -121,7 +141,12 @@ void vertex() {
 void fragment() {
 	// edge is interpolated linearly across the ring's band; the power pulls the glow in tight against the hole
 	float glow = pow(edge, EDGE_TIGHTNESS) * EDGE_LIGHT;
-	vec3 lit = albedo.rgb * form + env_light.rgb * spill * form;
+	vec3 lit = (albedo.rgb * form + env_light.rgb * spill * form) * ao;
+	if (metal > 0.0) {
+		// view-space normal to the matcap's picture: x right, y up (the picture's rows run down)
+		float sheen = texture(matcap, NORMAL.xy * vec2(0.5, -0.5) + 0.5).r;
+		lit += metal * sheen * ao * (vec3(METAL_GREY) + env_light.rgb * METAL_LIGHT);
+	}
 	vec3 vent_light = vec3(0.0);
 	if (max(vent.r, max(vent.g, vent.b)) > 0.0) {
 		float peak = max(vent.r, max(vent.g, vent.b));

@@ -48,6 +48,10 @@ Before building, write down and show the user (or put on the style frame):
   colours** (bake target vertex colours), read in the shader as `COLOR`. A texture costs a read per pixel
   and memory; vertex colours cost nothing extra. Bake to a texture only when the detail is finer than
   the mesh.
+- Vertex colour channels (EnvSolid reads them): red is the baked ambient occlusion, which darkens every model in the
+  scenery shader (layer 7); green and blue are glow masks a model may mark (Metal Factory's vents: green the upper
+  row, blue the lower, layer 6); alpha is unused. `tools/models/model_export.py` writes them. A mesh without vertex
+  colours reads white, so it is neither darkened nor lit.
 - Keep normals clean (shade flat for hard metal, smooth by angle for rounded), no loose or duplicate
   vertices, faces pointing out. Print the triangle count at the end of the script.
 
