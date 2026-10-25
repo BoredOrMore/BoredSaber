@@ -11,6 +11,8 @@ class_name NightCityRig
 ## fog shader. Sizes in metres, untuned.
 
 const ENV_SOLID := preload("res://game/env/EnvSolidCanyon.gdshader")
+## the same without the windows, for the pieces that never show any: one shader with them cost these pixels for nothing
+const ENV_SOLID_PLAIN := preload("res://game/env/EnvSolidCanyonPlain.gdshader")
 ## How much of the lights' colour the buildings' faces take (EnvSolid light_spill, 1 elsewhere): at 1 the near
 ## buildings read as flat grey boxes, brighter than the skyline (owner, 2026-10-25: too bright), as Metal Factory's
 ## walls did. Untuned.
@@ -128,6 +130,8 @@ const ROOF_Z := Vector2(6.0, -8.0)
 const PARAPET := Vector2(0.3, 0.35)
 
 var _instance: MultiMeshInstance3D
+## the boxes near the track, which have no windows (closer than window_min_x)
+var _plain_instance: MultiMeshInstance3D
 var _landmark: MeshInstance3D
 var _billboards: MultiMeshInstance3D
 var _props: Array[MultiMeshInstance3D] = []
@@ -173,6 +177,9 @@ func set_windows(left: Color, right: Color, level: float, glow: float) -> void:
 func build(classic: bool) -> void:
 	if _instance:
 		_instance.queue_free()
+	if _plain_instance:
+		_plain_instance.queue_free()
+		_plain_instance = null
 	if _landmark:
 		_landmark.queue_free()
 		_landmark = null
@@ -190,22 +197,22 @@ func build(classic: bool) -> void:
 	_material.set_shader_parameter(&"canyon_fog", Vector4.ZERO if classic else CANYON_FOG)
 	_material.set_shader_parameter(&"fog_roll", CANYON_FOG_ROLL)
 	_material.set_shader_parameter(&"fog_per_pixel", not classic)
-	_material.set_shader_parameter(&"window_min_x", RAILING_X + STAIR_HOUSE_SIZE.x + 2.0)
+	# the boxes closer to the track than the windows start show none (EnvSolid windows_light): drawn without them
+	var window_min_x := RAILING_X + STAIR_HOUSE_SIZE.x + 2.0
+	_material.set_shader_parameter(&"window_min_x", window_min_x)
 	_material.set_shader_parameter(&"window_span", Vector2(STREET_Y, TOWERS[1].w))
 	_material.set_shader_parameter(&"side_shade", 0.0 if classic else SIDE_SHADE)
 	_material.set_shader_parameter(&"window_pier_cells", int(PILASTER_STEP / PILASTER.y))
 	_material.set_shader_parameter(&"depth_shade", 0.0 if classic else DEPTH_SHADE)
-	var multimesh := MultiMesh.new()
-	multimesh.transform_format = MultiMesh.TRANSFORM_3D
-	multimesh.mesh = BoxMesh.new()
-	multimesh.instance_count = boxes.size()
-	for i in boxes.size():
-		multimesh.set_instance_transform(i, boxes[i])
-	_instance = MultiMeshInstance3D.new()
-	_instance.multimesh = multimesh
-	_instance.material_override = _material
-	_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(_instance)
+	var windowed: Array[Transform3D] = []
+	var plain: Array[Transform3D] = []
+	for box in boxes:
+		var far_x := absf(box.origin.x) + absf(box.basis.x.x) * 0.5
+		(windowed if not classic and far_x > window_min_x else plain).append(box)
+	_instance = _box_instance(windowed, _material)
+	var plain_material := _material.duplicate() as ShaderMaterial
+	plain_material.shader = ENV_SOLID_PLAIN
+	_plain_instance = _box_instance(plain, plain_material)
 	if not classic:
 		var o := -WALL_SIDE
 		_landmark = MeshInstance3D.new()
@@ -243,6 +250,7 @@ func _add_sea() -> void:
 func _add_props() -> void:
 	if _props_material == null:
 		_props_material = _material.duplicate() as ShaderMaterial
+		_props_material.shader = ENV_SOLID_PLAIN
 	_props_material.set_shader_parameter(&"windows", 0.0)
 	var o := -WALL_SIDE
 	var tanks: Array[Transform3D] = []
@@ -301,6 +309,21 @@ func _add_billboards() -> void:
 	add_child(_billboards)
 
 ## A box from corner `a` to corner `b`.
+## One MultiMesh of boxes in this material, added to the rig.
+func _box_instance(boxes: Array[Transform3D], material: ShaderMaterial) -> MultiMeshInstance3D:
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.mesh = BoxMesh.new()
+	multimesh.instance_count = boxes.size()
+	for i in boxes.size():
+		multimesh.set_instance_transform(i, boxes[i])
+	var instance := MultiMeshInstance3D.new()
+	instance.multimesh = multimesh
+	instance.material_override = material
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(instance)
+	return instance
+
 static func _span(a: Vector3, b: Vector3) -> Transform3D:
 	return Transform3D(Basis.from_scale((b - a).abs()), (a + b) * 0.5)
 

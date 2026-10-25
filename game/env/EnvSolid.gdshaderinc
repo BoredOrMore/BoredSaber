@@ -43,7 +43,7 @@
 // falloff is worked out per vertex: the faces are flat, so per pixel would give the same picture. Values untuned.
 // Each stage's shader (EnvSolid*.gdshader) defines only the layers it uses, so the GPU runs none of the others: one
 // shader with them all cost Night City ~4 ms and Metal Factory ~3 ms a frame (bench, 2026-10-26). RING: 4;
-// VENTS: 6; METAL: 8; CANYON: 2b, 5b and 9. A layer left out is the same as its uniforms at their off values.
+// VENTS: 6; METAL: 8; CANYON: 2b and 5b, with WINDOWS 9. A layer left out is the same as its uniforms at their off values.
 
 global uniform vec4 env_haze;
 global uniform vec4 env_light;
@@ -237,7 +237,7 @@ void vertex() {
 #endif
 }
 
-#ifdef CANYON
+#ifdef WINDOWS
 float window_hash(vec2 p) {
 	return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453);
 }
@@ -301,8 +301,12 @@ void fragment() {
 #ifdef CANYON
 		// 5. per pixel on faces too big for a blend of their corners
 		float haze_amount = fog_per_pixel ? fog_at(world_pos, CAMERA_POSITION_WORLD, TIME) : fog;
+#ifdef WINDOWS
 		// the windows go on after the shadow tone, which would grey their colour
 		vec3 windows_on = windows_light() * (1.0 - haze_amount);
+#else
+		vec3 windows_on = vec3(0.0);
+#endif
 #else
 		float haze_amount = fog;
 		vec3 windows_on = vec3(0.0);
