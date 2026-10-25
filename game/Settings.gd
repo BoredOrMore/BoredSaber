@@ -280,6 +280,12 @@ var classic_notes: bool:
 	set(value):
 		classic_notes = value
 		set_and_emit(&"classic_notes", value)
+## the older walls (DangerWall.gdshader: two blended faces, a wide halo) instead of the framed default ones
+## (FramedWall.gdshader), to compare them (owner, 2026-10-25)
+var classic_walls: bool:
+	set(value):
+		classic_walls = value
+		set_and_emit(&"classic_walls", value)
 var spectator_hud: bool:
 	set(value):
 		spectator_hud = value
@@ -475,6 +481,7 @@ var default_values = {
 	spectator_hud = true,
 	old_track = false,
 	classic_notes = false,
+	classic_walls = false,
 	background = "dynamic",
 	environment = "auto",
 	note_style = "solid",

@@ -18,6 +18,8 @@ extends Node3D
 ##   (GameStatePlaying.spawn_due); nobody cuts them, so they pass and are missed, which costs nothing here; 0 leaves them out)
 ##   --note left|right (one note held still NOTE_AHEAD in front of the eye, to look at its shading; pair with
 ##   --seconds 600 to keep the window open)  --note-yaw 0 --note-pitch 0 (degrees, turn it to see its sides and top)
+##   --wall 1 (with --map: the map's walls in the Classic walls look if --wall classic; otherwise a wall held still: WALL_SIZE, its near face --wall-z metres ahead of the eye (default 3; 0.5 to see the
+##   near fade), --wall-x 0.6 to its centre's side; --wall classic for the Classic walls look)  --danger RRGGBB
 ##   --stats 1 (print the frame's triangles, draw calls and objects as drawn, RenderingServer's counters, one view)
 ##   --dot 1 (a dot note)  --note-style 2 (0 Solid, 1 Neon: the Classic notes looks; 2 the glossy default)
 
@@ -47,6 +49,9 @@ const NOTE_SCENES := {
 }
 var _notes := false
 const NOTE_SCENE := preload("res://game/BeepCube/BeepCube.tscn")
+## --wall: the held wall's size (metres)
+const WALL_SIZE := Vector3(1.2, 1.6, 3.0)
+const WALL_SCENE := preload("res://game/Wall/Wall.tscn")
 ## --note: how far in front of the eye the note is held, metres
 const NOTE_AHEAD := 0.9
 
@@ -92,6 +97,10 @@ func _ready() -> void:
 		stage.metal_factory_rig.slam(_beat, CAPTURE_BPM, 1.0)
 	if args.has("animate"):
 		_animated = stage
+	# the Classic walls look for the map's walls too (in memory only; the saved setting is left alone)
+	Settings.classic_walls = args.get("wall", "") == "classic"
+	if args.has("wall") and not args.has("map"):
+		_hold_wall(camera, args)
 	if args.has("note"):
 		_hold_note(camera, left if args["note"] == "left" else right, args)
 	if args.has("map") and not _play_map(stage, args):
@@ -111,6 +120,15 @@ func _ready() -> void:
 			info.call(RenderingServer.VIEWPORT_RENDER_INFO_PRIMITIVES_IN_FRAME),
 			info.call(RenderingServer.VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME),
 			info.call(RenderingServer.VIEWPORT_RENDER_INFO_OBJECTS_IN_FRAME)])
+		var walls := get_tree().get_nodes_in_group(&"wall").filter(func(w: Node) -> bool: return w is Wall and w.is_visible_in_tree())
+		var seen := walls.filter(func(w: Wall) -> bool:
+			var mesh := w.get_node(^"WallMeshOrientation/WallMesh") as MeshInstance3D
+			var box := mesh.global_transform * mesh.get_aabb()
+			for i in 8:
+				if camera.is_position_in_frustum(box.get_endpoint(i)):
+					return true
+			return false)
+		print("stage_capture walls: %d spawned, %d in view" % [walls.size(), seen.size()])
 	var out := args.get("out", "user://stage_capture.png") as String
 	var error := get_viewport().get_texture().get_image().save_png(out)
 	print("stage_capture %s -> %s" % [error_string(error), out])
@@ -169,6 +187,23 @@ func _play_map(stage: EventDriver, args: Dictionary) -> bool:
 	print("stage_capture: %s (%s), %s, %.0f BPM" % [info.song_name, difficulty.difficulty, stage.environment, _bpm])
 	return true
 
+## Puts one wall (the game's own) in front of `camera` as --wall says. Without a map it doesn't move.
+func _hold_wall(camera: Camera3D, args: Dictionary) -> void:
+	var wall := WALL_SCENE.instantiate() as Wall
+	add_child(wall)
+	var mesh := wall.get_node(^"WallMeshOrientation/WallMesh") as MeshInstance3D
+	var danger := Color(args.get("danger", "ff3030") as String)
+	if args["wall"] == "classic":
+		(mesh.mesh as BoxMesh).size = WALL_SIZE
+		mesh.material_override = Wall.CLASSIC_MATERIAL
+	else:
+		mesh.mesh = Wall.frame_mesh()
+		mesh.material_override = Wall.FRAMED_MATERIAL
+		mesh.scale = WALL_SIZE
+	(mesh.material_override as ShaderMaterial).set_shader_parameter(&"danger_color", danger)
+	wall.position = Vector3(float(args.get("wall-x", "0.6")), WALL_SIZE.y * 0.5,
+		camera.position.z - float(args.get("wall-z", "3")) - WALL_SIZE.z * 0.5)
+
 ## Puts one note (the game's own BeepCube) NOTE_AHEAD in front of `camera`, in `color`, turned by --note-yaw and
 ## --note-pitch. Without a map it doesn't move.
 func _hold_note(camera: Camera3D, color: Color, args: Dictionary) -> void:
@@ -195,9 +230,11 @@ func _add_notes(start_beat: float) -> void:
 		pool.new_scene_instanced.connect(func(obj: Node3D, _presizing: bool) -> void: track.add_child(obj))
 		add_child(pool)
 		GlobalReferences.set(pool_name, pool)
-	for stack: Array in [Map.note_stack, Map.bomb_stack, Map.obstacle_stack]:
+	for stack: Array in [Map.note_stack, Map.bomb_stack]:
 		while not stack.is_empty() and stack[-1].beat < start_beat:
 			stack.pop_back()
+	# a wall that began earlier but still runs past the start is kept: it spawns part way through, as in the game
+	Map.obstacle_stack = Map.obstacle_stack.filter(func(w: ObstacleInfo) -> bool: return w.beat + w.duration >= start_beat)
 	for stack: Array in [Map.arc_stack, Map.chain_stack]:
 		while not stack.is_empty() and stack[-1].head_beat < start_beat:
 			stack.pop_back()
