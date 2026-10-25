@@ -20,6 +20,8 @@ extends Node3D
 ##   --seconds 600 to keep the window open)  --note-yaw 0 --note-pitch 0 (degrees, turn it to see its sides and top)
 ##   --wall 1 (with --map: the map's walls in the Classic walls look if --wall classic; otherwise a wall held still: WALL_SIZE, its near face --wall-z metres ahead of the eye (default 3; 0.5 to see the
 ##   near fade), --wall-x 0.6 to its centre's side; --wall classic for the Classic walls look)  --danger RRGGBB
+##   --saber left|right (the default saber turned on, held --saber-dist metres in front of the eye, default 0.35, its
+##   blade leaning away to the side, to look at it up close)
 ##   --stats 1 (print the frame's triangles, draw calls and objects as drawn, RenderingServer's counters, one view)
 ##   --dot 1 (a dot note)  --note-style 2 (0 Solid, 1 Neon: the Classic notes looks; 2 the glossy default)
 
@@ -49,6 +51,7 @@ const NOTE_SCENES := {
 }
 var _notes := false
 const NOTE_SCENE := preload("res://game/BeepCube/BeepCube.tscn")
+const SABER_SCENE := preload("res://game/sabers/default/default_saber.tscn")
 ## --wall: the held wall's size (metres)
 const WALL_SIZE := Vector3(1.2, 1.6, 3.0)
 const WALL_SCENE := preload("res://game/Wall/Wall.tscn")
@@ -101,6 +104,8 @@ func _ready() -> void:
 	Settings.classic_walls = args.get("wall", "") == "classic"
 	if args.has("wall") and not args.has("map"):
 		_hold_wall(camera, args)
+	if args.has("saber"):
+		_hold_saber(camera, left if args["saber"] == "left" else right, float(args.get("saber-dist", "0.35")))
 	if args.has("note"):
 		_hold_note(camera, left if args["note"] == "left" else right, args)
 	if args.has("map") and not _play_map(stage, args):
@@ -186,6 +191,15 @@ func _play_map(stage: EventDriver, args: Dictionary) -> bool:
 		_add_notes(float(args.get("start", "0")) * _bpm / 60.0)
 	print("stage_capture: %s (%s), %s, %.0f BPM" % [info.song_name, difficulty.difficulty, stage.environment, _bpm])
 	return true
+
+## Turns on one saber `distance` in front of `camera` in `color`, its hilt low and its blade leaning up and away.
+func _hold_saber(camera: Camera3D, color: Color, distance: float) -> void:
+	var saber := SABER_SCENE.instantiate() as DefaultSaber
+	add_child(saber)
+	saber.position = camera.position + Vector3(0.08, -0.25, -distance)
+	saber.rotation_degrees = Vector3(-50.0, 0.0, -25.0)
+	saber.set_color(color)
+	saber._show()
 
 ## Puts one wall (the game's own) in front of `camera` as --wall says. Without a map it doesn't move.
 func _hold_wall(camera: Camera3D, args: Dictionary) -> void:
