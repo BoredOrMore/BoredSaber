@@ -99,7 +99,10 @@ const RAIL_TOP := 0.3
 const RAIL_WIDTH := 0.4
 const RAIL_Z := Vector2(2.0, -48.0)
 ## Machinery walls: a solid wall from x WALL_X.x to WALL_X.y, WALL_TOP high; a catwalk ledge along its inner face
-## (the waving lasers stand on it); and machine blocks on the floor against the wall, every 8 m, two heights in turn.
+## (the waving lasers stand on it). Against the wall's face, the wall kit (tools/models/wall_kit.py,
+## doc/assets/wall_kit): an I-beam column at every COLUMN_Z, and in each bay between (BAY_Z) a framed, louvered panel
+## above the catwalk (its foot PANEL_Y up), a run of pipes under the catwalk (centred PIPES_Y up) and a machine on the
+## floor, tall and low in turn. Each piece's front faces the track: the right wall's are turned half round.
 const WALL_X := Vector2(18.0, 20.0)
 const WALL_TOP := 19.0
 const WALL_Z := Vector2(6.0, -68.0)
@@ -107,10 +110,17 @@ const LEDGE_X := 16.0
 const LEDGE_TOP := 8.0
 const LEDGE_THICKNESS := 0.6
 const WAVING_Z: Array[float] = [-16.0, -24.0, -32.0, -40.0]
-const MACHINE_X := 15.0
-const MACHINE_DEPTH := 4.0
-const MACHINE_HEIGHTS: Array[float] = [5.5, 3.5]
-const MACHINE_Z: Array[float] = [-4.0, -12.0, -20.0, -28.0, -36.0, -44.0, -52.0]
+const COLUMN_Z: Array[float] = [0.0, -8.0, -16.0, -24.0, -32.0, -40.0, -48.0, -56.0]
+const BAY_Z: Array[float] = [-4.0, -12.0, -20.0, -28.0, -36.0, -44.0, -52.0]
+const PANEL_Y := 8.5
+const PIPES_Y := 6.7
+const WALL_KIT := {
+	"column": preload("res://game/models/wall_column.glb"),
+	"panel": preload("res://game/models/wall_panel.glb"),
+	"pipes": preload("res://game/models/wall_pipes.glb"),
+	"machine": preload("res://game/models/wall_machine.glb"),
+	"machine_low": preload("res://game/models/wall_machine_low.glb"),
+}
 ## Ceiling truss: cross beams from wall to wall every 8 m and two chords along the hall on top of them, at TRUSS_Y,
 ## under a solid ceiling slab resting on the walls (WALL_TOP), so no sky shows overhead: the hall is underground.
 const TRUSS_Y := 18.1
@@ -191,6 +201,22 @@ func _ready() -> void:
 		large.append(Transform3D(Basis.IDENTITY, LARGE_GEARS[i]))
 		small.append(Transform3D(Basis.IDENTITY, SMALL_GEARS[i]))
 	_large_gears = _add_multimesh(LaserFixtures._model_mesh(LARGE_GEAR_MODEL), large, material).multimesh
+	var kit := {}
+	for piece: String in WALL_KIT:
+		kit[piece] = [] as Array[Transform3D]
+	for side in [-1.0, 1.0]:
+		# the left wall's pieces face +x as built; the right wall's are turned half round to face -x
+		var basis := Basis.IDENTITY if side < 0.0 else Basis(Vector3.UP, PI)
+		var face: float = side * WALL_X.x
+		for z in COLUMN_Z:
+			kit["column"].append(Transform3D(basis, Vector3(face, 0.0, z)))
+		for i in BAY_Z.size():
+			var z := BAY_Z[i]
+			kit["panel"].append(Transform3D(basis, Vector3(face, PANEL_Y, z)))
+			kit["pipes"].append(Transform3D(basis, Vector3(face, PIPES_Y, z)))
+			kit["machine" if i % 2 == 0 else "machine_low"].append(Transform3D(basis, Vector3(face, 0.0, z)))
+	for piece: String in WALL_KIT:
+		_add_multimesh(LaserFixtures._model_mesh(WALL_KIT[piece]), kit[piece], material)
 	_small_gears = _add_multimesh(LaserFixtures._model_mesh(SMALL_GEAR_MODEL), small, material).multimesh
 	assert(SLAM_LAG_SECONDS.size() == anvils.size(), "one SLAM_LAG_SECONDS per piston")
 	for anvil in anvils:
@@ -314,7 +340,7 @@ func _add_multimesh(mesh: Mesh, places: Array[Transform3D], material: ShaderMate
 	add_child(instance)
 	return instance
 
-## Adds one side's floor, rail, piston posts and header, wall, ledge, machines and end pier (side -1 left, 1 right).
+## Adds one side's floor, rail, piston posts and header, wall, ledge and end pier (side -1 left, 1 right).
 static func _side(boxes: Array[Transform3D], side: float) -> void:
 	boxes.append(_span(Vector3(side * FLOOR_X.x, -FLOOR_THICKNESS, FLOOR_Z.x), Vector3(side * FLOOR_X.y, 0.0, FLOOR_Z.y)))
 	boxes.append(_span(Vector3(side * (RAIL_X - RAIL_WIDTH * 0.5), -SINK, RAIL_Z.x), Vector3(side * (RAIL_X + RAIL_WIDTH * 0.5), RAIL_TOP, RAIL_Z.y)))
@@ -323,10 +349,6 @@ static func _side(boxes: Array[Transform3D], side: float) -> void:
 	boxes.append(_span(Vector3(side * (PISTON_X - HEADER * 0.5), HEADER_Y, POST_Z[0]), Vector3(side * (PISTON_X + HEADER * 0.5), HEADER_Y + HEADER, POST_Z[-1])))
 	boxes.append(_span(Vector3(side * WALL_X.x, FOUNDATION.y, WALL_Z.x), Vector3(side * WALL_X.y, WALL_TOP, WALL_Z.y)))
 	boxes.append(_span(Vector3(side * LEDGE_X, LEDGE_TOP - LEDGE_THICKNESS, WALL_Z.x), Vector3(side * WALL_X.x, LEDGE_TOP, WALL_Z.y)))
-	for i in MACHINE_Z.size():
-		var z := MACHINE_Z[i]
-		var height := MACHINE_HEIGHTS[i % MACHINE_HEIGHTS.size()]
-		boxes.append(_span(Vector3(side * MACHINE_X, -SINK, z + MACHINE_DEPTH * 0.5), Vector3(side * WALL_X.x, height, z - MACHINE_DEPTH * 0.5)))
 	boxes.append(_span(Vector3(side * PIER_X.x, FOUNDATION.y, FOUNDATION.z + 2.0), Vector3(side * PIER_X.y, WALL_TOP, FOUNDATION.w)))
 
 ## Where a diagonal laser stands on anvil `i` (left row first), its foot on the anvil's shelf.
