@@ -54,18 +54,19 @@ const SLAM_FROM := 0.6
 const SLAM_FULL := 0.9
 const SLAM_REST_SECONDS := 0.06
 const SLAM_FALL_SECONDS := 0.15
-## Sparks on a blow (owner, 2026-10-25): as each hammer lands they burst out sideways from under its face, off the die's
-## top edge, and fall away; hot white cooling to the note colour of that side's lights (left row left, right row
+## Sparks on a blow (owner, 2026-10-25): as each hammer lands they burst out all round the anvil (owner: every way, not
+## in a few jets), from SPARK_DIRECTIONS even angles on the die's top edge, each straight out from its centre, and
+## fall away; hot white cooling to the note colour of that side's lights (left row left, right row
 ## right), as the cut sparks do (CutFlash). Only a blow of at least SPARK_FROM of the full stroke throws them, at most
 ## once a slam cycle, so never more than 2 bursts a second (Light rule 8). One emitter per side, firing from points
 ## round every die on that side. The cut sparks' streak mesh, SPARK_SCALE times larger to read at 10-45 m. Untuned.
 const SPARK_FROM := 0.5
-const SPARK_POINTS_PER_EDGE := 3
+const SPARK_DIRECTIONS := 24
 const SPARK_LIFT := 0.05
-const SPARKS_PER_SIDE := 60
+const SPARKS_PER_SIDE := 100
 const SPARK_SECONDS := 0.7
 const SPARK_SPEED := Vector2(2.5, 5.0)
-const SPARK_SPREAD_DEG := 30.0
+const SPARK_SPREAD_DEG := 12.0
 ## how far the sparks lean upward from flat as they leave the edge
 const SPARK_RISE := 0.3
 const SPARK_GRAVITY := 9.8
@@ -183,19 +184,19 @@ func set_spark_colors(left: Color, right: Color) -> void:
 		var color := left if i == 0 else right
 		_sparks[i].color_ramp.set_color(1, Color(color.r, color.g, color.b, 0.0))
 
-## The spark emitter of one row (side -1 left, 1 right): directed points along the top edges of its dies, each pointing
-## out from the die and a little up.
+## The spark emitter of one row (side -1 left, 1 right): directed points round the top edges of its dies, at even
+## angles, each pointing straight out from its die's centre and a little up.
 func _add_sparks(side: float) -> CPUParticles3D:
 	var points := PackedVector3Array()
 	var normals := PackedVector3Array()
 	for z in PISTON_Z:
 		var centre := Vector3(side * PISTON_X, ANVIL_TOP + SPARK_LIFT, z)
-		for out: Vector3 in [Vector3.RIGHT, Vector3.LEFT, Vector3.FORWARD, Vector3.BACK]:
-			var along := out.cross(Vector3.UP)
-			for k in SPARK_POINTS_PER_EDGE:
-				var t := (k + 0.5) / SPARK_POINTS_PER_EDGE * 2.0 - 1.0
-				points.append(centre + (out + along * t) * DIE_HALF)
-				normals.append((out + Vector3.UP * SPARK_RISE).normalized())
+		for k in SPARK_DIRECTIONS:
+			var angle := TAU * k / SPARK_DIRECTIONS
+			var out := Vector3(cos(angle), 0.0, sin(angle))
+			# on the square edge: stretched out to the side it meets
+			points.append(centre + out / maxf(absf(out.x), absf(out.z)) * DIE_HALF)
+			normals.append((out + Vector3.UP * SPARK_RISE).normalized())
 	var sparks := CPUParticles3D.new()
 	sparks.mesh = CutFlash.spark_mesh()
 	sparks.particle_flag_align_y = true
