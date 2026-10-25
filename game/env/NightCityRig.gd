@@ -69,6 +69,16 @@ const LOW_ROOF_DEPTH := 22.0
 ## [out, z, width, top], is a dark silhouette against the sky: its own material with almost no haze (LANDMARK_FOG).
 const LANDMARK := Vector4(350.0, -700.0, 40.0, 400.0)
 const LANDMARK_FOG := 0.0003
+## The billboards on the tower wall (CityBillboard.gdshader), carrying the square bars' light: [tower, along the tower
+## from its near end (0-1), height, width, tall, shape (0 circle, 1 triangle, 2 stripes, 3 frames)]. Different sizes
+## and heights, not a row. Standing just off the pilasters' fronts.
+const BILLBOARD := preload("res://game/env/CityBillboard.gdshader")
+const BILLBOARDS := [
+	[0, 0.45, 26.0, 14.0, 9.0, 0], [0, 0.8, 52.0, 9.0, 16.0, 2],
+	[1, 0.2, 38.0, 20.0, 12.0, 3], [1, 0.6, 70.0, 12.0, 12.0, 1],
+	[2, 0.35, 30.0, 16.0, 8.0, 2], [2, 0.7, 48.0, 10.0, 10.0, 0],
+]
+const BILLBOARD_OFF := 0.1
 ## the player's rooftop: a stair house on the wall side [out, z, size x/y/z], an open railing on the other side
 ## the rooftop's surface, level with the platform's base (TrackDeck.PAD_DEPTH below the deck's top), so the track and
 ## platform sit on the roof; the stair house, parapet and railing stand on it
@@ -88,6 +98,9 @@ const PARAPET := Vector2(0.3, 0.35)
 
 var _instance: MultiMeshInstance3D
 var _landmark: MeshInstance3D
+var _billboards: MultiMeshInstance3D
+## the billboards' material, its light colour set each frame from the square bars' (EventDriver)
+var billboard_material: ShaderMaterial
 var _material: ShaderMaterial
 
 ## The buildings of one side (-1 left, 1 right) as [z centre, length, height] (the classic layout).
@@ -127,6 +140,9 @@ func build(classic: bool) -> void:
 	if _landmark:
 		_landmark.queue_free()
 		_landmark = null
+	if _billboards:
+		_billboards.queue_free()
+		_billboards = null
 	var boxes := _classic_boxes() if classic else _canyon_boxes()
 	_material.set_shader_parameter(&"windows", 0.0 if classic else 1.0)
 	_material.set_shader_parameter(&"window_min_x", RAILING_X + STAIR_HOUSE_SIZE.x + 2.0)
@@ -156,6 +172,33 @@ func build(classic: bool) -> void:
 		_landmark.material_override = far
 		_landmark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(_landmark)
+		_add_billboards()
+
+## The billboards: one MultiMesh of quads facing the track off the tower wall's face.
+func _add_billboards() -> void:
+	if billboard_material == null:
+		billboard_material = ShaderMaterial.new()
+		billboard_material.shader = BILLBOARD
+	var w := WALL_SIDE
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.use_custom_data = true
+	var quad := QuadMesh.new()
+	multimesh.mesh = quad
+	multimesh.instance_count = BILLBOARDS.size()
+	# the quad faces +z; turned to face the track from the wall's side
+	var facing := Basis(Vector3.UP, -w * PI * 0.5)
+	for i in BILLBOARDS.size():
+		var b: Array = BILLBOARDS[i]
+		var t := TOWERS[int(b[0])]
+		var origin := Vector3(w * (t.x - PILASTER.x - BILLBOARD_OFF), b[2], lerpf(t.y, t.z, b[1]))
+		multimesh.set_instance_transform(i, Transform3D(facing * Basis.from_scale(Vector3(b[3], b[4], 1.0)), origin))
+		multimesh.set_instance_custom_data(i, Color(float(b[5]), 0.0, 0.0, 0.0))
+	_billboards = MultiMeshInstance3D.new()
+	_billboards.multimesh = multimesh
+	_billboards.material_override = billboard_material
+	_billboards.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_billboards)
 
 ## A box from corner `a` to corner `b`.
 static func _span(a: Vector3, b: Vector3) -> Transform3D:

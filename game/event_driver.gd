@@ -696,6 +696,10 @@ func _process(delta: float) -> void:
 		var level := MENU_WINDOWS if menu_focus else _built
 		var glow := MENU_WINDOWS if menu_focus else lerpf(WINDOWS_QUIET, 1.0, _intensity)
 		night_city_rig.set_windows(left_color, right_color, level, glow)
+		# the billboards burn in the square bars' light
+		if night_city_rig.billboard_material:
+			night_city_rig.billboard_material.set_shader_parameter(&"light_color",
+				square_lasers_material.get_shader_parameter(&"light_color"))
 	_follow_frames()
 	# update the level animations
 	#procces ring rotations
