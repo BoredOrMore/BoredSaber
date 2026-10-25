@@ -18,6 +18,7 @@ extends Node3D
 ##   (GameStatePlaying.spawn_due); nobody cuts them, so they pass and are missed, which costs nothing here; 0 leaves them out)
 ##   --note left|right (one note held still NOTE_AHEAD in front of the eye, to look at its shading; pair with
 ##   --seconds 600 to keep the window open)  --note-yaw 0 --note-pitch 0 (degrees, turn it to see its sides and top)
+##   --stats 1 (print the frame's triangles, draw calls and objects as drawn, RenderingServer's counters, one view)
 ##   --dot 1 (a dot note)  --note-style 2 (0 Solid, 1 Neon: the Classic notes looks; 2 the glossy default)
 
 const ENVIRONMENT_SCENE := preload("res://game/event_driver.tscn")
@@ -102,6 +103,14 @@ func _ready() -> void:
 	else:
 		await get_tree().create_timer(float(args.get("seconds", "2.5"))).timeout
 	await RenderingServer.frame_post_draw
+	if args.get("stats", "0") == "1":
+		var vp := get_viewport().get_viewport_rid()
+		var info := func(kind: RenderingServer.ViewportRenderInfo) -> int:
+			return RenderingServer.viewport_get_render_info(vp, RenderingServer.VIEWPORT_RENDER_INFO_TYPE_VISIBLE, kind)
+		print("stage_capture stats: %d triangles, %d draw calls, %d objects" % [
+			info.call(RenderingServer.VIEWPORT_RENDER_INFO_PRIMITIVES_IN_FRAME),
+			info.call(RenderingServer.VIEWPORT_RENDER_INFO_DRAW_CALLS_IN_FRAME),
+			info.call(RenderingServer.VIEWPORT_RENDER_INFO_OBJECTS_IN_FRAME)])
 	var out := args.get("out", "user://stage_capture.png") as String
 	var error := get_viewport().get_texture().get_image().save_png(out)
 	print("stage_capture %s -> %s" % [error_string(error), out])
