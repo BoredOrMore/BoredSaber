@@ -285,6 +285,12 @@ var classic_walls: bool:
 	set(value):
 		classic_walls = value
 		set_and_emit(&"classic_walls", value)
+## Night City's classic layout (rows of buildings on both sides) instead of the giant building canyon (NightCityRig),
+## to compare them (owner, 2026-10-25)
+var classic_night_city: bool:
+	set(value):
+		classic_night_city = value
+		set_and_emit(&"classic_night_city", value)
 var spectator_hud: bool:
 	set(value):
 		spectator_hud = value
@@ -481,6 +487,7 @@ var default_values = {
 	old_track = false,
 	classic_notes = false,
 	classic_walls = false,
+	classic_night_city = false,
 	background = "dynamic",
 	environment = "auto",
 	note_style = "solid",

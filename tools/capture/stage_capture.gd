@@ -26,6 +26,7 @@ extends Node3D
 ##   --bomb-dist metres ahead (default 0.8) and one at play distance, 6 m)
 ##   --audit 1 (with --stats: what is drawn, grouped by where it sits in the tree, each visible mesh, MultiMesh or
 ##   particle system in view counted once, and every viewport that renders)
+##   --classic-city 1 (Night City's classic layout instead of the building canyon)
 ##   --stats 1 (print the frame's triangles, draw calls and objects as drawn, RenderingServer's counters, one view)
 ##   --dot 1 (a dot note)  --note-style 2 (0 Solid, 1 Neon: the Classic notes looks; 2 the glossy default)
 
@@ -74,6 +75,8 @@ func _ready() -> void:
 	RenderingServer.global_shader_parameter_set(&"right_saber_color", right)
 	RenderingServer.global_shader_parameter_set(&"note_style", int(args.get("note-style", "2")))
 
+	# Night City's classic layout (in memory only; the saved setting is left alone)
+	Settings.classic_night_city = args.get("classic-city", "0") == "1"
 	var world := WorldEnvironment.new()
 	world.environment = _game_environment()
 	add_child(world)

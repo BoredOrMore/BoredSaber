@@ -226,6 +226,12 @@ func _ready() -> void:
 				else right_waving_lasers_material)
 	_fixtures.setup(fixture_lasers, fixture_materials)
 	$Level.add_child(_fixtures)
+	# Night City's layout follows its Classic switch, the lights hung again on the one shown
+	Settings.changed.connect(func(key: StringName) -> void:
+		if key == &"classic_night_city":
+			night_city_rig.build(Settings.classic_night_city)
+			if environment == "night_city":
+				_apply_rig(environment))
 	# each group's bars in one draw call (LaserBatch)
 	for holder: Node3D in [diagonal_lasers_holder, square_lasers_holder, left_waving_lasers_holder, right_waving_lasers_holder]:
 		LaserBatch.make(holder, $Level)
@@ -356,6 +362,56 @@ var _classic_rig := {}
 ## the edge light strips' transforms along the old track, put back with the Old track setting
 var _strip_rest := {}
 
+## Night City's canyon (NightCityRig, blockout): the wall side's lights on the tower wall's face, the open side's on
+## the low roofs. The diagonal lasers cross over the canyon from both; the waving lasers are searchlights on the wall's
+## face at several heights and on the low roofs; the horizontal square bars alternate between trims on the low roofs'
+## inner edges and billboards on the wall's face; the vertical ones are left out. Heights in metres, untuned.
+const CANYON_SKY_SCALE := 9.5
+const CANYON_DIAGONAL_Y := [18.0, 34.0, 52.0, 72.0, 96.0]
+const CANYON_SEARCHLIGHT_Y := [12.0, 40.0, 80.0, 120.0]
+const CANYON_BILLBOARD_Y := [22.0, 30.0, 46.0, 58.0]
+
+func _hang_canyon(waving: Array[Node3D]) -> void:
+	var w := NightCityRig.WALL_SIDE
+	var o := -w
+	var towers := NightCityRig.TOWERS
+	var roofs := NightCityRig.LOW_ROOFS
+	var pairs := diagonal_lasers.size() >> 1
+	for i in diagonal_lasers.size():
+		var j := i % pairs
+		if i < pairs:
+			var t: Vector4 = towers[j % towers.size()]
+			var z := lerpf(t.y, t.z, 0.3 + 0.4 * float(j) / maxi(pairs - 1, 1))
+			_aim(diagonal_lasers[i], Vector3(w * t.x, CANYON_DIAGONAL_Y[j % CANYON_DIAGONAL_Y.size()], z), Vector3(o * 0.6, 1.0, -0.1))
+		else:
+			var r: Vector4 = roofs[j % roofs.size()]
+			_aim(diagonal_lasers[i], Vector3(o * r.x, r.w, (r.y + r.z) * 0.5), Vector3(w * 0.4, 1.0, 0.05))
+	@warning_ignore("integer_division")
+	var half := waving.size() / 2
+	for i in waving.size():
+		var j := i % half
+		if (i < half) == (w < 0.0):
+			var t: Vector4 = towers[j % towers.size()]
+			waving[i].global_position = Vector3(w * (t.x - 0.5), CANYON_SEARCHLIGHT_Y[j % CANYON_SEARCHLIGHT_Y.size()],
+				lerpf(t.y, t.z, 0.5))
+		else:
+			var r: Vector4 = roofs[j % roofs.size()]
+			waving[i].global_position = Vector3(o * (r.x + NightCityRig.LOW_ROOF_DEPTH * 0.6), r.w + 0.3, (r.y + r.z) * 0.5)
+	var k := 0
+	for bar in _square_bars():
+		if bar.get_parent() != square_lasers_holder:
+			bar.visible = false
+			continue
+		var j := k >> 1
+		if k % 2 == 0:
+			var r: Vector4 = roofs[j % roofs.size()]
+			bar.global_transform = Transform3D(RAIL_BASIS, Vector3(o * (r.x - ROOF_TRIM_OFFSET), r.w - ROOF_TRIM_DROP, (r.y + r.z) * 0.5))
+		else:
+			var t: Vector4 = towers[j % towers.size()]
+			bar.global_transform = Transform3D(RAIL_BASIS, Vector3(w * (t.x - ROOF_TRIM_OFFSET),
+				CANYON_BILLBOARD_Y[j % CANYON_BILLBOARD_Y.size()], lerpf(t.y, t.z, 0.25 + 0.15 * j)))
+		k += 1
+
 ## Pulse Void's beams: their width and brightness, parts of the beams' own (untuned)
 const VOID_BEAM_WIDTH := 0.5
 const VOID_BEAM_BRIGHTNESS := 0.55
@@ -411,6 +467,9 @@ func _apply_rig(id: String) -> void:
 		for beam in laser.get_children():
 			if beam is MeshInstance3D:
 				(beam as MeshInstance3D).visible = id != "metal_factory"
+	# the sky sphere (100 m) would hide the canyon's far city and landmark tower (to 800 m out): there it is drawn
+	# CANYON_SKY_SCALE times as far; elsewhere at its size, where it hides the beams' far ends
+	($Level/Sphere as Node3D).scale = Vector3.ONE * (CANYON_SKY_SCALE if id == "night_city" and not Settings.classic_night_city else 1.0)
 	# Pulse Void's beams narrower and dimmer, so its rings lead and the notes stay brightest (Light rule 1; owner,
 	# 2026-10-25: too bright); the rest keep the beams' own width and brightness
 	for material: ShaderMaterial in [diagonal_lasers_material, left_waving_lasers_material, right_waving_lasers_material]:
@@ -445,6 +504,8 @@ func _apply_rig(id: String) -> void:
 				var z := (NeonGridRig.POLE_Z[rail % gaps] + NeonGridRig.POLE_Z[rail % gaps + 1]) * 0.5
 				bar.global_transform = Transform3D(RAIL_BASIS, Vector3(side * RIG_GRID_EDGE_X, NeonGridRig.POLE_HEIGHT, z))
 				rail += 1
+		"night_city" when not Settings.classic_night_city:
+			_hang_canyon(waving)
 		"night_city":
 			# diagonal lasers cross from the roofs' inner edges, one every 6 m along each row of buildings
 			for i in diagonal_lasers.size():
