@@ -1,12 +1,12 @@
 extends Node3D
 class_name MetalFactoryRig
 ## The Metal Factory environment's structure (doc/world/GAME_BIBLE.md: an underground power plant that the player's
-## signal wakes up), which its lights are mounted on (AGENTS.md "Light", rule 5). Blockout: plain dark boxes for
-## silhouette and composition only (tools/asset_pipeline stage 2), standing in for the detail models to come.
+## signal wakes up), which its lights are mounted on (AGENTS.md "Light", rule 5). Blockout (approved 2026-10-25):
+## plain dark boxes for silhouette and composition, standing in for the detail models to come; the pistons are models.
 ## Two rows of pistons over anvils beside the track, gear rings around it, energy rails along it, machinery walls and a
 ## ceiling truss closing the hall, and drive gears at the far end, beside and below the horizon. Everything stands on
 ## the floor, a wall or the far foundation; nothing enters the note corridor (lanes +-1.2 m, y 0 to 2.5).
-## Dark boxes drawn in one MultiMesh with the scenery's fog shader. Sizes in metres; untuned.
+## Dark boxes in one MultiMesh and each piston part in its own, all with the scenery's fog shader. Sizes in metres; untuned.
 
 const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
 ## How much of the lights' colour the hall's faces take (EnvSolid light_spill, 1 elsewhere): at 1 the big wall and
@@ -24,14 +24,15 @@ const FLOOR_Z := Vector2(4.0, -56.0)
 const UNDER_TRACK := 0.02
 const FLOOR_THICKNESS := 0.5
 ## Pistons: one over each anvil, a row each side, every 8 m. The anvil (width x, height above the floor, depth z)
-## takes the blow; the hammer hangs raised from its housing, under a header beam carried by posts between the pistons.
+## takes the blow; the hammer hangs raised from its housing (models made by tools/models/piston_hammer.py,
+## doc/assets/piston_hammer), under a header beam carried by posts between the pistons. The housing's origin is its
+## top, against the header's underside; the hammer's is its striking face, HAMMER_BOTTOM up when raised.
 const PISTON_X := 8.0
 const PISTON_Z: Array[float] = [-12.0, -20.0, -28.0, -36.0, -44.0]
 const ANVIL := Vector3(3.6, 1.5, 3.6)
-const HAMMER := Vector3(2.2, 1.2, 2.2)
+const HOUSING_MODEL := preload("res://game/models/piston_housing.glb")
+const HAMMER_MODEL := preload("res://game/models/piston_hammer.glb")
 const HAMMER_BOTTOM := 3.8
-const ROD := 0.5
-const HOUSING := Vector3(1.4, 3.0, 1.4)
 const HEADER_Y := 9.0
 const HEADER := 0.6
 const POST_Z: Array[float] = [-8.0, -16.0, -24.0, -32.0, -40.0, -48.0]
@@ -88,9 +89,15 @@ const AXLE := 1.0
 const FOUNDATION := Vector4(24.0, -14.0, -66.0, -70.0)
 const PIER_X := Vector2(14.0, 20.0)
 
-## Builds the boxes into one MultiMesh.
+## Builds the boxes into one MultiMesh and the pistons into one per part, all with the hall's material.
 func _ready() -> void:
 	var boxes: Array[Transform3D] = []
+	var housings: Array[Transform3D] = []
+	var hammers: Array[Transform3D] = []
+	for side in [-1.0, 1.0]:
+		for z in PISTON_Z:
+			housings.append(Transform3D(Basis.IDENTITY, Vector3(side * PISTON_X, HEADER_Y, z)))
+			hammers.append(Transform3D(Basis.IDENTITY, Vector3(side * PISTON_X, HAMMER_BOTTOM, z)))
 	for side in [-1.0, 1.0]:
 		_side(boxes, side)
 	for z in TRUSS_Z:
@@ -112,32 +119,33 @@ func _ready() -> void:
 	boxes.append(_span(Vector3(-FLOOR_X.x, -FLOOR_THICKNESS, FLOOR_Z.x), Vector3(FLOOR_X.x, -UNDER_TRACK, FLOOR_Z.y)))
 	boxes.append(_box(Vector3(0.0, FOUNDATION.y * 0.5, (FOUNDATION.z + FOUNDATION.w) * 0.5),
 		Vector3(FOUNDATION.x * 2.0, -FOUNDATION.y, FOUNDATION.z - FOUNDATION.w)))
-	var multimesh := MultiMesh.new()
-	multimesh.transform_format = MultiMesh.TRANSFORM_3D
-	multimesh.mesh = BoxMesh.new()
-	multimesh.instance_count = boxes.size()
-	for i in boxes.size():
-		multimesh.set_instance_transform(i, boxes[i])
 	var material := ShaderMaterial.new()
 	material.shader = ENV_SOLID
 	material.set_shader_parameter(&"light_spill", LIGHT_SPILL)
+	_add_multimesh(BoxMesh.new(), boxes, material)
+	_add_multimesh(LaserFixtures._model_mesh(HOUSING_MODEL), housings, material)
+	_add_multimesh(LaserFixtures._model_mesh(HAMMER_MODEL), hammers, material)
+
+## Draws `mesh` once at each of `places` in one MultiMesh, without shadows.
+func _add_multimesh(mesh: Mesh, places: Array[Transform3D], material: ShaderMaterial) -> void:
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.mesh = mesh
+	multimesh.instance_count = places.size()
+	for i in places.size():
+		multimesh.set_instance_transform(i, places[i])
 	var instance := MultiMeshInstance3D.new()
 	instance.multimesh = multimesh
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
 
-## Adds one side's floor, rail, pistons, wall, ledge, machines and end pier (side -1 left, 1 right).
+## Adds one side's floor, rail, anvils, wall, ledge, machines and end pier (side -1 left, 1 right).
 static func _side(boxes: Array[Transform3D], side: float) -> void:
 	boxes.append(_span(Vector3(side * FLOOR_X.x, -FLOOR_THICKNESS, FLOOR_Z.x), Vector3(side * FLOOR_X.y, 0.0, FLOOR_Z.y)))
 	boxes.append(_span(Vector3(side * (RAIL_X - RAIL_WIDTH * 0.5), -SINK, RAIL_Z.x), Vector3(side * (RAIL_X + RAIL_WIDTH * 0.5), RAIL_TOP, RAIL_Z.y)))
 	for z in PISTON_Z:
 		boxes.append(_box(Vector3(side * PISTON_X, (ANVIL.y - SINK) * 0.5, z), Vector3(ANVIL.x, ANVIL.y + SINK, ANVIL.z)))
-		boxes.append(_box(Vector3(side * PISTON_X, HAMMER_BOTTOM + HAMMER.y * 0.5, z), HAMMER))
-		var housing_bottom := HEADER_Y - HOUSING.y
-		var rod_bottom := HAMMER_BOTTOM + HAMMER.y
-		boxes.append(_box(Vector3(side * PISTON_X, (rod_bottom + housing_bottom) * 0.5, z), Vector3(ROD, housing_bottom - rod_bottom, ROD)))
-		boxes.append(_box(Vector3(side * PISTON_X, housing_bottom + HOUSING.y * 0.5, z), HOUSING))
 	for z in POST_Z:
 		boxes.append(_box(Vector3(side * PISTON_X, (HEADER_Y - SINK) * 0.5, z), Vector3(HEADER, HEADER_Y + SINK, HEADER)))
 	boxes.append(_span(Vector3(side * (PISTON_X - HEADER * 0.5), HEADER_Y, POST_Z[0]), Vector3(side * (PISTON_X + HEADER * 0.5), HEADER_Y + HEADER, POST_Z[-1])))

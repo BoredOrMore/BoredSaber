@@ -20,8 +20,8 @@
   triangles; no textures; one material; one MultiMesh per part.
 - Export format / destination: `game/models/piston_housing.glb`, `game/models/piston_hammer.glb`; source
   `tools/models/piston_hammer.py`.
-- Existing Godot resources affected: none yet; `game/env/MetalFactoryRig.gd` swaps its piston boxes for these after
-  the owner approves the model.
+- Existing Godot resources affected: `game/env/MetalFactoryRig.gd` (one MultiMesh per part, in place of the blockout's
+  piston boxes).
 - Required previews and automated checks: four review renders; CI import.
 - Human acceptance criteria: reads as a heavy machine from the player's place, in proportion with the anvil and header,
   and the hammer's travel looks plausible.

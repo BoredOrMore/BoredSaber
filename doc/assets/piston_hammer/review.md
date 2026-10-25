@@ -21,11 +21,11 @@
 | Geometry / normals / transforms | PASS | flat shading, normals recalculated on the hammer; origins as specified |
 | Materials / lighting | NOT CHECKED | occlusion baked but not yet read by a game shader |
 | Gameplay readability | PASS | stays where the blockout's piston stood (x ±8), outside the note corridor |
-| Godot import / resource paths | NOT CHECKED | CI import after push |
-| In-engine visual inspection | NOT CHECKED | not in the rig yet |
+| Godot import / resource paths | PASS | CI import and export succeed (run 40167921382); local import with Godot 4.6.2 |
+| In-engine visual inspection | PASS (desktop) | in `MetalFactoryRig.gd` (owner approved the shape, 2026-10-25): `previews/ingame_eye.png`, `ingame_side.png` from `stage_capture`; headset not yet |
 | Performance budget | PASS | 250 triangles per piston, 2.5k for ten (plan estimate 180 per piston) |
 | Scope / no unrelated changes | PASS | only the files above |
 
 Known limitations / assumptions: occlusion is baked per part, so the housing doesn't darken the rod.
-Human decision: pending (owner)
-Reviewer / date:
+Human decision: APPROVED for shape and proportions (owner, 2026-10-25); headset and motion still to come
+Reviewer / date: owner, 2026-10-25
