@@ -15,16 +15,16 @@
 | Check | Result | Evidence / notes |
 |---|---|---|
 | Reference fidelity | NOT CHECKED | no reference images |
-| Silhouette / proportions | NOT CHECKED | owner, in Blender and the Godot editor |
+| Silhouette / proportions | PASS | owner, in Blender, the Godot editor and `stage_capture --map` (2026-10-25) |
 | Geometry / normals / transforms | PASS | front and edges only; normals recalculated; origin at the centre |
 | Materials / lighting | NOT CHECKED | occlusion baked but not yet read by a game shader |
 | Gameplay readability | PASS | far end, beside and below the horizon, outside the note corridor |
 | Godot import / resource paths | PASS | local import; CI after push |
-| In-engine visual inspection | NOT CHECKED | owner, `stage_capture --map` at a high-intensity part |
+| In-engine visual inspection | PASS (desktop) | owner, `stage_capture --map`; headset not yet |
 | Performance budget | PASS | 1564 triangles for four, two MultiMeshes; four transforms a frame |
 | Scope / no unrelated changes | PASS | only the files above |
 
 Known limitations / assumptions: the large and small gears overlap in depth rather than truly meshing (as in the
 blockout); they turn at matched speeds as if meshed.
-Human decision: pending (owner)
-Reviewer / date:
+Human decision: APPROVED (owner, 2026-10-25); headset still to come
+Reviewer / date: owner, 2026-10-25
