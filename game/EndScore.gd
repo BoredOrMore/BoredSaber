@@ -130,6 +130,13 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 	var name_label := ($NameLabel as MeshInstance3D).mesh as TextMesh
 	
 	details_material.albedo_color = Color.TRANSPARENT
+	# the count-up starts from nothing: animated_percent still held the last song's accuracy until the tween's first
+	# step, so the first frames showed its rank (SS) and a score counted past this one's (owner, 2026-10-25)
+	animated_percent = 0.0
+	# the rank, Full Combo and New Record letters live in small viewports whose pictures still hold the last song's
+	# until they render again: hidden until they have, so no frame shows the old rank (owner, 2026-10-25)
+	grade_label.text = ""
+	_reveal_marks()
 	grade_label.modulate = Color.TRANSPARENT
 	fc_label.modulate = Color.TRANSPARENT
 	nr_label.modulate = Color.TRANSPARENT
@@ -224,6 +231,21 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 	tw.tween_property(fc_label,^"modulate",Color.WHITE,2).from(Color.TRANSPARENT)
 	tw.tween_property(nr_label,^"modulate",Color.WHITE,2).from(Color.TRANSPARENT)
 	tw.play()
+
+## Hides the rank, Full Combo and New Record pictures until their viewports have drawn this song's text.
+func _reveal_marks() -> void:
+	var marks: Array[MeshInstance3D] = [$GradeMesh, $FCMesh, $NRMesh]
+	for mark in marks:
+		mark.visible = false
+	# drawn once this frame (they may have been off while the screen was hidden), then shown
+	for viewport: SubViewport in [$GradeViewport, $FCViewport, $NRViewport]:
+		viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	await RenderingServer.frame_post_draw
+	await RenderingServer.frame_post_draw
+	for mark in marks:
+		mark.visible = true
+	for viewport: SubViewport in [$GradeViewport, $FCViewport, $NRViewport]:
+		viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
 
 ## The rank for an accuracy, with Beat Saber's thresholds (SS 90%, S 80%, A 65%, B 50%, C 35%, D 20%); below that,
 ## or after a fail, F.

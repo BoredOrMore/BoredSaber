@@ -24,6 +24,18 @@ var _notes_scored: int
 var full_combo: bool
 var paused: bool
 var last_in_wall_time: float
+## Where this song's accuracy went, for the log at its end (summary(); owner, 2026-10-25: does the combo make grades
+## low?). It only counts; scoring is unchanged. Per cause (miss, bad cut, bomb, wall): how many times it halved the
+## multiplier; the points the hits would have made at a perfect combo's
+## multiplier, and with each hit at its best at the multiplier actually held.
+var _drops := {}
+var _wall_entries := 0
+var _points_full_multiplier := 0.0
+var _points_best_cut := 0.0
+var _hits := 0
+var _cut_sum := 0.0
+var _cut_best_sum := 0.0
+var _lost_notes := 0
 
 func restart() -> void:
 	last_in_wall_time = -1000.
@@ -33,11 +45,21 @@ func restart() -> void:
 	combo = 0
 	max_points = 0
 	_notes_scored = 0
+	_drops = {}
+	_wall_entries = 0
+	_points_full_multiplier = 0.0
+	_points_best_cut = 0.0
+	_hits = 0
+	_cut_sum = 0.0
+	_cut_best_sum = 0.0
+	_lost_notes = 0
 	full_combo = true
 	in_wall = false
 	score_changed.emit()
 
-func reset_combo(_wrong_note) -> void:
+func reset_combo(_wrong_note, cause := "") -> void:
+	if multiplier != 1 and not cause.is_empty():
+		_drops[cause] = int(_drops.get(cause, 0)) + 1
 	var changed = false
 	var broken := combo != 0 or multiplier != 1
 	var lost_combo := combo
@@ -70,8 +92,10 @@ func enter_wall() -> void:
 	elif time > 0 and last_in_wall_time >= 0 and last_in_wall_time + 0.1 <= time:
 		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_OBSTACLE_PER_SECOND *(time-last_in_wall_time))
 		last_in_wall_time = time
+	if not in_wall:
+		_wall_entries += 1
 	in_wall = true
-	reset_combo(false)
+	reset_combo(false, "wall")
 
 func exit_wall() -> void:
 	in_wall = false
@@ -113,6 +137,14 @@ func add_points(position: Vector3, _rotation: float, amount: int, comment: Strin
 			_multiplier_progress = 0
 			raised = true
 	points += roundi(amount * multiplier * _modifier_scale())
+	var best_here := best if best > 0.0 else note_best_score()
+	var n := _notes_scored + 1
+	var perfect_multiplier := 1 if n == 1 else 2 if n <= 5 else 4 if n <= 13 else 8
+	_points_full_multiplier += amount * perfect_multiplier * _modifier_scale()
+	_points_best_cut += best_here * multiplier * _modifier_scale()
+	_hits += 1
+	_cut_sum += amount
+	_cut_best_sum += best_here
 	
 	points_awarded.emit(position, _rotation, str(amount)+(comment if Settings.explain else ""))
 	_count_note(best if best > 0.0 else note_best_score())
@@ -169,21 +201,35 @@ func bad_cut(position: Vector3, _rotation: float, description: String, best: flo
 	GlobalReferences.main_game_scene.event_driver.mistake_dip()
 	if description != "bomb":
 		_count_note(best if best > 0.0 else note_best_score())
+		_lost_notes += 1
 	if description == "bomb":
 		GlobalReferences.main_game_scene.play_mistake_sound(true)
-		reset_combo(false)
+		reset_combo(false, "bomb")
 		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_BOMB, true)
 	elif description == "wrong saber" or description == "miss":
 		if description == "wrong saber":
 			GlobalReferences.main_game_scene.play_mistake_sound(false)
 		else:
 			GlobalReferences.main_game_scene.play_miss_sound()
-		reset_combo(true)
+		reset_combo(true, description)
 		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_MISS, true)
 		if description == "miss":
 			description = ""
 	else:
 		GlobalReferences.main_game_scene.play_mistake_sound(false)
-		reset_combo(true)
+		reset_combo(true, "bad cut")
 		GlobalReferences.main_game_scene.update_health(Constants.HEALTH_BAD_CUT, true)
 	points_awarded.emit(position, _rotation, description if Settings.explain else "x")
+
+## One line on where this song's accuracy went (see _drops): the accuracy, what it would be had the multiplier never
+## dropped, and with every hit cut perfectly at the multipliers held; hits, lost notes, the average cut over its best,
+## wall entries and how many times each cause halved the multiplier.
+func summary() -> String:
+	if max_points <= 0:
+		return "score_summary none"
+	var drops := PackedStringArray()
+	for cause: String in _drops:
+		drops.append("%s %d" % [cause.replace(" ", "_"), _drops[cause]])
+	return "score_summary acc %.4f full_multiplier %.4f perfect_cuts %.4f hits %d lost %d cut %.3f walls %d drops [%s]" % [
+		accuracy(), _points_full_multiplier / max_points, _points_best_cut / max_points, _hits, _lost_notes,
+		_cut_sum / maxf(_cut_best_sum, 1.0), _wall_entries, ", ".join(drops)]

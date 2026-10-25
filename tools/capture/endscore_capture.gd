@@ -23,6 +23,21 @@ func _ready() -> void:
 	add_child(env)
 	var song := "%s By %s\n%s     Map author: %s" % [args.get("song", "Silhouette (TV Size) (2023 Remap)"),
 		args.get("author", "KANA-BOON"), args.get("level", "Normal"), args.get("mapper", "Joetastic & Someone Else")]
+	if args.has("before"):
+		# a song before this one, its screen shown and closed, as when playing songs in a row; then capture this
+		# song's screen on its first frames
+		end.show_score(999999, 999999, float(args["before"]), song, true, true)
+		end._show()
+		await get_tree().create_timer(4.0).timeout
+		end._hide()
+		await get_tree().create_timer(0.5).timeout
+		end.show_score(123456, 234567, float(args.get("percent", "0.87")), song, args.get("fc", "0") == "1", args.get("record", "0") == "1")
+		end._show()
+		for frame in int(args.get("frames", "1")):
+			await RenderingServer.frame_post_draw
+		get_viewport().get_texture().get_image().save_png(args.get("out", "/tmp/end.png"))
+		get_tree().quit()
+		return
 	end.show_score(123456, 234567, float(args.get("percent", "0.87")), song, args.get("fc", "0") == "1", args.get("record", "0") == "1")
 	if args.has("card"):
 		end.show_name_card(args["card"])

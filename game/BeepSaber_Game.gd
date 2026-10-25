@@ -838,6 +838,7 @@ func _on_song_ended() -> void:
 		current_percent = Scoreboard.accuracy()
 		_song_end_player.stream = CLEAR_SOUND
 		_song_end_player.play()
+	print(Scoreboard.summary())
 	endscore.show_score(
 		Scoreboard.points,
 		highscore,
