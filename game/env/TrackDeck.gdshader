@@ -28,8 +28,8 @@ render_mode unshaded, shadows_disabled, fog_disabled;
 global uniform vec4 env_haze;
 #include "res://game/env/shadow_tone.gdshaderinc"
 
-// 1. base
-uniform vec4 albedo : source_color = vec4(0.06, 0.06, 0.07, 1.0);
+// 1. base: near-black, the lane grooves just visible in it (owner, 2026-10-25: the deck read too bright; it was 0.06)
+uniform vec4 albedo : source_color = vec4(0.035, 0.035, 0.04, 1.0);
 // 3. lane grooves: the lanes' spacing (Settings.LANE_DISTANCE_X, wider with the Wide modifiers), half width, darkness
 uniform float lane_width = 0.6;
 const float GROOVE_HALF_WIDTH = 0.012;
@@ -52,12 +52,12 @@ const float GLASS_SHEEN = 0.35;
 const float GLASS_SHARPNESS = 5.0;
 
 // 4. floor light: the group's colour (black when off) and how much of it the deck takes (at 0.12 a red light turned the
-// whole deck maroon, too much saturated area: Light rule 3)
+// whole deck maroon, and at 0.06 a blue one still read as saturated blue over the whole deck: Light rule 3)
 uniform vec4 light_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
-const float LIGHT_TINT = 0.06;
+const float LIGHT_TINT = 0.025;
 // 5. haze per metre, and the share of it the deck takes
 const float FOG_DENSITY = 0.03;
-const float DECK_HAZE = 0.5;
+const float DECK_HAZE = 0.3;
 // 6. the far fade's start and end, metres out along the track (-z), set by TrackDeck.gd
 uniform vec2 fade_z = vec2(60.0, 140.0);
 

@@ -3,10 +3,11 @@
 A matcap is a picture of a lit sphere seen from the front; the shader looks a face up in it by the way the face points
 toward the eye (its view-space normal), which gives metal its sheen without real lights (AGENTS.md "Light", rule 10).
 This one is grey only: the colour comes from the scene's lights in the shader (Light rules 3 and 4). Values are
-brightness 0-1, kept low (scenery stays under fixtures in the brightness order, Light rule 1):
-  - a dark base,
-  - a soft highlight from above and in front, as from the hall's lights over the track,
-  - a broad rim toward the sphere's edge (faces seen edge-on catch the light, as polished metal does).
+brightness 0-1, mostly black: it only adds highlights on top of the dark steel, never lifts the whole surface (owner,
+2026-10-25: the pieces with the matcap read too bright; Light rule 1):
+  - no base: a face looking straight at the eye takes nothing,
+  - a narrow highlight from above and in front, as from the hall's lights over the track,
+  - a thin rim at the sphere's very edge (faces seen nearly edge-on catch the light, as polished metal does).
 Run: python3 tools/make_matcap.py   (standard library only)
 """
 import math
@@ -16,12 +17,12 @@ import zlib
 SIZE = 128
 OUT = "game/env/metal_matcap.png"
 # the base, the highlight's strength and tightness and where it comes from (up and toward the eye), the rim's
-BASE = 0.12
-HIGHLIGHT = 0.75
-HIGHLIGHT_SHARPNESS = 12.0
+BASE = 0.0
+HIGHLIGHT = 0.5
+HIGHLIGHT_SHARPNESS = 40.0
 HIGHLIGHT_FROM = (0.0, 0.6, 0.8)
-RIM = 0.3
-RIM_SHARPNESS = 3.0
+RIM = 0.2
+RIM_SHARPNESS = 8.0
 
 
 def shade(x: float, y: float) -> float:

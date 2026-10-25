@@ -73,8 +73,8 @@ const float AO_STRENGTH = 0.8;
 // 8. metal sheen: how much (0 off), the matcap picture, and the sheen's neutral grey and share of the lights' colour
 uniform float metal = 0.0;
 uniform sampler2D matcap : hint_default_black, filter_linear_mipmap;
-const float METAL_GREY = 0.12;
-const float METAL_LIGHT = 0.3;
+const float METAL_GREY = 0.04;
+const float METAL_LIGHT = 0.12;
 
 // 5. haze: per metre
 uniform float fog_density = 0.03;

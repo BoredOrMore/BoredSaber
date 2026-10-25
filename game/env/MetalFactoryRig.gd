@@ -19,8 +19,9 @@ const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
 ## on), against "blacks stay black" (doc/world/VISUAL_STYLE.md). Untuned.
 const LIGHT_SPILL := 0.3
 ## the metal pieces' sheen (EnvSolid layer 8, the matcap made by tools/make_matcap.py); the same for the track's edges here
-## (TrackDeck.METAL_BY_STAGE). Untuned.
-const METAL_SHEEN := 1.0
+## (TrackDeck.METAL_BY_STAGE). At 1 with the first matcap the pieces read as grey-lifted, brighter than the walls
+## (owner, 2026-10-25). Untuned.
+const METAL_SHEEN := 0.5
 const MATCAP := preload("res://game/env/metal_matcap.png")
 ## how far below the floor (y 0) structure that stands on it starts, so no base shows a gap
 const SINK := 1.0
