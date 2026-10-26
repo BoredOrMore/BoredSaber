@@ -1,6 +1,6 @@
 ---
 name: rhythm-world-design
-description: Standard for designing or changing BoredSaber's environments (Classic, Neon Grid, Night City, Pulse Void) and anything placed in them - structure, fixtures, lights, music-reactive effects, generated layouts. Use before any environment or scene-layout change, and when proposing one to the user.
+description: Standard for designing or changing BoredSaber's environments (Classic, Neon Grid, Night City, Pulse Void, Metal Factory, and any new one) and anything placed in them - structure, fixtures, lights, music-reactive effects, scene evolution during a song (build-up, drop), generated layouts. Use before any environment or scene-layout change, and when proposing one to the user.
 ---
 
 # Rhythm-world design for BoredSaber

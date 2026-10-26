@@ -1,6 +1,6 @@
 ---
 name: vr-ui-review
-description: Check a BoredSaber UI change before calling it done - walk every game state that shows the changed nodes, check placement, overlap and depth in 3D, wording, feedback and dead ends, then verify on the Pico 4. Use after any change to menus, panels, HUD, score screen, keyboard or the BeatSaver page, and when the user reports a UI problem.
+description: Check a BoredSaber UI change or a reported UI problem - walk every game state that shows the changed nodes, check placement, overlap, clipping and depth in 3D, wording, feedback, navigation and dead ends, then verify on the Pico 4. Use after any change to menus, panels, HUD, score screen, keyboard or the BeatSaver page; when the user reports a UI bug (overlapping or clipped text, panels in the wrong place, a screen you can't get back from); and when asked whether UI wording or layout is OK. Load it before searching the code.
 ---
 
 # VR UI review for BoredSaber
