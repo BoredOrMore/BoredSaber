@@ -47,7 +47,8 @@ Don't detail what may still move.
 
 ## 5. Placement contract
 For every significant piece or group, be able to say: why it exists, why here, why facing that way, what holds it
-up (nothing floats: Light rule 5), how big next to the player and its neighbours, what it adds to composition or
+up (nothing floats: Light rule 5), for a light what it is in the world (a carrier that belongs there and fits the
+story, never a stand just to hold the light: Light rule 5), how big next to the player and its neighbours, what it adds to composition or
 rhythm, and whether it can block a note, a wall or the player's view. If it can't be justified, move or remove it.
 
 ## 6. Three layers

@@ -183,6 +183,9 @@ channel), so brightness comes from contrast and the size of bright areas, not fr
    haze, and fades with distance and along its length; far things lose contrast toward the haze colour
    (aerial perspective). Keep each environment's signature view clear: structure goes to the sides and below the
    horizon, never in front of it (a backdrop behind Neon Grid's horizon read as clutter).
+   The carrier belongs to the world (owner, 2026-10-26): every light is on something that would exist in that place
+   and fits its story (fixtures built into the structure, signal lights on a tower, work lights on a crane), never a
+   pole or box that is there only to hold a light.
 6. Haze reveals, it doesn't paint: the air stays mostly neutral and is tinted only a little by nearby
    lights (`EventDriver.HAZE_LIGHT_WEIGHT`).
 7. Fixtures move like machines: pan and tilt around the fixture with ease in and out at plausible

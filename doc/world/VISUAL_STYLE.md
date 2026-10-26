@@ -36,6 +36,9 @@ Classic Style Frame": target look, look spec, materials).
 - Haze reveals light; far things lose contrast toward it. Rings take half the haze to stay dark shapes.
 
 ## Light carriers (owner, 2026-10-25)
+Every carrier must be something that would plausibly exist in that world and fits the stage's story (fixtures built
+into its structure, signal lights on a tower, a crane's work lights); nothing stands there only to hold a light
+(owner, 2026-10-26; AGENTS.md "Light", rule 5).
 Each stage hangs the map's five light groups (diagonal lasers, square bars, left and right waving lasers, centre and
 floor) on something; beams from moving heads are one way, not a rule. Options to pick from for a stage, all in the note
 colours, mounted on its structure (AGENTS.md "Light", rule 5), in the order of their GPU cost on the Pico 4, cheapest
