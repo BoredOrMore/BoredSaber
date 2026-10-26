@@ -42,23 +42,14 @@ const SURVEY_MASTS: Array[Vector3] = [Vector3(-9.0, -6.0, 9.0), Vector3(-15.0, -
 	Vector3(-24.0, -46.0, 14.0)]
 ## each mast turned differently, so their guys and panels don't line up
 const SURVEY_MAST_TURNS: Array[float] = [0.4, 2.1, 1.0, 3.6]
-## Site clutter near the player, for scale: [centre, size].
-const CLUTTER := [
-	# a site cabin (a container) on the left, behind
-	[Vector3(-7.5, 1.3, 4.0), Vector3(2.4, 2.6, 6.0)],
-	# concrete barrier blocks on the right, a short uneven row
-	[Vector3(5.0, 0.4, -2.0), Vector3(0.6, 0.8, 2.0)], [Vector3(5.2, 0.4, -4.3), Vector3(0.6, 0.8, 2.0)],
-	[Vector3(5.6, 0.4, -7.1), Vector3(0.6, 0.8, 2.0)],
-	# stacked girders on the right, further on
-	[Vector3(10.0, 0.3, -12.0), Vector3(1.2, 0.6, 12.0)], [Vector3(10.4, 0.9, -12.5), Vector3(1.2, 0.6, 11.0)],
-]
+## The site's props near the player, for scale (doc/assets/site_props/spec.md): a container behind on the left,
+## barriers and a pile of beams on the right, one mesh built where they stand.
+const SITE_PROPS := preload("res://game/models/site_props.glb")
 
 func _ready() -> void:
 	var boxes: Array[Transform3D] = []
 	for arch: Array in [ARCH_A, ARCH_B, ARCH_C]:
 		boxes.append_array(arch_boxes(arch))
-	for c: Array in CLUTTER:
-		boxes.append(_box(c[0], c[1]))
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	multimesh.mesh = BoxMesh.new()
@@ -85,6 +76,11 @@ func _ready() -> void:
 	mast_instance.material_override = material
 	mast_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mast_instance)
+	var props := MeshInstance3D.new()
+	props.mesh = LaserFixtures._model_mesh(SITE_PROPS)
+	props.material_override = material
+	props.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(props)
 	var crane := MeshInstance3D.new()
 	crane.mesh = LaserFixtures._model_mesh(TOWER_CRANE)
 	crane.position = arch_point(ARCH_C, PI * float(ARCH_C[4])).origin
