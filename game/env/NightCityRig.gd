@@ -119,6 +119,12 @@ const AC_UNITS := [[0, 0.25, 0.62, 0.0], [0, 0.25, 0.665, 0.0],
 	[1, 0.55, 0.45, 1.57], [1, 0.62, 0.85, 0.3], [1, 0.62, 0.89, 0.3], [1, 0.62, 0.93, 0.3],
 	[2, 0.3, 0.6, 0.9], [2, 0.82, 0.75, 0.0], [2, 0.82, 0.79, 0.0],
 	[3, 0.7, 0.3, 2.4], [3, 0.25, 0.8, 0.15]]
+## The antennas (doc/assets/antenna/spec.md): TV aerials a little taller than a person on the low roofs, as the tanks
+## ([low roof, across it, along it, turn]); and the same mast scaled up on two towers' tops (not the third), off-centre:
+## [tower, across its top (0 inner edge, 1 back), along it, turn, scale].
+const ANTENNA := preload("res://game/models/antenna.glb")
+const ANTENNAS := [[0, 0.8, 0.75, 0.4], [1, 0.15, 0.3, 1.2], [2, 0.5, 0.9, 0.1], [3, 0.85, 0.15, 2.0]]
+const MASTS := [[0, 0.7, 0.3, 0.5, 5.0], [1, 0.35, 0.65, 1.4, 7.0]]
 ## the player's rooftop: a stair house on the wall side [out, z, size x/y/z], an open railing on the other side
 ## the rooftop's surface, level with the platform's base (TrackDeck.PAD_DEPTH below the deck's top), so the track and
 ## platform sit on the roof; the stair house, parapet and railing stand on it
@@ -261,7 +267,15 @@ func _add_props() -> void:
 	_props_material.set_shader_parameter(&"windows", 0.0)
 	var tanks := _on_low_roofs(WATER_TANKS)
 	var units := _on_low_roofs(AC_UNITS)
+	var antennas := _on_low_roofs(ANTENNAS)
+	for m: Array in MASTS:
+		var t := TOWERS[int(m[0])]
+		var setback := SETBACKS[int(m[0]) % SETBACKS.size()]
+		var at := Vector3(WALL_SIDE * lerpf(t.x + setback.y, t.x + TOWER_DEPTH, float(m[1])), t.w,
+			lerpf(t.y - setback.y * 0.5, t.z + setback.y * 0.5, float(m[2])))
+		antennas.append(Transform3D(Basis(Vector3.UP, float(m[3])).scaled(Vector3.ONE * float(m[4])), at))
 	for pair: Array in [[LaserFixtures._model_mesh(WATER_TANK), tanks], [LaserFixtures._model_mesh(AC_UNIT), units],
+			[LaserFixtures._model_mesh(ANTENNA), antennas],
 			[BoxMesh.new(), _mounts]]:
 		var placed: Array[Transform3D] = []
 		placed.assign(pair[1])
