@@ -78,7 +78,13 @@ jobs:
           EOF
 
       - name: Import project
-        run: ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 --headless --path . --import
+        # it normally takes seconds but now and then hangs: give each try 3 minutes, three tries
+        run: |
+          for try in 1 2 3; do
+            timeout 180 ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 --headless --path . --import && exit 0
+            echo "import try $try failed or hung"
+          done
+          exit 1
 
       - name: Run tests
         run: |
