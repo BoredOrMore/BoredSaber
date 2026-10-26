@@ -1,3 +1,4 @@
+@tool
 extends Node3D
 class_name NightCityRig
 ## The Night City environment's structure, which its lights are mounted on (AGENTS.md "Light", rule 5).
@@ -190,7 +191,9 @@ func _ready() -> void:
 	_material.set_shader_parameter(&"light_spill", LIGHT_SPILL)
 	_material.set_shader_parameter(&"albedo", ALBEDO)
 	_material.set_shader_parameter(&"fog_density", FOG_DENSITY)
-	build(Settings.classic_night_city)
+	# in the editor too (a tool script, for looking at the stage; built, not saved: no owner), with the canyon, as the
+	# Settings autoload isn't there
+	build(false if Engine.is_editor_hint() else Settings.classic_night_city)
 
 ## The canyon's windows (EnvSolid layer 9): the map's light colours either side, how far the show has built them up
 ## (0-1) and how bright they burn (never quite dark once lit).
