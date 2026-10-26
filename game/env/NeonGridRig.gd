@@ -1,46 +1,56 @@
+@tool
 extends Node3D
 class_name NeonGridRig
-## The Neon Grid environment's structure, which its lights are mounted on (AGENTS.md "Light", rule 5): two low
-## stages on the horizon, one each side of the sun, that the diagonal lasers fan out of, and poles along the grid's
-## edges with a lamp housing on top for each waving laser, joined by light rails (the square bars). Nothing stands
-## in front of the horizon and sky, and no beam crosses the sun: that view is the environment's signature, and
-## lights over the sun made the player dizzy (they asked for the sun to be the focal point).
-## Dark boxes in one MultiMesh with the scenery's fog shader. Positions shared with EventDriver's Neon Grid rig.
-## Sizes in metres, untuned.
+## The Neon Grid environment (owner, 2026-10-26: concept 2, megastructure arches; blockout): the endless grid at
+## sunset is the building site of arches far bigger than anything human. Three arches, all different, none in front of
+## the sun: A, 300 m tall, spans the grid behind the player (they have passed under it); B, 350 m, stands far ahead on
+## the left, its span along the track, leaning out; C, on the right, is unfinished, its half-built curve ending in a
+## tower crane. Near the player, site clutter at human size (a site cabin, barrier blocks, stacked girders) and the
+## survey masts makes the arches read as enormous. Nothing mirrors across the track.
+## The lights hang on things that belong to the site (AGENTS.md "Light", rule 5: the carrier belongs to the world):
+## the diagonal lasers are floodlights at B's and C's footings, fanning up and away from the sun; the left waving
+## lasers are survey beacons on masts along the grid; the right ones the crane's work lights along its jib; the square
+## bars are light strips along the arches' inner edges (arch_strips). The sun and horizon stay clear.
+## Dark boxes in one MultiMesh with the scenery's shader. Positions shared with EventDriver's Neon Grid rig.
+## Sizes in metres, blockout, untuned. A tool script, so the arches show in the editor too (built, not saved: no owner).
 
 const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
-## The sun (tools/bake_neon_grid_sky.py) spans about 11.5 degrees around straight ahead and its glow about 9
-## more; the stages stand 28 degrees to each side, so their fans start clear of it and only spread outward.
-const STAGE_X := 38.0
-const STAGE_CENTRE_Z := -72.0
-const STAGE_SIZE := Vector3(10.0, 1.0, 5.0)
-## the top of the stage, where the fan's fixtures sit
-const STAGE_TOP := 0.1
-const POLE_X := 14.0
-## Close enough that a waving laser leaning in toward the track crosses it high overhead, not over the sun.
-const POLE_Z: Array[float] = [-8.0, -14.0, -20.0, -26.0]
-const POLE_HEIGHT := 3.0
-const POLE_SIZE := 0.3
-const LAMP_SIZE := Vector3(0.6, 0.4, 0.6)
-## Near the player, out of the note lane and clear of the view ahead, a few pieces stand within a few metres so
-## they move against the far scenery as the head moves (parallax), which makes the player feel they stand in the
-## place rather than in front of it.
-## Two more poles stand on each side of the player, the grid's near edge; they hold no laser.
-const NEAR_POLE_X := 4.0
-const NEAR_POLE_Z: Array[float] = [3.0, -3.0]
+## An arch: [centre of its span on the ground (x, z), radius, span direction (0 across the track, 1 along it), lean
+## (degrees, turned about its span's line: + tips its top toward -x, or toward +z for an arch across the track), how
+## much of the half circle is built (1 all), section (width, depth)].
+const ARCH_A := [Vector2(110.0, 160.0), 300.0, 0.0, -6.0, 1.0, Vector2(18.0, 12.0)]
+const ARCH_B := [Vector2(-450.0, -420.0), 350.0, 1.0, 15.0, 1.0, Vector2(26.0, 18.0)]
+const ARCH_C := [Vector2(450.0, -450.0), 260.0, 1.0, -8.0, 0.62, Vector2(16.0, 12.0)]
+## boxes along each arch's half circle
+const ARCH_SEGMENTS := 28
+## The crane at C's unfinished end: mast (side, height above the end), jib (length, toward the track), counter-jib.
+const CRANE_MAST := Vector2(4.0, 30.0)
+const CRANE_JIB := Vector2(70.0, 3.0)
+const CRANE_COUNTER := 22.0
+## Survey masts on the left (x, z, height): lattice-mast stand-ins carrying the left waving lasers' beacons, uneven.
+const SURVEY_MASTS: Array[Vector3] = [Vector3(-9.0, -6.0, 9.0), Vector3(-15.0, -19.0, 12.0), Vector3(-11.0, -33.0, 8.0),
+	Vector3(-24.0, -46.0, 14.0)]
+const MAST_SIZE := 0.35
+## Site clutter near the player, for scale: [centre, size].
+const CLUTTER := [
+	# a site cabin (a container) on the left, behind
+	[Vector3(-7.5, 1.3, 4.0), Vector3(2.4, 2.6, 6.0)],
+	# concrete barrier blocks on the right, a short uneven row
+	[Vector3(5.0, 0.4, -2.0), Vector3(0.6, 0.8, 2.0)], [Vector3(5.2, 0.4, -4.3), Vector3(0.6, 0.8, 2.0)],
+	[Vector3(5.6, 0.4, -7.1), Vector3(0.6, 0.8, 2.0)],
+	# stacked girders on the right, further on
+	[Vector3(10.0, 0.3, -12.0), Vector3(1.2, 0.6, 12.0)], [Vector3(10.4, 0.9, -12.5), Vector3(1.2, 0.6, 11.0)],
+]
 
 func _ready() -> void:
 	var boxes: Array[Transform3D] = []
-	for side in [-1.0, 1.0]:
-		boxes.append(_box(Vector3(side * STAGE_X, -0.4, STAGE_CENTRE_Z), STAGE_SIZE))
-	for z in POLE_Z:
-		for side in [-1.0, 1.0]:
-			boxes.append(_box(Vector3(side * POLE_X, POLE_HEIGHT * 0.5 - 0.5, z), Vector3(POLE_SIZE, POLE_HEIGHT + 1.0, POLE_SIZE)))
-			boxes.append(_box(Vector3(side * POLE_X, POLE_HEIGHT, z), LAMP_SIZE))
-	for z in NEAR_POLE_Z:
-		for side in [-1.0, 1.0]:
-			boxes.append(_box(Vector3(side * NEAR_POLE_X, POLE_HEIGHT * 0.5 - 0.5, z), Vector3(POLE_SIZE, POLE_HEIGHT + 1.0, POLE_SIZE)))
-			boxes.append(_box(Vector3(side * NEAR_POLE_X, POLE_HEIGHT, z), LAMP_SIZE))
+	for arch: Array in [ARCH_A, ARCH_B, ARCH_C]:
+		boxes.append_array(arch_boxes(arch))
+	boxes.append_array(_crane())
+	for m in SURVEY_MASTS:
+		boxes.append(_box(Vector3(m.x, m.z * 0.5 - 0.5, m.y), Vector3(MAST_SIZE, m.z + 1.0, MAST_SIZE)))
+	for c: Array in CLUTTER:
+		boxes.append(_box(c[0], c[1]))
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	multimesh.mesh = BoxMesh.new()
@@ -54,6 +64,76 @@ func _ready() -> void:
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
+
+## Where a point at `angle` (0 one footing, PI the other) on an arch's centre line is, and the way along the curve.
+static func arch_point(arch: Array, angle: float) -> Transform3D:
+	var centre: Vector2 = arch[0]
+	var radius: float = arch[1]
+	var along := Vector3(1.0, 0.0, 0.0) if float(arch[2]) == 0.0 else Vector3(0.0, 0.0, 1.0)
+	var lean := deg_to_rad(float(arch[3]))
+	var local := (along * (-cos(angle) * radius) + Vector3.UP * (sin(angle) * radius)).rotated(along, lean)
+	var tangent := (along * sin(angle) + Vector3.UP * cos(angle)).rotated(along, lean)
+	# the box's y toward the arch's middle (its inner face), z along the curve
+	var inward := -local.normalized()
+	var basis := Basis.looking_at(tangent, inward)
+	return Transform3D(basis, Vector3(centre.x, 0.0, centre.y) + local)
+
+## An arch's boxes: ARCH_SEGMENTS along its half circle, as much of it as is built.
+static func arch_boxes(arch: Array) -> Array[Transform3D]:
+	var boxes: Array[Transform3D] = []
+	var radius: float = arch[1]
+	var section: Vector2 = arch[5]
+	var built := int(ceil(ARCH_SEGMENTS * float(arch[4])))
+	var step := PI / ARCH_SEGMENTS
+	for i in built:
+		var t := arch_point(arch, (i + 0.5) * step)
+		# a little longer than its share of the curve, so neighbours overlap at the bends
+		var length := radius * step * 1.08
+		boxes.append(Transform3D(t.basis * Basis.from_scale(Vector3(section.x, section.y, length)), t.origin))
+	return boxes
+
+## The light strips on an arch's inner edge: `count` evenly along its built part, each a transform for a square bar
+## (its length along -z, `bar_length` metres before scaling).
+static func arch_strips(arch: Array, count: int, bar_length: float) -> Array[Transform3D]:
+	var strips: Array[Transform3D] = []
+	var radius: float = arch[1]
+	var section: Vector2 = arch[5]
+	var built := PI * float(arch[4])
+	for i in count:
+		var angle := built * (i + 0.5) / count
+		var t := arch_point(arch, angle)
+		# on the inner face, toward the arch's middle
+		var inward := t.basis.y
+		var length := radius * built / count * 0.8
+		var scale := Vector3(section.x * 0.15, section.x * 0.15, length / bar_length)
+		strips.append(Transform3D(t.basis * Basis.from_scale(scale), t.origin + inward * (section.y * 0.5 + 0.3)))
+	return strips
+
+## The tower crane on C's unfinished end: mast, jib reaching over the gap toward the track, counter-jib.
+static func _crane() -> Array[Transform3D]:
+	var top := crane_top()
+	var boxes: Array[Transform3D] = []
+	boxes.append(_box(top - Vector3(0.0, CRANE_MAST.y * 0.5, 0.0), Vector3(CRANE_MAST.x, CRANE_MAST.y, CRANE_MAST.x)))
+	boxes.append(_box(top + Vector3(-CRANE_JIB.x * 0.5, 0.0, 0.0), Vector3(CRANE_JIB.x, CRANE_JIB.y, CRANE_JIB.y)))
+	boxes.append(_box(top + Vector3(CRANE_COUNTER * 0.5, 0.0, 0.0), Vector3(CRANE_COUNTER, CRANE_JIB.y * 1.5, CRANE_JIB.y * 1.5)))
+	return boxes
+
+## The top of the crane's mast (where its jib starts), above C's unfinished end.
+static func crane_top() -> Vector3:
+	var end := arch_point(ARCH_C, PI * float(ARCH_C[4]))
+	return end.origin + Vector3(0.0, CRANE_MAST.y, 0.0)
+
+## The crane's work lights along its jib (the right waving lasers), `count` of them.
+static func crane_lights(count: int) -> Array[Vector3]:
+	var lights: Array[Vector3] = []
+	for i in count:
+		lights.append(crane_top() + Vector3(-CRANE_JIB.x * (0.25 + 0.7 * i / maxf(count - 1, 1)), -CRANE_JIB.y, 0.0))
+	return lights
+
+## The floodlights at the footings the diagonal lasers fan from: B's near footing on the left, C's (its far one, the
+## end it is built up from) on the right.
+static func floodlight_bases() -> Array[Vector3]:
+	return [arch_point(ARCH_B, PI).origin, arch_point(ARCH_C, 0.0).origin]
 
 ## A unit box scaled to size and placed at centre.
 static func _box(centre: Vector3, size: Vector3) -> Transform3D:

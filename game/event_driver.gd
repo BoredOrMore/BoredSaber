@@ -329,17 +329,19 @@ func _apply_stinger_room(id: String) -> void:
 			target.set(property, room[effect][property])
 
 ## Each environment hangs the same five light groups (so a map's light show still drives them) on its own rig, so
-## the stages don't all look alike: Classic keeps Beat Saber's layout; Neon Grid fans its diagonal lasers outward
-## from a stage on each side of the sun, lines its waving lasers along the grid's edges and hangs the square bars far above
-## the horizon; Night City sweeps its waving lasers like searchlights from far beside the track and crosses its
+## the stages don't all look alike: Classic keeps Beat Saber's layout; Neon Grid hangs them on its arches' building site
+## (NeonGridRig: floodlights at the footings, survey beacons, the crane's work lights, strips along the arches); Night City sweeps its waving lasers like searchlights from far beside the track and crosses its
 ## diagonal beams from rooftop height; Pulse Void mounts its lights on its rings: the diagonal lasers run as rails
 ## from the nearest ring to the farthest, and the waving lasers stand on the rings' upper sides. Every beam starts at its fixture and turns around it (game/AGENTS.md). Positions in metres, untuned.
 ## Each side's fan: from its stage, leaning RIG_FAN_MIN_DEG..RIG_FAN_MAX_DEG away from the track (never toward the sun).
 const RIG_FAN_MIN_DEG := 5.0
 const RIG_FAN_MAX_DEG := 70.0
-const RIG_GRID_EDGE_X := NeonGridRig.POLE_X
-## Neon Grid's square bars: the horizontal ones become light rails between neighbouring lamp poles, along the
-## track; the vertical ones are left out there, as the poles are shorter than a bar.
+## Neon Grid's square bars: the horizontal ones become light strips along the arches' inner edges, shared between
+## the arches in NEON_STRIP_ARCHES' order; the vertical ones are left out. A bar is this long unscaled (metres).
+const NEON_STRIP_ARCHES := [NeonGridRig.ARCH_A, NeonGridRig.ARCH_B, NeonGridRig.ARCH_C]
+const SQUARE_BAR_LENGTH := 32.0
+## the sky sphere drawn this many times as far in Neon Grid, behind the arches (950 m, inside the camera's 1024 m far plane)
+const NEON_SKY_SCALE := 9.5
 const RAIL_BASIS := Basis(Vector3(1.0, 0.0, 0.0), Vector3(0.0, 1.0, 0.0), Vector3(0.0, 0.0, 0.3))
 ## Night City's square bars trim the buildings' roof edges facing the track, as architectural accent light: this far
 ## below the roof and off the inner face
@@ -482,9 +484,15 @@ func _apply_rig(id: String) -> void:
 		for beam in laser.get_children():
 			if beam is MeshInstance3D:
 				(beam as MeshInstance3D).visible = id != "metal_factory"
-	# the sky sphere (100 m) would hide the canyon's far city and landmark tower (to 800 m out): there it is drawn
-	# CANYON_SKY_SCALE times as far; elsewhere at its size, where it hides the beams' far ends
-	($Level/Sphere as Node3D).scale = Vector3.ONE * (CANYON_SKY_SCALE if id == "night_city" and not Settings.classic_night_city else 1.0)
+	# the sky sphere (100 m) would hide the canyon's far city and landmark tower (to 800 m out) and Neon Grid's arches:
+	# there it is drawn CANYON_SKY_SCALE or NEON_SKY_SCALE times as far; elsewhere at its size, where it hides the beams'
+	# far ends
+	var sky_scale := 1.0
+	if id == "night_city" and not Settings.classic_night_city:
+		sky_scale = CANYON_SKY_SCALE
+	elif id == "neon_grid":
+		sky_scale = NEON_SKY_SCALE
+	($Level/Sphere as Node3D).scale = Vector3.ONE * sky_scale
 	# the haze lit from the stage's key light (fog_light.gdshaderinc)
 	var key: Vector4 = FOG_KEYS.get(id, Vector4(0.0, 0.0, -1.0, 0.0))
 	var key_dir := Vector3(key.x, key.y, key.z).normalized()
@@ -504,25 +512,35 @@ func _apply_rig(id: String) -> void:
 		material.set_shader_parameter(&"brightness", rest[1] * VOID_BEAM_BRIGHTNESS if void_stage else rest[1])
 	match id:
 		"neon_grid":
+			# the diagonal lasers: floodlights at B's footing (left) and C's (right), fanning up and away from the sun
 			var per_side := diagonal_lasers.size() >> 1
+			var bases := NeonGridRig.floodlight_bases()
 			for i in diagonal_lasers.size():
 				var side := -1.0 if i < per_side else 1.0
 				var a := deg_to_rad(lerpf(RIG_FAN_MIN_DEG, RIG_FAN_MAX_DEG, float(i % per_side) / maxi(per_side - 1, 1)))
-				_aim(diagonal_lasers[i], Vector3(side * NeonGridRig.STAGE_X, NeonGridRig.STAGE_TOP, NeonGridRig.STAGE_CENTRE_Z),
-						Vector3(side * sin(a), cos(a), -0.15))
+				_aim(diagonal_lasers[i], bases[0 if side < 0.0 else 1] + Vector3(0.0, 1.0, 0.0), Vector3(side * sin(a), cos(a), -0.15))
+			# the waving lasers: survey beacons on the masts (left), the crane's work lights (right)
+			var crane := NeonGridRig.crane_lights(waving.size() - half)
 			for i in waving.size():
-				var side := -1.0 if i < half else 1.0
-				waving[i].global_position = Vector3(side * RIG_GRID_EDGE_X, NeonGridRig.POLE_HEIGHT, NeonGridRig.POLE_Z[i % half])
-			var rail := 0
-			var gaps := NeonGridRig.POLE_Z.size() - 1
+				if i < half:
+					var m := NeonGridRig.SURVEY_MASTS[i % NeonGridRig.SURVEY_MASTS.size()]
+					waving[i].global_position = Vector3(m.x, m.z, m.y)
+				else:
+					waving[i].global_position = crane[i - half]
+			# the square bars: strips along the arches' inner edges
+			var bars: Array[Node3D] = []
 			for bar in _square_bars():
 				if bar.get_parent() != square_lasers_holder:
 					bar.visible = false
-					continue
-				var side := -1.0 if rail < gaps else 1.0
-				var z := (NeonGridRig.POLE_Z[rail % gaps] + NeonGridRig.POLE_Z[rail % gaps + 1]) * 0.5
-				bar.global_transform = Transform3D(RAIL_BASIS, Vector3(side * RIG_GRID_EDGE_X, NeonGridRig.POLE_HEIGHT, z))
-				rail += 1
+				else:
+					bars.append(bar)
+			var spots: Array[Transform3D] = []
+			for k in NEON_STRIP_ARCHES.size():
+				@warning_ignore("integer_division")
+				var share := bars.size() / NEON_STRIP_ARCHES.size() + (1 if k < bars.size() % NEON_STRIP_ARCHES.size() else 0)
+				spots.append_array(NeonGridRig.arch_strips(NEON_STRIP_ARCHES[k], share, SQUARE_BAR_LENGTH))
+			for i in bars.size():
+				bars[i].global_transform = spots[i]
 		"night_city" when not Settings.classic_night_city:
 			_hang_canyon(waving)
 		"night_city":
