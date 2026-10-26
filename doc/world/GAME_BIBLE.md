@@ -5,7 +5,7 @@ owner rather than inventing answers.
 
 ## Core experience
 - Genre: VR rhythm game, cutting notes to music with two sabers (Beat Saber maps from BeatSaver).
-- Platform: Pico 4 (standalone, Godot Compatibility renderer, 72 or 90 Hz); a Quest build too.
+- Platform: Pico 4 (standalone, Godot Compatibility renderer, 72 Hz for every scene: a 13.9 ms frame (owner, 2026-10-26)); a Quest build too.
 - Viewpoint: first person, standing, facing -z.
 - Comfort: no artificial movement; short, moderate flashes; nothing large and saturated.
 

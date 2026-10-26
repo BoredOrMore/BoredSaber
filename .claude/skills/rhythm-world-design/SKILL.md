@@ -64,7 +64,7 @@ the note corridor authored; vary only chosen properties within stated ranges; re
 2. From the player's eye: a Blender render of the layout before building, then headset screenshots in play,
    compared with the style frame (Classic target look).
 3. Busy light sections and quiet ones; menus too (pre-show lighting).
-4. GPU: `tools/bench.sh` before and after; budget 11.1 ms at 90 Hz, 13.9 ms at 72 Hz.
+4. GPU: `tools/bench.sh` before and after; budget 13.9 ms at 72 Hz, the refresh rate for every scene (owner, 2026-10-26).
 5. Anything that moves the playspace follows the playspace rule in `game/AGENTS.md`.
 
 ## 9. Done means
