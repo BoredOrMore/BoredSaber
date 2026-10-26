@@ -91,6 +91,11 @@ const CANYON_FOG_ROLL := 0.6
 ## under its lowest trough, instead of at the street: the GPU shades none of what it would hide (bench, 2026-10-25: the
 ## scenery is Night City's largest cost). The shading still goes by the street's height (window_span).
 const HIDDEN_Y := SEA_Y - 4.0
+## The haze is worked out per vertex (per pixel cost Night City ~4 ms with the windows, real play 2026-10-26; owner
+## picked per vertex): the boxes are cut at these heights, so their faces have vertices where the canyon's fog changes,
+## close together near the cloud sea and further apart above. Every box is cut at the same heights, so neighbours'
+## fog meets without a step.
+const FOG_CUTS: Array[float] = [-30.0, -26.0, -22.0, -17.0, -11.0, -4.0, 5.0, 20.0, 40.0, 70.0, 110.0, 160.0]
 ## The billboards on the tower wall (CityBillboard.gdshader), carrying the square bars' light: [tower, along the tower
 ## from its near end (0-1), height, width, tall, shape (0 circle, 1 triangle, 2 stripes, 3 frames)]. Different sizes
 ## and heights, not a row. Standing just off the pilasters' fronts.
@@ -221,7 +226,6 @@ func build(classic: bool) -> void:
 	_material.set_shader_parameter(&"windows", 0.0 if classic else 1.0)
 	_material.set_shader_parameter(&"canyon_fog", Vector4.ZERO if classic else CANYON_FOG)
 	_material.set_shader_parameter(&"fog_roll", CANYON_FOG_ROLL)
-	_material.set_shader_parameter(&"fog_per_pixel", not classic)
 	# the boxes closer to the track than the windows start show none (EnvSolid windows_light): drawn without them
 	var window_min_x := RAILING_X + STAIR_HOUSE_SIZE.x + 2.0
 	_material.set_shader_parameter(&"window_min_x", window_min_x)
@@ -468,7 +472,17 @@ static func _drawn_boxes(boxes: Array[Transform3D]) -> Array[Transform3D]:
 		if low < HIDDEN_Y:
 			box = _span(Vector3(box.origin.x - box.basis.x.x * 0.5, HIDDEN_Y, box.origin.z - box.basis.z.z * 0.5),
 				Vector3(box.origin.x + box.basis.x.x * 0.5, high, box.origin.z + box.basis.z.z * 0.5))
-		drawn.append(box)
+		# cut at FOG_CUTS
+		var bottom := maxf(low, HIDDEN_Y)
+		for cut in FOG_CUTS + [high]:
+			if cut <= bottom:
+				continue
+			var top := minf(cut, high)
+			drawn.append(_span(Vector3(box.origin.x - box.basis.x.x * 0.5, bottom, box.origin.z - box.basis.z.z * 0.5),
+				Vector3(box.origin.x + box.basis.x.x * 0.5, top, box.origin.z + box.basis.z.z * 0.5)))
+			bottom = top
+			if bottom >= high:
+				break
 	drawn.sort_custom(func(a: Transform3D, b: Transform3D) -> bool: return _nearest(a) < _nearest(b))
 	return drawn
 

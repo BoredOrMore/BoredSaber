@@ -29,8 +29,9 @@
 //   5b. a stage's own fog (canyon_fog.w > 0: Night City's canyon): a thick layer measured from canyon_fog.x (the
 //      cloud sea's level, CloudSea.gdshader), canyon_fog.y per metre there, thinning by canyon_fog.z per metre going up,
 //      so the towers' feet vanish into it where the clouds meet them; its density rolls with a slow drifting noise
-//      (fog_roll), so its edge moves instead of lying flat. With fog_per_pixel the whole haze is worked out per pixel:
-//      on faces a hundred metres across, a blend of the corners' fog is wrong in the middle (doc/research/fog.md)
+//      (fog_roll), so its edge moves instead of lying flat. Per vertex like the rest of the haze: NightCityRig cuts its
+//      boxes at heights close together near the clouds (FOG_CUTS), so the faces have vertices where the fog changes
+//      (per pixel cost ~4 ms with the windows in real play, 2026-10-26)
 //   9. windows (windows > 0: Night City's canyon, NightCityRig): real-size windows on the buildings' upright faces
 //      farther than window_min_x from the track, worked out per pixel from the face's position (a texture or vertex
 //      mask would need too many vertices for towers of 57 floors): WINDOW_PITCH apart, FLOOR_HEIGHT a floor, each
@@ -117,6 +118,9 @@ const float WINDOW_PITCH = 2.0;
 const float FLOOR_HEIGHT = 3.5;
 // the window inside its cell (parts of the cell, from the cell's corner), the rooms that ever light, the warm tint
 const vec4 WINDOW_RECT = vec4(0.125, 0.25, 0.875, 0.85);
+// from x to y metres the windows turn into their average (per vertex, no screen derivatives; owner 2026-10-26: from
+// closer than before, which switched where a window was under about a pixel)
+const vec2 WINDOW_FAR = vec2(90.0, 150.0);
 const float WINDOW_OCCUPIED = 0.65;
 const vec3 ROOM_WARM = vec3(1.0, 0.8, 0.6);
 const float ROOM_WARMTH = 0.25;
@@ -137,10 +141,9 @@ const float SOLID_HEIGHT_FOG = 0.55;
 // background instead of turning the fog's colour (owner, 2026-10-26: halved; the black background had too much fog colour)
 const float FAR_HAZE_MAX = 0.6;
 #ifdef CANYON
-// 5b. a stage's own fog: [level, density there, thinning per metre up, how much], how much its density rolls, per pixel
+// 5b. a stage's own fog: [level, density there, thinning per metre up, how much], how much its density rolls
 uniform vec4 canyon_fog = vec4(0.0);
 uniform float fog_roll = 0.0;
-uniform bool fog_per_pixel = false;
 const float ROLL_SCALE = 0.04;
 const float ROLL_SPEED = 0.12;
 #endif
@@ -167,6 +170,12 @@ varying float ao;
 // 9. the position and the face's direction in the world, for the windows
 varying vec3 world_pos;
 varying vec3 world_normal;
+// the haze lit from the key light, per vertex (as the sky's)
+varying vec3 haze_v;
+#ifdef WINDOWS
+// 0 near, where each window is drawn, to 1 far, where the windows' average is
+varying float window_far;
+#endif
 #endif
 
 // 5. how much of the haze covers a point at world, seen from cam
@@ -224,6 +233,12 @@ void vertex() {
 
 	// 5. haze
 	fog = fog_at(world, CAMERA_POSITION_WORLD, TIME);
+#ifdef CANYON
+	haze_v = fog_lit(env_haze.rgb, world - CAMERA_POSITION_WORLD);
+#ifdef WINDOWS
+	window_far = smoothstep(WINDOW_FAR.x, WINDOW_FAR.y, length(world - CAMERA_POSITION_WORLD));
+#endif
+#endif
 
 	// 7. ambient occlusion
 	ao = mix(1.0, COLOR.r, AO_STRENGTH);
@@ -262,12 +277,12 @@ vec3 windows_light() {
 	float height = clamp((world_pos.y - window_span.x) / (window_span.y - window_span.x), 0.0, 1.0);
 	float order = dot(WINDOW_ORDER, vec3(height, clamp(-world_pos.z / WINDOW_REACH, 0.0, 1.0), window_hash(room + 31.0)));
 	float on = occupied * step(order, window_level);
-	vec2 aa = fwidth(g);
-	vec2 inside = smoothstep(WINDOW_RECT.xy - aa, WINDOW_RECT.xy + aa, f) * (1.0 - smoothstep(WINDOW_RECT.zw - aa, WINDOW_RECT.zw + aa, f));
+	// hard edges (no smoothing: cheaper, owner's pick 2026-10-26)
+	vec2 inside = step(WINDOW_RECT.xy, f) * step(f, WINDOW_RECT.zw);
 	float shape = inside.x * inside.y * on;
-	// far: the cell is under about a pixel; the windows' average instead (the lit share of the area the build-up has reached)
+	// far (WINDOW_FAR): the windows' average instead (the lit share of the area the build-up has reached)
 	float average = (WINDOW_RECT.z - WINDOW_RECT.x) * (WINDOW_RECT.w - WINDOW_RECT.y) * WINDOW_OCCUPIED * clamp(window_level / max(order, 1e-3), 0.0, 1.0);
-	float m = mix(shape, average, clamp(max(aa.x, aa.y) * 2.0 - 0.5, 0.0, 1.0));
+	float m = mix(shape, average, window_far);
 	vec3 color = world_pos.x < 0.0 ? window_left_color.rgb : window_right_color.rgb;
 	return mix(color, color * ROOM_WARM, ROOM_WARMTH) * m * window_glow * WINDOW_LIGHT * windows;
 }
@@ -278,7 +293,11 @@ void fragment() {
 		ALBEDO = albedo.rgb;
 	} else {
 		// the haze lit from the stage's key light, seen this way (fog_light.gdshaderinc)
+#ifdef CANYON
+		vec3 haze = haze_v;
+#else
 		vec3 haze = fog_lit(env_haze.rgb, (INV_VIEW_MATRIX * vec4(-VIEW, 0.0)).xyz);
+#endif
 		// light on top of the haze, which only dims it: the ring's lit edge and the vents
 		vec3 light = vec3(0.0);
 #ifdef RING
@@ -301,8 +320,7 @@ void fragment() {
 		}
 #endif
 #ifdef CANYON
-		// 5. per pixel on faces too big for a blend of their corners
-		float haze_amount = fog_per_pixel ? fog_at(world_pos, CAMERA_POSITION_WORLD, TIME) : fog;
+		float haze_amount = fog;
 #ifdef WINDOWS
 		// the windows: light, so on top of the haze, which only dims them
 		vec3 windows_on = windows_light() * (1.0 - haze_amount);
