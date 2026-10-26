@@ -141,6 +141,8 @@ const COPING := Vector2(0.4, 0.08)
 const ROOF_Y := -TrackDeck.PAD_DEPTH
 const STAIR_HOUSE := Vector3(6.0, -1.0, 0.0)
 const STAIR_HOUSE_SIZE := Vector3(3.0, 3.0, 4.0)
+## the stair house's model (doc/assets/stair_house/spec.md): 4 m along the track, 3 m across, its door to the track
+const STAIR_HOUSE_MODEL := preload("res://game/models/stair_house.glb")
 const RAILING_X := 4.0
 const RAILING_HEIGHT := 1.1
 const RAILING_POST_STEP := 1.5
@@ -286,6 +288,8 @@ func _add_props() -> void:
 		antennas.append(Transform3D(Basis(Vector3.UP, float(m[3])).scaled(Vector3.ONE * float(m[4])), at))
 	for pair: Array in [[LaserFixtures._model_mesh(WATER_TANK), tanks], [LaserFixtures._model_mesh(AC_UNIT), units],
 			[LaserFixtures._model_mesh(ANTENNA), antennas],
+			[LaserFixtures._model_mesh(STAIR_HOUSE_MODEL), [Transform3D(Basis(Vector3.UP, -WALL_SIDE * PI * 0.5),
+				Vector3(WALL_SIDE * STAIR_HOUSE.x, ROOF_Y, STAIR_HOUSE.y))]],
 			[BoxMesh.new(), _mounts + _low_roof_edges()]]:
 		var placed: Array[Transform3D] = []
 		placed.assign(pair[1])
@@ -434,8 +438,6 @@ func _canyon_boxes() -> Array[Transform3D]:
 	# the rooftop reaches under the stair house on the wall side and to the parapet on the open side
 	var reach := STAIR_HOUSE.x + STAIR_HOUSE_SIZE.x
 	boxes.append(_span(Vector3(w * reach, STREET_Y, ROOF_Z.x), Vector3(o * RAILING_X, ROOF_Y, ROOF_Z.y)))
-	boxes.append(Transform3D(Basis.from_scale(STAIR_HOUSE_SIZE),
-		Vector3(w * STAIR_HOUSE.x, ROOF_Y + STAIR_HOUSE_SIZE.y * 0.5, STAIR_HOUSE.y)))
 	# the railing stands on a low parapet along the open edge, not on air (owner on the headset, 2026-10-25)
 	var parapet_x := RAILING_X - PARAPET.x * 0.5
 	boxes.append(_span(Vector3(o * (RAILING_X - PARAPET.x), ROOF_Y, ROOF_Z.x), Vector3(o * RAILING_X, ROOF_Y + PARAPET.y, ROOF_Z.y)))
