@@ -17,6 +17,8 @@ var multiplier: int
 ## hits since the multiplier last changed
 var _multiplier_progress: int
 var in_wall: bool
+## No Fail: health ran out, so the rest of the song (and what came before) counts at Constants.NO_FAIL_SPENT_SCORE
+var no_fail_spent: bool
 ## The most points the notes so far could have given: each at its best score, with an unbroken combo.
 ## Accuracy is points over this, as in Beat Saber (bsmg.wiki/ranking-guide.html).
 var max_points: int
@@ -55,6 +57,7 @@ func restart() -> void:
 	_lost_notes = 0
 	full_combo = true
 	in_wall = false
+	no_fail_spent = false
 	score_changed.emit()
 
 func reset_combo(_wrong_note, cause := "") -> void:
@@ -118,10 +121,35 @@ func _count_note(best: float) -> void:
 	var perfect_multiplier := 1 if _notes_scored == 1 else 2 if _notes_scored <= 5 else 4 if _notes_scored <= 13 else 8
 	max_points += roundi(int(best) * perfect_multiplier * _modifier_scale())
 
-## The share of points modifiers keep: 1, or NO_WALLS_SCORE_SCALE with walls off. It scales max_points too,
-## so accuracy and rank don't change.
+## The share of points modifiers keep: 1 plus their shares (Constants.SPEED_SCORE and the rest). It scales
+## max_points too, so accuracy and rank don't change.
 func _modifier_scale() -> float:
-	return 1.0 if Settings.walls_enabled else Constants.NO_WALLS_SCORE_SCALE
+	var share := Constants.score_share(Constants.SPEED_SCORE, Settings.music_speed)
+	share += Constants.score_share(Constants.WIDTH_SCORE, Settings.width)
+	share += Constants.score_share(Constants.BLOCK_SIZE_SCORE, Settings.block_size)
+	if not Settings.walls_enabled:
+		share += Constants.NO_WALLS_SCORE
+	if not Settings.bombs_enabled:
+		share += Constants.NO_BOMBS_SCORE
+	if not Settings.arrows_enabled:
+		share += Constants.NO_ARROWS_SCORE
+	if Settings.health_mode and Settings.fail_mode == Constants.FAIL_MODE_BAR and Settings.damage_scale < 1.0:
+		share += Constants.HALF_DAMAGE_SCORE
+	if no_fail_spent:
+		share += Constants.NO_FAIL_SPENT_SCORE
+	return maxf(1.0 + share, 0.0)
+
+## No Fail and health ran out: from now on the score is halved, the points so far too (Beat Saber halves the score).
+func spend_no_fail() -> void:
+	if no_fail_spent:
+		return
+	var before := _modifier_scale()
+	no_fail_spent = true
+	var after := _modifier_scale()
+	if before > 0.0:
+		points = roundi(points * after / before)
+		max_points = roundi(max_points * after / before)
+	score_changed.emit()
 
 ## Adds a cut's points. best is the most this note could have given (0 uses a normal note's best).
 func add_points(position: Vector3, _rotation: float, amount: int, comment: String = "", best: float = 0.0) -> void:

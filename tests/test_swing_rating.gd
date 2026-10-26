@@ -1,5 +1,5 @@
 extends Node
-# Headless checks for the swing angles as Beat Saber measures them (LightSaber.swept).
+# Headless checks for scoring as Beat Saber does it: swing angles (LightSaber.swept) and modifier shares.
 # Run: godot --headless --path . res://tests/test_swing_rating.tscn
 
 var failures := 0
@@ -40,6 +40,17 @@ func _ready() -> void:
 	check(absf(follow_through - 40.0) < 0.5, "a follow-through stops where the saber turns back (got %.1f)" % follow_through)
 
 	check(LightSaber.swept(approach, Vector3.ZERO, true) == 0.0, "no swing (no plane) counts nothing")
+
+	# modifier shares (Constants.score_share): Beat Saber's points, our speeds and sizes on lines through them
+	var near := func(a: float, b: float) -> bool: return absf(a - b) < 1e-4
+	check(near.call(Constants.score_share(Constants.SPEED_SCORE, 85), -0.30), "Speed 85% is Beat Saber's Slower Song, -30%")
+	check(near.call(Constants.score_share(Constants.SPEED_SCORE, 100), 0.0), "Speed 100% changes nothing")
+	check(near.call(Constants.score_share(Constants.SPEED_SCORE, 125), 0.08 + 0.02 * 5.0 / 30.0), "Speed 125% is between Faster (+8%) and Super Fast (+10%)")
+	check(near.call(Constants.score_share(Constants.SPEED_SCORE, 150), 0.10), "Speed 150% is Super Fast, +10%")
+	check(near.call(Constants.score_share(Constants.SPEED_SCORE, 175), 0.10 + 0.02 * 25.0 / 30.0), "Speed 175% carries the line on (+11.7%)")
+	check(near.call(Constants.score_share(Constants.BLOCK_SIZE_SCORE, 50), 0.0), "Small blocks change nothing (Beat Saber's Small Notes)")
+	check(near.call(Constants.score_share(Constants.BLOCK_SIZE_SCORE, 225), -0.10), "Giant blocks -10%")
+	check(near.call(Constants.score_share(Constants.WIDTH_SCORE, 150), -0.05), "150% width -5%")
 
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)

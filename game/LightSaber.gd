@@ -149,9 +149,11 @@ func _update_history(time: int) -> void:
 func add_score(position: Vector3, lane_rotation: float, accuracy: float, arc_head: bool, arc_tail: bool) -> void:
 	var time = Time.get_ticks_msec()
 	var pointing := get_pointing()
+	# Arcs as in Beat Saber (owner, 2026-10-26): the note an arc leaves from needs no follow-through (the arc carries the
+	# swing on) and the note it ends at needs no approach. It was the other way round.
 	var approach := get_preswing(time)
-	var preswing: float = approach[0] if not arc_head else Constants.TARGET_PRESWING_ANGLE
-	if arc_tail:
+	var preswing: float = approach[0] if not arc_tail else Constants.TARGET_PRESWING_ANGLE
+	if arc_head:
 		Scoreboard.add_swing_score(position, lane_rotation, accuracy, preswing, Constants.TARGET_FOLLOWTHROUGH_ANGLE)
 	else:
 		score_queue.append([Time.get_ticks_msec(), position, lane_rotation, pointing, preswing, accuracy, approach[1]])

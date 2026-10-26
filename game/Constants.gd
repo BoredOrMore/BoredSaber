@@ -162,8 +162,35 @@ const DIFFICULTY_BLOCK_SIZE_GIANT := 0x1000000 | 0x2000000
 ## Set in a record's rank when walls were off. 0x10000 is avoided: old records used it for small blocks.
 const DIFFICULTY_NO_WALLS := 0x4000000
 const NO_WALLS_LABEL := "No Walls"
-## Score kept with walls off, as Beat Saber's No Walls modifier (-5%, bsmg.wiki/ranking-guide.html).
-const NO_WALLS_SCORE_SCALE := 0.95
+## Modifiers change the score as Beat Saber's do (owner, 2026-10-26; bsmg.wiki/ranking-guide.html): their shares
+## add up and the points are kept at 1 plus the sum. Ours that Beat Saber has take its values; speeds it lacks are read
+## off a straight line through its (speed %, share) points, extended past the last; ours that make the game easier
+## and have no Beat Saber match (wider lanes, bigger blocks, half damage) take a share in proportion. Harder ones
+## without a match (short sabers, more damage), the health modes, flips and handedness: 0.
+const NO_WALLS_SCORE := -0.05
+const NO_BOMBS_SCORE := -0.10
+const NO_ARROWS_SCORE := -0.30
+## No Fail: half the score once health would have run out (Beat Saber: "0.00 / -0.50")
+const NO_FAIL_SPENT_SCORE := -0.50
+## Beat Saber's Slower (85%), Faster (120%) and Super Fast (150%) songs
+const SPEED_SCORE: Array[Vector2] = [Vector2(85, -0.30), Vector2(100, 0.0), Vector2(120, 0.08), Vector2(150, 0.10)]
+## wider lanes: -10% at 200% width; bigger blocks: -5% Big (150), -10% Giant (225); half damage: -10%
+const WIDTH_SCORE: Array[Vector2] = [Vector2(100, 0.0), Vector2(200, -0.10)]
+const BLOCK_SIZE_SCORE: Array[Vector2] = [Vector2(100, 0.0), Vector2(150, -0.05), Vector2(225, -0.10)]
+const HALF_DAMAGE_SCORE := -0.10
+
+## The share on a straight line through points (sorted by x), extended past the ends; nothing below the first for
+## tables that start at 100 (sizes and widths under 100 are not easier).
+static func score_share(points: Array[Vector2], x: float) -> float:
+	if x <= points[0].x:
+		return points[0].y if points[0].x >= 100.0 else _lerp_through(points[0], points[1], x)
+	for i in range(1, points.size()):
+		if x <= points[i].x:
+			return _lerp_through(points[i - 1], points[i], x)
+	return _lerp_through(points[-2], points[-1], x)
+
+static func _lerp_through(a: Vector2, b: Vector2, x: float) -> float:
+	return a.y + (b.y - a.y) * (x - a.x) / (b.x - a.x)
 
 # Menu colours, shared by the 3D panels (end score, buttons); keep in step with game/ui/menu_theme.tres.
 const UI_PANEL := Color(0.086, 0.094, 0.114)

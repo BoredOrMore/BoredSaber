@@ -216,7 +216,7 @@ var bombs_enabled: bool:
 	set(value):
 		bombs_enabled = value
 		set_and_emit(&"bombs_enabled", value)
-## Walls modifier: off leaves every wall out of the song, for 5% less score (Constants.NO_WALLS_SCORE_SCALE).
+## Walls modifier: off leaves every wall out of the song, for 5% less score (Constants.NO_WALLS_SCORE).
 var walls_enabled: bool:
 	set(value):
 		walls_enabled = value

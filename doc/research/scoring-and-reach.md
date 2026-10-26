@@ -92,3 +92,14 @@ Swing angles are now measured as Beat Saber does (SimSaber): the sweep is added 
 and after the cut while its plane stays within 90° of the cut's, steps past 75° counting less (`LightSaber.swept`).
 Before, the widest angle reached in 0.2 s each way. Not changed: arcs (ours give the head free approach points and the
 tail free follow-through; no source found for Beat Saber's rule) and a minimum swing speed (no confirmed figure).
+
+## Arcs and modifiers (2026-10-26)
+
+Arcs as Beat Saber scores them (owner's source): the note an arc leaves from needs no follow-through, the note it ends
+at needs no approach; ours had them the other way round. Modifiers change the score as Beat Saber's do, shares added
+(Constants.SPEED_SCORE and the rest): No Bombs -10%, No Walls -5%, No Arrows -30%, No Fail -50% once health would
+have run out (No Fail keeps a hidden health bar for this), speed 85% -30% (Beat Saber's Slower Song), 125% +8.3%,
+150% +10%, 175% +11.7% (a line through Beat Saber's 120% +8% and 150% +10%, carried on). Ours without a Beat Saber
+match that make the game easier: width -10% at 200% (in proportion), Big blocks -5%, Giant -10%, half damage -10%.
+Old saved scores (77, all before the 115-point build) were scaled by 115/150 on the headset; the file from before is
+`highscores-backup-2026-10-26-before-115.json` next to it.
