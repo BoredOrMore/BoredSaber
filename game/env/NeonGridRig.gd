@@ -34,10 +34,14 @@ const ARCH_SEGMENTS := 28
 const TOWER_CRANE := preload("res://game/models/tower_crane.glb")
 const CRANE_JIB_Y := 32.6
 const CRANE_JIB := Vector2(70.0, 3.0)
-## Survey masts on the left (x, z, height): lattice-mast stand-ins carrying the left waving lasers' beacons, uneven.
+## Survey masts on the left (x, z, height), uneven, carrying the left waving lasers' beacons at their tops
+## (doc/assets/survey_mast/spec.md: modelled SURVEY_MAST_HEIGHT tall, scaled to each height; one MultiMesh).
+const SURVEY_MAST := preload("res://game/models/survey_mast.glb")
+const SURVEY_MAST_HEIGHT := 10.0
 const SURVEY_MASTS: Array[Vector3] = [Vector3(-9.0, -6.0, 9.0), Vector3(-15.0, -19.0, 12.0), Vector3(-11.0, -33.0, 8.0),
 	Vector3(-24.0, -46.0, 14.0)]
-const MAST_SIZE := 0.35
+## each mast turned differently, so their guys and panels don't line up
+const SURVEY_MAST_TURNS: Array[float] = [0.4, 2.1, 1.0, 3.6]
 ## Site clutter near the player, for scale: [centre, size].
 const CLUTTER := [
 	# a site cabin (a container) on the left, behind
@@ -53,8 +57,6 @@ func _ready() -> void:
 	var boxes: Array[Transform3D] = []
 	for arch: Array in [ARCH_A, ARCH_B, ARCH_C]:
 		boxes.append_array(arch_boxes(arch))
-	for m in SURVEY_MASTS:
-		boxes.append(_box(Vector3(m.x, m.z * 0.5 - 0.5, m.y), Vector3(MAST_SIZE, m.z + 1.0, MAST_SIZE)))
 	for c: Array in CLUTTER:
 		boxes.append(_box(c[0], c[1]))
 	var multimesh := MultiMesh.new()
@@ -70,6 +72,19 @@ func _ready() -> void:
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
+	var masts := MultiMesh.new()
+	masts.transform_format = MultiMesh.TRANSFORM_3D
+	masts.mesh = LaserFixtures._model_mesh(SURVEY_MAST)
+	masts.instance_count = SURVEY_MASTS.size()
+	for i in SURVEY_MASTS.size():
+		var m := SURVEY_MASTS[i]
+		masts.set_instance_transform(i, Transform3D(Basis(Vector3.UP, SURVEY_MAST_TURNS[i % SURVEY_MAST_TURNS.size()])
+			.scaled(Vector3.ONE * m.z / SURVEY_MAST_HEIGHT), Vector3(m.x, 0.0, m.y)))
+	var mast_instance := MultiMeshInstance3D.new()
+	mast_instance.multimesh = masts
+	mast_instance.material_override = material
+	mast_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(mast_instance)
 	var crane := MeshInstance3D.new()
 	crane.mesh = LaserFixtures._model_mesh(TOWER_CRANE)
 	crane.position = arch_point(ARCH_C, PI * float(ARCH_C[4])).origin
