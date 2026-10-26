@@ -112,6 +112,13 @@ const BILLBOARD_ARM := 0.3
 ## windows.
 const WATER_TANK := preload("res://game/models/water_tank.glb")
 const WATER_TANKS := [[0, 0.55, 0.3, 0.2], [1, 0.3, 0.7, 1.1], [2, 0.65, 0.25, 0.6], [3, 0.4, 0.55, 2.0], [1, 0.8, 0.2, 0.0]]
+## The rooftop AC units (doc/assets/ac_unit/spec.md: about chest high, the roofs' human scale), as the tanks: [low roof,
+## across it, along it, turn]. Uneven clusters (one, two, a row of three), turned differently, between the tanks.
+const AC_UNIT := preload("res://game/models/ac_unit.glb")
+const AC_UNITS := [[0, 0.25, 0.62, 0.0], [0, 0.25, 0.665, 0.0],
+	[1, 0.55, 0.45, 1.57], [1, 0.62, 0.85, 0.3], [1, 0.62, 0.89, 0.3], [1, 0.62, 0.93, 0.3],
+	[2, 0.3, 0.6, 0.9], [2, 0.82, 0.75, 0.0], [2, 0.82, 0.79, 0.0],
+	[3, 0.7, 0.3, 2.4], [3, 0.25, 0.8, 0.15]]
 ## the player's rooftop: a stair house on the wall side [out, z, size x/y/z], an open railing on the other side
 ## the rooftop's surface, level with the platform's base (TrackDeck.PAD_DEPTH below the deck's top), so the track and
 ## platform sit on the roof; the stair house, parapet and railing stand on it
@@ -252,13 +259,10 @@ func _add_props() -> void:
 		_props_material = _material.duplicate() as ShaderMaterial
 		_props_material.shader = ENV_SOLID_PLAIN
 	_props_material.set_shader_parameter(&"windows", 0.0)
-	var o := -WALL_SIDE
-	var tanks: Array[Transform3D] = []
-	for t: Array in WATER_TANKS:
-		var roof := LOW_ROOFS[int(t[0])]
-		var at := Vector3(o * (roof.x + LOW_ROOF_DEPTH * float(t[1])), roof.w, lerpf(roof.y, roof.z, float(t[2])))
-		tanks.append(Transform3D(Basis(Vector3.UP, float(t[3])), at))
-	for pair: Array in [[LaserFixtures._model_mesh(WATER_TANK), tanks], [BoxMesh.new(), _mounts]]:
+	var tanks := _on_low_roofs(WATER_TANKS)
+	var units := _on_low_roofs(AC_UNITS)
+	for pair: Array in [[LaserFixtures._model_mesh(WATER_TANK), tanks], [LaserFixtures._model_mesh(AC_UNIT), units],
+			[BoxMesh.new(), _mounts]]:
 		var placed: Array[Transform3D] = []
 		placed.assign(pair[1])
 		var multimesh := MultiMesh.new()
@@ -273,6 +277,15 @@ func _add_props() -> void:
 		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(instance)
 		_props.append(instance)
+
+## Where props stand on the low roofs: [low roof, across it, along it, turn] each.
+static func _on_low_roofs(spots: Array) -> Array[Transform3D]:
+	var placed: Array[Transform3D] = []
+	for t: Array in spots:
+		var roof := LOW_ROOFS[int(t[0])]
+		var at := Vector3(-WALL_SIDE * (roof.x + LOW_ROOF_DEPTH * float(t[1])), roof.w, lerpf(roof.y, roof.z, float(t[2])))
+		placed.append(Transform3D(Basis(Vector3.UP, float(t[3])), at))
+	return placed
 
 ## The billboards: one MultiMesh of quads facing the track off the tower wall's face.
 func _add_billboards() -> void:
