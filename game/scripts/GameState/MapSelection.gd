@@ -2,6 +2,7 @@ extends GameState
 class_name GameStateMapSelection
 
 func _ready(game: BeepSaber_Game) -> void:
+	DebugView.end_cycle(game)
 	game.main_menu._show()
 	game.profiles_canvas._hide()
 	game._update_slash_block.call_deferred()

@@ -12,6 +12,15 @@ const SKY := 16
 ## the area it covers and its shader (benchmark only, tools/bench.sh --only fog).
 const FLAT_SCENERY := 32
 const DUST := 128
+## Not read by shaders, for measuring a real song's parts (the cycle; apply sets them each frame of a song): the
+## sabers' blades and trails hidden (they still cut), the cut flash and sparks hidden, the glow off, the glow at Soft's
+## size whatever the setting, the 3D view's MSAA off.
+const HIDE_SABERS := 64
+const HIDE_CUT_FLASH := 256
+const GLOW_OFF := 512
+const MSAA_OFF := 32768
+const GLOW_SOFT := 65536
+const EXTRAS := HIDE_SABERS | HIDE_CUT_FLASH | GLOW_OFF | MSAA_OFF | GLOW_SOFT
 ## Not read by shaders: while on, a song steps through CYCLE_STEPS by itself (cycle_tick), so one run measures
 ## every part; the log line "debug_view N" marks each step for matching with the headset's GPU timings.
 const CYCLE := 1024
@@ -22,7 +31,8 @@ const GLOW_ALIGN := 2048
 const GLOW_DITHER := 4096
 const GLOW_BICUBIC := 8192
 const GLOW_NO_FOVEATION := 16384
-const CYCLE_STEPS: Array[int] = [0, WALLS, PLAIN_NOTES, LASERS, RINGS, SKY, DUST]
+const CYCLE_STEPS: Array[int] = [0, WALLS, PLAIN_NOTES, LASERS, RINGS, FLAT_SCENERY, SKY, DUST, HIDE_SABERS, HIDE_CUT_FLASH,
+	GLOW_SOFT, GLOW_OFF, MSAA_OFF]
 const CYCLE_SECONDS := 10.0
 ## label and bit of each switch, in the order they show
 const SWITCHES := [
@@ -32,6 +42,12 @@ const SWITCHES := [
 	["Hide rings and floor lines", RINGS],
 	["Plain black sky", SKY],
 	["Hide dust", DUST],
+	["Flat-colour scenery", FLAT_SCENERY],
+	["Hide saber blades and trails", HIDE_SABERS],
+	["Hide cut flash and sparks", HIDE_CUT_FLASH],
+	["Glow off", GLOW_OFF],
+	["Glow at Soft size", GLOW_SOFT],
+	["MSAA off", MSAA_OFF],
 	["Measure each part (cycles the switches)", CYCLE],
 	["Glow alignment: new glow magenta, offsets in the log", GLOW_ALIGN],
 	["Glow test: dither", GLOW_DITHER],
@@ -53,6 +69,42 @@ static func cycle_tick() -> void:
 	var wanted := CYCLE | CYCLE_STEPS[step]
 	if flags != wanted:
 		flags = wanted
+
+## The extras (EXTRAS) last set; 0 is the game's own state, so a game that never turns one on never touches anything.
+static var _applied := 0
+
+## Sets the extras the flags ask for, when they change; call it every frame of a song.
+static func apply(game: BeepSaber_Game) -> void:
+	var extras := flags & EXTRAS
+	if extras == _applied:
+		return
+	_applied = extras
+	for saber: LightSaber in [game.left_saber, game.right_saber]:
+		saber.saber_visual.visible = extras & HIDE_SABERS == 0
+	game.cut_flash.visible = extras & HIDE_CUT_FLASH == 0
+	game._sparks.visible = extras & HIDE_CUT_FLASH == 0
+	var quality: Array = LowResGlow.QUALITIES.get(Settings.glow_quality, LowResGlow.QUALITIES["Soft"])
+	LowResGlow.height = LowResGlow.QUALITIES["Soft"][0] if extras & GLOW_SOFT else quality[0]
+	game.glow_override = BeepSaber_Game.Glow.NONE if extras & GLOW_OFF else -1
+	game._apply_glow()
+	game.get_viewport().msaa_3d = Viewport.MSAA_DISABLED if extras & MSAA_OFF else Settings.msaa_mode()
+
+## The flag file (in the app data folder, put there over adb) that starts the cycle at the next song: one real song
+## measured part by part, each step logged as "debug_view N" to match with the headset's GPU timings.
+const CYCLE_FLAG_FILE := "debug_cycle"
+
+## Turns the cycle on if the flag file is there (and removes it); call at a song's start.
+static func cycle_from_flag() -> void:
+	var path := Constants.APPDATA_PATH + CYCLE_FLAG_FILE
+	if FileAccess.file_exists(path):
+		DirAccess.remove_absolute(path)
+		set_flag(CYCLE, true)
+
+## Ends a cycle, putting everything back; call when a song ends.
+static func end_cycle(game: BeepSaber_Game) -> void:
+	if flags & CYCLE != 0:
+		flags = 0
+		apply(game)
 
 static func set_flag(bit: int, on: bool) -> void:
 	flags = flags | bit if on else flags & ~bit

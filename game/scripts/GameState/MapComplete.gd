@@ -2,6 +2,7 @@ extends GameState
 class_name GameStateMapComplete
 
 func _ready(game: BeepSaber_Game) -> void:
+	DebugView.end_cycle(game)
 	# show this map's records next to the score, as after a new record
 	game.highscore_panel.load_highscores(
 		Map.current_info,Map.current_difficulty.difficulty_rank,game._new_record)

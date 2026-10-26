@@ -24,9 +24,11 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.right_saber.set_swingcast_enabled(true)
 	Scoreboard.paused = false
 	_lead_in_shown = -1
+	DebugView.cycle_from_flag()
 
 func _physics_process(game: BeepSaber_Game) -> void:
 	DebugView.cycle_tick()
+	DebugView.apply(game)
 	if game.failing:
 		return
 	for controller: BeepSaberController in [game.left_controller, game.right_controller]:
