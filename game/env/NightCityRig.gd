@@ -125,6 +125,16 @@ const AC_UNITS := [[0, 0.25, 0.62, 0.0], [0, 0.25, 0.665, 0.0],
 const ANTENNA := preload("res://game/models/antenna.glb")
 const ANTENNAS := [[0, 0.8, 0.75, 0.4], [1, 0.15, 0.3, 1.2], [2, 0.5, 0.9, 0.1], [3, 0.85, 0.15, 2.0]]
 const MASTS := [[0, 0.7, 0.3, 0.5, 5.0], [1, 0.35, 0.65, 1.4, 7.0]]
+## The low roofs' edges (doc/assets/low_roof_edges/spec.md): parapet walls with a coping on top, uneven from roof to
+## roof (some edges bare, gaps, different heights): [low roof, edge (0 the track side, 1 the back, 2 the near end,
+## 3 the far end), from, to (0-1 along the edge), height]. Boxes in the props' MultiMesh: no draw call of their own.
+const LOW_ROOF_EDGES := [[0, 0, 0.0, 0.7, 1.0], [0, 3, 0.0, 1.0, 0.6],
+	[1, 0, 0.2, 1.0, 0.8], [1, 1, 0.0, 0.5, 1.2],
+	[2, 0, 0.0, 0.45, 1.1], [2, 0, 0.55, 1.0, 1.1], [2, 2, 0.0, 1.0, 0.9],
+	[3, 0, 0.0, 1.0, 0.7], [3, 1, 0.3, 1.0, 0.7], [3, 3, 0.0, 0.6, 0.7]]
+## the parapet wall's thickness; the coping's width, height and how far it hangs over both faces
+const PARAPET_WALL := 0.25
+const COPING := Vector2(0.4, 0.08)
 ## the player's rooftop: a stair house on the wall side [out, z, size x/y/z], an open railing on the other side
 ## the rooftop's surface, level with the platform's base (TrackDeck.PAD_DEPTH below the deck's top), so the track and
 ## platform sit on the roof; the stair house, parapet and railing stand on it
@@ -276,7 +286,7 @@ func _add_props() -> void:
 		antennas.append(Transform3D(Basis(Vector3.UP, float(m[3])).scaled(Vector3.ONE * float(m[4])), at))
 	for pair: Array in [[LaserFixtures._model_mesh(WATER_TANK), tanks], [LaserFixtures._model_mesh(AC_UNIT), units],
 			[LaserFixtures._model_mesh(ANTENNA), antennas],
-			[BoxMesh.new(), _mounts]]:
+			[BoxMesh.new(), _mounts + _low_roof_edges()]]:
 		var placed: Array[Transform3D] = []
 		placed.assign(pair[1])
 		var multimesh := MultiMesh.new()
@@ -291,6 +301,44 @@ func _add_props() -> void:
 		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(instance)
 		_props.append(instance)
+
+## The low roofs' parapets and their copings (LOW_ROOF_EDGES), as boxes.
+static func _low_roof_edges() -> Array[Transform3D]:
+	var boxes: Array[Transform3D] = []
+	var o := -WALL_SIDE
+	for e: Array in LOW_ROOF_EDGES:
+		var r := LOW_ROOFS[int(e[0])]
+		var x0 := o * r.x
+		var x1 := o * (r.x + LOW_ROOF_DEPTH)
+		var height := float(e[4])
+		var a := float(e[2])
+		var b := float(e[3])
+		# the edge's line on the roof (inner face to outer face across, start to end along)
+		var start: Vector3
+		var end: Vector3
+		var inward: Vector3
+		match int(e[1]):
+			0:
+				start = Vector3(x0, r.w, lerpf(r.y, r.z, a))
+				end = Vector3(x0, r.w, lerpf(r.y, r.z, b))
+				inward = Vector3(o, 0.0, 0.0)
+			1:
+				start = Vector3(x1, r.w, lerpf(r.y, r.z, a))
+				end = Vector3(x1, r.w, lerpf(r.y, r.z, b))
+				inward = Vector3(-o, 0.0, 0.0)
+			2:
+				start = Vector3(lerpf(x0, x1, a), r.w, r.y)
+				end = Vector3(lerpf(x0, x1, b), r.w, r.y)
+				inward = Vector3(0.0, 0.0, signf(r.z - r.y))
+			_:
+				start = Vector3(lerpf(x0, x1, a), r.w, r.z)
+				end = Vector3(lerpf(x0, x1, b), r.w, r.z)
+				inward = Vector3(0.0, 0.0, signf(r.y - r.z))
+		var wall_out := inward * PARAPET_WALL
+		boxes.append(_span(start, end + wall_out + Vector3(0.0, height - COPING.y, 0.0)))
+		var lip := inward * (COPING.x - PARAPET_WALL) * 0.5
+		boxes.append(_span(start - lip + Vector3(0.0, height - COPING.y, 0.0), end + wall_out + lip + Vector3(0.0, height, 0.0)))
+	return boxes
 
 ## Where props stand on the low roofs: [low roof, across it, along it, turn] each.
 static func _on_low_roofs(spots: Array) -> Array[Transform3D]:
