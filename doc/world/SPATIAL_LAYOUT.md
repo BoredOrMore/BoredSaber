@@ -60,8 +60,8 @@ Plain boxes in `MetalFactoryRig.gd`, every size a named constant there; detail m
 - Drive gears at the far end, facing the player (`drive_gear_large/small.glb`): root radius 10 (22.4 m across the
   teeth) at x ±17, y 2, z -58 (half in the walls' end piers); root radius 7.5 (17.4 m across) at x ±9, y -6, z -62 in
   the pit (top about y 2.7). Axles into the piers and foundation. The view straight
-  ahead above the foundation stays open; beyond it is the stage's own dark sky (`MetalFactorySky.gdshader`, near-black
-  navy, no light colours), the darkest thing in view (eye capture, lights on: far opening luma 104 → 16 of 255).
+  ahead above the foundation stays open; beyond it is the stage's own dark sky (`MetalFactorySky.gdshader`, near-black,
+  no light colours), the darkest thing in view (eye capture, lights on: far opening luma 104 → 16 of 255).
 - No laser beams or moving heads (owner, 2026-10-25): the diagonal and waving lasers' light glows in the wall panels'
   vent louvers (upper row both walls: diagonal; lower row: the left or right waving group by wall); the square bars
   are the energy rails' strips; the centre and floor lights are unchanged.

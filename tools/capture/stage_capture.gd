@@ -70,7 +70,6 @@ func _ready() -> void:
 	DisplayServer.window_set_size(Vector2i(int(size[0]), int(size[1])))
 	var left := Color(args.get("left", Settings.color_left.to_html(false)) as String)
 	var right := Color(args.get("right", Settings.color_right.to_html(false)) as String)
-	RenderingServer.global_shader_parameter_set(&"shadow_tint", Constants.SHADOW_TINT)
 	RenderingServer.global_shader_parameter_set(&"left_saber_color", left)
 	RenderingServer.global_shader_parameter_set(&"right_saber_color", right)
 	RenderingServer.global_shader_parameter_set(&"note_style", int(args.get("note-style", "2")))

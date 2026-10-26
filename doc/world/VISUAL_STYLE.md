@@ -21,7 +21,7 @@ Classic Style Frame": target look, look spec, materials).
 ## Colour system
 | Role | Colour | Meaning | Constraints |
 |---|---|---|---|
-| Environment base | dark navy, `SHADOW_TINT` in the shadows | the stage | Takes its light colour from the note colours |
+| Environment base | dark, shadows black (no tint: navy shadow toning removed, owner 2026-10-26) | the stage | Takes its light colour from the note colours |
 | Note colour A/B | from the preset or the map | "cut this": notes, sabers, the lights | Nothing else uses them |
 | Danger | `DANGER_COLOR` (ff3030) or the map's wall colour | "dodge": walls, bombs | Never decoration |
 | House light | `EventDriver.HOUSE_COLOR` | menus, before the show | Near neutral |

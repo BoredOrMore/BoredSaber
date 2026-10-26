@@ -9,7 +9,6 @@ render_mode unshaded, fog_disabled, shadows_disabled;
 // between LINE_FADE_START and LINE_FADE_END: a repeating pattern that fills the view lets the eyes lock onto
 // it at the wrong depth (Apple visionOS HIG, Eyes), so the grid stays only around the player. All values untuned.
 global uniform vec4 env_haze;
-#include "res://game/env/shadow_tone.gdshaderinc"
 #include "res://game/env/fog_light.gdshaderinc"
 #include "res://game/env/height_fog.gdshaderinc"
 #include "res://game/env/player_light.gdshaderinc"
@@ -57,5 +56,5 @@ void fragment() {
 	vec3 near = mix(haze * GROUND_SHADE, line_col * LINE_GAIN + cut_wave_light(world) * CUT_WAVE_GAIN, line);
 	ALBEDO = mix(haze * HORIZON_HAZE, near, fade);
 	ALBEDO = mix(ALBEDO, haze * HEIGHT_FOG_GLOW, ground_fog);
-	ALBEDO = fog_dither(shadow_tone(ALBEDO), FRAGCOORD.xy);
+	ALBEDO = fog_dither(ALBEDO, FRAGCOORD.xy);
 }

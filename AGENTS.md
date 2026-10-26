@@ -133,7 +133,7 @@ motion), and HUD placement.
 ## Colour rules
 
 Every colour in the game has one job, so players can read the scene at a glance. Colours live in
-one place: `game/Constants.gd` (UI palette `UI_*`, `MISS_COLOR`, `SHADOW_TINT`, `DANGER_COLOR`,
+one place: `game/Constants.gd` (UI palette `UI_*`, `MISS_COLOR`, `DANGER_COLOR`,
 `DIFFICULTY_COLORS`, `RANK_COLORS`) and `COLOR_PRESETS` in `game/Settings.gd`; `game/ui/menu_theme.tres` must stay in
 step with the `UI_*` values. Don't hard-code a new `Color(...)` in a scene or script; add a named
 constant with its role, or reuse one.
@@ -150,8 +150,8 @@ constant with its role, or reuse one.
 - Neutrals (`UI_PANEL`, `UI_SURFACE*`, `UI_BORDER`, `UI_TEXT`, `UI_TEXT_MUTED`) for everything else.
 - `DIFFICULTY_COLORS` only label difficulties and reaction-time levels.
 - `RANK_COLORS` only colour the rank letter and the result ring on the score screen.
-- The environment stays dark navy (`SHADOW_TINT` in the shadows) and takes its light colours from the
-  note colours, so the scene never competes with notes or danger.
+- The environment stays dark, its shadows black (no colour toning of the darks: a navy tint was removed on the
+  owner's request, 2026-10-26), and takes its light colours from the note colours, so the scene never competes with notes or danger.
 - Never rely on hue alone (colour-blind players): pair a colour with a shape, pattern or word
   (the see-through box with a glowing frame for walls, the ✕ for a miss, text on difficulty buttons).
 - Comfort: no large areas of saturated or pure-white colour, keep flashes short and moderate, and

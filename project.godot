@@ -184,10 +184,6 @@ env_light={
 "type": "color",
 "value": Color(0, 0, 0, 1)
 }
-shadow_tint={
-"type": "color",
-"value": Color(0, 0, 0, 1)
-}
 combo_glow={
 "type": "float",
 "value": 0.0

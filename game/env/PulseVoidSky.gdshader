@@ -7,7 +7,6 @@ render_mode unshaded, fog_disabled, shadows_disabled;
 // track end, 1 ring lights -> a faint band around the player, 2/3 left/right lasers -> glow on that side,
 // 4 centre lights -> the core at the track end. All values untuned.
 global uniform vec4 env_haze;
-#include "res://game/env/shadow_tone.gdshaderinc"
 #include "res://game/env/fog_light.gdshaderinc"
 // DebugView.SKY draws the sky plain black
 global uniform int debug_view;
@@ -60,6 +59,6 @@ void fragment() {
 		sky += bg_2_tint.rgb * bg_2_intensity * smoothstep(0.2, 1.0, -d.x) * side_fade;
 		sky += bg_3_tint.rgb * bg_3_intensity * smoothstep(0.2, 1.0, d.x) * side_fade;
 		ALBEDO = sky;
-		ALBEDO = fog_dither(shadow_tone(ALBEDO), FRAGCOORD.xy);
+		ALBEDO = fog_dither(ALBEDO, FRAGCOORD.xy);
 	}
 }

@@ -47,7 +47,6 @@
 
 global uniform vec4 env_haze;
 global uniform vec4 env_light;
-#include "res://game/env/shadow_tone.gdshaderinc"
 #include "res://game/env/fog_light.gdshaderinc"
 #include "res://game/env/height_fog.gdshaderinc"
 // DebugView.RINGS leaves these out (no area, so nothing is drawn); DebugView.FLAT_SCENERY draws them one flat colour
@@ -302,7 +301,7 @@ void fragment() {
 		// 5. per pixel on faces too big for a blend of their corners
 		float haze_amount = fog_per_pixel ? fog_at(world_pos, CAMERA_POSITION_WORLD, TIME) : fog;
 #ifdef WINDOWS
-		// the windows go on after the shadow tone, which would grey their colour
+		// the windows: light, so on top of the haze, which only dims them
 		vec3 windows_on = windows_light() * (1.0 - haze_amount);
 #else
 		vec3 windows_on = vec3(0.0);
@@ -311,6 +310,6 @@ void fragment() {
 		float haze_amount = fog;
 		vec3 windows_on = vec3(0.0);
 #endif
-		ALBEDO = fog_dither(shadow_tone(mix(lit, haze, haze_amount) + light * (1.0 - haze_amount)) + windows_on, FRAGCOORD.xy);
+		ALBEDO = fog_dither(mix(lit, haze, haze_amount) + light * (1.0 - haze_amount) + windows_on, FRAGCOORD.xy);
 	}
 }

@@ -437,7 +437,6 @@ func _ready() -> void:
 	_apply_msaa()
 	_apply_note_style()
 	_apply_environment()
-	# the scenery shaders tint their own shadows (game/env/shadow_tone.gdshaderinc)
 	_apply_atmosphere()
 	
 	if not vr.inVR:
@@ -556,12 +555,11 @@ func _apply_glow() -> void:
 	if low_res_glow:
 		low_res_glow.stage = glow - Glow.NEW_VIEWPORTS_ONLY + 1 if glow >= Glow.NEW_VIEWPORTS_ONLY else 0
 
-## The scenery shaders' share of Settings.atmosphere (height fog, dust, shadow tone) and the stage smoke; the haze and
+## The scenery shaders' share of Settings.atmosphere (height fog, dust) and the stage smoke; the haze and
 ## menu lights read it themselves.
 func _apply_atmosphere() -> void:
 	var eerie := Settings.atmosphere == "Eerie"
 	RenderingServer.global_shader_parameter_set(&"atmosphere_eerie", 1.0 if eerie else 0.0)
-	RenderingServer.global_shader_parameter_set(&"shadow_tint", Constants.EERIE_SHADOW_TINT if eerie else Constants.SHADOW_TINT)
 	event_driver.stage_smoke.apply_atmosphere()
 
 ## Sets the 3D view's anti-aliasing to Settings.msaa (it applies to both eyes).

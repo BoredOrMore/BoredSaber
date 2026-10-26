@@ -182,11 +182,10 @@ const MISS_COLOR := Color("ff4d5e")
 const COMBO_RING_COLOR := UI_TEXT
 const COMBO_RING_EMPTY_COLOR := Color(0.26, 0.28, 0.32)
 
-# Shadow toning for the scenery: black becomes SHADOW_TINT, fading out toward mid-tones (game/env/shadow_tone.gdshaderinc).
-const SHADOW_TINT := Color(0.0, 0.0, 0.102)
-# The Eerie atmosphere (Settings.atmosphere, agreed with the user 2026-10-22): shadows lean cold blue-green instead,
-# and the haze is pulled toward this cold grey; both stay dark, so the note colours keep standing out most.
-const EERIE_SHADOW_TINT := Color(0.0, 0.055, 0.075)
+# The scenery's shadows stay black: no colour toning (a navy tint in the darks was removed on the owner's request,
+# 2026-10-26: it turned every stage's darkest colour dark navy).
+# The Eerie atmosphere (Settings.atmosphere, agreed with the user 2026-10-22): the haze is pulled toward this cold
+# grey; it stays dark, so the note colours keep standing out most.
 const EERIE_HAZE_TINT := Color(0.8, 0.95, 1.05)
 # Walls and bombs use one danger colour: Beat Saber's default wall red (agreed with the user 2026-10-19), unless the
 # map sets its own wall colour.

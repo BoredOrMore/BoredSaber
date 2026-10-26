@@ -4,7 +4,7 @@ render_mode unshaded, shadows_disabled, fog_disabled;
 // The note track's deck (TrackDeck.gd), drawn opaque, so it costs no overdraw (the old track was one see-through
 // sheet 46 m long). It gives the eye surface detail a flat dark sheet didn't (owner, 2026-10-25: the track looked
 // flat), while staying darker than everything in the gameplay layer. In layers:
-//   1. base: dark metal, toned to navy in the shadows like the scenery (shadow_tone)
+//   1. base: dark metal
 //   2. nothing runs across the deck: any line across the track reads as a beat line (the owner had them out, plate seams
 //      included, 2026-10-25)
 //   3. lane grooves: a groove between neighbouring lanes, lane_width apart, along the track; they never move (the floor
@@ -26,7 +26,6 @@ render_mode unshaded, shadows_disabled, fog_disabled;
 // Grooves are thin and far away, so their width is antialiased with screen-space derivatives and they fade out with
 // the haze before they shimmer. Untuned.
 global uniform vec4 env_haze;
-#include "res://game/env/shadow_tone.gdshaderinc"
 #include "res://game/env/fog_light.gdshaderinc"
 
 // 1. base: near-black, the lane grooves just visible in it (owner, 2026-10-25: the deck read too bright; it was 0.06)
@@ -115,5 +114,5 @@ void fragment() {
 	}
 	vec3 lit = base * (1.0 - GROOVE_DARK * groove);
 	lit += light_color.rgb * LIGHT_TINT + sheen;
-	ALBEDO = fog_dither(shadow_tone(mix(lit, haze, fog)), FRAGCOORD.xy);
+	ALBEDO = fog_dither(mix(lit, haze, fog), FRAGCOORD.xy);
 }

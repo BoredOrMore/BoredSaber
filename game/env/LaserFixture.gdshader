@@ -15,7 +15,6 @@ render_mode unshaded, fog_disabled, shadows_disabled;
 
 global uniform vec4 env_haze;
 global uniform vec4 env_light;
-#include "res://game/env/shadow_tone.gdshaderinc"
 #include "res://game/env/fog_light.gdshaderinc"
 #include "res://game/env/height_fog.gdshaderinc"
 
@@ -58,5 +57,5 @@ void fragment() {
 	vec3 glow = mix(beam, vec3(level), LENS_WHITE * level);
 	vec3 lit = mix(body, glow, lens * step(0.001, level));
 	// the lens is a light: haze dims it less than the body
-	ALBEDO = fog_dither(shadow_tone(mix(lit, haze, fog * (1.0 - 0.5 * lens))), FRAGCOORD.xy);
+	ALBEDO = fog_dither(mix(lit, haze, fog * (1.0 - 0.5 * lens)), FRAGCOORD.xy);
 }
