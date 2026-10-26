@@ -336,10 +336,15 @@ func _apply_stinger_room(id: String) -> void:
 ## Each side's fan: from its stage, leaning RIG_FAN_MIN_DEG..RIG_FAN_MAX_DEG away from the track (never toward the sun).
 const RIG_FAN_MIN_DEG := 5.0
 const RIG_FAN_MAX_DEG := 70.0
-## Neon Grid's square bars: the horizontal ones become light strips along the arches' inner edges, shared between
-## the arches in NEON_STRIP_ARCHES' order; the vertical ones are left out. A bar is this long unscaled (metres).
-const NEON_STRIP_ARCHES := [NeonGridRig.ARCH_A, NeonGridRig.ARCH_B, NeonGridRig.ARCH_C]
-const SQUARE_BAR_LENGTH := 32.0
+## The arches' strips climb with the show (owner, 2026-10-26): a strip segment is lit once the show has built up to its
+## height on the arch (as Night City's windows, _built), at least STRIP_MIN; on the drop (show intensity over STRIP_DROP)
+## all of arch B lights; when the square bars' light is off they keep STRIP_QUIET of their last colour (dim, never
+## dark). They carry the square bars' light group (NeonGridRig's strips; the bars are left out there). Untuned.
+const STRIP_MIN := 0.25
+const STRIP_DROP := 0.85
+const STRIP_QUIET := 0.15
+const MENU_STRIPS := 0.5
+var _strip_last := Color.BLACK
 ## the sky sphere drawn this many times as far in Neon Grid, behind the arches (950 m, inside the camera's 1024 m far plane)
 const NEON_SKY_SCALE := 9.5
 const RAIL_BASIS := Basis(Vector3(1.0, 0.0, 0.0), Vector3(0.0, 1.0, 0.0), Vector3(0.0, 0.0, 0.3))
@@ -465,6 +470,20 @@ static func _span(laser: Node3D, from: Vector3, to: Vector3) -> void:
 	var b := laser.global_transform.basis
 	laser.global_transform.basis = Basis(b.x, b.y, b.z.normalized() * from.distance_to(to) / reach)
 
+## Neon Grid's arch strips: how far up they are lit (how far the show has built, all of B on the drop) and their light,
+## never dark.
+func _update_strips() -> void:
+	var material := neon_grid_rig.strip_material
+	material.set_shader_parameter(&"level", MENU_STRIPS if menu_focus else maxf(STRIP_MIN, _built))
+	material.set_shader_parameter(&"drop", 1.0 if not menu_focus and _intensity > STRIP_DROP else 0.0)
+	var color: Color = square_lasers_material.get_shader_parameter(&"light_color")
+	if color.get_luminance() > 0.01:
+		_strip_last = color
+	else:
+		var last := _strip_last if _strip_last.get_luminance() > 0.01 else left_color
+		color = Color(last.r * STRIP_QUIET, last.g * STRIP_QUIET, last.b * STRIP_QUIET)
+	material.set_shader_parameter(&"light_color", color)
+
 ## Hangs the lights on the environment's rig (see RIG_FAN_MIN_DEG).
 func _apply_rig(id: String) -> void:
 	for node: Node3D in _classic_rig:
@@ -527,20 +546,10 @@ func _apply_rig(id: String) -> void:
 					waving[i].global_position = Vector3(m.x, m.z, m.y)
 				else:
 					waving[i].global_position = crane[i - half]
-			# the square bars: strips along the arches' inner edges
-			var bars: Array[Node3D] = []
+			# the square bars' light goes to the arches' strips (NeonGridRig, ArchStrip.gdshader); the bars themselves are
+			# left out
 			for bar in _square_bars():
-				if bar.get_parent() != square_lasers_holder:
-					bar.visible = false
-				else:
-					bars.append(bar)
-			var spots: Array[Transform3D] = []
-			for k in NEON_STRIP_ARCHES.size():
-				@warning_ignore("integer_division")
-				var share := bars.size() / NEON_STRIP_ARCHES.size() + (1 if k < bars.size() % NEON_STRIP_ARCHES.size() else 0)
-				spots.append_array(NeonGridRig.arch_strips(NEON_STRIP_ARCHES[k], share, SQUARE_BAR_LENGTH))
-			for i in bars.size():
-				bars[i].global_transform = spots[i]
+				bar.visible = false
 		"night_city" when not Settings.classic_night_city:
 			_hang_canyon(waving)
 		"night_city":
@@ -734,6 +743,8 @@ func _process(delta: float) -> void:
 		if night_city_rig.billboard_material:
 			night_city_rig.billboard_material.set_shader_parameter(&"light_color",
 				square_lasers_material.get_shader_parameter(&"light_color"))
+	if environment == "neon_grid" and neon_grid_rig.strip_material:
+		_update_strips()
 	_follow_frames()
 	# update the level animations
 	#procces ring rotations

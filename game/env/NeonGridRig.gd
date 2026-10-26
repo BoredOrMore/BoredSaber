@@ -10,11 +10,17 @@ class_name NeonGridRig
 ## The lights hang on things that belong to the site (AGENTS.md "Light", rule 5: the carrier belongs to the world):
 ## the diagonal lasers are floodlights at B's and C's footings, fanning up and away from the sun; the left waving
 ## lasers are survey beacons on masts along the grid; the right ones the crane's work lights along its jib; the square
-## bars are light strips along the arches' inner edges (arch_strips). The sun and horizon stay clear.
+## bars' light runs in strips along the arches' inner edges (_add_strips). The sun and horizon stay clear.
 ## Dark boxes in one MultiMesh with the scenery's shader. Positions shared with EventDriver's Neon Grid rig.
 ## Sizes in metres, blockout, untuned. A tool script, so the arches show in the editor too (built, not saved: no owner).
 
 const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
+const ARCH_STRIP := preload("res://game/env/ArchStrip.gdshader")
+## The arches' light strips (ArchStrip.gdshader): a segment on each of an arch's boxes, along its inner face, this wide
+## (part of the arch's width) and thick; one MultiMesh, one draw call. EventDriver sets the material's light and level.
+const STRIP_WIDTH := 0.3
+const STRIP_THICK := 0.6
+var strip_material: ShaderMaterial
 ## An arch: [centre of its span on the ground (x, z), radius, span direction (0 across the track, 1 along it), lean
 ## (degrees, turned about its span's line: + tips its top toward -x, or toward +z for an arch across the track), how
 ## much of the half circle is built (1 all), section (width, depth)].
@@ -64,6 +70,37 @@ func _ready() -> void:
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
+	_add_strips()
+
+## The strips' MultiMesh: a segment per arch box, custom data its height on the arch and whether the arch is B.
+func _add_strips() -> void:
+	var spots: Array[Transform3D] = []
+	var data: Array[Color] = []
+	for arch: Array in [ARCH_A, ARCH_B, ARCH_C]:
+		var radius: float = arch[1]
+		var section: Vector2 = arch[5]
+		var step := PI / ARCH_SEGMENTS
+		for i in int(ceil(ARCH_SEGMENTS * float(arch[4]))):
+			var angle := (i + 0.5) * step
+			var t := arch_point(arch, angle)
+			var size := Vector3(section.x * STRIP_WIDTH, STRIP_THICK, radius * step * 1.02)
+			spots.append(Transform3D(t.basis * Basis.from_scale(size), t.origin + t.basis.y * (section.y * 0.5 + STRIP_THICK * 0.5)))
+			data.append(Color(sin(angle), 1.0 if arch == ARCH_B else 0.0, 0.0, 0.0))
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.use_custom_data = true
+	multimesh.mesh = BoxMesh.new()
+	multimesh.instance_count = spots.size()
+	for i in spots.size():
+		multimesh.set_instance_transform(i, spots[i])
+		multimesh.set_instance_custom_data(i, data[i])
+	strip_material = ShaderMaterial.new()
+	strip_material.shader = ARCH_STRIP
+	var instance := MultiMeshInstance3D.new()
+	instance.multimesh = multimesh
+	instance.material_override = strip_material
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(instance)
 
 ## Where a point at `angle` (0 one footing, PI the other) on an arch's centre line is, and the way along the curve.
 static func arch_point(arch: Array, angle: float) -> Transform3D:
@@ -91,23 +128,6 @@ static func arch_boxes(arch: Array) -> Array[Transform3D]:
 		var length := radius * step * 1.08
 		boxes.append(Transform3D(t.basis * Basis.from_scale(Vector3(section.x, section.y, length)), t.origin))
 	return boxes
-
-## The light strips on an arch's inner edge: `count` evenly along its built part, each a transform for a square bar
-## (its length along -z, `bar_length` metres before scaling).
-static func arch_strips(arch: Array, count: int, bar_length: float) -> Array[Transform3D]:
-	var strips: Array[Transform3D] = []
-	var radius: float = arch[1]
-	var section: Vector2 = arch[5]
-	var built := PI * float(arch[4])
-	for i in count:
-		var angle := built * (i + 0.5) / count
-		var t := arch_point(arch, angle)
-		# on the inner face, toward the arch's middle
-		var inward := t.basis.y
-		var length := radius * built / count * 0.8
-		var scale := Vector3(section.x * 0.15, section.x * 0.15, length / bar_length)
-		strips.append(Transform3D(t.basis * Basis.from_scale(scale), t.origin + inward * (section.y * 0.5 + 0.3)))
-	return strips
 
 ## The tower crane on C's unfinished end: mast, jib reaching over the gap toward the track, counter-jib.
 static func _crane() -> Array[Transform3D]:
