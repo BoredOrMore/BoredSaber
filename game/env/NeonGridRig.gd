@@ -29,10 +29,11 @@ const ARCH_B := [Vector2(-450.0, -420.0), 350.0, 1.0, 15.0, 1.0, Vector2(26.0, 1
 const ARCH_C := [Vector2(450.0, -450.0), 260.0, 1.0, -8.0, 0.62, Vector2(16.0, 12.0)]
 ## boxes along each arch's half circle
 const ARCH_SEGMENTS := 28
-## The crane at C's unfinished end: mast (side, height above the end), jib (length, toward the track), counter-jib.
-const CRANE_MAST := Vector2(4.0, 30.0)
+## The tower crane at C's unfinished end (doc/assets/tower_crane/spec.md): the model stands on the end; its jib's root
+## is CRANE_JIB_Y above its foot, the jib CRANE_JIB.x long toward the track, the work lights CRANE_JIB.y under it.
+const TOWER_CRANE := preload("res://game/models/tower_crane.glb")
+const CRANE_JIB_Y := 32.6
 const CRANE_JIB := Vector2(70.0, 3.0)
-const CRANE_COUNTER := 22.0
 ## Survey masts on the left (x, z, height): lattice-mast stand-ins carrying the left waving lasers' beacons, uneven.
 const SURVEY_MASTS: Array[Vector3] = [Vector3(-9.0, -6.0, 9.0), Vector3(-15.0, -19.0, 12.0), Vector3(-11.0, -33.0, 8.0),
 	Vector3(-24.0, -46.0, 14.0)]
@@ -52,7 +53,6 @@ func _ready() -> void:
 	var boxes: Array[Transform3D] = []
 	for arch: Array in [ARCH_A, ARCH_B, ARCH_C]:
 		boxes.append_array(arch_boxes(arch))
-	boxes.append_array(_crane())
 	for m in SURVEY_MASTS:
 		boxes.append(_box(Vector3(m.x, m.z * 0.5 - 0.5, m.y), Vector3(MAST_SIZE, m.z + 1.0, MAST_SIZE)))
 	for c: Array in CLUTTER:
@@ -70,6 +70,12 @@ func _ready() -> void:
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
+	var crane := MeshInstance3D.new()
+	crane.mesh = LaserFixtures._model_mesh(TOWER_CRANE)
+	crane.position = arch_point(ARCH_C, PI * float(ARCH_C[4])).origin
+	crane.material_override = material
+	crane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(crane)
 	_add_strips()
 
 ## The strips' MultiMesh: a segment per arch box, custom data its height on the arch and whether the arch is B.
@@ -129,19 +135,10 @@ static func arch_boxes(arch: Array) -> Array[Transform3D]:
 		boxes.append(Transform3D(t.basis * Basis.from_scale(Vector3(section.x, section.y, length)), t.origin))
 	return boxes
 
-## The tower crane on C's unfinished end: mast, jib reaching over the gap toward the track, counter-jib.
-static func _crane() -> Array[Transform3D]:
-	var top := crane_top()
-	var boxes: Array[Transform3D] = []
-	boxes.append(_box(top - Vector3(0.0, CRANE_MAST.y * 0.5, 0.0), Vector3(CRANE_MAST.x, CRANE_MAST.y, CRANE_MAST.x)))
-	boxes.append(_box(top + Vector3(-CRANE_JIB.x * 0.5, 0.0, 0.0), Vector3(CRANE_JIB.x, CRANE_JIB.y, CRANE_JIB.y)))
-	boxes.append(_box(top + Vector3(CRANE_COUNTER * 0.5, 0.0, 0.0), Vector3(CRANE_COUNTER, CRANE_JIB.y * 1.5, CRANE_JIB.y * 1.5)))
-	return boxes
-
-## The top of the crane's mast (where its jib starts), above C's unfinished end.
+## Where the crane's jib starts, above C's unfinished end.
 static func crane_top() -> Vector3:
 	var end := arch_point(ARCH_C, PI * float(ARCH_C[4]))
-	return end.origin + Vector3(0.0, CRANE_MAST.y, 0.0)
+	return end.origin + Vector3(0.0, CRANE_JIB_Y, 0.0)
 
 ## The crane's work lights along its jib (the right waving lasers), `count` of them.
 static func crane_lights(count: int) -> Array[Vector3]:
