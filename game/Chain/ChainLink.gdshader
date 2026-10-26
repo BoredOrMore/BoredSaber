@@ -1,5 +1,8 @@
 shader_type spatial;
-render_mode unshaded, cull_disabled;
+render_mode unshaded, cull_disabled, fog_disabled;
+// Notes keep their own colour whatever the stage's lights do, as Beat Saber's notes do (their shaders carry their own
+// fixed light, BSMG notes guide): no haze or light colour in the reflections, and no fog (owner, 2026-10-26: notes
+// tinted by the stage and its haze were harder to read).
 
 // Same fake light and the same two looks (note_style) as BeepCube.gdshader, since the scene has no lights; see there.
 // The link has no bevelled edges, so its Neon look has no bevel highlight, nor its glossy look (note_style 2) a
@@ -11,9 +14,7 @@ const float REFLECT = 0.12;
 const float REFLECT_WHITE = 0.2;
 const float SPEC_POWER = 16.0;
 const float SPEC_STRENGTH = 0.08;
-const float HAZE_REFLECT = 1.0;
 
-global uniform vec4 env_haze;
 global uniform int note_style;
 #include "res://game/BeepCube/note_gloss.gdshaderinc"
 // Darker Notes: the body colour's HSV value is capped here, so hue and saturation stay (1.0 = off)
@@ -83,7 +84,7 @@ void fragment() {
 			if (note_style == 1) {
 				vec3 view_world = normalize((INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz);
 				vec3 r = reflect(-view_world, world_normal);
-				vec3 reflection = mix(body, vec3(1.0), REFLECT_WHITE) * (studio(r) * REFLECT + env_haze.rgb * HAZE_REFLECT);
+				vec3 reflection = mix(body, vec3(1.0), REFLECT_WHITE) * studio(r) * REFLECT;
 				float spec = pow(clamp(dot(world_normal, normalize(normalize(LIGHT_DIR) + view_world)), 0.0, 1.0), SPEC_POWER) * SPEC_STRENGTH;
 				base += body * NEON_GLOW + reflection + vec3(spec);
 			}

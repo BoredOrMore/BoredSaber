@@ -1,5 +1,8 @@
 shader_type spatial;
-render_mode unshaded, cull_disabled;
+render_mode unshaded, cull_disabled, fog_disabled;
+// Notes keep their own colour whatever the stage's lights do, as Beat Saber's notes do (their shaders carry their own
+// fixed light, BSMG notes guide): no haze or light colour in the reflections, and no fog (owner, 2026-10-26: notes
+// tinted by the stage and its haze were harder to read).
 
 // The scene has no lights, so real lighting only gave every face the same
 // ambient brightness and the cubes looked flat. Instead this fakes a light from
@@ -34,13 +37,10 @@ const float REFLECT = 0.12;
 const float REFLECT_WHITE = 0.2;
 const float SPEC_POWER = 16.0;
 const float SPEC_STRENGTH = 0.08;
-// the scene's lit haze shows up in the reflections too
-const float HAZE_REFLECT = 1.0;
 // a blurred copy of the arrow drawn under it as a faint halo, using a smaller mipmap of the same texture
 const float ARROW_HALO_BLUR = 3.0;
 const float ARROW_HALO = 0.35;
 
-global uniform vec4 env_haze;
 #include "res://game/BeepCube/note_gloss.gdshaderinc"
 // the glossy look's arrow and dot: how far the core goes toward white, its brightness, the halo's, and the dot's disc
 // (the texture's dot is a ring; Beat Saber's is solid) in the dot's UVs: its centre and radius, and its soft edge
@@ -140,7 +140,7 @@ void fragment() {
 		if (neon) {
 			vec3 view_world = normalize((INV_VIEW_MATRIX * vec4(VIEW, 0.0)).xyz);
 			vec3 r = reflect(-view_world, world_normal);
-			vec3 reflection = mix(body, vec3(1.0), REFLECT_WHITE) * (studio(r) * REFLECT + env_haze.rgb * HAZE_REFLECT);
+			vec3 reflection = mix(body, vec3(1.0), REFLECT_WHITE) * studio(r) * REFLECT;
 			float spec = pow(clamp(dot(world_normal, normalize(normalize(LIGHT_DIR) + view_world)), 0.0, 1.0), SPEC_POWER) * SPEC_STRENGTH;
 			// on a bevel at least two of the three coordinates are near the edge of the cube
 			float bevel = smoothstep(BEVEL_START, BEVEL_FULL, middle(abs(local_pos)));

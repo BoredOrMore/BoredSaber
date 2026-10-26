@@ -1,4 +1,6 @@
 shader_type spatial;
+// arcs keep their note colour from far away to the notes: no fog, like the notes (owner, 2026-10-26)
+render_mode fog_disabled;
 
 uniform vec4 color: source_color;
 uniform float emission = 2.0;

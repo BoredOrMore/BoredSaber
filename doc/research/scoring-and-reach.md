@@ -72,3 +72,14 @@ ramping 0 to 1 over the new range. Each bad-angle cut now logs `bad_angle off <d
   `DefaultPlayerHeight = 1.8`, `playerHeightOffset = clamp((height - 1.8) / 2, -0.2, 0.6)`,
   `PlayerCutPlaneDistance = 0.65`. The 0.85 m bottom row is the commonly cited value; ArcViewer gives the offsets
   between rows. Not from Beat Games directly: confirm on the headset.
+
+## Centre points: Beat Saber's formula (2026-10-26)
+
+Beat Saber gives 15 * (1 - Clamp01(d / 0.3)) centre points, d the cut plane's distance from the note's centre in
+metres (BeatLeader's open replay format, github.com/BeatLeader/BS-Open-Replay; community, not published by Beat
+Games). Full only on the centre (about 1 cm with Beat Saber's rounding), about one point per 2 cm, none from 30 cm,
+which is past the block's edge, so any cut that touches a block earns some. Ours was full within 2 cm and none at
+19 cm (the edge of our 0.375 m block): 53% at 10 cm (Beat Saber 67%), 24% at 15 cm (50%), none past 19 cm (37% at 19
+cm). The owner chose Beat Saber's formula: `BeepCube.CUT_CENTRE_FULL` 0, `CUT_CENTRE_REACH` 0.3, the same share of 20.
+Beat Saber's hit boxes (SimSaber, github.com/MetaGuard/SimSaber): good cut 0.8 x 0.5 x 1.0 for arrows (0.8 x 0.8 x 1.0
+for dots) centred 0.25 behind the note, bad cut 0.4 x 0.4 x 0.4; ours match (bad cut 0.375).

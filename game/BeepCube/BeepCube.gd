@@ -8,11 +8,13 @@ signal cutted(correct_saber: bool)
 # haptic strength for the sloppiest correct cut (a clean one is 1.0) and for a wrong-saber hit
 const MIN_CUT_RUMBLE := 0.3
 const WRONG_SABER_RUMBLE := 0.2
-## How close to the block's centre a cut has to pass, in metres at block size 100: full centre points within
-## CUT_CENTRE_FULL, falling to none at CUT_CENTRE_REACH, the block's edge (half its 0.375 m hit box). It ended at
-## 0.1 m before, so 54% of headset cuts that hit the block cleanly got no centre points.
-const CUT_CENTRE_FULL := 0.02
-const CUT_CENTRE_REACH := 0.19
+## Centre points, Beat Saber's formula (owner, 2026-10-26): the share 1 - d / CUT_CENTRE_REACH, d the cut plane's
+## distance from the block's centre in metres at block size 100, full only on the centre and none from 0.3 m out
+## (past the block's edge, so any cut that touches it earns some). Beat Saber gives 15 * (1 - Clamp01(d / 0.3f))
+## (BeatLeader's open replay format, github.com/BeatLeader/BS-Open-Replay); ours is the same share of 20.
+## It was full within 0.02 m and none at 0.19 m, much stricter further out (24% at 0.15 m, Beat Saber 50%).
+const CUT_CENTRE_FULL := 0.0
+const CUT_CENTRE_REACH := 0.3
 ## A cut counts when the swing is within 60° of the arrow (dot >= cos 60°), as Beat Saber does (owner's pick,
 ## 2026-10-25); it was about 46° (dot 0.7). The angle points ramp 0 to 1 across that range.
 const GOOD_CUT_DOT := 0.5
