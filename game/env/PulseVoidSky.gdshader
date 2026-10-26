@@ -22,7 +22,7 @@ uniform lowp float bg_3_intensity = 0.0;
 uniform lowp float bg_4_intensity = 0.0;
 
 // less haze than the other skies: this one is meant to feel empty
-const float SKY_HAZE = 0.06;
+const float SKY_HAZE = 0.03;
 const vec3 TRACK_DIR = vec3(0.0, 0.0, -1.0);
 const float CORE_WIDTH = 0.08;
 const float CORE_STRENGTH = 0.8;
@@ -51,7 +51,7 @@ void fragment() {
 		vec3 d = normalize(dir);
 		// 0 looking straight down the track, 2 looking straight back
 		float off_axis = 1.0 - dot(d, TRACK_DIR);
-		vec3 sky = haze * (SKY_HAZE + exp(-off_axis / HALO_WIDTH) * 0.3);
+		vec3 sky = haze * (SKY_HAZE + exp(-off_axis / HALO_WIDTH) * 0.15);
 		sky += bg_4_tint.rgb * bg_4_intensity * CORE_STRENGTH * exp(-off_axis / CORE_WIDTH);
 		sky += bg_0_tint.rgb * bg_0_intensity * HALO_STRENGTH * exp(-off_axis / HALO_WIDTH);
 		sky += bg_1_tint.rgb * bg_1_intensity * BAND_STRENGTH * exp(-abs(d.y) * BAND_SHARPNESS);

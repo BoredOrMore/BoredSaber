@@ -44,8 +44,10 @@ global uniform vec4 env_haze;
 global uniform int debug_view;
 // how much of the haze colour fills the whole sky, and how fast the brighter band at the horizon thins out (untuned;
 // 0.25 washed the whole background purple with the lights on, against \"blacks stay black\", owner 2026-10-25)
-const float SKY_HAZE = 0.08;
+const float SKY_HAZE = 0.04;
 const float HORIZON_SHARPNESS = 10.0;
+// the horizon band's share of the haze (owner, 2026-10-26: halved, the background had too much fog colour)
+const float HORIZON_HAZE = 0.5;
 uniform lowp vec4 bg_0_tint;
 uniform lowp vec4 bg_1_tint;
 uniform lowp vec4 bg_2_tint;
@@ -85,7 +87,7 @@ void fragment(){
 	if (bg_3_intensity>0.0){ALBEDO = get_from_map(bg_3, xinv_uv, (bg_3_intensity*bg_3_intensity_mult), ALBEDO, bg_3_tint);}
 	if (bg_4_intensity>0.0){ALBEDO = get_from_map(bg_4, xinv_uv, (bg_4_intensity*bg_4_intensity_mult), ALBEDO, bg_4_tint);}
 	ALBEDO.rgb = vec3(pow(ALBEDO.r, contrast), pow(ALBEDO.g, contrast), pow(ALBEDO.b, contrast));
-	ALBEDO += haze * (SKY_HAZE + exp(-abs(UV.y - 0.5) * HORIZON_SHARPNESS));
+	ALBEDO += haze * (SKY_HAZE + HORIZON_HAZE * exp(-abs(UV.y - 0.5) * HORIZON_SHARPNESS));
 	ALBEDO = fog_dither(ALBEDO, FRAGCOORD.xy);
 	}
 }"

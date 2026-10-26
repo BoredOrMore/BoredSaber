@@ -30,7 +30,7 @@ uniform lowp float bg_4_intensity = 0.0;
 // must match tools/bake_neon_grid_sky.py: the UV.y band the masks cover, and the scale each mask is stored at
 const float V_TOP = 0.5 - 50.0 / 180.0;
 const float V_BOTTOM = 0.5 + 5.0 / 180.0;
-const float HAZE_SCALE = 1.5;
+const float HAZE_SCALE = 0.75;
 const float SUN_SCALE = 2.0;
 const float RING_SCALE = 1.5;
 const float BAND_SCALE = 0.25;

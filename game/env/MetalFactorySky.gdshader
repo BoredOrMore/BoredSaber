@@ -11,7 +11,7 @@ global uniform vec4 env_haze;
 global uniform int debug_view;
 
 // how much of the haze's colour the dark takes: well below the hall's far, hazed faces, so it reads as depth
-const float SKY_HAZE = 0.03;
+const float SKY_HAZE = 0.015;
 
 // the haze lit from the key light, per vertex: the sky and the cloud sea are fine enough meshes that it looks the same
 // as per pixel, for less work (fog benchmark, 2026-10-25)

@@ -56,7 +56,7 @@ const float GLASS_SHARPNESS = 5.0;
 uniform vec4 light_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
 const float LIGHT_TINT = 0.025;
 // 5. haze per metre, and the share of it the deck takes
-const float FOG_DENSITY = 0.03;
+const float FOG_DENSITY = 0.015;
 const float DECK_HAZE = 0.3;
 // 6. the far fade's start and end, metres out along the track (-z), set by TrackDeck.gd
 uniform vec2 fade_z = vec2(60.0, 140.0);

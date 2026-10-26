@@ -29,14 +29,14 @@ uniform lowp float bg_4_intensity = 0.0;
 // must match tools/bake_night_city_sky.py
 const float V_TOP = 0.5 - 75.0 / 180.0;
 const float V_BOTTOM = 0.5 + 5.0 / 180.0;
-const float HAZE_SCALE = 1.5;
+const float HAZE_SCALE = 0.75;
 const float RIM_SCALE = 1.0;
 const float BAND_SCALE = 0.25;
 const float GLOW_SCALE = 0.5;
 // windows: how bright they glow with their light, how faintly with the haze alone, the share switched on, and
 // how many seconds each one stays as it is
 const float WINDOW_LIGHT = 0.9;
-const float WINDOW_HAZE = 2.0;
+const float WINDOW_HAZE = 1.0;
 const float WINDOWS_ON = 0.7;
 const float WINDOW_PERIOD = 6.0;
 

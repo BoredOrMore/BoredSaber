@@ -20,7 +20,7 @@ const LIGHT_SPILL := 0.3
 ## the buildings' metal darker than EnvSolid's (0.094), and less of the haze (0.03 a metre: the near ones, 20 m out,
 ## went half haze-grey). Untuned.
 const ALBEDO := Color(0.05, 0.05, 0.06)
-const FOG_DENSITY := 0.015
+const FOG_DENSITY := 0.0075
 const INNER_FACE_X := 19.0
 const DEPTH_X := 7.0
 ## [z centre, length along the track, height] of each building, left side then right side
@@ -85,7 +85,7 @@ const SEA_Y := -30.0
 const SEA_SIZE := Vector2(320.0, 320.0)
 const SEA_CENTRE := Vector2(90.0, -120.0)
 const SEA_CELLS := 56
-const CANYON_FOG := Vector4(SEA_Y - 2.0, 0.18, 0.22, 1.0)
+const CANYON_FOG := Vector4(SEA_Y - 2.0, 0.09, 0.22, 1.0)
 const CANYON_FOG_ROLL := 0.6
 ## Nothing below the sea of cloud shows (it is opaque and covers the whole canyon), so the boxes stop HIDDEN_Y,
 ## under its lowest trough, instead of at the street: the GPU shades none of what it would hide (bench, 2026-10-25: the

@@ -128,11 +128,14 @@ const float WINDOW_REACH = 200.0;
 #endif
 
 // 5. haze: per metre
-uniform float fog_density = 0.03;
+uniform float fog_density = 0.015;
 // how fast the extra floor haze thins out going up, per metre
 uniform float floor_haze_falloff = 0.35;
 // how much of the height fog the solids take: less than the air, so buildings and frames read as dark shapes
 const float SOLID_HEIGHT_FOG = 0.55;
+// the most of the haze distance and height fog give anything, so far scenery stays a dark shape against a black
+// background instead of turning the fog's colour (owner, 2026-10-26: halved; the black background had too much fog colour)
+const float FAR_HAZE_MAX = 0.6;
 #ifdef CANYON
 // 5b. a stage's own fog: [level, density there, thinning per metre up, how much], how much its density rolls, per pixel
 uniform vec4 canyon_fog = vec4(0.0);
@@ -173,7 +176,7 @@ float fog_at(vec3 world, vec3 cam, float time) {
 	float floor_haze = exp(-max(world.y, 0.0) * floor_haze_falloff);
 	float f = clamp(distance_fog * mix(0.5, 1.0, floor_haze), 0.0, 1.0);
 	// height fog lifts the solids' bottoms into the fog, but they stay darker than the air around them (silhouettes)
-	f = max(f, height_fog(world, cam) * SOLID_HEIGHT_FOG);
+	f = min(max(f, height_fog(world, cam) * SOLID_HEIGHT_FOG), FAR_HAZE_MAX);
 #ifdef CANYON
 	if (canyon_fog.w > 0.0) {
 		// 5b. the stage's own fog, its density rolling with two slow drifting waves

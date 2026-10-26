@@ -21,7 +21,7 @@ const float MIN_LINE_PIXELS = 1.5;
 const float CORE_WHITE = 0.6;
 const float GAIN = 0.8;
 // the haze over far panels, per metre
-const float FOG_DENSITY = 0.004;
+const float FOG_DENSITY = 0.002;
 
 varying float shape;
 varying vec2 aspect;

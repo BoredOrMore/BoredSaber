@@ -4,7 +4,7 @@
 // the fog takes the colour of the lights that are on (env_haze). Analytic integral of exponential height fog
 // along the view ray (Quilez, "Better fog", 2010). Values untuned; shared by the scenery shaders.
 // fog density at the floor (per metre), and how fast it thins out going up (per metre)
-const float HEIGHT_FOG_DENSITY = 0.06;
+const float HEIGHT_FOG_DENSITY = 0.03;
 const float HEIGHT_FOG_FALLOFF = 0.8;
 // how much brighter the fog layer is than the plain haze, as it catches the stage's light
 const float HEIGHT_FOG_GLOW = 1.4;

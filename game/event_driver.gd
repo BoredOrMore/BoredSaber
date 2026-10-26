@@ -418,13 +418,13 @@ func _hang_canyon(waving: Array[Node3D]) -> void:
 ## Each stage's key light for the fog's in-scattering (fog_light.gdshaderinc): the way to it from the player (x, y, z)
 ## and how strongly the haze brightens toward it (w). Classic: the stage ahead and above; Neon Grid: the sun on the
 ## horizon; Night City: the glow at the canyon's far end, a little toward the open side; Pulse Void: the tunnel's
-## bright end; Metal Factory: the gear pit ahead, gently. Untuned.
+## bright end; Metal Factory: the gear pit ahead, gently. Halved with the fog (owner, 2026-10-26). Untuned.
 const FOG_KEYS := {
-	"classic": Vector4(0.0, 0.3, -1.0, 0.12),
-	"neon_grid": Vector4(0.0, 0.12, -1.0, 0.2),
-	"night_city": Vector4(0.2, 0.1, -1.0, 0.15),
-	"pulse_void": Vector4(0.0, 0.0, -1.0, 0.2),
-	"metal_factory": Vector4(0.0, 0.05, -1.0, 0.08),
+	"classic": Vector4(0.0, 0.3, -1.0, 0.06),
+	"neon_grid": Vector4(0.0, 0.12, -1.0, 0.1),
+	"night_city": Vector4(0.2, 0.1, -1.0, 0.075),
+	"pulse_void": Vector4(0.0, 0.0, -1.0, 0.1),
+	"metal_factory": Vector4(0.0, 0.05, -1.0, 0.04),
 }
 
 ## Pulse Void's beams: their width and brightness, parts of the beams' own (untuned)

@@ -29,7 +29,7 @@ const float SPILL = 0.12;
 // 4. lens: how far its colour leans toward white at full brightness
 const float LENS_WHITE = 0.6;
 // 5. haze: per metre, and how much of the height fog the body takes
-const float FOG_DENSITY = 0.03;
+const float FOG_DENSITY = 0.015;
 const float SOLID_HEIGHT_FOG = 0.55;
 
 varying float shade;
@@ -46,7 +46,8 @@ void vertex() {
 	lens = COLOR.g;
 	beam = INSTANCE_CUSTOM.rgb;
 	float dist = length(world - CAMERA_POSITION_WORLD);
-	fog = max(1.0 - exp(-FOG_DENSITY * dist), height_fog(world, CAMERA_POSITION_WORLD) * SOLID_HEIGHT_FOG);
+	// at most the scenery's share of haze (EnvSolid FAR_HAZE_MAX)
+	fog = min(max(1.0 - exp(-FOG_DENSITY * dist), height_fog(world, CAMERA_POSITION_WORLD) * SOLID_HEIGHT_FOG), 0.6);
 }
 
 void fragment() {
