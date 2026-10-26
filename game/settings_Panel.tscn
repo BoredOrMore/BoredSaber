@@ -830,6 +830,10 @@ text = "Classic walls"
 layout_mode = 2
 text = "Classic Night City"
 
+[node name="refresh_90" type="CheckButton" parent="Tabs/Advanced/VBox"]
+layout_mode = 2
+text = "90 Hz display"
+
 [node name="defaults" type="Button" parent="."]
 layout_mode = 0
 offset_left = 24.0
@@ -914,5 +918,6 @@ scroll_without_pointer = true
 [connection signal="toggled" from="Tabs/Advanced/VBox/classic_notes" to="." method="_on_classic_notes_toggled"]
 [connection signal="toggled" from="Tabs/Advanced/VBox/classic_walls" to="." method="_on_classic_walls_toggled"]
 [connection signal="toggled" from="Tabs/Advanced/VBox/classic_night_city" to="." method="_on_classic_night_city_toggled"]
+[connection signal="toggled" from="Tabs/Advanced/VBox/refresh_90" to="." method="_on_refresh_90_toggled"]
 [connection signal="confirmed" from="defaults" to="." method="_restore_defaults"]
 [connection signal="pressed" from="apply" to="." method="_on_apply_pressed"]

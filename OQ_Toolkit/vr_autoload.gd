@@ -114,6 +114,21 @@ func get_current_player_height() -> float:
 #       ExportSettings->Resources->Filters options
 # TODO: Dictionary keys and values are currently only weak typed.
 # if it's possible to make them strong-typed in the future, do that.
+## Sets the display to 72 Hz (90 with Settings.refresh_90) if the headset offers it, else its highest rate, and the
+## physics to the same rate.
+func apply_refresh_rate() -> void:
+	if not xr_interface or not xr_interface.has_method(&"get_available_display_refresh_rates"):
+		return
+	var fps : Array = xr_interface.get_available_display_refresh_rates()
+	log_info("avaliable fps: "+str(fps))
+	if fps.is_empty():
+		return
+	var wanted := 90.0 if Settings.refresh_90 else 72.0
+	var rate: float = wanted if fps.has(wanted) else float(fps[fps.size() - 1])
+	xr_interface.set_display_refresh_rate(rate)
+	Engine.set_physics_ticks_per_second(int(rate))
+	log_info("display refresh rate " + str(rate))
+
 func load_json_file(filename: String) -> Dictionary:
 	var save := FileAccess.open(filename, FileAccess.READ)
 	if save:
@@ -196,14 +211,7 @@ func initialize(origin: XROrigin3D, camera: XRCamera3D, left_hand: BeepSaberCont
 	if xr_interface: xr_interface.render_target_size_multiplier = render_scale
 	if xr_interface and xr_interface.is_initialized():
 		log_info("OpenXR initialised successfully")
-		if xr_interface.has_method(&"get_available_display_refresh_rates"):
-			var fps : Array = xr_interface.get_available_display_refresh_rates()
-			log_info("avaliable fps: "+str(fps))
-			if fps and fps.size() >= 1:
-				var max_fps: Variant = fps[fps.size() - 1]
-				if max_fps is float:
-					xr_interface.set_display_refresh_rate(max_fps as float)
-					Engine.set_physics_ticks_per_second(max_fps as int)
+		apply_refresh_rate()
 		
 		
 		# Turn off v-sync!

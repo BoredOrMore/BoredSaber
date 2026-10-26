@@ -48,6 +48,7 @@ signal benchmark_requested()
 @onready var classic_notes_control := $Tabs/Advanced/VBox/classic_notes as CheckButton
 @onready var classic_walls_control := $Tabs/Advanced/VBox/classic_walls as CheckButton
 @onready var classic_night_city_control := $Tabs/Advanced/VBox/classic_night_city as CheckButton
+@onready var refresh_90_control := $Tabs/Advanced/VBox/refresh_90 as CheckButton
 @onready var background_mode_control := $Tabs/Visuals/VBox/background_mode_grid/background_mode as OptionButton
 @onready var background_texture_control := $Tabs/Visuals/VBox/background_texture_grid/background_texture as OptionButton
 @onready var note_style_control := $Tabs/Visuals/VBox/note_style_grid/note_style as OptionButton
@@ -188,6 +189,7 @@ func set_controls_from_settings() -> void:
 	classic_notes_control.button_pressed = Settings.classic_notes
 	classic_walls_control.button_pressed = Settings.classic_walls
 	classic_night_city_control.button_pressed = Settings.classic_night_city
+	refresh_90_control.button_pressed = Settings.refresh_90
 
 func _restore_defaults() -> void:
 	Settings.restore_defaults()
@@ -543,6 +545,10 @@ func _on_classic_walls_toggled(value: bool) -> void:
 ## Switches Night City between the building canyon and its classic layout.
 func _on_classic_night_city_toggled(value: bool) -> void:
 	Settings.classic_night_city = value
+
+## The display at 90 Hz instead of 72.
+func _on_refresh_90_toggled(value: bool) -> void:
+	Settings.refresh_90 = value
 
 
 func _on_recenter_button_up() -> void:

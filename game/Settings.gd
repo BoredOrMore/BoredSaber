@@ -291,6 +291,12 @@ var classic_night_city: bool:
 	set(value):
 		classic_night_city = value
 		set_and_emit(&"classic_night_city", value)
+## The display at 90 Hz instead of 72 when the headset offers it (vr.apply_refresh_rate): 72 is the default for every
+## scene, a 13.9 ms frame (owner, 2026-10-26)
+var refresh_90: bool:
+	set(value):
+		refresh_90 = value
+		set_and_emit(&"refresh_90", value)
 var spectator_hud: bool:
 	set(value):
 		spectator_hud = value
@@ -488,6 +494,7 @@ var default_values = {
 	classic_notes = false,
 	classic_walls = false,
 	classic_night_city = false,
+	refresh_90 = false,
 	background = "dynamic",
 	environment = "auto",
 	note_style = "solid",

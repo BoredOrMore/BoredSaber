@@ -664,6 +664,8 @@ func on_settings_changed(key: StringName) -> void:
 	if key == &"resolution" and not has_node(^"Benchmark"):
 		_apply_render_scale()
 	match key:
+		&"refresh_90":
+			vr.apply_refresh_rate()
 		&"left_handed":
 			if Settings.left_handed:
 				left_ui_raycast.active = true
