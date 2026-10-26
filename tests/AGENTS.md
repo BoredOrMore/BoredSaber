@@ -20,6 +20,8 @@ Engine-level checks that run without a headset or XR runtime: map `Info.dat` par
   `ScrollContainer` is allowed to run past it. Run it after any change to these panels or the theme. It also drags the song
   list with pointer events pushed into a `SubViewport` (as the game's canvases receive them): 1:1, no pick after a
   drag, a short press still picks.
+- `test_swing_rating.tscn` / `.gd` - checks `LightSaber.swept` (swing angles as Beat Saber measures them): a steady
+  approach counts in full, a step whose plane turned past 90° ends the count, a follow-through stops at the turn back.
 - `test_show_intensity.tscn` / `.gd` - checks `EventDriver.intensity_curve` (the build-up of the stage): a calm part
   low and a dense part high, values in 0..1, no curve without light events, finite values for a flat light show.
 

@@ -83,3 +83,12 @@ which is past the block's edge, so any cut that touches a block earns some. Ours
 cm). The owner chose Beat Saber's formula: `BeepCube.CUT_CENTRE_FULL` 0, `CUT_CENTRE_REACH` 0.3, the same share of 20.
 Beat Saber's hit boxes (SimSaber, github.com/MetaGuard/SimSaber): good cut 0.8 x 0.5 x 1.0 for arrows (0.8 x 0.8 x 1.0
 for dots) centred 0.25 behind the note, bad cut 0.4 x 0.4 x 0.4; ours match (bad cut 0.375).
+
+## Beat Saber's points and swing measurement (2026-10-26)
+
+The owner chose Beat Saber's numbers: 70 approach + 30 follow-through + 15 centre = 115 a note, chain head 85, link 20
+(were 90 / 40 / 20 = 150, link 25: the same shares, so accuracy and grades don't move; totals are about 0.77 of before).
+Swing angles are now measured as Beat Saber does (SimSaber): the sweep is added up step by step for up to 0.4 s before
+and after the cut while its plane stays within 90° of the cut's, steps past 75° counting less (`LightSaber.swept`).
+Before, the widest angle reached in 0.2 s each way. Not changed: arcs (ours give the head free approach points and the
+tail free follow-through; no source found for Beat Saber's rule) and a minimum swing speed (no confirmed figure).

@@ -59,14 +59,17 @@ const OPENSABER_ANGLE_ACCURACY_SCORE := 50.
 const OPENSABER_DISTANCE_ACCURACY_SCORE := 50.
 const OPENSABER_GOOD_SCORE := 88.
 const OPENSABER_CHAIN_LINK_SCORE := 20
-const SWING_CHAIN_HEAD_SCORE = 90
-const SWING_ACCURACY_SCORE = 20.
-const SWING_PRESWING_SCORE = 90.
-const SWING_FOLLOWTHROUGH_SCORE = 40.
+## Beat Saber's points (owner, 2026-10-26; bsmg.wiki/ranking-guide.html): 70 approach + 30 follow-through + 15
+## centre = 115 a note, a chain head 70 + 15 = 85 and a link 20. They were 90 / 40 / 20 (150), the same shares.
+const SWING_CHAIN_HEAD_SCORE = 85
+const SWING_ACCURACY_SCORE = 15.
+const SWING_PRESWING_SCORE = 70.
+const SWING_FOLLOWTHROUGH_SCORE = 30.
 const TARGET_PRESWING_ANGLE = 100.
 const TARGET_FOLLOWTHROUGH_ANGLE = 60.
-const SWING_GOOD_SCORE := 95.
-const SWING_CHAIN_LINK_SCORE := 25
+## a cut at or above this shows its number in the accent colour (95 of 150 before, the same share of 115)
+const SWING_GOOD_SCORE := 73.
+const SWING_CHAIN_LINK_SCORE := 20
 const HEALTH_MISS := -15.
 const HEALTH_BAD_CUT := -10.
 const HEALTH_HIT  := 1.
