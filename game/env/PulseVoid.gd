@@ -15,6 +15,9 @@ const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
 const ARCH_STRIP := preload("res://game/env/ArchStrip.gdshader")
 ## a dish panel (doc/assets/dish_panel/spec.md): a unit piece, its face's top at +0.5, scaled to each ring's panel
 const DISH_PANEL := preload("res://game/models/dish_panel.glb")
+## the feed cabin with its horn and the maintenance beam to 61 m ahead (doc/assets/feed_cabin/spec.md): origin at the
+## cabin's top centre
+const FEED_CABIN := preload("res://game/models/feed_cabin.glb")
 ## the dish: its radius, its vertex's height (the focus, a quarter of the diameter above it, is at the track; so is the
 ## rim), panel rings from DISH_INNER to the rim, segments round, the panels' thickness; the rim truss's section
 const DISH_RADIUS := 250.0
@@ -24,11 +27,9 @@ const DISH_RINGS := 14
 const DISH_SEGMENTS := 48
 const PANEL := 0.6
 const RIM := 3.0
-## the feed cabin under the player (size, its top just under the track deck) and the maintenance beam under the track
-## (width, depth, to z)
+## the feed cabin under the player (size, its top just under the track deck; the model's, where the legs meet it)
 const CABIN := Vector3(12.0, 7.0, 12.0)
 const CABIN_TOP := -0.4
-const BEAM := Vector3(4.0, 1.2, -61.0)
 ## the feed legs: from the cabin's corners down to the dish LEG_REACH out, at 45 degrees either side of ahead and behind;
 ## their section
 const LEG_REACH := 150.0
@@ -56,9 +57,6 @@ var drop_beam: MeshInstance3D
 func _ready() -> void:
 	var boxes: Array[Transform3D] = []
 	boxes.append_array(_dish())
-	boxes.append(_box(Vector3(0.0, CABIN_TOP - CABIN.y * 0.5, 0.0), CABIN))
-	boxes.append(_box(Vector3(0.0, CABIN_TOP - BEAM.y * 0.5, (BEAM.z - CABIN.z * 0.5) * 0.5),
-		Vector3(BEAM.x, BEAM.y, -BEAM.z - CABIN.z * 0.5)))
 	for k in 4:
 		boxes.append(_bar(_leg_top(k), _leg_foot(k), LEG))
 	for side in [-1.0, 1.0]:
@@ -92,6 +90,12 @@ func _ready() -> void:
 	dish.material_override = material
 	dish.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(dish)
+	var cabin := MeshInstance3D.new()
+	cabin.mesh = LaserFixtures._model_mesh(FEED_CABIN)
+	cabin.position = Vector3(0.0, CABIN_TOP, 0.0)
+	cabin.material_override = material
+	cabin.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(cabin)
 	_add_seams()
 
 ## The dish's height at a distance from its axis.
