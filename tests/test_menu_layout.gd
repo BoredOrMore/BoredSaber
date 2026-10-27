@@ -246,8 +246,8 @@ func _fill_worst_details(menu: MainMenu) -> void:
 	for level: Button in menu.level_row.get_children():
 		level.visible = true
 		level.text = "Expert+ 3"
-	menu.level_stats.max_lines_visible = 2
-	menu.level_stats.text = "13:44 · Notes 1.00 s ahead · Swings every 0.93 s\nSwing flow: Tangled · Workout"
+	menu.level_stats.text = "[center]%s[/center]" % StatPills.GAP.join(PackedStringArray([StatPills.length(824.0, 24),
+		StatPills.difficulty(1.0, 12.3, 2, 24), StatPills.workout(12, 24)]))
 	(menu.get_node("SongInfo_Label") as Label).text = "%s\n%s\nMapped by %s\nPlayed 999 times" % [LONG_NAME, LONG_NAME, LONG_NAME]
 
 ## Counts the song list's whole rows in view, filling it with sample rows first (the test has one song).

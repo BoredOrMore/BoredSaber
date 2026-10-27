@@ -587,27 +587,49 @@ func _details_text(song: BeatSaverSongInfo) -> String:
 		text += "\n\n[color=#%s]%s[/color]" % [muted, _escape(shown)]
 	return text
 
-## The picked map in a few words: title and artist, mapper and length, then one bar per level it has, in the level's
-## colour and name ("≈" while estimated). Details shows the rest.
+## The picked map in a few words: title and artist, mapper and length, then each Standard difficulty as a bar in its
+## level's colour and name ("≈" while estimated) over its stats pills (StatPills: time to get ready, notes per second,
+## swing flow), measured once the map is in the library. Details shows the rest.
 func _short_details_text(song: BeatSaverSongInfo) -> String:
 	var muted := Constants.UI_TEXT_MUTED.to_html(false)
 	var seconds := int(song.duration)
-	var text := "[b]%s[/b]\n%s\n[color=#%s]Mapped by %s · %d:%02d[/color]\n" % [_escape(song.song_name),
+	var text := "[b]%s[/b]\n%s\n[color=#%s]Mapped by %s · %d:%02d[/color]" % [_escape(song.song_name),
 		_escape(song.song_author_name), muted, _escape(song.level_author_name), seconds / 60, seconds % 60]
-	var levels := _levels(song)
-	var shown := []
-	for level: int in levels[0]:
-		if shown.has(level):
-			continue
-		shown.append(level)
-	shown.sort()
-	for level: int in shown:
-		var entry: Array = Constants.DIFFICULTY_LEVELS[level]
-		text += "\n[font_size=%d][bgcolor=#%s][color=#%s] %s%s [/color][/bgcolor][/font_size]" % [LEVEL_BAR_SIZE,
-			(entry[1] as Color).to_html(false), Constants.UI_PANEL.to_html(false), entry[0], " ≈" if levels[1] else ""]
-	if levels[1]:
-		text += "\n[color=#%s]%s[/color]" % [muted, ESTIMATE_HINT]
+	var rows := _difficulty_rows(song)
+	rows.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
+	var estimated := _local_map(song) == null
+	for row: Array in rows:
+		var entry: Array = Constants.DIFFICULTY_LEVELS[row[0]]
+		text += "\n\n[font_size=%d][bgcolor=#%s][color=#%s] %s%s [/color][/bgcolor][/font_size]\n%s" % [LEVEL_BAR_SIZE,
+			(entry[1] as Color).to_html(false), Constants.UI_PANEL.to_html(false), entry[0], " ≈" if estimated else "",
+			StatPills.difficulty(row[1], row[2], row[3], PILL_ICON_SIZE)]
+	if estimated:
+		text += "\n\n[color=#%s]%s[/color]" % [muted, ESTIMATE_HINT]
 	return text
+
+## Icons in the details' pills, the size of their 22 px text.
+const PILL_ICON_SIZE := 24
+
+## Each Standard difficulty as [level, seconds to get ready, notes per second, flow level]: measured from the map
+## file once it is in the library (MapStats), else from BeatSaver's data.
+func _difficulty_rows(song: BeatSaverSongInfo) -> Array:
+	var rows := []
+	var info := _local_map(song)
+	if info != null:
+		for difficulty in info.difficulty_beatmaps:
+			if difficulty.characteristic == "" or difficulty.characteristic == "Standard":
+				var stats := MapStats.get_stats(info, difficulty)
+				rows.append([MapStats.level_of(info, difficulty, stats), MapStats.reaction_seconds(info, difficulty),
+					float(stats.get("nps", 0.0)) * MapStats._speed(), MapStats.flow_level(float(stats.get("flow", 0.0)))])
+		return rows
+	if song.versions.is_empty():
+		return rows
+	for diff: Variant in Utils.get_array(song.versions[0] as Dictionary, "diffs", []):
+		var d := diff as Dictionary
+		if Utils.get_str(d, "characteristic", "Standard") == "Standard":
+			rows.append([song.level_of(d), song.reaction_seconds(d), Utils.get_float(d, "nps", 0.0) * MapStats._speed(),
+				MapStats.flow_level(BeatSaverSongInfo.parity_percent(d))])
+	return rows
 
 ## What "≈" means, under the level bars of a map not yet downloaded.
 const ESTIMATE_HINT := "≈ about: measured once downloaded"

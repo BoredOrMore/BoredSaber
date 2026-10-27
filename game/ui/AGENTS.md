@@ -29,6 +29,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   Picks, adds (max `Settings.MAX_PLAYERS`), renames (records too, `Highscores.rename_player`) and deletes players;
   names are typed on the menu's keyboard (`Keyboard_highscore`), which the menu ignores while its `_keyboard_for` is empty.
 - `BeatSaverPanel/`: browse/search/download maps from beatsaver.com (class `BeatSaverPanel`).
+- `StatPills.gd` (class `StatPills`): a difficulty's short stats as icon pills (get ready, notes per second, swing
+  flow, length, workout sets) for RichTextLabels; the song menu's stats line and the Download page's details.
   `LevelStrip.gd` draws each card's level strip (Easy..Expert+ slots, the player's level framed, "≈" while estimated)
   into its cover image.
   The menu's "Get songs" opens it directly (`BeepSaber_Game._open_beatsaver`), in front of the player in place

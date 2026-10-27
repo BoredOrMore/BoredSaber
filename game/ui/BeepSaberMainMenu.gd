@@ -44,7 +44,7 @@ const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 @onready var songs_menu := $SongsMenu as SongList
 @onready var characteristic_row := $DifficultyPicker/CharacteristicRow as HBoxContainer
 @onready var level_row := $DifficultyPicker/LevelRow as HBoxContainer
-@onready var level_stats := $DifficultyPicker/LevelStats as Label
+@onready var level_stats := $DifficultyPicker/LevelStats as RichTextLabel
 @onready var delete_button := $MorePanel/Delete_Button as ConfirmButton
 @onready var fail_row := $Modifiers/FailRow as HBoxContainer
 @onready var damage_row := $Modifiers/DamageRow as HBoxContainer
@@ -1077,7 +1077,6 @@ func _sync_difficulty_picker() -> void:
 	# the tab row only takes room when there are tabs; then the stats get one line less, so the picker
 	# never runs into the fail row below it
 	characteristic_row.visible = _characteristics.size() > 1
-	level_stats.max_lines_visible = 2 if characteristic_row.visible else 3
 	# each of the map's difficulties keeps the mapper's slot but shows the difficulty it plays at
 	# (MapStats.level_of); slots the map lacks are hidden, and slots that play at the same level
 	# are numbered in the map's order ("Hard 1", "Hard 2") so no name shows twice
@@ -1110,10 +1109,22 @@ func _sync_difficulty_picker() -> void:
 		button.set_pressed_no_signal(picked != null and picked.difficulty == LEVELS[i][0])
 	if picked:
 		var stats := MapStats.get_stats(map, picked)
-		level_stats.text = MapStats.describe(map, picked, stats)
-		level_stats.add_theme_color_override(&"font_color", Constants.DIFFICULTY_LEVELS[MapStats.level_of(map, picked, stats)][1])
+		level_stats.text = stat_pills(map, picked, stats)
 	else:
 		level_stats.text = ""
+
+## Icons in the stats pills, the size of the 22 px text.
+const STAT_ICON_SIZE := 24
+
+## The picked difficulty's stats as pills (StatPills): length, time to get ready, notes per second, swing flow,
+## and a workout's sets.
+static func stat_pills(map: MapInfo, difficulty: DifficultyInfo, stats: Dictionary) -> String:
+	var pills := PackedStringArray([StatPills.length(float(stats.get("seconds", 0.0)), STAT_ICON_SIZE),
+		StatPills.difficulty(MapStats.reaction_seconds(map, difficulty), float(stats.get("nps", 0.0)) * MapStats._speed(),
+			MapStats.flow_level(float(stats.get("flow", 0.0))), STAT_ICON_SIZE)])
+	if MapStats.workout_level(stats) > 0:
+		pills.append(StatPills.workout(int(stats.get("sets", 0)), STAT_ICON_SIZE))
+	return "[center]%s[/center]" % StatPills.GAP.join(pills)
 
 ## The picked level button's border in its difficulty's colour (the name on it stays white, for contrast; Game
 ## Accessibility Guidelines, doc/research/game-ui.md).
