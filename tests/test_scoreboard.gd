@@ -14,10 +14,10 @@ class FakeGame extends BeepSaber_Game:
 	func get_current_time() -> float:
 		return time
 
-	func play_mistake_sound(_bomb: bool) -> void:
+	func play_mistake_sound(_bomb: bool, _at: Vector3) -> void:
 		pass
 
-	func play_miss_sound() -> void:
+	func play_miss_sound(_at: Vector3) -> void:
 		pass
 
 ## Settings this test changes; saved in _ready and put back at the end.
