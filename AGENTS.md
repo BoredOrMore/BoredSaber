@@ -63,6 +63,9 @@ Everything a player sees (menus, buttons, labels, tooltips, score screen, errors
 not developers. Follow "Don't make me think": a player should understand every choice at a glance.
 Each rule below names its source and a bug it would have caught here.
 
+Everything the player looks at or interacts with is placed and sized from their real eye (the headset's position),
+as angles and distances, never from a fixed eye height (owner, 2026-10-27); `.claude/skills/vr-ui-design/` section 2.
+
 Words and choices
 - Speak the player's language, not the code's: no `NJS`, `HJD`, `RT`, `NPS`, `BPM`, `JSON`, `null`,
   `index`, `request failed (code 0)`, "(can stutter)". Say what it means for the player, e.g. "Notes

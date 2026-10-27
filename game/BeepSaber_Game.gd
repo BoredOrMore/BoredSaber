@@ -188,7 +188,7 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	_in_wall = false
 	Scoreboard.restart()
 	
-	hud.place()
+	hud.place(_eye())
 	_display_points()
 	percent_indicator.start_map()
 	# No Fail still keeps a health bar out of sight: running it out halves the score (Scoreboard.spend_no_fail)
@@ -253,6 +253,7 @@ func _fail_song() -> void:
 # the provided 'next_state'.
 func _transition_game_state(next_state: GameState) -> void:
 	gamestate = next_state
+	_place_menus()
 	_apply_glow()
 	_update_low_health_sound()
 	# the scene only lights up for the combo while a map is on
@@ -785,6 +786,37 @@ func _display_points() -> void:
 	var length := 0 if Map.current_info == null else int(Map.current_info.get_length_seconds())
 	hud.show_points(Scoreboard.points, played, length, Scoreboard.accuracy())
 
+## The menus, panels and keyboards, laid out (in the scene and their constants) for an eye at Hud.HUD_EYE. They move
+## with the player's real eye height (owner, 2026-10-27: everything the player looks at is worked out from their own
+## eye), so each keeps the angle it was laid out at. The slash note places itself (SlashBlock.set_shown).
+const MENU_NODES: Array[NodePath] = [^"MainMenu_OQ_UI2DCanvas", ^"PauseMenu_canvas", ^"Pause_countdown",
+	^"Settings_canvas", ^"MapSourceDialogs", ^"Keyboard_online_search", ^"Keyboard_highscore", ^"Profiles_canvas",
+	^"EndScore", ^"WarningIcon"]
+## how far the menus are raised for the player's eye (Hud.HUD_EYE is 0)
+var menu_lift := 0.0
+## each menu node's laid-out place
+var _menu_rest := {}
+
+## Raises the menus to the player's eye height now (on every game state change, so a menu opens where it's seen).
+func _place_menus() -> void:
+	menu_lift = _eye().y - Hud.HUD_EYE.y
+	for path in MENU_NODES:
+		var node := get_node_or_null(path) as Node3D
+		if node == null:
+			continue
+		if not _menu_rest.has(node):
+			_menu_rest[node] = node.position
+		node.position = _menu_rest[node] + Vector3(0.0, menu_lift, 0.0)
+
+## A transform laid out for Hud.HUD_EYE, raised to the player's eye (for nodes placed in more than one spot).
+func lifted(t: Transform3D) -> Transform3D:
+	return t.translated(Vector3(0.0, menu_lift, 0.0))
+
+## The player's eye now: the headset's place, or Hud.HUD_EYE while it isn't tracked yet (at the floor's origin).
+func _eye() -> Vector3:
+	var eye := ($XROrigin3D/XRCamera3D as XRCamera3D).global_position
+	return eye if eye.y > 0.5 else Hud.HUD_EYE
+
 ## Whole seconds left in the current map, for the clock under the score.
 func _seconds_left() -> int:
 	if Map.current_info == null:
@@ -928,7 +960,7 @@ func _on_BeepSaberMainMenu_difficulty_changed(map_info: MapInfo, diff_rank: int)
 	if not highscore_canvas:
 		await self.ready
 	
-	highscore_canvas.transform = HIGHSCORES_MENU_TRANSFORM
+	highscore_canvas.transform = lifted(HIGHSCORES_MENU_TRANSFORM)
 	highscore_canvas._show()
 	highscore_panel.load_highscores(map_info,diff_rank)
 

@@ -25,6 +25,12 @@ what they press, what happens next, how they leave. For each step answer:
 
 ## 2. Placement in 3D
 
+Everything the player looks at or interacts with is worked out from their real eye (owner, 2026-10-27): its
+place, size and reach as angles and distances from the headset's position, not metres from a fixed eye. The HUD
+is placed from the eye at a song's start (`game/hud/Hud.gd`), the slash note from the eye when it shows
+(`SlashBlock.set_shown`), and the menus rise with the eye's height on every game state change
+(`BeepSaber_Game._place_menus`); a new piece does the same.
+
 Positions are metres in the main scene. The player stands at `XROrigin3D` (0, 0, 1), not at the
 scene origin: eyes around (0, 1.6, 1), facing -z. Panels are `OQ_UI2DCanvas` quads: 1024 px = 1 m at scale 1 (`vr.UI_PIXELS_TO_METER`),
 then multiplied by the node `transform` scale.

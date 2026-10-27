@@ -10,7 +10,7 @@ arrangement (owner, 2026-10-27).
 - `game/BeepSaber_Game.gd` `_ready` makes `Hud.new(point_label, multiplier_label, percent_indicator)` and adds it; the
   three nodes stay in `BeepSaber_Game.tscn` (`Point_Label`, `Multiplier_Label` with `ComboHud.gd`,
   `Percent_Indicator`) because game states and other scripts find them by path.
-- Each map start calls `hud.place()` (the lane width changes with the Wide modifiers), then `_display_points()`.
+- Each map start calls `hud.place(_eye())` (the lane width changes with the Wide modifiers), then `_display_points()`.
 - `Scoreboard.score_changed` → `BeepSaber_Game._display_points()` → `hud.show_points(points, played, length,
   accuracy)`. `_physics_process` emits `score_changed` once a second so the clock ticks.
 - Visibility: game states (`game/scripts/GameState/*.gd`) show and hide `Point_Label`; the two panels follow it.
@@ -37,9 +37,11 @@ arrangement (owner, 2026-10-27).
 ## Invariants and gotchas
 
 - `TextMesh.font_size` is capped at 127: sizes go through `pixel_size` (`Hud._set_letters`, font 100 px).
-- The panels sit 5.5 m from the eye, about 19° to the side (owner, 2026-10-27: a look down the track takes them in),
-  past vr-ui-design's 3.5 m for text on purpose (little refocus from the notes); `Hud._facing_eye` grows them with their
-  distance so the text keeps its size in view. New lines go on a panel, not as free nodes turned their own way.
+- The panels are placed from the player's real eye (the headset's place at a song's start, `BeepSaber_Game._eye`):
+  `HUD_DISTANCE` (5.8 m) from it at `HUD_YAW` (19°) and `HUD_PITCH`, turned further out to clear the outer lane on
+  the Wide modifiers, facing it and grown by `HUD_DISTANCE / HUD_LAID_OUT_DISTANCE` so the lines keep their size in
+  view (owner, 2026-10-27: everything the player looks at is worked out from their own eye). Past vr-ui-design's
+  3.5 m for text on purpose (little refocus from the notes). New lines go on a panel.
 - Size order is the hierarchy: combo and multiplier > grade > score > accuracy, time, caption (muted).
 - HUD materials are unshaded and fog-free; nothing on the HUD may outshine notes (root `AGENTS.md`, Light).
 - Feedback stays moderate (`ComboHud.gd` header): no busy motion at the edge of view.
