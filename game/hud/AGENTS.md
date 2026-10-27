@@ -37,8 +37,9 @@ arrangement (owner, 2026-10-27).
 ## Invariants and gotchas
 
 - `TextMesh.font_size` is capped at 127: sizes go through `pixel_size` (`Hud._set_letters`, font 100 px).
-- Keep the panels inside the comfort limits checked in `Hud.gd`'s header (≤ 30° to the side, ≤ 12° below the eye,
-  0.8–3.5 m); new lines go on a panel, not as free nodes turned their own way.
+- The panels sit 5.5 m from the eye, about 19° to the side (owner, 2026-10-27: a look down the track takes them in),
+  past vr-ui-design's 3.5 m for text on purpose (little refocus from the notes); `HUD_SCALE` grows them with the
+  distance so the text keeps its size in view. New lines go on a panel, not as free nodes turned their own way.
 - Size order is the hierarchy: combo and multiplier > grade > score > accuracy, time, caption (muted).
 - HUD materials are unshaded and fog-free; nothing on the HUD may outshine notes (root `AGENTS.md`, Light).
 - Feedback stays moderate (`ComboHud.gd` header): no busy motion at the edge of view.

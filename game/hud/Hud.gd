@@ -4,18 +4,24 @@ extends Node3D
 ## The HUD in Beat Saber's arrangement (owner, 2026-10-27; checked against .claude/skills/vr-ui-design): on the left
 ## the combo, the score, then the accuracy and the live grade; on the right the multiplier in its filling ring and
 ## the time played / the song's length. Each side is one flat panel turned to face HUD_EYE, its lines laid on it
-## (owner: lines each turned their own way didn't sit on one plane). HUD_AHEAD metres ahead of the eye, beside the
-## lanes (HUD_SIDE, or out past the outer lane by HUD_LANE_MARGIN on wide modifiers), centred at HUD_Y: from about
-## 1.64 m down to 0.9 m, at most 12 degrees below the eye (lower than Beat Saber's, which sits by the track).
+## (owner: lines each turned their own way didn't sit on one plane). HUD_AHEAD ahead, beside the lanes (HUD_SIDE, or
+## out past the outer lane by HUD_LANE_MARGIN on wide modifiers), centred at HUD_Y. 5.5 m from the eye (owner,
+## 2026-10-27: further back, so a look straight down the track still takes it in): about 19 degrees to the side (it
+## was 28.5 at 3.5 m) and from about 3 degrees above the eye to 9 below. Past vr-ui-design's 3.5 m for text on
+## purpose: there the eyes barely refocus between the notes and the HUD; the panels are scaled up (HUD_SCALE) so
+## the text keeps the size in view it had at 3.5 m.
 ## Sizes rank the lines by how much a glance needs them mid-song (owner: no hierarchy made a glance hard to read):
 ## the combo count and the multiplier biggest, then the grade in its colour, then the score; the accuracy, the time
 ## and the "Combo" caption small and muted. Sizes are the letters' height in metres; positions are on the panel.
 const HUD_EYE := Vector3(0.0, 1.6, 1.0)
-const HUD_AHEAD := -2.5
+const HUD_AHEAD := -4.5
+## the sizes and places below were laid out for panels 3.5 m from the eye; farther out the panels grow with the
+## distance, keeping their size in view
+const HUD_SCALE := (HUD_EYE.z - HUD_AHEAD) / 3.5
 const HUD_SIDE := 1.9
 const HUD_LANE_MARGIN := 0.7
 const HUD_Y := 1.25
-## The smallest lines are 0.11 m (capitals about 1.3 degrees at this distance); the old HUD's text was 0.15 m.
+## The smallest lines are 0.11 m at 3.5 m (capitals about 1.3 degrees); the old HUD's text was 0.15 m.
 const HUD_COMBO_CAPTION := Vector3(0.0, 0.38, 0.11)
 const HUD_COMBO := Vector3(0.0, 0.24, 0.22)
 const HUD_SCORE := Vector3(0.0, 0.05, 0.13)
@@ -133,4 +139,4 @@ static func _set_letters(mesh: TextMesh, height: float) -> void:
 
 ## A panel at `at`, its face (+z) turned to the eye.
 static func _facing_eye(at: Vector3) -> Transform3D:
-	return Transform3D(Basis.looking_at(HUD_EYE - at, Vector3.UP, true), at)
+	return Transform3D(Basis.looking_at(HUD_EYE - at, Vector3.UP, true).scaled(Vector3.ONE * HUD_SCALE), at)
