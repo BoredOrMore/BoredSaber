@@ -156,7 +156,8 @@ Air
 - New stage: id in `Settings.ENVIRONMENTS` (and `Constants.MAP_/TAG_/AUTO_ENVIRONMENTS` if auto-picked), a rig node
   under `Level` in `event_driver.tscn`, sky in `SKY_SHADERS` (+`SKY_TEXTURES`), `STINGER_ROOMS`, `LightRig.FOG_KEYS`, a
   `match` arm in `LightRig.apply`, visibility in `show_scenery_for_mixed_reality`, optional `TrackDeck.SKINS`/
-  `FAR_Z_BY_STAGE`, a thumb `thumbs/<id>.png`, `stage_capture.gd --env`. Write `doc/world/` entries first.
+  `FAR_Z_BY_STAGE`, a thumb `thumbs/<id>.png` (`stage_capture.tscn -- --env <id> --lights on --size 320x180 --seconds 3`; render it again when
+  the stage's look changes, the picker shows it), `stage_capture.gd --env`. Write `doc/world/` entries first.
 - New light carrier: place lights from a static helper on the rig, hang them in `LightRig.apply`; prefer the cheapest
   option in `doc/world/VISUAL_STYLE.md` "Light carriers" (vertex-mask vent < `LightStrip` < fixture < beam).
 - Haze amount/tint: `HAZE_BASE`, `HAZE_LIGHT_WEIGHT`, `HAZE_NEUTRAL`, `MENU_HAZE_BOOST`;
