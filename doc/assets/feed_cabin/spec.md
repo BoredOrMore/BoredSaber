@@ -18,6 +18,6 @@
 - Budget: about 1,000 triangles; +1 draw call.
 - Export: `game/models/feed_cabin.glb`; source `tools/models/feed_cabin.py`.
 - Review: owner in Blender and Godot, then on the headset.
-- Bridge (owner, 2026-10-27): the beam now runs on to the front rim, 250 m, landing on the rim ring and hung from
-  the two front masts by stays (PulseVoid STAY_Z), as Arecibo's catwalk was; bracing every 10 m, posts every 20 m.
+- Bridge (owner, 2026-10-27): the beam now runs on to the front rim, 250 m, landing on the rim ring (its stays from
+  the front masts were taken out again: dark spikes beside the track; what holds it is still open); bracing every 10 m, posts every 20 m.
   About 1,400 triangles with the cabin.

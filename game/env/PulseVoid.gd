@@ -55,17 +55,12 @@ const LEG_REACH := 200.0
 const LEG := 2.5
 ## the masts round the rim (as FAST's towers, owner, 2026-10-27): on footings on the ground MAST_R out, past the rim,
 ## their height to the beacon's platform (rim_parts.py MAST_HEIGHT), the angles they stand at either side of ahead, the
-## footings' size; each holds a cable down to the cabin's roof corner on its side, the two front ones also the bridge's
-## stays at STAY_Z along it
+## footings' size
 const MAST_R := 258.0
 const MAST := 40.0
 const MAST_FROM_DEG := 20.0
 const MAST_TO_DEG := 70.0
 const MAST_FOOTING := Vector3(5.0, 8.0, 5.0)
-const CABLE := 0.15
-const STAY_Z: Array[float] = [-60.0, -120.0, -180.0]
-## the bridge's edges (feed_cabin.py BEAM), where the stays meet it
-const BRIDGE_HALF := 2.5
 ## the feed legs' footings on the dish (size, level)
 const LEG_FOOTING := Vector3(5.0, 3.0, 5.0)
 ## the floodlights on the legs' platforms (feed_leg.py FLOOD_AT, FLOOD_DECK): at these shares of a leg's length, in the
@@ -97,11 +92,6 @@ func _ready() -> void:
 			# turned with the rim, so the masts either side are mirror images
 			masts.append(Transform3D(Basis(Vector3.UP, -a), foot))
 			boxes.append(_box(foot - Vector3(0.0, MAST_FOOTING.y * 0.5, 0.0), MAST_FOOTING))
-			var top := foot + Vector3(0.0, MAST, 0.0)
-			boxes.append(_bar(top, Vector3(side * CABIN.x * 0.5, CABIN_TOP, -CABIN.z * 0.5), CABLE))
-			if i == 0:
-				for z in STAY_Z:
-					boxes.append(_bar(top, Vector3(side * BRIDGE_HALF, CABIN_TOP, z), CABLE))
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	multimesh.mesh = BoxMesh.new()
@@ -157,12 +147,6 @@ static func dish_point(r: float, a: float) -> Vector3:
 static func _mast_foot(a: float) -> Vector3:
 	return Vector3(sin(a) * MAST_R, 0.0, -cos(a) * MAST_R)
 
-## A square bar (a cable) from a to b.
-static func _bar(a: Vector3, b: Vector3, thick: float) -> Transform3D:
-	var d := b - a
-	var x := d.cross(Vector3.UP).normalized()
-	var y := x.cross(d).normalized()
-	return Transform3D(Basis(x * thick, y * thick, d), (a + b) * 0.5)
 
 ## A panel (or seam strip) of the dish between radii r0 and r1 round angle a, `span` radians wide, `thick` deep, its
 ## top face on the dish.
