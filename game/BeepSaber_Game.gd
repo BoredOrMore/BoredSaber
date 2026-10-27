@@ -168,11 +168,14 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 		audio_data = Utils.read_binary_file(info.filepath, info.song_filename)
 		if len(audio_data) > 0:
 			song_player.stream = AudioStreamOggVorbis.load_from_buffer(audio_data)
+		Loudness.apply(song_player.bus, song_player.stream, Loudness.key(FileAccess.open(filename, FileAccess.READ).get_length(),
+				song_player.stream))
 		else:
 			vr.log_info("playing silence")
 			var wav := AudioStreamWAV.new()
 			wav.set_stereo(false)
 			wav.set_format(AudioStreamWAV.FORMAT_8_BITS)
+			Loudness.apply(song_player.bus, song_player.stream, Loudness.key(audio_data.size(), song_player.stream))
 			wav.set_mix_rate(11025)
 			var length := ceili((Map.current_info.get_length_seconds() + 2) * wav.mix_rate)
 			var data := PackedByteArray()

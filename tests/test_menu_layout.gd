@@ -212,6 +212,24 @@ func _ready() -> void:
 	for node: Node in [audio, a, b, c, d]:
 		node.free()
 
+	# song loudness: a 997 Hz sine at 0.5 in both channels is -6.0 LUFS (BS.1770: full scale in one channel is -3.01);
+	# decoding at a quarter rate reads about 0.3 LU low, as on the songs against ffmpeg
+	var tone := AudioStreamWAV.new()
+	tone.format = AudioStreamWAV.FORMAT_16_BITS
+	tone.stereo = true
+	tone.mix_rate = 44100
+	var pcm := PackedByteArray()
+	pcm.resize(44100 * 10 * 4)
+	for i in 44100 * 10:
+		var sample := int(0.5 * 32767.0 * sin(TAU * 997.0 * i / 44100.0))
+		pcm.encode_s16(i * 4, sample)
+		pcm.encode_s16(i * 4 + 2, sample)
+	tone.data = pcm
+	var lufs := Loudness.measure(tone)
+	check(absf(lufs + 6.0) < 0.5 and is_equal_approx(Loudness.gain_db(lufs), Loudness.TARGET_LUFS - lufs)
+			and Loudness.gain_db(-40.0) == Loudness.MAX_BOOST_DB,
+			"song loudness measures a -6 LUFS tone as %.2f, and quiet songs are raised at most %d dB" % [lufs, Loudness.MAX_BOOST_DB])
+
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 

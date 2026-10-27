@@ -58,6 +58,7 @@ func start(buffer: PackedByteArray, start_time: float = 0.0, type_hint: String =
 	# start the requested preview, if still on song select
 	if not song_player.playing:
 		stream = audio
+		Loudness.apply(bus, audio, Loudness.key(buffer.size(), audio))
 		var fade_in := create_tween().set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_IN_OUT)
 		@warning_ignore("return_value_discarded")
 		# TODO: is this a good idea with higher speeds?
