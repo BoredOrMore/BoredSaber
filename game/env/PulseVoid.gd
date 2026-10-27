@@ -21,6 +21,10 @@ const FEED_CABIN := preload("res://game/models/feed_cabin.glb")
 ## a feed leg (doc/assets/feed_leg/spec.md): a lattice truss from its top end (the origin) along -z to its foot, with
 ## the floodlights' platforms on it; the four legs are the same piece turned
 const FEED_LEG := preload("res://game/models/feed_leg.glb")
+## the rim girder's segment (a unit piece scaled to each, its top at +0.5, its inner face toward the dish's centre) and
+## a rim mast with its beacon's platform (origin at its foot, the platform's top MAST up) (doc/assets/rim_parts/spec.md)
+const RIM_SEGMENT := preload("res://game/models/rim_segment.glb")
+const RIM_MAST := preload("res://game/models/rim_mast.glb")
 ## the dish: its radius, its vertex's height (the focus, a quarter of the diameter above it, is at the track; so is the
 ## rim), panel rings from DISH_INNER to the rim, segments round, the panels' thickness; the rim truss's section
 const DISH_RADIUS := 250.0
@@ -39,8 +43,9 @@ const CABIN_TOP := -0.4
 ## their section (the cable trays run beside it)
 const LEG_REACH := 200.0
 const LEG := 2.5
-## the masts on the rim for the beacons: their height, section, and the angles they stand at either side of ahead
-const MAST := Vector2(40.0, 2.0)
+## the masts on the rim for the beacons: their height to the beacon's platform (rim_parts.py MAST_HEIGHT), and the
+## angles they stand at either side of ahead
+const MAST := 40.0
 const MAST_FROM_DEG := 20.0
 const MAST_TO_DEG := 70.0
 ## the floodlights on the legs' platforms (feed_leg.py FLOOD_AT, FLOOD_DECK): at these shares of a leg's length, in the
@@ -63,12 +68,7 @@ var drop_beam: MeshInstance3D
 
 func _ready() -> void:
 	var boxes: Array[Transform3D] = []
-	boxes.append_array(_dish())
-	for side in [-1.0, 1.0]:
-		for i in 3:
-			var a: float = deg_to_rad(lerpf(MAST_FROM_DEG, MAST_TO_DEG, i / 2.0)) * side
-			var foot := _rim(a)
-			boxes.append(_box(foot + Vector3(0.0, MAST.x * 0.5, 0.0), Vector3(MAST.y, MAST.x, MAST.y)))
+	boxes.append(_box(Vector3(0.0, dish_y(0.0) - PANEL * 0.5, 0.0), Vector3(DISH_INNER * 2.0, PANEL, DISH_INNER * 2.0)))
 	boxes.append_array(_props())
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
@@ -83,18 +83,7 @@ func _ready() -> void:
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
-	var panels := MultiMesh.new()
-	panels.transform_format = MultiMesh.TRANSFORM_3D
-	panels.mesh = LaserFixtures._model_mesh(DISH_PANEL)
-	var places := _panels()
-	panels.instance_count = places.size()
-	for i in places.size():
-		panels.set_instance_transform(i, places[i])
-	var dish := MultiMeshInstance3D.new()
-	dish.multimesh = panels
-	dish.material_override = material
-	dish.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(dish)
+	_add_model(DISH_PANEL, _panels(), material)
 	var cabin := MeshInstance3D.new()
 	cabin.mesh = LaserFixtures._model_mesh(FEED_CABIN)
 	cabin.position = Vector3(0.0, CABIN_TOP, 0.0)
@@ -104,18 +93,30 @@ func _ready() -> void:
 	var legs: Array[Transform3D] = []
 	for k in 4:
 		legs.append(Transform3D(Basis.looking_at(_leg_foot(k) - _leg_top(k), Vector3.UP), _leg_top(k)))
-	var leg_mesh := MultiMesh.new()
-	leg_mesh.transform_format = MultiMesh.TRANSFORM_3D
-	leg_mesh.mesh = LaserFixtures._model_mesh(FEED_LEG)
-	leg_mesh.instance_count = legs.size()
-	for k in legs.size():
-		leg_mesh.set_instance_transform(k, legs[k])
-	var leg_instance := MultiMeshInstance3D.new()
-	leg_instance.multimesh = leg_mesh
-	leg_instance.material_override = material
-	leg_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(leg_instance)
+	_add_model(FEED_LEG, legs, material)
+	_add_model(RIM_SEGMENT, _rim_segments(), material)
+	var masts: Array[Transform3D] = []
+	for side in [-1.0, 1.0]:
+		for i in 3:
+			var a: float = deg_to_rad(lerpf(MAST_FROM_DEG, MAST_TO_DEG, i / 2.0)) * side
+			# turned with the rim, so the masts either side are mirror images
+			masts.append(Transform3D(Basis(Vector3.UP, -a), _rim(a)))
+	_add_model(RIM_MAST, masts, material)
 	_add_seams()
+
+## One MultiMesh of a model at these places, with the scenery's material.
+func _add_model(model: PackedScene, places: Array[Transform3D], material: Material) -> void:
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.mesh = LaserFixtures._model_mesh(model)
+	multimesh.instance_count = places.size()
+	for i in places.size():
+		multimesh.set_instance_transform(i, places[i])
+	var instance := MultiMeshInstance3D.new()
+	instance.multimesh = multimesh
+	instance.material_override = material
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(instance)
 
 ## The dish's height at a distance from its axis.
 static func dish_y(r: float) -> float:
@@ -152,16 +153,13 @@ static func _panels() -> Array[Transform3D]:
 			places.append(_panel(r0, r1, span * (s + 0.5), span, PANEL))
 	return places
 
-## The dish's hub plate in the middle and the rim truss.
-static func _dish() -> Array[Transform3D]:
-	var boxes: Array[Transform3D] = []
+## The rim girder's segments' places (the model's, scaled), edge to edge round the dish.
+static func _rim_segments() -> Array[Transform3D]:
+	var places: Array[Transform3D] = []
 	var span := TAU / DISH_SEGMENTS
-	boxes.append(_box(Vector3(0.0, dish_y(0.0) - PANEL * 0.5, 0.0), Vector3(DISH_INNER * 2.0, PANEL, DISH_INNER * 2.0)))
 	for s in DISH_SEGMENTS:
-		var a := span * (s + 0.5)
-		var t := _panel(DISH_RADIUS, DISH_RADIUS + RIM, a, span * 1.02, RIM)
-		boxes.append(t)
-	return boxes
+		places.append(_panel(DISH_RADIUS, DISH_RADIUS + RIM, span * (s + 0.5), span, RIM))
+	return places
 
 ## Feed leg k's ends: the cabin's corner and its foot on the dish (k 0 ahead right, then round).
 static func _leg_top(k: int) -> Vector3:
@@ -251,7 +249,7 @@ static func rim_beacon(i: int, count: int) -> Vector3:
 	var half := maxi(count / 2, 1)
 	var side := -1.0 if i < half else 1.0
 	var a := deg_to_rad(lerpf(MAST_FROM_DEG, MAST_TO_DEG, float((i % half) % 3) / 2.0)) * side
-	return _rim(a) + Vector3(0.0, MAST.x + 0.6, 0.0)
+	return _rim(a) + Vector3(0.0, MAST + 0.6, 0.0)
 
 ## A unit box scaled to size and placed at centre.
 static func _box(centre: Vector3, size: Vector3) -> Transform3D:
