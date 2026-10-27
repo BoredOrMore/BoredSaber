@@ -74,17 +74,19 @@ func _canvas(game: Node, canvas: OQ_UI2DCanvas) -> void:
 	var root := canvas.ui_control
 	if root == null or canvas.ui_area == null:
 		return
-	var area := canvas.ui_area.global_transform
 	var size := root.size
 	var name_ := str(game.get_path_to(canvas))
-	var centre := _place(area, size, size / 2.0)
+	var centre := _place(canvas, size, size / 2.0)
 	var seen := _seen(centre)
-	var width: float = (_place(area, size, Vector2(size.x, size.y / 2.0)) - _place(area, size, Vector2(0, size.y / 2.0))).length()
-	var height: float = (_place(area, size, Vector2(size.x / 2.0, 0)) - _place(area, size, Vector2(size.x / 2.0, size.y))).length()
-	rows.append("| %s | %.1f° | %.1f° | %.2f m | %.0f° × %.0f° |" % [name_, seen.x, seen.y, seen.z, _angle(width, centre), _angle(height, centre)])
+	var width: float = (_place(canvas, size, Vector2(size.x, size.y / 2.0)) - _place(canvas, size, Vector2(0, size.y / 2.0))).length()
+	var height: float = (_place(canvas, size, Vector2(size.x / 2.0, 0)) - _place(canvas, size, Vector2(size.x / 2.0, size.y))).length()
+	var curved := canvas.curve_radius > 0.0
+	# a curved panel's width is an arc around the eye: its angle is the arc's
+	var width_angle := rad_to_deg(canvas.curve_size().x / canvas.curve_radius) if curved else _angle(width, centre)
+	rows.append("| %s | %.1f° | %.1f° | %.2f m | %.0f° × %.0f° |" % [name_, seen.x, seen.y, seen.z, width_angle, _angle(height, centre)])
 	var keyboard := name_.containsn("keyboard")
 	for corner: Vector2 in [Vector2.ZERO, Vector2(size.x, 0), Vector2(0, size.y), size]:
-		var s := _seen(_place(area, size, corner))
+		var s := _seen(_place(canvas, size, corner))
 		if absf(s.x) > YAW_LIMIT or s.y > PITCH_UP or (s.y < PITCH_DOWN and not keyboard):
 			problems.append("- **%s**: a corner at %.0f° left/right, %.0f° up/down (panel reaches past the comfort zone)" % [name_, s.x, s.y])
 			break
@@ -92,14 +94,14 @@ func _canvas(game: Node, canvas: OQ_UI2DCanvas) -> void:
 		problems.append("- **%s**: %.2f m from the eye (panels %.1f-%.1f m)" % [name_, seen.z, NEAR, FAR_READ])
 	if keyboard and seen.y < PITCH_DOWN:
 		rows.append("| ↳ %s is a keyboard: %.0f° down is allowed for short typing if tilted to the eye |  |  |  |  |" % [name_, seen.y])
-	var px_to_m: float = width / size.x
+	var px_to_m: float = (canvas.curve_size().x if curved else width) / size.x
 	for control: Control in root.find_children("*", "Control", true, false):
 		if not control.is_visible_in_tree() and control.get_parent() != null and not _visible_below(root, control):
 			continue
 		var rect := control.get_global_rect()
 		if rect.size.x < 1.0 or rect.size.y < 1.0:
 			continue
-		var at := _place(area, size, rect.get_center())
+		var at := _place(canvas, size, rect.get_center())
 		var label := "%s/%s" % [name_, root.get_path_to(control)]
 		if control is BaseButton and not (control as BaseButton).disabled:
 			var side: float = minf(rect.size.x, rect.size.y) * px_to_m
@@ -115,9 +117,15 @@ func _canvas(game: Node, canvas: OQ_UI2DCanvas) -> void:
 			if text != "" and text_a < TEXT_BASE - 0.01:
 				problems.append("- %s (\"%s\"): text %.2f° (%d px), under the %.2f° body baseline" % [label, text.left(30), text_a, font_px, TEXT_BASE])
 
-## a pixel of a canvas's control (size px) on its quad, in the world
-static func _place(area: Transform3D, size: Vector2, px: Vector2) -> Vector3:
-	return area * Vector3(px.x / size.x - 0.5, 0.5 - px.y / size.y, 0.0)
+## a pixel of a canvas's control (size px) on its quad, or on its arc when curved, in the world
+static func _place(canvas: OQ_UI2DCanvas, size: Vector2, px: Vector2) -> Vector3:
+	var area := canvas.ui_area.global_transform
+	if canvas.curve_radius <= 0.0:
+		return area * Vector3(px.x / size.x - 0.5, 0.5 - px.y / size.y, 0.0)
+	var metres := canvas.curve_size()
+	var angle := (px.x / size.x - 0.5) * metres.x / canvas.curve_radius
+	return area * Vector3(canvas.curve_radius * sin(angle), (0.5 - px.y / size.y) * metres.y,
+			canvas.curve_radius * (1.0 - cos(angle)))
 
 ## visible within its canvas (the canvas itself may be hidden in this state)
 func _visible_below(root: Control, control: Control) -> bool:
