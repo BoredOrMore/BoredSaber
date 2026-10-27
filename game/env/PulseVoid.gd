@@ -18,6 +18,9 @@ const DISH_PANEL := preload("res://game/models/dish_panel.glb")
 ## the feed cabin with its horn and the maintenance beam to 61 m ahead (doc/assets/feed_cabin/spec.md): origin at the
 ## cabin's top centre
 const FEED_CABIN := preload("res://game/models/feed_cabin.glb")
+## a feed leg (doc/assets/feed_leg/spec.md): a lattice truss from its top end (the origin) along -z to its foot, with
+## the floodlights' platforms on it; the four legs are the same piece turned
+const FEED_LEG := preload("res://game/models/feed_leg.glb")
 ## the dish: its radius, its vertex's height (the focus, a quarter of the diameter above it, is at the track; so is the
 ## rim), panel rings from DISH_INNER to the rim, segments round, the panels' thickness; the rim truss's section
 const DISH_RADIUS := 250.0
@@ -31,17 +34,19 @@ const RIM := 3.0
 const CABIN := Vector3(12.0, 7.0, 12.0)
 const CABIN_TOP := -0.4
 ## the feed legs: from the cabin's corners down to the dish LEG_REACH out, at 45 degrees either side of ahead and behind;
-## their section
+## their section (the cable trays run beside it)
 const LEG_REACH := 150.0
 const LEG := 2.5
 ## the masts on the rim for the beacons: their height, section, and the angles they stand at either side of ahead
 const MAST := Vector2(40.0, 2.0)
 const MAST_FROM_DEG := 20.0
 const MAST_TO_DEG := 70.0
-## the floodlights on the legs: their tilt axis this far above a leg's top face, from LEG_FROM to LEG_TO of its length
+## the floodlights on the legs' platforms (feed_leg.py FLOOD_AT, FLOOD_DECK): at these shares of a leg's length, in the
+## order they are filled (two a leg, then the front legs' middle ones), the platforms' top this far over the leg's axis,
+## the tilt axis FLOOD_ABOVE over it
+const FLOOD_AT: Array[float] = [0.25, 0.75, 0.5]
+const FLOOD_DECK := 1.5
 const FLOOD_ABOVE := 0.84
-const LEG_FROM := 0.25
-const LEG_TO := 0.75
 ## the seam strips: on the dish's face at each panel ring's outer edge, this wide (along the dish) and thick; the drop's
 ## beam from the far rim straight up, its width and height
 const SEAM := Vector2(1.2, 0.3)
@@ -57,8 +62,6 @@ var drop_beam: MeshInstance3D
 func _ready() -> void:
 	var boxes: Array[Transform3D] = []
 	boxes.append_array(_dish())
-	for k in 4:
-		boxes.append(_bar(_leg_top(k), _leg_foot(k), LEG))
 	for side in [-1.0, 1.0]:
 		for i in 3:
 			var a: float = deg_to_rad(lerpf(MAST_FROM_DEG, MAST_TO_DEG, i / 2.0)) * side
@@ -96,6 +99,20 @@ func _ready() -> void:
 	cabin.material_override = material
 	cabin.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(cabin)
+	var legs: Array[Transform3D] = []
+	for k in 4:
+		legs.append(Transform3D(Basis.looking_at(_leg_foot(k) - _leg_top(k), Vector3.UP), _leg_top(k)))
+	var leg_mesh := MultiMesh.new()
+	leg_mesh.transform_format = MultiMesh.TRANSFORM_3D
+	leg_mesh.mesh = LaserFixtures._model_mesh(FEED_LEG)
+	leg_mesh.instance_count = legs.size()
+	for k in legs.size():
+		leg_mesh.set_instance_transform(k, legs[k])
+	var leg_instance := MultiMeshInstance3D.new()
+	leg_instance.multimesh = leg_mesh
+	leg_instance.material_override = material
+	leg_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(leg_instance)
 	_add_seams()
 
 ## The dish's height at a distance from its axis.
@@ -212,14 +229,19 @@ func _add_seams() -> void:
 	drop_beam.visible = false
 	add_child(drop_beam)
 
-## Where floodlight i of `count` stands: on top of a feed leg, the legs taken in turn, spread along each.
+## Where floodlight i of `count` stands: on a feed leg's platform, the legs taken in turn; what doesn't share out evenly
+## goes to the front legs' middle platforms, left and right alike (up to FLOOD_AT.size() a leg).
 static func leg_floodlight(i: int, count: int) -> Vector3:
+	@warning_ignore("integer_division")
+	var even := count / 4 * 4
 	var k := i % 4
 	@warning_ignore("integer_division")
-	var per_leg := maxi(count / 4, 1)
-	@warning_ignore("integer_division")
-	var t := lerpf(LEG_FROM, LEG_TO, float(i / 4) / maxf(per_leg - 1, 1))
-	return _leg_top(k).lerp(_leg_foot(k), t) + Vector3(0.0, LEG * 0.5 + FLOOD_ABOVE, 0.0)
+	var slot := i / 4
+	if i >= even:
+		# leg 0 is ahead right, 3 ahead left
+		k = 0 if (i - even) % 2 == 0 else 3
+	var t: float = FLOOD_AT[slot]
+	return _leg_top(k).lerp(_leg_foot(k), t) + Vector3(0.0, FLOOD_DECK + FLOOD_ABOVE, 0.0)
 
 ## Where beacon i of `count` stands: on top of a rim mast, the first half on the left.
 static func rim_beacon(i: int, count: int) -> Vector3:
