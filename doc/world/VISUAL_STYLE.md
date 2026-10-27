@@ -17,6 +17,7 @@ Classic Style Frame": target look, look spec, materials).
   structures that frame the track); the asymmetry lives in the props (clutter, small structures, details placed
   unevenly). A stage may propose an asymmetric main layout when its idea is the flow of its elements (a sweep, a
   path, a movement through the scene): say so and why in its concept.
+  Night City and Neon Grid, made before this rule, keep their asymmetric main layouts (owner, 2026-10-27).
 - A stage concept, spec or blockout says how it does both.
 
 ## Colour system
