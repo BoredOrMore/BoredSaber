@@ -22,6 +22,8 @@ Engine-level checks that run without a headset or XR runtime: map `Info.dat` par
   drag, a short press still picks.
 - `test_swing_rating.tscn` / `.gd` - checks `LightSaber.swept` (swing angles as Beat Saber measures them): a steady
   approach counts in full, a step whose plane turned past 90° ends the count, a follow-through stops at the turn back.
+- `test_sabers.tscn` / `.gd` - every saber in `Settings.SABER_VISUALS` loads, takes a colour and runs a frame without a
+  script error stopping it part-way; the particle sword finds its particles.
 - `test_show_intensity.tscn` / `.gd` - checks `EventDriver.intensity_curve` (the build-up of the stage): a calm part
   low and a dense part high, values in 0..1, no curve without light events, finite values for a flat light show.
 

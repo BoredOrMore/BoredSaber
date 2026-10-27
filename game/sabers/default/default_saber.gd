@@ -9,7 +9,8 @@ var is_extended := false
 @onready var tip := $tip as Marker3D
 @onready var tail := $tail as SaberTail
 @onready var hitsound := $hitsound as AudioStreamPlayer3D
-@onready var _ring_mat := ($Hilt/Ring as MeshInstance3D).material_override as ShaderMaterial
+## the hilt's accent ring; the particle saber's scene has none
+@onready var _ring := get_node_or_null(^"Hilt/Ring") as MeshInstance3D
 
 ## The blade's glow (SaberHalo.gdshader): drawn with the blade, so it sits on it in both eyes, while Glow is on with
 ## the Soft or Sharp style (Classic is Godot's glow, which already lights the blade) and not in mixed reality.
@@ -42,7 +43,8 @@ func _process(_delta: float) -> void:
 func set_color(color: Color) -> void:
 	_mat.set_shader_parameter(&"color", color)
 	_halo_mat.set_shader_parameter(&"color", color)
-	_ring_mat.set_shader_parameter(&"accent", color)
+	if _ring:
+		(_ring.material_override as ShaderMaterial).set_shader_parameter(&"accent", color)
 	tail.set_color(color)
 
 func set_thickness(value: float) -> void:

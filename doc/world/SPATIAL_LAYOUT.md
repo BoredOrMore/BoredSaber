@@ -29,11 +29,22 @@ suite (`.claude/skills/rhythm-world-design/`).
   -66, its foundation, before the gear pit) and fade fully into the haze from 45 m out to 2 m short of their end. The
   old track's far end piece (Endpath, z -85) shows only with the old track. The old see-through sheet stays for mixed reality and the Old track
   setting (Settings > Advanced).
-- Tunnel frames: every 10 m from z -10 to -60, inner edges at x ±11.6, top y 11.6 (`ClassicRig.gd`).
-- Near gate around the player: z 0.5, half-width 3.5, top 4.5, for parallax.
-- Rings: square frames 12.4 m across, out to z -55, spinning on light events.
-- Laser fixtures: diagonal at x ±4.5, z -30 to -50; waving at x ±12.43, z -21 to -30, each on a pedestal
-  (top y 0.05) with a moving head whose tilt axis is 0.54 m above it (`ClassicRig.FIXTURE_Y`, `LaserFixtures.gd`).
+- The giant test tunnel (`ClassicRig.gd`, 2026-10-27; spec `doc/assets/classic_tunnel/spec.md`): a round bore 120 m
+  across (`BORE_RADIUS` 60, centre y 59), the track along its bottom. Ribs (`tunnel_rib.glb`, 2.4 x 3 m section) every
+  25 m from z 25 to -600 (`RIB_STEP`, `RIB_NEAR`, `RIB_FAR`), 24 segments round; a lining (`tunnel_lining.glb`, 0.3 m)
+  closes the bore between them; the parts under the floor are left out and a floor plate at y -0.3 reaches the lowest
+  lining panels. Main elements symmetric, props not.
+- Hanging scaffolds (`hanging_scaffold.glb`): six, at z -10 to -60 every 10 m (`FRAME_Z`), decks 40 x 3 m with their tops
+  at y 20 (`SCAFFOLD_Y`) when in place, each on four cables (x ±16) up through the ceiling, a tool box on each deck
+  in a different spot. They fly in from 75 m higher (`FLY`) as the show builds (far ones first, between 0.1 and 0.8 of
+  the build-up) and stay; flown out at a song's start, in place for the menus.
+- Wall catwalks (`wall_catwalk.glb`, 8 m spans): at y 8, 3 m wide, z -8 to -64 along both walls, their wall edge on the
+  lining; the crew's props (`classic_props.glb`) near the track and a ladder up to the right one.
+- Light carriers: moving heads (`laser_fixture.glb`, the diagonal lasers) stand in pairs on the scaffold decks, tilt
+  axis 0.84 m above the deck (`FIXTURE_ABOVE`); the waving lasers' follow spots stand on the catwalks (tilt axis
+  1.5 m above the deck, `FOLLOW_SPOT_PIVOT`); the square bars hang under the decks beside the track; rib strips
+  (`ArchStrip.gdshader`) on the ribs' inner faces in the upper part of the ring run from far to near on the drop.
+- The old Classic's square rings are retired (2026-10-27): `EventDriver.rings_enabled` is false, their node stays hidden.
 
 ## Environment layout (Metal Factory, blockout 2026-10-25)
 Plain boxes in `MetalFactoryRig.gd`, every size a named constant there; detail models still to come.

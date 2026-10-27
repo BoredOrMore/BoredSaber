@@ -98,7 +98,6 @@ constraints apply here unchanged.
 - `data/` — static assets: `background/` panoramas and backdrop meshes, `maps/` bundled `Songs/` and
   `Playlists.json`, UI theme, logo, button texture, cut/click/saber sounds, miss/health/clear/menu
   sounds (`tools/make_feedback_sounds.py`), the fail sound (`tools/make_fail_sound.py`), shared shaders/meshes.
-  `data/glow.gdshader` (screen-texture blur) is referenced by nothing.
 
 ## Invariants and gotchas
 

@@ -361,7 +361,6 @@ const RAIL_BASIS := Basis(Vector3(1.0, 0.0, 0.0), Vector3(0.0, 1.0, 0.0), Vector
 ## below the roof and off the inner face
 const ROOF_TRIM_DROP := 0.15
 const ROOF_TRIM_OFFSET := 0.2
-const RIG_WAVING_Y := -1.26
 ## Metal Factory: the energy strips' centres along each rail (each 9.6 m long with RAIL_BASIS), just above the rail's
 ## top so they don't flicker into it
 const FACTORY_STRIP_Z: Array[float] = [-8.0, -22.0, -36.0]
@@ -528,7 +527,10 @@ func _apply_rig(id: String) -> void:
 			# a value the material doesn't set is the shader's own default
 			var rest_of := func(param: StringName) -> float:
 				var value: Variant = material.get_shader_parameter(param)
-				return value if value != null else RenderingServer.shader_get_parameter_default(material.shader.get_rid(), param)
+				if value == null:
+					value = RenderingServer.shader_get_parameter_default(material.shader.get_rid(), param)
+				# the dummy renderer (headless runs) knows no defaults: NeonRibbon.gdshader's, kept in step by hand
+				return value if value != null else {&"width": 0.4, &"brightness": 3.5}[param]
 			_beam_rest[material] = [rest_of.call(&"width"), rest_of.call(&"brightness")]
 		var rest: Array = _beam_rest[material]
 		var void_stage := id == "pulse_void"

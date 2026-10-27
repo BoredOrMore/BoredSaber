@@ -1,19 +1,22 @@
 extends DefaultSaber
 
-@onready var particles := $CPUParticles3D as CPUParticles3D
+# the node is named CPUParticles3D but is GPU particles; the scene's animations drive it by that name
+@onready var particles := $CPUParticles3D as GPUParticles3D
 
-func _sub_ready() -> void:
+func _ready() -> void:
+	super()
+	# off on the headset and the web, as before (they were freed there)
 	if OS.get_name() in ["Android","Web"]:
-		particles.free()
+		particles.visible = false
+		particles.process_mode = Node.PROCESS_MODE_DISABLED
 
 var last_tip_pos := Vector3.ZERO
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	super(delta)
 	var current_tip_pos := tip.global_transform.origin
 	var speed := (current_tip_pos-last_tip_pos).length()
-	if is_instance_valid(particles):
-		particles.speed_scale = 2.5+(30*speed)
-		#Particles.lifetime = max(0.1, 2-(20*speed))
+	particles.speed_scale = 2.5+(30*speed)
 	last_tip_pos = current_tip_pos
 
 func hit(time_offset: float) -> void:

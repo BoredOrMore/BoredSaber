@@ -50,11 +50,10 @@ Collision, swing tracking, show/hide timing and cutting live in `game/LightSaber
 
 - `set_saber` silently ignores a scene whose root script is not a `DefaultSaber`; new visuals must extend it.
 - `DefaultSaber` `@onready`s fixed paths: `AnimationPlayer`, `LightSaber_Mesh` (ShaderMaterial override, and a
-  `CapsuleMesh` for the halo), `tip`, `tail`, `hitsound`, `Hilt/Ring`. A subclass scene must have all of them.
-- Particle sword looks broken against the current base (unverified on device): its scene has no `Hilt/Ring` (the
-  `_ring_mat` onready fails), node `CPUParticles3D` is really a `GPUParticles3D` so the `as CPUParticles3D` cast is
-  null and `speed_scale` is never driven, `_sub_ready()` is never called by anyone, and its `_process` override
-  drops the halo length update. Test it before relying on it.
+  `CapsuleMesh` for the halo), `tip`, `tail`, `hitsound`; `Hilt/Ring` (accent colour) is optional. A subclass scene
+  must have the rest, and an override of `_ready`/`_process` must call `super`.
+- Particle sword: its node named `CPUParticles3D` is a `GPUParticles3D` (the animations use that name); hidden and
+  disabled on Android and the web, so on the headset it is the blade without particles.
 - `tail.gd` reparents its `Mesh` to the scene root (vertices in world space, huge `custom_aabb`); `_notification`
   frees it on `PREDELETE` so swapping sabers leaves no frozen trail. Keep both.
 - Trail and halo use additive, unshaded, `depth_draw_never` materials; brightness rules are in root "Light".
