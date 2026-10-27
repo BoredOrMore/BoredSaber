@@ -25,6 +25,10 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
 - `BeatSaverPanel/`: browse/search/download maps from beatsaver.com (class `BeatSaverPanel`).
   The menu's "Get songs" opens it directly (`BeepSaber_Game._open_beatsaver`), in front of the player in place
   of the song menu, at the same size and place (1536x1046 px at scale 2 = the menu's 1280x872 at 2.4). (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
+- `ModifierChips.gd` (class `ModifierChips`, made by the menu's `_ready`): the Song tab's fail and damage rows,
+  on/off and Speed chips, More modifiers, environment picker and reset, in step with `Settings`; `changed()` names
+  the modified ones. Its static `make_row_button`/`set_padding` and `CHIP_PADDING` are shared with the difficulty
+  picker and `settings_Panel.gd`.
 - `SongPreview.gd` (class `SongPreview`, on the menu's `song_prev` node): the song menu's preview player: fades between
   previews, plays from the preview's start to the song's end and loops, yields to the song itself. The menu's
   `play_selected_preview`, `play_preview` and `stop_preview` (used by game states and BeatSaver) go through it.

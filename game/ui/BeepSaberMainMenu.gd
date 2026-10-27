@@ -622,22 +622,6 @@ func _drop_down(control: OptionButton, list: Array, value: Variant, defaultIndex
 	control.selected = index
 	
 ## Shows the saved modifiers on every chip, and what changed on Reset and More modifiers.
-func _update_mod_controls() -> void:
-	_sync_difficulty_rows()
-	for chip: Button in toggle_row.get_children():
-		var toggle: Array = TOGGLE_CHIPS[chip.get_index()]
-		chip.set_pressed_no_signal(Settings.get(toggle[1] as StringName) == toggle[2])
-	for row: Array in _option_rows:
-		var chips: Array = row[0]
-		for i in chips.size():
-			(chips[i] as Button).set_pressed_no_signal(Settings.get(row[1] as StringName) == row[2][i])
-	_claws_chip.set_pressed_no_signal(Settings.claws)
-	var changed := _changed_modifiers()
-	reset_button.visible = changed.size() > 0
-	reset_button.text = "%d changed · Reset" % changed.size()
-	var rare := _changed_modifiers(true)
-	more_mods_button.text = MORE_MODS_TEXT + (HighscorePanel.RUN_PARTS_SEPARATOR + ", ".join(rare) if rare.size() > 0 else "")
-
 func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(Constants.APPDATA_PATH+"Backgrounds/")
 	DirAccess.make_dir_recursive_absolute(Constants.APPDATA_PATH+"Songs/")
@@ -645,8 +629,8 @@ func _ready() -> void:
 	Settings.changed.connect(on_settings_changed)
 	song_preview.song_player = main_song_player_ref
 	
-	_build_difficulty_rows()
-	_build_modifier_chips()
+	_mods = ModifierChips.new(self)
+	_mods.build()
 	_build_difficulty_picker()
 	_build_tabs()
 	_show_player_name()
@@ -792,7 +776,7 @@ func _modifier_labels() -> PackedStringArray:
 	for speed: Array in Constants.SPEEDS:
 		if speed[0] == Settings.music_speed and Settings.music_speed != 100:
 			labels.append(str(speed[1]))
-	labels.append_array(_changed_modifiers(true))
+	labels.append_array(_mods.changed(true))
 	return labels
 
 const NO_MAP_COLORS_LABEL := "No map colors"
@@ -816,7 +800,7 @@ const TAB_LABELS := ["Song", "More"]
 func _build_tabs() -> void:
 	var group := ButtonGroup.new()
 	for i in TAB_LABELS.size():
-		$Tabs.add_child(_make_row_button(TAB_LABELS[i], group, _on_tab_pressed.bind(i)))
+		$Tabs.add_child(ModifierChips.make_row_button(TAB_LABELS[i], group, _on_tab_pressed.bind(i)))
 	_show_tab(Tab.SONG)
 
 func _on_tab_pressed(tab: int) -> void:
@@ -1005,25 +989,6 @@ func update_view() -> void:
 	_update_play_status()
 	_update_mod_controls()
 
-## Fills the fail and damage rows with one toggle button per option, so they're a single press away;
-## the damage row starts with a "Damage" label.
-func _build_difficulty_rows() -> void:
-	var fail_group := ButtonGroup.new()
-	for i in Constants.FAIL_OPTIONS.size():
-		var chip := _make_row_button(Constants.FAIL_OPTIONS[i][2], fail_group, _on_fail_option_pressed.bind(i))
-		fail_row.add_child(chip)
-		_set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-	var damage_label := Label.new()
-	damage_label.text = "Damage"
-	damage_label.custom_minimum_size.x = ROW_LABEL_WIDTH
-	damage_row.add_child(damage_label)
-	var damage_group := ButtonGroup.new()
-	for i in Constants.DAMAGE_SCALES.size():
-		var chip := _make_row_button(Constants.DAMAGE_SCALES[i][1], damage_group, _on_damage_option_pressed.bind(i))
-		damage_row.add_child(chip)
-		_set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-	_sync_difficulty_rows()
-
 ## Difficulty levels in button order: [difficulty name in the map, button label].
 const LEVELS := [["Easy", "Easy"], ["Normal", "Normal"], ["Hard", "Hard"], ["Expert", "Expert"], ["ExpertPlus", "Expert+"]]
 ## Most characteristic tabs a map can show; BeatSaver has 8 characteristics.
@@ -1040,15 +1005,15 @@ const LEVEL_BUTTON_PADDING := 4.0
 func _build_difficulty_picker() -> void:
 	var tab_group := ButtonGroup.new()
 	for i in MAX_CHARACTERISTICS:
-		var tab := _make_row_button("", tab_group, _on_characteristic_pressed.bind(i))
+		var tab := ModifierChips.make_row_button("", tab_group, _on_characteristic_pressed.bind(i))
 		tab.add_theme_font_size_override(&"font_size", 20)
 		tab.clip_text = true
 		characteristic_row.add_child(tab)
 		# narrow padding like the level buttons, so "Standard" and "No Arrows" fit four or five to a row
-		_set_padding(tab, LEVEL_BUTTON_PADDING)
+		ModifierChips.set_padding(tab, LEVEL_BUTTON_PADDING)
 	var level_group := ButtonGroup.new()
 	for i in LEVELS.size():
-		var button := _make_row_button(LEVELS[i][1], level_group, _on_level_pressed.bind(i))
+		var button := ModifierChips.make_row_button(LEVELS[i][1], level_group, _on_level_pressed.bind(i))
 		button.add_theme_font_size_override(&"font_size", 22)
 		var color: Color = Constants.DIFFICULTY_COLORS.get(LEVELS[i][0], Constants.UI_TEXT)
 		for state: StringName in [&"font_color", &"font_hover_color", &"font_pressed_color", &"font_hover_pressed_color", &"font_focus_color"]:
@@ -1057,7 +1022,7 @@ func _build_difficulty_picker() -> void:
 		# five buttons share the column: narrow side padding (read once in the tree, from the menu theme),
 		# and the text never widens the row past the panel
 		button.clip_text = true
-		_set_padding(button, LEVEL_BUTTON_PADDING)
+		ModifierChips.set_padding(button, LEVEL_BUTTON_PADDING)
 	_sync_difficulty_picker()
 
 ## The characteristic a difficulty belongs to; maps without one are Standard.
@@ -1152,54 +1117,6 @@ func _on_characteristic_pressed(tab: int) -> void:
 	if best >= 0:
 		_select_difficulty(_find_difficulty(map, _characteristics[tab], best))
 
-## One option of a button row.
-func _make_row_button(text: String, group: ButtonGroup, on_pressed: Callable) -> Button:
-	var button := Button.new()
-	button.text = text
-	button.toggle_mode = true
-	button.button_group = group
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.pressed.connect(on_pressed)
-	return button
-
-## Gives button, already in the tree so it reads the menu theme, narrower padding in every state, so a row
-## of chips fits the column; vertical padding changes only when given.
-static func _set_padding(button: Button, side: float, vertical := -1.0) -> void:
-	for style: StringName in [&"normal", &"hover", &"pressed", &"hover_pressed", &"disabled", &"focus"]:
-		# the menu theme's Button look, also for an OptionButton (whose own focus style is the engine's)
-		var box := button.get_theme_stylebox(style, &"Button").duplicate() as StyleBox
-		box.content_margin_left = side
-		box.content_margin_right = side
-		if vertical >= 0.0:
-			box.content_margin_top = vertical
-			box.content_margin_bottom = vertical
-		button.add_theme_stylebox_override(style, box)
-
-## Shows the saved fail mode and damage scale in the rows; damage only matters for the health bar.
-func _sync_difficulty_rows() -> void:
-	if fail_row.get_child_count() == 0:
-		return
-	for i in Constants.FAIL_OPTIONS.size():
-		var option: Array = Constants.FAIL_OPTIONS[i]
-		(fail_row.get_child(i) as Button).set_pressed_no_signal(option[0] == Settings.health_mode and (not Settings.health_mode or option[1] == Settings.fail_mode))
-	var damage_counts := Settings.health_mode and Settings.fail_mode == Constants.FAIL_MODE_BAR
-	for i in Constants.DAMAGE_SCALES.size():
-		# child 0 is the "Damage" label
-		var button := damage_row.get_child(i + 1) as Button
-		button.set_pressed_no_signal(is_equal_approx(Constants.DAMAGE_SCALES[i][0], Settings.damage_scale))
-		button.disabled = not damage_counts
-
-## Stores the picked fail option: No Fail turns health mode off, the others pick how to fail.
-func _on_fail_option_pressed(index: int) -> void:
-	Settings.health_mode = Constants.FAIL_OPTIONS[index][0]
-	Settings.fail_mode = Constants.FAIL_OPTIONS[index][1]
-	update_view()
-
-## Stores the picked damage scale.
-func _on_damage_option_pressed(index: int) -> void:
-	Settings.damage_scale = Constants.DAMAGE_SCALES[index][0]
-	update_view()
-
 ## Shows whether the selected song is a favourite: a filled yellow star, or an outline to add it.
 func _set_favorite_icon(value: bool) -> void:
 	favorite_button.set_pressed_no_signal(value)
@@ -1226,154 +1143,20 @@ func _on_favorite_button_pressed() -> void:
 	_sort_songs()
 	update_view()
 	
+## The Song tab's modifier chips, fail and damage rows and environment picker (ModifierChips.gd).
+var _mods: ModifierChips
+
+## Shows the saved modifiers on their chips.
+func _update_mod_controls() -> void:
+	_mods.sync()
+
 ## Puts every modifier back to its default.
 func _on_reset_button_pressed() -> void:
-	Settings.health_mode = true
-	Settings.fail_mode = Constants.FAIL_MODE_BAR
-	Settings.damage_scale = 1.0
-	Settings.walls_enabled = true
-	Settings.bombs_enabled = true
-	Settings.arrows_enabled = true
-	Settings.disable_map_color = false
-	Settings.claws = false
-	Settings.block_size = 100
-	Settings.width = 100
-	Settings.flip = 0
-	Settings.music_speed = 100
-	Settings.handedness = 0
-	update_view()
+	_mods.reset()
 
-## Chip side padding, and the width of the Damage row's leading label.
-const CHIP_PADDING := 6.0
-## Top and bottom padding of chips, so the theme's 28 px text fits a 48 px row (3.2° at the menu's 2 m).
-const CHIP_VERTICAL_PADDING := 7.0
-const ROW_LABEL_WIDTH := 110.0
-const MORE_MODS_TEXT := "More modifiers"
-## On/off chips on the Song tab: [label, Settings key, value of the key while the chip is on].
-const TOGGLE_CHIPS := [["Walls", &"walls_enabled", true], ["Bombs", &"bombs_enabled", true],
-	["Arrows", &"arrows_enabled", true], ["Map colors", &"disable_map_color", false]]
-## The rarer modifiers in More modifiers: [title, Settings key, option table in Constants, chip labels, columns,
-## default value]. Each option table row starts with the value and its name in the record table.
-const MORE_MOD_ROWS := [
-	["Blocks", &"block_size", Constants.SIZES, ["Small", "Normal", "Big", "Giant"], 4, 100],
-	["Width", &"width", Constants.WIDTHS, ["100%", "125%", "150%", "175%", "200%"], 5, 100],
-	["Mirror", &"flip", Constants.FLIPS, ["Off", "Left-Right", "Up-Down", "Both ways"], 2, 0],
-	["Sabers", &"handedness", Constants.HANDEDNESSES, ["Normal", "Any color", "Left only", "Right only"], 2, 0],
-]
-## Speed chips and each More modifiers row: [chip buttons, Settings key, value of each chip].
-var _option_rows: Array[Array] = []
-var _claws_chip: Button
-
-## Fills the Song tab's on/off and Speed chips and the More modifiers view.
-func _build_modifier_chips() -> void:
-	for toggle: Array in TOGGLE_CHIPS:
-		var chip := _make_row_button(str(toggle[0]), null, func() -> void: pass)
-		chip.toggled.connect(func(on: bool) -> void:
-			Settings.set(toggle[1] as StringName, on == toggle[2])
-			update_view())
-		toggle_row.add_child(chip)
-		_set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-	_add_option_chips(speed_row, &"music_speed", Constants.SPEEDS, Constants.SPEEDS.map(func(o: Array) -> String: return "%d%%" % o[0]))
-	for row: Array in MORE_MOD_ROWS:
-		var title := Label.new()
-		title.text = str(row[0])
-		more_mods_rows.add_child(title)
-		var grid := GridContainer.new()
-		grid.columns = int(row[4])
-		grid.add_theme_constant_override(&"h_separation", 4)
-		grid.add_theme_constant_override(&"v_separation", 6)
-		more_mods_rows.add_child(grid)
-		_add_option_chips(grid, row[1] as StringName, row[2] as Array, row[3] as Array)
-	_claws_chip = _make_row_button(Constants.CLAWS_LABEL, null, func() -> void: pass)
-	_claws_chip.toggled.connect(func(on: bool) -> void:
-		Settings.claws = on
-		update_view())
-	more_mods_rows.add_child(_claws_chip)
-	_set_padding(_claws_chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-	environment_picker = OptionButton.new()
-	environment_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	environment_picker.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	environment_picker.add_theme_constant_override(&"icon_max_width", ENVIRONMENT_THUMB_WIDTH_CLOSED)
-	environment_picker.get_popup().add_theme_constant_override(&"icon_max_width", ENVIRONMENT_THUMB_WIDTH)
-	for environment: Array in Settings.ENVIRONMENTS:
-		environment_picker.add_item(environment[1])
-		environment_picker.set_item_icon(environment_picker.item_count - 1, _environment_thumb(environment[0]))
-	environment_picker.item_selected.connect(func(item: int) -> void: Settings.environment = Settings.ENVIRONMENTS[item][0])
-	environment_row.add_child(environment_picker)
-	_set_padding(environment_picker, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-	_show_environment()
-	_set_padding(reset_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-	_set_padding(more_mods_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-	# the star and its label in a 48 px button: the theme's 12 px padding would make it 60 px, into the picker
-	_set_padding(favorite_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-
-## Adds one chip per option of an option table to parent, picking the option's value for key when pressed.
-func _add_option_chips(parent: Container, key: StringName, options: Array, labels: Array) -> void:
-	var group := ButtonGroup.new()
-	var chips: Array[Button] = []
-	var values := options.map(func(o: Array) -> Variant: return o[0])
-	for i in options.size():
-		var value: Variant = values[i]
-		var chip := _make_row_button(str(labels[i]), group, func() -> void:
-			Settings.set(key, value)
-			update_view())
-		parent.add_child(chip)
-		_set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-		chips.append(chip)
-	_option_rows.append([chips, key, values])
-
-## Names of the modifiers that differ from the default; with rare_only, only those in More modifiers, by their
-## names in the record table.
-func _changed_modifiers(rare_only := false) -> PackedStringArray:
-	var names := PackedStringArray()
-	if not rare_only:
-		if not Settings.health_mode or Settings.fail_mode != Constants.FAIL_MODE_BAR:
-			names.append("Fail")
-		if not is_equal_approx(Settings.damage_scale, 1.0):
-			names.append("Damage")
-		for toggle: Array in TOGGLE_CHIPS:
-			if Settings.get(toggle[1] as StringName) != toggle[2]:
-				names.append(str(toggle[0]))
-		if Settings.music_speed != 100:
-			names.append("Speed")
-	for row: Array in MORE_MOD_ROWS:
-		var value: Variant = Settings.get(row[1] as StringName)
-		if value != row[5]:
-			for option: Array in row[2]:
-				if option[0] == value:
-					names.append(str(option[1]))
-	if Settings.claws:
-		names.append(Constants.CLAWS_LABEL)
-	return names
-
-## A small picture of each environment, by id, shown in the environment dropdown when the file exists.
-const ENVIRONMENT_THUMBS := "res://game/env/thumbs/%s.png"
-## how wide the pictures show in the open list, and on the closed dropdown, which must stay one row high
-const ENVIRONMENT_THUMB_WIDTH := 128
-const ENVIRONMENT_THUMB_WIDTH_CLOSED := 36
-## The environment dropdown on the Song tab, under Damage (Settings.ENVIRONMENTS).
-var environment_picker: OptionButton
-
-## "Follow map" with a song selected names the environment that song will get, short enough for the Song tab.
-const MAP_ENVIRONMENT_TEXT := "Map's: %s"
-
-## Shows the saved pick; "Follow map" also names the environment the selected song will get.
 func _show_environment() -> void:
-	if not environment_picker:
-		return
-	var ids: Array = Settings.ENVIRONMENTS.map(func(e: Array) -> String: return e[0])
-	environment_picker.select(maxi(ids.find(Settings.environment), 0))
-	var follow: String = Settings.ENVIRONMENTS[0][1]
-	var resolved := EventDriver.map_environment(_shown_map)
-	if _shown_map:
-		follow = MAP_ENVIRONMENT_TEXT % Settings.ENVIRONMENTS[ids.find(resolved)][1]
-	environment_picker.set_item_text(0, follow)
-	environment_picker.set_item_icon(0, _environment_thumb(resolved))
-
-## The picture of an environment, or null when there is none.
-static func _environment_thumb(id: String) -> Texture2D:
-	var path := ENVIRONMENT_THUMBS % id
-	return load(path) as Texture2D if ResourceLoader.exists(path) else null
+	if _mods:
+		_mods.show_environment()
 
 ## Opens the song filters over the list, or goes back to it.
 func _show_filters(open: bool) -> void:
