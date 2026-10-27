@@ -66,6 +66,19 @@ func _ready() -> void:
 		check(not preview.playing, "stop_preview stops the preview")
 		preview.transition_time = 1.0
 
+		# a rebuilt list (a filter that follows the speed) keeps the selected song where it was in the view
+		if menu.songs_menu.item_count > 12:
+			menu.songs_menu.select(12)
+			menu._select_song(12, false)
+			await _settle()
+			# scrolled by hand so the song sits near the top, not where a glide would put it
+			menu.songs_menu.place_row(12, 100.0)
+			var before: float = menu.songs_menu.row_offset(12)
+			menu._refilter()
+			await _settle()
+			var after: float = menu.songs_menu.row_offset(menu.current_selected)
+			check(absf(after - before) < 1.0, "a rebuilt song list doesn't move the selected song (%.0f -> %.0f px)" % [before, after])
+
 	# every modifier changed, a long player name, and the busiest song details
 	Settings.health_mode = false
 	Settings.walls_enabled = false

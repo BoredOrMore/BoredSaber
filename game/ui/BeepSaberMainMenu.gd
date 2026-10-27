@@ -271,8 +271,11 @@ func _discover_all_songs(seek_path: String) -> void:
 func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 	var current_map : MapInfo
 	current_map = null
+	# where the selected song sits in the view, to keep it there in the rebuilt list
+	var row_offset := 0.0
 	if current_selected >= 0:
 		current_map = _currently_selected_songlist_ref[current_selected]
+		row_offset = songs_menu.row_offset(current_selected)
 	var filter := SongFilter.saved()
 	var shown: Array[MapInfo] = []
 	for map in songs:
@@ -301,6 +304,7 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 		for i in range(songs.size()):
 			if songs[i] == current_map:
 				songs_menu.select(i)
+				songs_menu.place_row(i, row_offset)
 				# same song as before: keep whatever preview is playing (maybe a BeatSaver one)
 				_select_song(i, false)
 		if current_selected == -1:

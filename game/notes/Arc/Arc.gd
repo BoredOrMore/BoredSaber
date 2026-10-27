@@ -42,6 +42,8 @@ func spawn(info: ArcInfo, current_beat: float, _activator_cube: BeepCube = null)
 	
 	# sets the origin of the tail at the tail point to use in the shader for a fade out effect
 	path.position =  info.tail_pos + Vector3(0,0,current_beat*Map.beat_distance)
+	# a pooled arc kept the place it moved to last time; the path below is laid out from the track's origin
+	transform = Transform3D.IDENTITY
 	rotation.y = -arc_info.head_rotation
 
 func _on_activator_cube_cutted(correct_saber: bool) -> void:
