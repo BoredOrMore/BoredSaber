@@ -677,8 +677,10 @@ func on_settings_changed(key: StringName) -> void:
 				right_ui_raycast.active = true
 		&"color_left":
 			update_left_color(Settings.color_left)
+			_update_slash_block()
 		&"color_right":
 			update_right_color(Settings.color_right)
+			_update_slash_block()
 		&"width":
 			event_driver.set_background()
 		&"background", &"smoke", &"old_track":
@@ -982,7 +984,13 @@ func _update_slash_block() -> void:
 		return
 	var difficulty := menu.selected_difficulty()
 	if difficulty:
-		slash_block.set_note(Map.note_colors(menu.selected_map(), difficulty))
+		# the map's colours, or the player's while the Map colors chip is off (Map.note_colors)
+		var colors := Map.note_colors(menu.selected_map(), difficulty)
+		slash_block.set_note(colors)
+		# the sabers take them too, so the player holds the colours the song will play in (owner, 2026-10-27)
+		if gamestate == gamestate_mapselection:
+			left_saber.set_color(colors[0])
+			right_saber.set_color(colors[1])
 	slash_block.set_shown(gamestate == gamestate_mapselection and main_menu.visible and not main_menu.disable_collision
 			and not highscore_keyboard.visible and menu.has_song_picked())
 
