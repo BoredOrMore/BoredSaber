@@ -57,6 +57,10 @@ const GRADE_RUMBLE_BOOST_SECONDS := 0.6
 ## light hugs each letter's outline and fades outward. GRADE_GLOWS is the glow's strength (the better, the stronger; brighter by the rumble's
 ## boost just after going up). The copies share the letter's text and shake and grow with it. Drawn by themselves, so
 ## they show with the Glow setting off too. Untuned.
+## The grade letter's own font, heavy and slanted (owner's pick of the compared fonts, 2026-10-27; OFL)
+const GRADE_FONT := preload("res://game/ui/fonts/Kanit-BlackItalic.ttf")
+## its capitals are 0.92 of Roboto's at one font size: grown back to the grade's measured size
+const GRADE_FONT_SCALE := 1.09
 const GRADE_GLOWS := {"SS": 0.6, "S": 0.4, "A": 0.2}
 const GRADE_GLOW_LAYERS := [[10, 0.6], [22, 0.3], [38, 0.15]]
 ## the multiplier ring's scale (its quad is 0.5 m) and centre, the multiplier's height, and the time line
@@ -106,6 +110,8 @@ func _ready() -> void:
 	_accuracy_label = _label(_left, HUD_ACCURACY, muted)
 	# its own material, for the grade's colour
 	_grade_label = _label(_left, HUD_GRADE, (_point_label.material_override as BaseMaterial3D).duplicate())
+	(_grade_label.mesh as TextMesh).font = GRADE_FONT
+	(_grade_label.mesh as TextMesh).pixel_size *= GRADE_FONT_SCALE
 	_add_grade_glow()
 	_time_label = _label(_right, HUD_TIME, muted)
 	_set_letters(_combo.mesh as TextMesh, HUD_COMBO.z)
