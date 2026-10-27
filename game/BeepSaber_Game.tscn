@@ -256,6 +256,8 @@ font_size_multiplier = 4.587
 
 [node name="Settings_canvas" parent="." unique_id=1444993032 instance=ExtResource("3")]
 transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 2.4, 0, 1.5, -1)
+curve_radius = 2.0
+round_corners = true
 visible = false
 
 [node name="settings_Panel" parent="Settings_canvas" unique_id=1568178862 node_paths=PackedStringArray("beepsaber_game") instance=ExtResource("19")]
@@ -269,6 +271,8 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -1)
 
 [node name="BeatSaver_Canvas" parent="MapSourceDialogs" unique_id=1832345664 instance=ExtResource("3")]
 transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0.1125, 0)
+curve_radius = 2.0
+round_corners = true
 visible = false
 
 [node name="BeatSaverPanel" parent="MapSourceDialogs/BeatSaver_Canvas" unique_id=187967703 node_paths=PackedStringArray("main_menu_ref", "keyboard") instance=ExtResource("20")]
@@ -294,6 +298,8 @@ script = ExtResource("41_slash")
 
 [node name="Profiles_canvas" parent="." instance=ExtResource("3")]
 transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 1, 0, 1.6, -0.9)
+curve_radius = 1.9
+round_corners = true
 visible = false
 
 [node name="ProfilesPanel" parent="Profiles_canvas" node_paths=PackedStringArray("keyboard") instance=ExtResource("40_profiles")]
