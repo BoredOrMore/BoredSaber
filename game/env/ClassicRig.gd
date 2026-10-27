@@ -21,6 +21,9 @@ const HANGING_SCAFFOLD := preload("res://game/models/hanging_scaffold.glb")
 ## with the boxes' transforms unscaled
 const TUNNEL_RIB := preload("res://game/models/tunnel_rib.glb")
 const TUNNEL_LINING := preload("res://game/models/tunnel_lining.glb")
+## an 8 m span of a wall catwalk (doc/assets/wall_catwalk/spec.md): origin at the deck's top centre, +x toward the wall
+const WALL_CATWALK := preload("res://game/models/wall_catwalk.glb")
+const CATWALK_SPAN := 8.0
 ## the bore: radius, its centre's height, the ribs' spacing, nearest and farthest z, boxes round each rib and the rib's
 ## section (across the ring, along the bore). The track runs along the circle's bottom (owner, 2026-10-27: keep the
 ## 59 m centre, its size). A lining closes the bore between the ribs (LINING thick, behind them), so the curve rises
@@ -43,9 +46,8 @@ const SCAFFOLD_Y := 20.0
 const SCAFFOLD := Vector3(40.0, 0.3, 3.0)
 const CABLE_X := 16.0
 const CABLE := 0.2
-## the catwalks along the walls: height, width, from z, to z
+## the catwalks along the walls, their wall edge against the lining: height, width, from z, to z
 const CATWALK := Vector4(8.0, 3.0, -8.0, -64.0)
-const CATWALK_RAIL := 1.1
 ## Props near the track, uneven: [centre, size].
 const PROPS := [
 	# flight cases stacked on the left
@@ -60,7 +62,7 @@ const PROPS := [
 ## the scissor lift's crossed arms, between its base and platform (centre, length, tilt)
 const SCISSOR := [Vector3(9.0, 3.2, -16.0), 6.6, 0.95]
 ## a ladder against the right catwalk: its foot and top x, z
-const LADDER := Vector3(26.0, 28.6, -30.0)
+const LADDER := Vector3(28.4, 30.8, -30.0)
 ## the moving heads' tilt axis this far above the scaffold's deck (laser_fixture.py: yoke foot 0.54 under it)
 const FIXTURE_ABOVE := 0.84
 ## the rib strips: a segment on each rib box in the upper part of the ring (RIB_STRIP_FROM..1-RIB_STRIP_FROM of the
@@ -94,7 +96,6 @@ func _ready() -> void:
 		boxes.append_array(_scaffold(i))
 	assert(boxes.size() == FRAME_Z.size() * BOXES_PER_SCAFFOLD)
 	boxes.append_array(_floor())
-	boxes.append_array(_catwalks())
 	for p: Array in PROPS:
 		boxes.append(_box(p[0], p[1]))
 	for side in [-1.0, 1.0]:
@@ -125,6 +126,7 @@ func _ready() -> void:
 	_scaffolds = _add_model(HANGING_SCAFFOLD, places, material)
 	_add_model(TUNNEL_RIB, _ribs(), material)
 	_add_model(TUNNEL_LINING, _lining(), material)
+	_add_model(WALL_CATWALK, _catwalks(), material)
 	_add_rib_strips()
 
 ## One MultiMesh of a model at these places, with the scenery's material.
@@ -215,17 +217,19 @@ static func _lining() -> Array[Transform3D]:
 		z -= RIB_STEP
 	return boxes
 
-## The catwalks along both walls, with a rail on their open edge.
+## The catwalk spans' places along both walls (the left ones turned half round, their wall side out).
 static func _catwalks() -> Array[Transform3D]:
-	var boxes: Array[Transform3D] = []
-	var wall := bore_half_width(CATWALK.x)
-	var length := CATWALK.z - CATWALK.w
-	var z := (CATWALK.z + CATWALK.w) * 0.5
-	for side in [-1.0, 1.0]:
-		var x: float = side * (wall - CATWALK.y * 0.5)
-		boxes.append(_box(Vector3(x, CATWALK.x - 0.1, z), Vector3(CATWALK.y, 0.2, length)))
-		boxes.append(_box(Vector3(x - side * CATWALK.y * 0.5, CATWALK.x + CATWALK_RAIL, z), Vector3(0.08, 0.08, length)))
-	return boxes
+	var places: Array[Transform3D] = []
+	var z := CATWALK.z - CATWALK_SPAN * 0.5
+	while z > CATWALK.w:
+		places.append(Transform3D(Basis.IDENTITY, Vector3(catwalk_x(), CATWALK.x, z)))
+		places.append(Transform3D(Basis(Vector3.UP, PI), Vector3(-catwalk_x(), CATWALK.x, z)))
+		z -= CATWALK_SPAN
+	return places
+
+## How far from the track the right catwalk's middle is: its wall edge on the lining's face.
+static func catwalk_x() -> float:
+	return sqrt(pow(BORE_RADIUS + RIB.x * 0.5, 2.0) - pow(BORE_CENTRE_Y - CATWALK.x, 2.0)) - CATWALK.y * 0.5
 
 ## The ladder up to the right catwalk: two rails and a rung every 0.6 m.
 static func _ladder() -> Array[Transform3D]:
@@ -295,7 +299,7 @@ static func follow_spot(i: int, count: int) -> Vector3:
 	var per_side := count / 2
 	var side := -1.0 if i < per_side else 1.0
 	var j := i % per_side
-	var x := side * (bore_half_width(CATWALK.x) - CATWALK.y * 0.5)
+	var x := side * catwalk_x()
 	return Vector3(x, CATWALK.x + 0.6, lerpf(CATWALK.z - 6.0, CATWALK.w + 10.0, float(j) / maxf(per_side - 1, 1)))
 
 ## Where square bar i of `count` hangs: under a scaffold's deck, along it, beside the track.
