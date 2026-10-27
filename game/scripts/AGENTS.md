@@ -13,6 +13,8 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
   note-angle and flip helpers (`precise_angle_rad`, `adjust_*`), `update_bus_speed`.
 - `BeepSaberController.gd` (`BeepSaberController`, extends `XRController3D`) - per-frame button edges
   (`ax/by/menu/trigger_*pressed/just_pressed/just_released`), `simple_rumble`, `movement_aabb`.
+- `SongTags.gd` (class `SongTags`) - BeatSaver tags (genre, style) of library songs kept in a file, so "Auto" can
+  pick an environment by genre offline (`EventDriver.map_environment`).
 - `MixedReality.gd` (autoload) - `set_mixed_reality(mr)`: passthrough on/off plus floor/HUD material tweaks.
 - `PlayCountTable.gd` (autoload `PlayCount`) - play counts, favourite flag, last difficulty per map.
 - `HighscoreTable/HighscoreTable.gd` (autoload `Highscores`) - top-10 records per map + modifier set.
@@ -20,7 +22,7 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
 - `global_references.gd` (autoload `GlobalReferences`) - the five `ScenePool`s and `main_game_scene`.
 - `CollisionLayerConstants.gd` - `*_bit` / `*_mask` physics layer constants.
 - `ScenePool/` - `ScenePool` (`presize`, `acquire`, signal `new_scene_instanced`) and `PooledNode3D` (`release`).
-- `UIRaycast/` - `UIRaycast` laser pointer, `UIRaycastTarget` (Area3D base), `UIRaycastButton` (3D button, `pressed`/`released`).
+- `UIRaycast/` - `UIRaycast` laser pointer, `UIRaycastTarget.gd` (Area3D base), `UIRaycastButton` (3D button, `pressed`/`released`).
 - `SwingableRayCast/` - `SwingableRayCast`: saber ray plus swept sub-rays, signal `area_collided`.
 - `SongUploader/` - `SongUploader` HTTP server (`prompt.html`, `style.css` are served as-is).
 - `webxr/webxr_initializer.*` - "Enter VR" button for the Web export.

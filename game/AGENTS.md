@@ -67,27 +67,38 @@ constraints apply here unchanged.
   last two columns, `guard` the left and right fist-to-eye distance in `time_ms`/`peak_speed`, `low_stance` the eye
   drop in the eye-drop column; charged rows put the hold in `interval_ms` and ok / no_stance / broke_at_<ms> / missed
   in the last `outcome` column). Thresholds are untuned starting values.
-- `EndScore`, `HighscorePanel`, `Pause_Panel` — end, highscore and pause panels.
+- `EndScore.gd/.tscn`, `HighscorePanel.gd/.tscn`, `Pause_Panel.gd/.tscn` — end, highscore and pause panels;
+  `RankHalo.gdshader` — soft glow round the end screen's result ring (`EndScore.tscn`).
+- `CutFlash.gd` (class `CutFlash`) + `SparkStreak.gdshader` — sparks along the cut line, trails drawn by the shader.
+- `LowResGlow.gd` (class `LowResGlow`) — glow without Godot's glow pass (that pass costs ~5 ms on the Pico 4).
+- `Benchmark.gd` (class `Benchmark`) — hands-off GPU benchmark (Settings > Advanced, or `tools/bench.sh`).
+- `DebugView.gd` (class `DebugView`) — Settings > Advanced switches that leave parts of the scene out to measure
+  their GPU cost; bits of the `debug_view` shader global, never saved.
 - `event_driver.gd/.tscn` — lighting events and background; `floor.gd/.tscn` — floor and burn marks.
-- `SpectatorWindow` — desktop spectator camera/HUD; `vr_slider` — joystick scrolling for UI lists.
-- `UI_Panel.gdshader`, `vr_goggles.*`, `GodotSplash.tscn`, `BlackWhiteThem.tres`, `background*.tres` — visuals.
+- `SpectatorWindow.gd/.tscn` — desktop spectator camera/HUD; `vr_slider.gd/.tscn` — joystick scrolling for UI lists.
+- `UI_Panel.gdshader`, `vr_goggles.gdshader` + `.glb` (the headset model in `BeepSaber_Game.tscn`), `GodotSplash.tscn`, `BlackWhiteThem.tres`, `background*.tres` — visuals.
 
 ## Entity folders
 
 - `BeepCube/` — `BeepCube.gd` (note; `cutted` signal, scoring, rumble), `BeepCube_CutPiece.gd`
-  (`CutPiece` RigidBody halves, `MAX_LIFETIME` 0.3 s), `BeepCube_SliceParticles` (GPU particles freed
-  on Android/Web), `BeepCube.gdshader` (`color`, `is_dot`, `arrows_enabled`, `is_chain_head`, cut uniforms).
+  (`CutPiece` RigidBody halves, `MAX_LIFETIME` 0.3 s), `BeepCube_SliceParticles.gd/.tscn` (GPU particles freed
+  on Android/Web), `BeepCube.gdshader` (`color`, `is_dot`, `arrows_enabled`, `is_chain_head`, cut uniforms),
+  `note_gloss.gdshaderinc` (the default glossy note look, shared with `ChainLink.gdshader`).
   `BeepCubeTest.tscn` is a standalone test scene.
 - `Chain/` — `ChainLink.gd` (bezier link placement, lenient hitbox, link scoring), shader, mesh.
 - `Arc/` — `Arc.gd` (mesh from `ArcInfo.mesh_arrays`, magnet material on head cut), `Arc.gdshader`
   (reads `left_saber`/`right_saber`). Static `left_material`/`right_material(_magnet)` are shared.
-- `Bomb/` — `Bomb.gd`, `BombGlow.gdshader` + `bomb_glow.tres` (`danger_color`), meshes.
-- `Wall/` — `Wall.gd` (resizes box mesh/shape per wall), `DangerWall.gdshader` + `danger_wall.tres`.
+- `Bomb/` — `Bomb.gd`, `BombGlow.gdshader` + `bomb_glow.tres` (`danger_color`); `BombMerged.gdshader` draws body and
+  glow hull in one call (`Bomb.merged_mesh`, the default); `BombMesh.tscn` + `BombBody.gdshader` are the two-mesh
+  bomb `Bomb.classic` brings back to compare.
+- `Wall/` — `Wall.gd` (resizes box mesh/shape per wall), `FramedWall.gdshader` (default wall: box plus edge bars, one
+  draw call), `DangerWall.gdshader` + `danger_wall.tres` (classic wall, `Settings.classic_walls`).
 - `sabers/` — saber visuals listed in `Settings.SABER_VISUALS`: `default/` (`DefaultSaber`,
   `SaberTail`), `particles/` (`particles_saber.gd` extends `DefaultSaber`, clash sounds).
 - `data/` — static assets: `background/` panoramas and backdrop meshes, `maps/` bundled `Songs/` and
   `Playlists.json`, UI theme, logo, button texture, cut/click/saber sounds, miss/health/clear/menu
   sounds (`tools/make_feedback_sounds.py`), the fail sound (`tools/make_fail_sound.py`), shared shaders/meshes.
+  `data/glow.gdshader` (screen-texture blur) is referenced by nothing.
 
 ## Invariants and gotchas
 

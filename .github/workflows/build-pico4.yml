@@ -26,6 +26,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Agent docs name every script, scene and shader
+        run: python3 tools/check_agent_docs.py
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

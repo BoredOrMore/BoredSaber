@@ -5,15 +5,24 @@ BoredSaber is a Godot 4.6 (GDScript) Beat Saber-style game for standalone Pico 4
 ## Repository map
 
 Each folder below has its own `AGENTS.md` with a file map, gotchas and "where to change X" recipes.
-Read the one for the folder you are changing before editing.
+Read the one for the folder you are changing before editing. A commit that adds, moves or removes a script,
+scene or shader updates that folder's `AGENTS.md` in the same commit: CI runs `python3 tools/check_agent_docs.py`
+and fails when a `.gd`, `.tscn`, `.gdshader` or `.gdshaderinc` under `game/`, `tests/` or `tools/` isn't named in
+the nearest `AGENTS.md` above it, or when an `AGENTS.md` has no `CLAUDE.md` beside it. That `CLAUDE.md` is the one
+line `@AGENTS.md`, so Claude Code loads the folder's doc when it opens a file there. Write agent docs in English.
 
-- `game/`: main scene, autoloads, note/bomb/chain/arc/wall/saber entities, assets in `game/data/`.
+- `game/`: main scene, autoloads, note/bomb/chain/arc/wall entities, assets in `game/data/`.
+- `game/hud/`: the in-song HUD (score, combo, accuracy, time, health, cut numbers).
+- `game/env/`: stage environments (rigs, scenery shaders, laser fixtures, haze).
+- `game/sabers/`: saber visuals.
 - `game/scripts/`: shared scripts (utils, controllers, highscores, pools, raycasts, song uploader).
 - `game/scripts/GameState/`: the game state machine (menu, playing, paused, fail, score screen).
 - `game/BeatmapInfo/`: beatmap data model and how `game/Map.gd` parses Beat Saber map formats.
 - `game/ui/`: menus, shared theme and UI palette, BeatSaver download panels.
 - `OQ_Toolkit/`: partially ported VR toolkit (`vr` autoload, 2D-in-VR canvases, keyboard).
 - `tests/`: headless tests.
+- `tools/`: capture scenes, Blender model scripts, asset generators, headset bench, the doc checker;
+  `tools/asset_pipeline/` has its own rules.
 - `.github/`: CI build, APK release and how to test a build on the headset with adb.
 - `addons/`: not tracked; CI installs godot_openxr_vendors there.
 
