@@ -7,9 +7,10 @@ class_name WarningIcon
 ## headset; 30 minutes of songs this session; Full resolution lowered to Sharp after stuttering. It only warns: it
 ## never changes anything. Checked every CHECK_SECONDS while the song menu shows.
 
-## Right of the song menu (its right edge is at x 1.5 m), level with its Damage row, facing the player.
-const ICON_POSITION := Vector3(1.64, 1.094, -1.0)
-## 0.14 m at about 1.9 m: over 4 degrees, above the 3 degree minimum target (vr-ui-design).
+## In the song menu centre panel's top right corner, at the end of its top bar (23 degrees right, 2 cm in front of
+## the curved panel), facing the player.
+const ICON_POSITION := Vector3(0.786, 2.237, -0.817)
+## 0.14 m at about 2.07 m: about 4 degrees, above the 3 degree minimum target (vr-ui-design).
 const ICON_SIZE := 0.14
 const CARD_WIDTH := 0.95
 const CARD_PADDING := 0.04
@@ -70,7 +71,7 @@ func _ready() -> void:
 	collision_layer = CollisionLayerConstants.Ui_mask
 	collision_mask = 0
 
-	# the card: above the icon, reaching right, over a panel
+	# the card: under the icon, reaching left, over the song list
 	_card_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_card_text.width = (CARD_WIDTH - 2.0 * CARD_PADDING) / TEXT_PIXEL
 	_card_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -88,7 +89,7 @@ func _ready() -> void:
 	_card_back.mesh = QuadMesh.new()
 	_card_back.material_override = back_material
 	_card.add_child(_card_back)
-	_card.position = Vector3(-ICON_SIZE / 2.0, ICON_SIZE / 2.0 + 0.02, 0.01)
+	_card.position = Vector3(ICON_SIZE / 2.0 - CARD_WIDTH, 0.0, 0.01)
 	_card.visible = false
 	add_child(_card)
 	_sound.stream = preload("res://game/data/warning.wav")
@@ -228,3 +229,4 @@ func _show_card_text() -> void:
 	var height := lines.y * TEXT_PIXEL + 2.0 * CARD_PADDING
 	(_card_back.mesh as QuadMesh).size = Vector2(CARD_WIDTH, height)
 	_card_back.position = Vector3(CARD_WIDTH / 2.0, height / 2.0, 0.0)
+	_card.position.y = -ICON_SIZE / 2.0 - 0.02 - height

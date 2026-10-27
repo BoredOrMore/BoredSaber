@@ -52,7 +52,7 @@ const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 @onready var speed_row := $Modifiers/SpeedRow as HBoxContainer
 @onready var more_mods_button := $Modifiers/MoreMods_Button as Button
 @onready var environment_row := $Modifiers/EnvironmentRow as HBoxContainer
-@onready var more_mods_rows := $MoreModsPanel/Rows as VBoxContainer
+@onready var more_mods_rows := $MoreModsPanel/Scroll/Rows as VBoxContainer
 @onready var favorite_button := $Favorite_Button as Button
 @onready var profile_button := $Profile_Button as Button
 @onready var reset_button := $Modifiers/Header/Reset_Button as Button
@@ -803,17 +803,17 @@ func show_play_error() -> void:
 func _on_Exit_Button_pressed() -> void:
 	get_tree().quit()
 
-## Tabs above the right column, in order. Settings is not one: it opens its own screen, so it is the gear
+## Tabs at the top of the right panel, in order. Settings is not one: it opens its own screen, so it is the gear
 ## button beside them (a control looks like what it does).
-enum Tab { SONG, MORE }
-const TAB_LABELS := ["Song", "More"]
+enum Tab { MODIFIERS, MORE }
+const TAB_LABELS := ["Modifiers", "More"]
 
-## Fills the tab row; Song shows the details and modifiers, More a panel above Play.
+## Fills the tab row; Modifiers shows the modifiers, More a panel in their place.
 func _build_tabs() -> void:
 	var group := ButtonGroup.new()
 	for i in TAB_LABELS.size():
 		$Tabs.add_child(ModifierChips.make_row_button(TAB_LABELS[i], group, _on_tab_pressed.bind(i)))
-	_show_tab(Tab.SONG)
+	_show_tab(Tab.MODIFIERS)
 
 func _on_tab_pressed(tab: int) -> void:
 	_show_tab(tab)
@@ -822,7 +822,7 @@ func _on_tab_pressed(tab: int) -> void:
 func _on_settings_button_pressed() -> void:
 	settings_requested.emit()
 
-## Shows the tab's panel over the song details (Song shows the details) and lights up its tab.
+## Shows the tab's panel over the modifiers (Modifiers shows them) and lights up its tab.
 func _show_tab(tab: int) -> void:
 	$MorePanel.visible = tab == Tab.MORE
 	$MoreModsPanel.hide()

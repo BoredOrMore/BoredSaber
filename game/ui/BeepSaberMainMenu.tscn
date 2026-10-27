@@ -21,33 +21,68 @@
 [ext_resource type="Texture2D" path="res://game/ui/icons/sliders-horizontal.svg" id="icon_sliders-horizontal"]
 [ext_resource type="Script" path="res://game/ui/SongList.gd" id="song_list"]
 [ext_resource type="Script" path="res://game/ui/ConfirmButton.gd" id="confirm_button"]
+[ext_resource type="PackedScene" uid="uid://cpwxp083qm1jq" path="res://game/ui/HighscorePanel.tscn" id="highscores"]
 
-[sub_resource type="StyleBoxFlat" id="1"]
+[sub_resource type="StyleBoxEmpty" id="1"]
+
+[sub_resource type="StyleBoxFlat" id="region"]
 bg_color = Color(0.086, 0.094, 0.114, 1)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
+corner_detail = 6
 
 [node name="BeepSaberMainMenu" type="Panel" unique_id=1329467298]
-offset_right = 1280.0
-offset_bottom = 872.0
+offset_right = 1753.0
+offset_bottom = 496.0
 theme = ExtResource("1")
 theme_override_styles/panel = SubResource("1")
 script = ExtResource("3")
 
+[node name="LeftPanel" type="Panel" parent="."]
+layout_mode = 0
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 480.0
+offset_bottom = 496.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("region")
+
+[node name="CentrePanel" type="Panel" parent="."]
+layout_mode = 0
+offset_left = 504.0
+offset_top = 0.0
+offset_right = 1249.0
+offset_bottom = 496.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("region")
+
+[node name="RightPanel" type="Panel" parent="."]
+layout_mode = 0
+offset_left = 1273.0
+offset_top = 0.0
+offset_right = 1753.0
+offset_bottom = 496.0
+mouse_filter = 2
+theme_override_styles/panel = SubResource("region")
+
 [node name="Search_Button" type="Button" parent="." unique_id=891455992]
 layout_mode = 0
-offset_left = 24.0
-offset_top = 24.0
-offset_right = 92.0
-offset_bottom = 84.0
+offset_left = 520.0
+offset_top = 8.0
+offset_right = 588.0
+offset_bottom = 68.0
 tooltip_text = "Search"
 icon = ExtResource("icon_search")
 script = ExtResource("icon_button")
 
 [node name="Filters_Button" type="Button" parent="."]
 layout_mode = 0
-offset_left = 100.0
-offset_top = 24.0
-offset_right = 408.0
-offset_bottom = 84.0
+offset_left = 596.0
+offset_top = 8.0
+offset_right = 836.0
+offset_bottom = 68.0
 theme_override_constants/icon_max_width = 28
 clip_text = true
 text_overrun_behavior = 3
@@ -56,35 +91,35 @@ script = ExtResource("icon_button")
 
 [node name="PlaylistSelector" type="OptionButton" parent="." unique_id=301008456]
 layout_mode = 0
-offset_left = 416.0
-offset_top = 24.0
-offset_right = 588.0
-offset_bottom = 84.0
+offset_left = 844.0
+offset_top = 8.0
+offset_right = 1016.0
+offset_bottom = 68.0
 fit_to_longest_item = false
 
 [node name="GetSongs_Button" type="Button" parent="." unique_id=1531123590]
 layout_mode = 0
-offset_left = 596.0
-offset_top = 24.0
-offset_right = 760.0
-offset_bottom = 84.0
+offset_left = 1024.0
+offset_top = 8.0
+offset_right = 1191.0
+offset_bottom = 68.0
 text = "Get songs"
 
 [node name="SongsMenu" type="ScrollContainer" parent="." unique_id=1448329630]
 layout_mode = 0
-offset_left = 24.0
-offset_top = 96.0
-offset_right = 760.0
-offset_bottom = 848.0
+offset_left = 520.0
+offset_top = 74.0
+offset_right = 1233.0
+offset_bottom = 496.0
 script = ExtResource("song_list")
 
 [node name="EmptyList" type="Label" parent="."]
 visible = false
 layout_mode = 0
-offset_left = 24.0
-offset_top = 96.0
-offset_right = 760.0
-offset_bottom = 848.0
+offset_left = 520.0
+offset_top = 74.0
+offset_right = 1233.0
+offset_bottom = 496.0
 theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -93,10 +128,10 @@ autowrap_mode = 3
 [node name="FiltersPanel" type="Panel" parent="."]
 visible = false
 layout_mode = 0
-offset_left = 24.0
-offset_top = 96.0
-offset_right = 760.0
-offset_bottom = 848.0
+offset_left = 520.0
+offset_top = 74.0
+offset_right = 1233.0
+offset_bottom = 496.0
 
 [node name="Rows" type="VBoxContainer" parent="FiltersPanel"]
 layout_mode = 1
@@ -174,20 +209,20 @@ script = ExtResource("icon_button")
 
 [node name="cover" type="TextureRect" parent="." unique_id=925358881]
 layout_mode = 0
-offset_left = 784.0
-offset_top = 88.0
-offset_right = 896.0
-offset_bottom = 200.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = 80.0
+offset_bottom = 80.0
 texture = ExtResource("3_wpmn0")
 expand_mode = 1
 stretch_mode = 5
 
 [node name="SongInfo_Label" type="Label" parent="." unique_id=347010549]
 layout_mode = 0
-offset_left = 912.0
-offset_top = 88.0
-offset_right = 1256.0
-offset_bottom = 151.0
+offset_left = 92.0
+offset_top = 16.0
+offset_right = 464.0
+offset_bottom = 80.0
 theme_override_font_sizes/font_size = 24
 autowrap_mode = 3
 clip_text = true
@@ -195,10 +230,10 @@ text_overrun_behavior = 3
 
 [node name="Favorite_Button" type="Button" parent="." unique_id=1448413959]
 layout_mode = 0
-offset_left = 912.0
-offset_top = 155.0
-offset_right = 1256.0
-offset_bottom = 205.0
+offset_left = 16.0
+offset_top = 88.0
+offset_right = 236.0
+offset_bottom = 148.0
 theme_override_font_sizes/font_size = 22
 toggle_mode = true
 text = "Add to favorites"
@@ -207,10 +242,10 @@ script = ExtResource("icon_button")
 
 [node name="DifficultyPicker" type="VBoxContainer" parent="." unique_id=1422990200]
 layout_mode = 0
-offset_left = 784.0
-offset_top = 209.0
-offset_right = 1256.0
-offset_bottom = 380.0
+offset_left = 16.0
+offset_top = 152.0
+offset_right = 464.0
+offset_bottom = 318.0
 theme_override_constants/separation = 4
 mouse_filter = 2
 
@@ -235,10 +270,10 @@ autowrap_mode = 3
 
 [node name="PlayStatus" type="HBoxContainer" parent="."]
 layout_mode = 0
-offset_left = 784.0
-offset_top = 792.0
-offset_right = 1256.0
-offset_bottom = 848.0
+offset_left = 16.0
+offset_top = 322.0
+offset_right = 464.0
+offset_bottom = 380.0
 theme_override_constants/separation = 12
 
 [node name="Icon" type="TextureRect" parent="PlayStatus"]
@@ -264,20 +299,29 @@ theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
 theme_override_font_sizes/font_size = 24
 text_overrun_behavior = 3
 
+[node name="Ranks" parent="." instance=ExtResource("highscores")]
+layout_mode = 0
+offset_left = 16.0
+offset_top = 388.0
+offset_right = 464.0
+offset_bottom = 480.0
+show_song_info = false
+compact = true
+
 [node name="Tabs" type="HBoxContainer" parent="."]
 layout_mode = 0
-offset_left = 784.0
-offset_top = 24.0
-offset_right = 1008.0
-offset_bottom = 80.0
+offset_left = 1289.0
+offset_top = 8.0
+offset_right = 1600.0
+offset_bottom = 68.0
 theme_override_constants/separation = 4
 
 [node name="Profile_Button" type="Button" parent="."]
 layout_mode = 0
-offset_left = 1016.0
-offset_top = 24.0
-offset_right = 1176.0
-offset_bottom = 80.0
+offset_left = 244.0
+offset_top = 88.0
+offset_right = 464.0
+offset_bottom = 148.0
 clip_text = true
 text_overrun_behavior = 3
 icon = ExtResource("icon_user")
@@ -285,36 +329,28 @@ script = ExtResource("icon_button")
 
 [node name="Settings_Button" type="Button" parent="."]
 layout_mode = 0
-offset_left = 1192.0
-offset_top = 24.0
-offset_right = 1256.0
-offset_bottom = 80.0
+offset_left = 1669.0
+offset_top = 8.0
+offset_right = 1737.0
+offset_bottom = 68.0
 icon = ExtResource("icon_settings")
 script = ExtResource("icon_button")
 
 [node name="Modifiers" type="VBoxContainer" parent="."]
 layout_mode = 0
-offset_left = 784.0
-offset_top = 384.0
-offset_right = 1256.0
-offset_bottom = 788.0
+offset_left = 1289.0
+offset_top = 76.0
+offset_right = 1737.0
+offset_bottom = 480.0
 theme_override_constants/separation = 3
-
-[node name="Sep" type="HSeparator" parent="Modifiers"]
-layout_mode = 2
 
 [node name="Header" type="HBoxContainer" parent="Modifiers"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 
-[node name="Label" type="Label" parent="Modifiers/Header"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Modifiers"
-vertical_alignment = 1
-
 [node name="Reset_Button" type="Button" parent="Modifiers/Header" unique_id=1815398217]
 layout_mode = 2
+size_flags_horizontal = 10
 icon = ExtResource("icon_undo-2")
 script = ExtResource("icon_button")
 
@@ -363,12 +399,12 @@ script = ExtResource("icon_button")
 [node name="MoreModsPanel" type="Panel" parent="."]
 visible = false
 layout_mode = 0
-offset_left = 784.0
-offset_top = 88.0
-offset_right = 1256.0
-offset_bottom = 788.0
+offset_left = 1289.0
+offset_top = 76.0
+offset_right = 1737.0
+offset_bottom = 480.0
 
-[node name="Rows" type="VBoxContainer" parent="MoreModsPanel"]
+[node name="Scroll" type="ScrollContainer" parent="MoreModsPanel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -377,9 +413,14 @@ offset_left = 16.0
 offset_top = 16.0
 offset_right = -16.0
 offset_bottom = -16.0
+horizontal_scroll_mode = 0
+
+[node name="Rows" type="VBoxContainer" parent="MoreModsPanel/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
-[node name="Back_Button" type="Button" parent="MoreModsPanel/Rows"]
+[node name="Back_Button" type="Button" parent="MoreModsPanel/Scroll/Rows"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Back"
@@ -389,17 +430,17 @@ script = ExtResource("icon_button")
 [node name="MorePanel" type="Panel" parent="."]
 visible = false
 layout_mode = 0
-offset_left = 784.0
-offset_top = 88.0
-offset_right = 1256.0
-offset_bottom = 788.0
+offset_left = 1289.0
+offset_top = 76.0
+offset_right = 1737.0
+offset_bottom = 480.0
 
 [node name="LoadPlaylists_Button" type="Button" parent="MorePanel" unique_id=793107135]
 layout_mode = 0
 offset_left = 16.0
-offset_top = 16.0
-offset_right = 456.0
-offset_bottom = 88.0
+offset_top = 8.0
+offset_right = 432.0
+offset_bottom = 68.0
 text = "Refresh Songs"
 icon = ExtResource("icon_refresh-cw")
 script = ExtResource("icon_button")
@@ -407,9 +448,9 @@ script = ExtResource("icon_button")
 [node name="Delete_Button" type="Button" parent="MorePanel" unique_id=1222545396]
 layout_mode = 0
 offset_left = 16.0
-offset_top = 104.0
-offset_right = 456.0
-offset_bottom = 176.0
+offset_top = 72.0
+offset_right = 432.0
+offset_bottom = 132.0
 disabled = true
 text = "Delete Song"
 icon = ExtResource("icon_trash-2")
@@ -418,25 +459,25 @@ script = ExtResource("confirm_button")
 [node name="Licenses" type="Button" parent="MorePanel" unique_id=980969105]
 layout_mode = 0
 offset_left = 16.0
-offset_top = 192.0
-offset_right = 456.0
-offset_bottom = 264.0
+offset_top = 136.0
+offset_right = 432.0
+offset_bottom = 196.0
 text = "Licenses"
 
 [node name="BodyTest_Button" type="Button" parent="MorePanel"]
 layout_mode = 0
 offset_left = 16.0
-offset_top = 280.0
-offset_right = 456.0
-offset_bottom = 352.0
+offset_top = 200.0
+offset_right = 432.0
+offset_bottom = 260.0
 text = "Body Test"
 
 [node name="Exit_Button" type="Button" parent="MorePanel" unique_id=1669148104]
 layout_mode = 0
 offset_left = 16.0
-offset_top = 368.0
-offset_right = 456.0
-offset_bottom = 440.0
+offset_top = 264.0
+offset_right = 432.0
+offset_bottom = 324.0
 text = "Exit Game"
 icon = ExtResource("icon_log-out")
 script = ExtResource("confirm_button")
@@ -445,9 +486,9 @@ question = "Exit the game? Press again"
 [node name="upload_url" type="Label" parent="MorePanel" unique_id=1379669192]
 layout_mode = 0
 offset_left = 16.0
-offset_top = 456.0
-offset_right = 456.0
-offset_bottom = 516.0
+offset_top = 328.0
+offset_right = 432.0
+offset_bottom = 364.0
 theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
 theme_override_font_sizes/font_size = 22
 autowrap_mode = 3
@@ -455,23 +496,23 @@ autowrap_mode = 3
 [node name="version" type="Label" parent="MorePanel" unique_id=537676885]
 layout_mode = 0
 offset_left = 16.0
-offset_top = 520.0
-offset_right = 456.0
-offset_bottom = 550.0
+offset_top = 368.0
+offset_right = 432.0
+offset_bottom = 398.0
 theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
 theme_override_font_sizes/font_size = 22
 horizontal_alignment = 2
 
 [node name="LicensePopup" type="PopupPanel" parent="." unique_id=1997437673]
 title = "Licenses"
-position = Vector2i(784, 24)
-size = Vector2i(472, 572)
+position = Vector2i(1289, 16)
+size = Vector2i(448, 464)
 
 [node name="ScrollContainer" type="ScrollContainer" parent="LicensePopup" unique_id=1670075562]
 offset_left = 20.0
 offset_top = 12.0
-offset_right = 452.0
-offset_bottom = 560.0
+offset_right = 428.0
+offset_bottom = 452.0
 horizontal_scroll_mode = 0
 
 [node name="Label" type="Label" parent="LicensePopup/ScrollContainer" unique_id=1044749430]
@@ -511,7 +552,7 @@ joystick_scroll = false
 [connection signal="toggled" from="FiltersPanel/Rows/WorkoutFilter" to="." method="_on_workout_filter_toggled"]
 [connection signal="pressed" from="Modifiers/Header/Reset_Button" to="." method="_on_reset_button_pressed"]
 [connection signal="pressed" from="Modifiers/MoreMods_Button" to="." method="_show_more_modifiers" binds= [true]]
-[connection signal="pressed" from="MoreModsPanel/Rows/Back_Button" to="." method="_show_more_modifiers" binds= [false]]
+[connection signal="pressed" from="MoreModsPanel/Scroll/Rows/Back_Button" to="." method="_show_more_modifiers" binds= [false]]
 [connection signal="pressed" from="GetSongs_Button" to="." method="_on_get_songs_pressed"]
 [connection signal="pressed" from="Filters_Button" to="." method="_show_filters" binds= [true]]
 [connection signal="pressed" from="FiltersPanel/Rows/Back_Button" to="." method="_show_filters" binds= [false]]

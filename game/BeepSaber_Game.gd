@@ -20,11 +20,6 @@ var gamestate_playing := GameStatePlaying.new()
 var gamestate_settings := GameStateSettings.new()
 var gamestate_bodytest := GameStateBodyTest.new()
 
-## Where the record table stands in the song menu: 53 degrees left of the player (eyes at (0, 1.6, 1)), 1.6 m away and
-## facing them, its inner edge just clear of the menu panel's (37 degrees). Scale 1.5: text 1.5 degrees.
-const HIGHSCORES_MENU_TRANSFORM := Transform3D(
-	Basis(Vector3(0.90272, 0, -1.19795), Vector3(0, 1.5, 0), Vector3(1.19795, 0, 0.90272)),
-	Vector3(-1.27782, 1.5, 0.0371))
 var gamestate: GameState = gamestate_bootup
 var current_health := Constants.HEALTH_START
 
@@ -104,8 +99,6 @@ var lead_in := 0.0
 const FAIL_SECONDS := 1.5
 # the high score saved at the end of the last song
 var _new_record := {}
-## The song menu showed the record table when the BeatSaver page opened over it.
-var _menu_highscores_shown := false
 const DANGER_WALL_MATERIAL := preload("res://game/notes/Wall/danger_wall.tres")
 ## Mistake sounds (tools/make_hit_sounds.py): a dull buzz for a bad cut or the wrong saber, a boom for a bomb.
 ## A miss gets a soft swipe (tools/make_feedback_sounds.py), quieter than a bad cut.
@@ -289,9 +282,7 @@ func show_MapSourceDialogs(showing: bool = true) -> void:
 
 ## Opens the BeatSaver page where the song menu was; closing it brings the menu back.
 func _open_beatsaver() -> void:
-	_menu_highscores_shown = highscore_canvas.visible
 	main_menu._hide()
-	highscore_canvas._hide()
 	# the song menu's keyboard sits where the BeatSaver one opens
 	highscore_keyboard._hide()
 	beatsaver_canvas._show()
@@ -301,8 +292,6 @@ func _on_beatsaver_visibility_changed() -> void:
 	if not beatsaver_canvas.visible and gamestate == gamestate_mapselection:
 		online_search_keyboard._hide()
 		main_menu._show()
-		if _menu_highscores_shown:
-			highscore_canvas._show()
 		# the BeatSaver preview stops; the selected song's preview comes back
 		menu.play_selected_preview(0.0, true)
 
@@ -977,18 +966,14 @@ func _unpause_button() -> void:
 	_transition_game_state(gamestate_playing)
 
 func _on_BeepSaberMainMenu_difficulty_changed(map_info: MapInfo, diff_rank: int) -> void:
-	if diff_rank < 0:
-		if highscore_canvas:
-			highscore_canvas.hide()
-		return
-		
-	# menu loads playlist in _ready(), must yield until scene is loaded
-	if not highscore_canvas:
-		await self.ready
-	
-	highscore_canvas.transform = lifted(HIGHSCORES_MENU_TRANSFORM)
-	highscore_canvas._show()
-	highscore_panel.load_highscores(map_info,diff_rank)
+	# the menu loads its playlist in its _ready(), before this node's
+	if not menu:
+		await ready
+	# the ranks sit in the song menu's left panel, under the song
+	var ranks := menu.get_node(^"Ranks") as HighscorePanel
+	ranks.visible = diff_rank >= 0
+	if diff_rank >= 0:
+		ranks.load_highscores(map_info, diff_rank)
 
 ## Shows the note to slash, in the selected song's colours, while the song menu is open with a song picked and
 ## nothing (keyboard, "Who's playing?") in front of it.

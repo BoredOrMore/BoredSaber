@@ -2,6 +2,9 @@ extends Panel
 class_name HighscorePanel
 
 @export var show_song_info := true
+## In the song menu's left panel, under the song (owner, 2026-10-27): the rows only, without title, margins or
+## background (the difficulty is picked right above, the panel draws the background).
+@export var compact := false
 
 # keep a copy of the base row for regeneration later
 @onready var _base_row = $Margin/VBox/LeftRight/ScrollContainer/Margin/HighscoresList/BaseRecordRow.duplicate()
@@ -29,6 +32,12 @@ func _ready() -> void:
 	score.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_clear_list()
 	_song_info_panel.visible = show_song_info
+	if compact:
+		_title.hide()
+		add_theme_stylebox_override(&"panel", StyleBoxEmpty.new())
+		for margin: MarginContainer in [$Margin, $Margin/VBox/LeftRight/ScrollContainer/Margin]:
+			for side in ["left", "top", "right", "bottom"]:
+				margin.add_theme_constant_override("margin_" + side, 0)
 	
 ## Rows stand out in UI_ACCENT: on the score screen only the run just played (latest, the record add_highscore
 ## returned; none when it didn't make the list), elsewhere (latest null) the current player's rows.

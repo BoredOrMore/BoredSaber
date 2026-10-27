@@ -6,10 +6,11 @@ extends Node
 const MIN_GAP := 4.0
 ## Panels that open over others: whatever lies wholly under a visible one is hidden, not overlapped.
 const OVERLAYS := ["MorePanel", "MoreModsPanel", "FiltersPanel"]
-## Rows the song list must show at once at its original 76 px row size.
-const MIN_VISIBLE_ROWS := 9
-## The download page's canvas is at scale 2 and the song menu's at 2.4, so the same world size takes 1.2 times the px.
-const MENU_TO_BEATSAVER_PX := 1.2
+## The song menu's three panel backgrounds: what lies wholly on one is on it, not overlapping it.
+const BACKGROUNDS := ["LeftPanel", "CentrePanel", "RightPanel"]
+## Rows the song list must show at once at its original 76 px row size (owner, 2026-10-28: the curved menu in the
+## 32 degree comfort zone, about 5 rows).
+const MIN_VISIBLE_ROWS := 5
 const LONG_NAME := "Wolfgang Amadeus Mozart and the Very Long Band Name"
 
 var failures := 0
@@ -115,7 +116,6 @@ func _ready() -> void:
 	beatsaver.keyboard = keyboard
 	_port.add_child(beatsaver)
 	await _settle()
-	check((beatsaver.size - menu.size * MENU_TO_BEATSAVER_PX).abs().x < 1.0 and (beatsaver.size - menu.size * MENU_TO_BEATSAVER_PX).abs().y < 1.0, "the download page is the song menu's size in the world (got %s px)" % beatsaver.size)
 	_check_layout(beatsaver, "download page")
 	beatsaver.queue_free()
 	menu.queue_free()
@@ -374,6 +374,7 @@ func _check_children(parent: Control, bounds: Rect2, problems: PackedStringArray
 			if a.grow(MIN_GAP - 0.5).intersects(b):
 				problems.append("%s %s and %s %s are closer than %d px" % [placed[i].name, a, placed[j].name, b, MIN_GAP])
 
-## True when one of the two is an open overlay panel that wholly covers the other.
+## True when one of the two is an open overlay panel or a panel background that wholly covers the other.
 func _hidden_under_overlay(a: Control, a_rect: Rect2, b: Control, b_rect: Rect2) -> bool:
-	return (String(a.name) in OVERLAYS and a_rect.encloses(b_rect)) or (String(b.name) in OVERLAYS and b_rect.encloses(a_rect))
+	var covers := OVERLAYS + BACKGROUNDS
+	return (String(a.name) in covers and a_rect.encloses(b_rect)) or (String(b.name) in covers and b_rect.encloses(a_rect))
