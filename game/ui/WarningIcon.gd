@@ -12,6 +12,11 @@ class_name WarningIcon
 const ICON_POSITION := Vector3(0.746, 2.239, -0.834)
 ## 0.14 m at about 2.07 m: about 4 degrees, above the 3 degree minimum target (vr-ui-design).
 const ICON_SIZE := 0.14
+## Round corners, as the menus' (owner, 2026-10-28): the card's like a panel's 24 px, the icon's like a chip's 14 px,
+## at the menus' scale (2.4/1024 m per px); RoundedQuad cuts them without blending.
+const CARD_CORNER := 0.056
+const ICON_CORNER := 0.033
+const ROUNDED_QUAD := preload("res://game/ui/RoundedQuad.gdshader")
 const CARD_WIDTH := 0.95
 const CARD_PADDING := 0.04
 ## Text 60 px at 0.001 m a pixel: the song menu's 28 px body text at its scale (2.4 / 1024 m a pixel).
@@ -34,7 +39,7 @@ const LOWERED_TEXT := "Lowered to Sharp to stay smooth: Full resolution stuttere
 
 var game: BeepSaber_Game
 var _icon := MeshInstance3D.new()
-var _icon_material := StandardMaterial3D.new()
+var _icon_material := ShaderMaterial.new()
 var _card := Node3D.new()
 var _card_back := MeshInstance3D.new()
 var _card_text := Label3D.new()
@@ -54,8 +59,10 @@ func _ready() -> void:
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE * ICON_SIZE
 	_icon.mesh = quad
-	_icon_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_icon_material.albedo_color = Constants.UI_DANGER
+	_icon_material.shader = ROUNDED_QUAD
+	_icon_material.set_shader_parameter(&"color", Constants.UI_DANGER)
+	_icon_material.set_shader_parameter(&"size", quad.size)
+	_icon_material.set_shader_parameter(&"radius", ICON_CORNER)
 	_icon.material_override = _icon_material
 	add_child(_icon)
 	var mark := _label("!", TEXT_SIZE * 2)
@@ -83,9 +90,10 @@ func _ready() -> void:
 	# a wrapped, left-aligned Label3D starts its lines at its position
 	_card_text.position = Vector3(CARD_PADDING, CARD_PADDING, 0.002)
 	_card.add_child(_card_text)
-	var back_material := StandardMaterial3D.new()
-	back_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	back_material.albedo_color = Constants.UI_PANEL
+	var back_material := ShaderMaterial.new()
+	back_material.shader = ROUNDED_QUAD
+	back_material.set_shader_parameter(&"color", Constants.UI_PANEL)
+	back_material.set_shader_parameter(&"radius", CARD_CORNER)
 	_card_back.mesh = QuadMesh.new()
 	_card_back.material_override = back_material
 	_card.add_child(_card_back)
@@ -213,12 +221,12 @@ func _log_unreadable(what: String, why: String) -> void:
 func ui_raycast_hit_event(_pos: Vector3, _click: bool, _release: bool) -> void:
 	if not _card.visible:
 		_card.visible = true
-		_icon_material.albedo_color = Constants.UI_DANGER.lightened(0.2)
+		_icon_material.set_shader_parameter(&"color", Constants.UI_DANGER.lightened(0.2))
 		_show_card_text()
 
 func ui_raycast_exit() -> void:
 	_card.visible = false
-	_icon_material.albedo_color = Constants.UI_DANGER
+	_icon_material.set_shader_parameter(&"color", Constants.UI_DANGER)
 
 ## Fills the card with the warnings, a bullet each, and sizes its panel to the text.
 func _show_card_text() -> void:
@@ -228,5 +236,6 @@ func _show_card_text() -> void:
 			-1, TextServer.BREAK_MANDATORY | TextServer.BREAK_WORD_BOUND)
 	var height := lines.y * TEXT_PIXEL + 2.0 * CARD_PADDING
 	(_card_back.mesh as QuadMesh).size = Vector2(CARD_WIDTH, height)
+	(_card_back.material_override as ShaderMaterial).set_shader_parameter(&"size", Vector2(CARD_WIDTH, height))
 	_card_back.position = Vector3(CARD_WIDTH / 2.0, height / 2.0, 0.0)
 	_card.position.y = -ICON_SIZE / 2.0 - 0.02 - height

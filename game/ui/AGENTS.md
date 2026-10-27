@@ -62,6 +62,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
 - `IconButton.gd` (class `IconButton`): icon just left of a centred label. `ConfirmButton.gd` (extends it): for
   what can't be undone; first press asks in the button, a second within `CONFIRM_SECONDS` does it.
 - `StepperSpinBox.gd` (class `StepperSpinBox`): number between big − and + buttons for the pointer; hold repeats.
+- `RoundedQuad.gdshader`: a flat colour quad with round corners for UI in 3D (WarningIcon), cut by alpha scissor
+  and alpha to coverage like the canvases, never blended.
 - `WarningIcon.gd` (class `WarningIcon`, a `UIRaycastTarget`): red "!" by the song menu while something may hurt
   the player or headset; pointing at it opens the list of warnings.
 - `UI_AudioEngine/` (`UI_AudioEngine.gd/.tscn`): autoload; `attach_children(node)` wires hover and press sounds to every `Button` below `node`:
