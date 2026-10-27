@@ -16,3 +16,5 @@
   normalised), the dish's fill no problem.
 - Export: `game/models/dish_panel.glb`; source `tools/models/dish_panel.py`.
 - Review: owner in Blender and Godot, then on the headset.
+- Placement (owner, 2026-10-27): panels 4% wider than their share of the ring, so the fan-shaped gaps between
+  them close; every other segment 3 cm proud so the overlaps don't flicker.

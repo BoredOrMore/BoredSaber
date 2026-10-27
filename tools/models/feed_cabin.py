@@ -1,6 +1,7 @@
 # Pulse Void's feed cabin and maintenance beam (doc/assets/feed_cabin/spec.md): the receiver's cabin at the dish's
-# focus, under the player, with the feed horn under it aimed down at the dish, and the beam the track runs on, reaching
-# forward. Seen from above and the sides, mostly looking down past the track.
+# focus, under the player, with the feed horn under it aimed down at the dish, and the bridge the track runs on, from the
+# cabin out to the dish's front rim (owner, 2026-10-27: it ended in mid air at 61 m; now it lands on the rim ring and is
+# hung from the two front masts by stays, as Arecibo's catwalk was). Seen from above and the sides, mostly looking down past the track.
 # Origin at the cabin's top centre (PulseVoid CABIN_TOP under the track); Blender z up, Blender +y is Godot -z (ahead).
 # Vertex colours: red is baked ambient occlusion (model_export.py).
 # Run headless: blender -b -P tools/models/feed_cabin.py -- game/models
@@ -36,13 +37,13 @@ PARAPET = (0.4, 0.2)
 # the feed horn under the cabin: mouth radius, throat radius, length, sides
 HORN = (1.8, 0.7, 3.0, 12)
 # the beam: from the cabin's front to this far ahead, width, depth; chord size; a Warren truss panel every PANEL_STEP
-BEAM_END = 61.0
+BEAM_END = 250.0
 BEAM = (5.0, 2.5)
 CHORD = 0.25
-PANEL_STEP = 5.0
+PANEL_STEP = 10.0
 BRACE = 0.18
 # its handrails either side: posts every POST_STEP, rails at these heights over the walkway, tube size
-POST_STEP = 10.0
+POST_STEP = 20.0
 RAILS = (1.1, 0.55)
 RAIL = 0.1
 

@@ -36,7 +36,14 @@ const DISH_INNER := 20.0
 const DISH_RINGS := 14
 const DISH_SEGMENTS := 48
 const PANEL := 0.6
-const RIM := 3.0
+## the panels a little wider than their ring's share, so the fan-shaped gaps between them close; every other segment
+## stands proud by PANEL_STAGGER, so the overlaps don't fight
+const PANEL_OVERLAP := 1.04
+const PANEL_STAGGER := 0.03
+## the rim: a vertical ring girder round the dish's edge (owner, 2026-10-27: it leaned with the dish), its thickness
+## outward and height, its top RIM_TOP above the dish's edge
+const RIM := Vector2(2.0, 4.0)
+const RIM_TOP := 0.5
 ## the feed cabin under the player (size, its top just under the track deck; the model's, where the legs meet it):
 ## small, so the legs show past its roof's edge (owner, 2026-10-27: 6 x 6 m; at 12 m the roof hid them)
 const CABIN := Vector3(6.0, 7.0, 6.0)
@@ -46,11 +53,21 @@ const CABIN_TOP := -0.4
 ## their section
 const LEG_REACH := 200.0
 const LEG := 2.5
-## the masts on the rim for the beacons: their height to the beacon's platform (rim_parts.py MAST_HEIGHT), and the
-## angles they stand at either side of ahead
+## the masts round the rim (as FAST's towers, owner, 2026-10-27): on footings on the ground MAST_R out, past the rim,
+## their height to the beacon's platform (rim_parts.py MAST_HEIGHT), the angles they stand at either side of ahead, the
+## footings' size; each holds a cable down to the cabin's roof corner on its side, the two front ones also the bridge's
+## stays at STAY_Z along it
+const MAST_R := 258.0
 const MAST := 40.0
 const MAST_FROM_DEG := 20.0
 const MAST_TO_DEG := 70.0
+const MAST_FOOTING := Vector3(5.0, 8.0, 5.0)
+const CABLE := 0.15
+const STAY_Z: Array[float] = [-60.0, -120.0, -180.0]
+## the bridge's edges (feed_cabin.py BEAM), where the stays meet it
+const BRIDGE_HALF := 2.5
+## the feed legs' footings on the dish (size, level)
+const LEG_FOOTING := Vector3(5.0, 3.0, 5.0)
 ## the floodlights on the legs' platforms (feed_leg.py FLOOD_AT, FLOOD_DECK): at these shares of a leg's length, in the
 ## order they are filled (two a leg, then the front legs' middle ones), the platforms' top this far over the leg's axis,
 ## the tilt axis FLOOD_ABOVE over it
@@ -58,8 +75,10 @@ const FLOOD_AT: Array[float] = [0.25, 0.75, 0.5]
 const FLOOD_DECK := 1.5
 const FLOOD_ABOVE := 0.84
 ## the seam strips: on the dish's face at each panel ring's outer edge, this wide (along the dish) and thick; the drop's
-## beam from the far rim straight up, its width and height
+## beam straight up from the calibration laser station's turret at the bridge's end (dish_props.py STATION_AT, HUT,
+## TURRET), its width and height
 const SEAM := Vector2(1.2, 0.3)
+const STATION := Vector3(7.0, 5.2, -254.0)
 const DROP_BEAM := Vector2(4.0, 800.0)
 
 var seam_material: ShaderMaterial
@@ -68,6 +87,21 @@ var drop_beam: MeshInstance3D
 func _ready() -> void:
 	var boxes: Array[Transform3D] = []
 	boxes.append(_box(Vector3(0.0, dish_y(0.0) - PANEL * 0.5, 0.0), Vector3(DISH_INNER * 2.0, PANEL, DISH_INNER * 2.0)))
+	for k in 4:
+		boxes.append(_box(_leg_foot(k), LEG_FOOTING))
+	var masts: Array[Transform3D] = []
+	for side in [-1.0, 1.0]:
+		for i in 3:
+			var a: float = deg_to_rad(lerpf(MAST_FROM_DEG, MAST_TO_DEG, i / 2.0)) * side
+			var foot := _mast_foot(a)
+			# turned with the rim, so the masts either side are mirror images
+			masts.append(Transform3D(Basis(Vector3.UP, -a), foot))
+			boxes.append(_box(foot - Vector3(0.0, MAST_FOOTING.y * 0.5, 0.0), MAST_FOOTING))
+			var top := foot + Vector3(0.0, MAST, 0.0)
+			boxes.append(_bar(top, Vector3(side * CABIN.x * 0.5, CABIN_TOP, -CABIN.z * 0.5), CABLE))
+			if i == 0:
+				for z in STAY_Z:
+					boxes.append(_bar(top, Vector3(side * BRIDGE_HALF, CABIN_TOP, z), CABLE))
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	multimesh.mesh = BoxMesh.new()
@@ -93,12 +127,6 @@ func _ready() -> void:
 		legs.append(Transform3D(Basis.looking_at(_leg_foot(k) - _leg_top(k), Vector3.UP), _leg_top(k)))
 	_add_model(FEED_LEG, legs, material)
 	_add_model(RIM_SEGMENT, _rim_segments(), material)
-	var masts: Array[Transform3D] = []
-	for side in [-1.0, 1.0]:
-		for i in 3:
-			var a: float = deg_to_rad(lerpf(MAST_FROM_DEG, MAST_TO_DEG, i / 2.0)) * side
-			# turned with the rim, so the masts either side are mirror images
-			masts.append(Transform3D(Basis(Vector3.UP, -a), _rim(a)))
 	_add_model(RIM_MAST, masts, material)
 	_add_model(DISH_PROPS, [Transform3D.IDENTITY], material)
 	_add_seams()
@@ -125,8 +153,16 @@ static func dish_y(r: float) -> float:
 static func dish_point(r: float, a: float) -> Vector3:
 	return Vector3(sin(a) * r, dish_y(r), -cos(a) * r)
 
-static func _rim(a: float) -> Vector3:
-	return dish_point(DISH_RADIUS, a)
+## Where the mast at angle a stands: on the ground past the rim.
+static func _mast_foot(a: float) -> Vector3:
+	return Vector3(sin(a) * MAST_R, 0.0, -cos(a) * MAST_R)
+
+## A square bar (a cable) from a to b.
+static func _bar(a: Vector3, b: Vector3, thick: float) -> Transform3D:
+	var d := b - a
+	var x := d.cross(Vector3.UP).normalized()
+	var y := x.cross(d).normalized()
+	return Transform3D(Basis(x * thick, y * thick, d), (a + b) * 0.5)
 
 ## A panel (or seam strip) of the dish between radii r0 and r1 round angle a, `span` radians wide, `thick` deep, its
 ## top face on the dish.
@@ -149,7 +185,9 @@ static func _panels() -> Array[Transform3D]:
 		var r0 := lerpf(DISH_INNER, DISH_RADIUS, float(ring) / DISH_RINGS)
 		var r1 := lerpf(DISH_INNER, DISH_RADIUS, float(ring + 1) / DISH_RINGS)
 		for s in DISH_SEGMENTS:
-			places.append(_panel(r0, r1, span * (s + 0.5), span, PANEL))
+			var t := _panel(r0, r1, span * (s + 0.5), span * PANEL_OVERLAP, PANEL)
+			t.origin += t.basis.y.normalized() * PANEL_STAGGER * (s % 2)
+			places.append(t)
 	return places
 
 ## The rim girder's segments' places (the model's, scaled), edge to edge round the dish.
@@ -157,7 +195,11 @@ static func _rim_segments() -> Array[Transform3D]:
 	var places: Array[Transform3D] = []
 	var span := TAU / DISH_SEGMENTS
 	for s in DISH_SEGMENTS:
-		places.append(_panel(DISH_RADIUS, DISH_RADIUS + RIM, span * (s + 0.5), span, RIM))
+		var a := span * (s + 0.5)
+		var across := Vector3(cos(a), 0.0, sin(a)) * span * (DISH_RADIUS + RIM.x * 0.5)
+		var inward := Vector3(-sin(a), 0.0, cos(a))
+		var centre := Vector3(sin(a), 0.0, -cos(a)) * (DISH_RADIUS + RIM.x * 0.5) + Vector3(0.0, RIM_TOP - RIM.y * 0.5, 0.0)
+		places.append(Transform3D(Basis(across, Vector3.UP * RIM.y, inward * RIM.x), centre))
 	return places
 
 ## Feed leg k's ends: the cabin's corner and its foot on the dish (k 0 ahead right, then round).
@@ -199,7 +241,7 @@ func _add_seams() -> void:
 	add_child(instance)
 	drop_beam = MeshInstance3D.new()
 	drop_beam.mesh = BoxMesh.new()
-	drop_beam.transform = _box(_rim(0.0) + Vector3(0.0, DROP_BEAM.y * 0.5, 0.0), Vector3(DROP_BEAM.x, DROP_BEAM.y, DROP_BEAM.x))
+	drop_beam.transform = _box(STATION + Vector3(0.0, DROP_BEAM.y * 0.5, 0.0), Vector3(DROP_BEAM.x, DROP_BEAM.y, DROP_BEAM.x))
 	drop_beam.material_override = seam_material
 	drop_beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	drop_beam.visible = false
@@ -225,7 +267,7 @@ static func rim_beacon(i: int, count: int) -> Vector3:
 	var half := maxi(count / 2, 1)
 	var side := -1.0 if i < half else 1.0
 	var a := deg_to_rad(lerpf(MAST_FROM_DEG, MAST_TO_DEG, float((i % half) % 3) / 2.0)) * side
-	return _rim(a) + Vector3(0.0, MAST + 0.6, 0.0)
+	return _mast_foot(a) + Vector3(0.0, MAST + 0.6, 0.0)
 
 ## A unit box scaled to size and placed at centre.
 static func _box(centre: Vector3, size: Vector3) -> Transform3D:
