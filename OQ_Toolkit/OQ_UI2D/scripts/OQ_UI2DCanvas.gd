@@ -15,6 +15,16 @@ var ui_collisionshape: CollisionShape3D
 # set to true to prevent UIRayCast marker from colliding with canvas
 @export var disable_collision := false
 @export var update_only_on_input := false
+## Metres from the panel's centre to the axis it curves around, the player's eye (owner, 2026-10-27: a curved
+## horseshoe menu, text the same size across a panel); 0 keeps it flat. A curved panel bends toward the viewer on +z,
+## keeps its width as arc length, and its pointer hits are mapped back along the arc (helper_UIArea).
+@export var curve_radius := 0.0
+## Columns of quads along a curved panel's arc.
+const CURVE_COLUMNS := 32
+## Cut the panel's see-through pixels (its rounded corners, drawn by the root control's style) instead of blending
+## them: alpha scissor, smoothed by MSAA's alpha to coverage, so nothing is drawn twice. Only for a panel whose
+## pixels are opaque but its corners (a translucent pixel would be cut).
+@export var round_corners := false
 
 var mesh_material: StandardMaterial3D
 @onready var mesh_instance := $UIArea/UIMeshInstance as MeshInstance3D
@@ -43,10 +53,63 @@ func find_child_control() -> void:
 func update_size() -> void:
 	ui_size = ui_control.get_size()
 	if (ui_area != null):
-		ui_area.scale.x = ui_size.x * vr.UI_PIXELS_TO_METER
-		ui_area.scale.y = ui_size.y * vr.UI_PIXELS_TO_METER
+		if curve_radius > 0.0:
+			_build_curve()
+		else:
+			ui_area.scale.x = ui_size.x * vr.UI_PIXELS_TO_METER
+			ui_area.scale.y = ui_size.y * vr.UI_PIXELS_TO_METER
 	if (viewport != null):
 		viewport.set_size(ui_size)
+
+## The panel's size in metres (its pixels at this canvas's scale).
+func curve_size() -> Vector2:
+	var scale := global_transform.basis.get_scale() if is_inside_tree() else Vector3.ONE
+	return Vector2(ui_size.x * vr.UI_PIXELS_TO_METER * scale.x, ui_size.y * vr.UI_PIXELS_TO_METER * scale.y)
+
+## A curved panel: the area works in metres (it undoes the canvas's scale), its mesh and collision a slice of a
+## cylinder of curve_radius whose axis is curve_radius in front of the panel's centre.
+func _build_curve() -> void:
+	var scale := global_transform.basis.get_scale()
+	ui_area.transform = Transform3D(Basis.from_scale(Vector3.ONE / scale), Vector3.ZERO)
+	var size := curve_size()
+	var span := size.x / curve_radius
+	var vertices := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	for i in CURVE_COLUMNS + 1:
+		var t := float(i) / CURVE_COLUMNS
+		var angle := (t - 0.5) * span
+		var x := curve_radius * sin(angle)
+		var z := curve_radius * (1.0 - cos(angle))
+		vertices.append(Vector3(x, size.y / 2.0, z))
+		vertices.append(Vector3(x, -size.y / 2.0, z))
+		uvs.append(Vector2(t, 0.0))
+		uvs.append(Vector2(t, 1.0))
+	var indices := PackedInt32Array()
+	for i in CURVE_COLUMNS:
+		var a := i * 2
+		indices.append_array([a, a + 2, a + 1, a + 1, a + 2, a + 3])
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	mesh_instance.mesh = mesh
+	mesh_instance.transform = Transform3D.IDENTITY
+	var faces := PackedVector3Array()
+	for index in indices:
+		faces.append(vertices[index])
+	var shape := ConcavePolygonShape3D.new()
+	shape.backface_collision = true
+	shape.set_faces(faces)
+	($UIArea/UICollisionShape as CollisionShape3D).shape = shape
+
+## A point on the curved panel (in the area's metres) as a pixel of the panel.
+func curve_pixel(local: Vector3) -> Vector2:
+	var size := curve_size()
+	var angle := atan2(local.x, curve_radius - local.z)
+	return Vector2((angle * curve_radius / size.x + 0.5) * ui_size.x, (0.5 - local.y / size.y) * ui_size.y)
 
 func _hide() -> void:
 	viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
@@ -65,6 +128,10 @@ func _ready() -> void:
 	mesh_material.albedo_texture = viewport.get_texture()
 	# only enable transparency when necessary as it is significantly slower than non-transparent rendering
 	mesh_material.transparency = transparency
+	if round_corners and transparency == BaseMaterial3D.TRANSPARENCY_DISABLED:
+		mesh_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
+		mesh_material.alpha_scissor_threshold = 0.5
+		mesh_material.alpha_antialiasing_mode = BaseMaterial3D.ALPHA_ANTIALIASING_ALPHA_TO_COVERAGE
 	
 	if Engine.is_editor_hint():
 		return

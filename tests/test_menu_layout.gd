@@ -233,6 +233,27 @@ func _ready() -> void:
 	check(limiter is AudioEffectHardLimiter and is_equal_approx(limiter.ceiling_db, -1.0),
 			"the Master bus ends in a limiter at -1 dB, so music and effects together don't clip")
 
+	# a curved panel (OQ_UI2DCanvas.curve_radius): a point on its arc maps back to the panel's pixel, edges included
+	var curved := (load("res://OQ_Toolkit/OQ_UI2D/OQ_UI2DCanvas.tscn") as PackedScene).instantiate() as OQ_UI2DCanvas
+	curved.curve_radius = 2.0
+	curved.scale = Vector3(2.4, 2.4, 1.0)
+	var page := Control.new()
+	page.size = Vector2(1000, 500)
+	curved.add_child(page)
+	add_child(curved)
+	await get_tree().process_frame
+	var span := curved.curve_size().x / curved.curve_radius
+	var arc_worst := 0.0
+	for t: float in [0.02, 0.25, 0.5, 0.75, 0.98]:
+		var angle := (t - 0.5) * span
+		var on_arc := curved.ui_area.to_global(Vector3(2.0 * sin(angle), 0.1, 2.0 * (1.0 - cos(angle))))
+		var pixel := curved.curve_pixel(curved.ui_area.to_local(on_arc))
+		var want := Vector2(t * 1000.0, (0.5 - 0.1 / curved.curve_size().y) * 500.0)
+		arc_worst = maxf(arc_worst, pixel.distance_to(want))
+	check(arc_worst < 0.5 and is_equal_approx(rad_to_deg(span), rad_to_deg(1000.0 * 2.4 / 1024.0 / 2.0)),
+			"a curved panel maps points on its arc to its pixels (worst %.2f px), its width kept as arc" % arc_worst)
+	curved.queue_free()
+
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 

@@ -13,12 +13,14 @@ var _last_hovered: Control
 
 
 func ui_raycast_hit_event(pos: Vector3, click: bool, release: bool) -> void:
-	# note: this transform assumes that the unscaled area is [-0.5, -0.5] to [0.5, 0.5] in size
+	# note: this transform assumes that the unscaled area is [-0.5, -0.5] to [0.5, 0.5] in size (a flat panel)
 	var local_position := to_local(pos)
 	var pos2d := Vector2(local_position.x, -local_position.y)
 	pos2d = pos2d + Vector2(0.5, 0.5)
 	pos2d.x *= viewport.size.x
 	pos2d.y *= viewport.size.y
+	if parent.curve_radius > 0.0:
+		pos2d = parent.curve_pixel(local_position)
 	
 	if (click || release):
 		var e := InputEventMouseButton.new()
