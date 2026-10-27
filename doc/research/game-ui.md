@@ -92,10 +92,12 @@ row, main button) 0.2/0.36/0.45.
 | Hard | 8.7 | 7.4 | 3.5 |
 | Expert | 4.7 | 4.0 | **1.9** |
 | Expert+ | 3.8 | 3.3 | **1.5** |
+| Expert+ now (0.74, 0.5, 0.86) | 6.1 | 5.2 | - |
 
 Below 3:1 (bold) fails even the large-text rule: the picked difficulty's name on its selected button, and muted or
-danger text on a selected chip or row. Expert+ is low everywhere. Fixes to propose: lighter difficulty colours, or
-the selected button marked by its border with the name kept in `UI_TEXT`.
+danger text on a selected chip or row. Expert+ is low everywhere. Fixed (owner, 2026-10-27): the picked
+level's name is `UI_TEXT` and its border carries the difficulty colour (`BeepSaberMainMenu._set_picked_border`);
+Expert+ is lighter. Muted and danger text on a selected chip or row remain to check where they occur.
 
 ## Takeaways for BoredSaber
 

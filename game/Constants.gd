@@ -114,7 +114,7 @@ const DIFFICULTY_LEVELS := [
 	["Normal", Color(0.35, 0.69, 0.96), 0.903, 0.646],
 	["Hard", Color(1.0, 0.62, 0.26), 0.776, 0.496],
 	["Expert", Color(0.91, 0.3, 0.24), 0.645, 0.383],
-	["Expert+", Color(0.61, 0.35, 0.71), 0.0, 0.0],
+	["Expert+", Color(0.74, 0.5, 0.86), 0.0, 0.0],
 ]
 ## Swing flow levels from smoothest: [name, least percent of awkward swings (MapStats._awkward_percent)].
 ## Edges from doc/research/swing-flow.md (BeatSaver map data: about 70% of difficulties are under 4%,
@@ -268,5 +268,5 @@ const DIFFICULTY_COLORS := {
 	"Normal": Color(0.35, 0.69, 0.96),
 	"Hard": Color(1.0, 0.62, 0.26),
 	"Expert": Color(0.91, 0.3, 0.24),
-	"ExpertPlus": Color(0.61, 0.35, 0.71),
+	"ExpertPlus": Color(0.74, 0.5, 0.86),
 }

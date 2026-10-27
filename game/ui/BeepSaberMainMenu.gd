@@ -1028,8 +1028,11 @@ func _build_difficulty_picker() -> void:
 		var button := ModifierChips.make_row_button(LEVELS[i][1], level_group, _on_level_pressed.bind(i))
 		button.add_theme_font_size_override(&"font_size", 22)
 		var color: Color = Constants.DIFFICULTY_COLORS.get(LEVELS[i][0], Constants.UI_TEXT)
-		for state: StringName in [&"font_color", &"font_hover_color", &"font_pressed_color", &"font_hover_pressed_color", &"font_focus_color"]:
+		for state: StringName in [&"font_color", &"font_hover_color", &"font_focus_color"]:
 			button.add_theme_color_override(state, color)
+		# the picked one's name stays white on the blue (its colour fails contrast there); its border shows the colour
+		for state: StringName in [&"font_pressed_color", &"font_hover_pressed_color"]:
+			button.add_theme_color_override(state, Constants.UI_TEXT)
 		level_row.add_child(button)
 		# five buttons share the column: narrow side padding (read once in the tree, from the menu theme),
 		# and the text never widens the row past the panel
@@ -1093,7 +1096,7 @@ func _sync_difficulty_picker() -> void:
 		button.text = LEVELS[i][1]
 		button.add_theme_font_size_override(&"font_size", 22)
 		button.remove_theme_color_override(&"font_color")
-		button.remove_theme_color_override(&"font_pressed_color")
+		_set_picked_border(button, Constants.UI_ACCENT)
 		if index >= 0:
 			var level: Array = Constants.DIFFICULTY_LEVELS[levels[i]]
 			button.text = level[0]
@@ -1101,7 +1104,7 @@ func _sync_difficulty_picker() -> void:
 				level_seen[levels[i]] = level_seen.get(levels[i], 0) + 1
 				button.text += " %d" % level_seen[levels[i]]
 			button.add_theme_color_override(&"font_color", level[1])
-			button.add_theme_color_override(&"font_pressed_color", level[1])
+			_set_picked_border(button, level[1])
 		button.visible = index >= 0 or not picked
 		button.disabled = index < 0
 		button.set_pressed_no_signal(picked != null and picked.difficulty == LEVELS[i][0])
@@ -1111,6 +1114,14 @@ func _sync_difficulty_picker() -> void:
 		level_stats.add_theme_color_override(&"font_color", Constants.DIFFICULTY_LEVELS[MapStats.level_of(map, picked, stats)][1])
 	else:
 		level_stats.text = ""
+
+## The picked level button's border in its difficulty's colour (the name on it stays white, for contrast; Game
+## Accessibility Guidelines, doc/research/game-ui.md).
+static func _set_picked_border(button: Button, color: Color) -> void:
+	for style: StringName in [&"pressed", &"hover_pressed"]:
+		var box := button.get_theme_stylebox(style) as StyleBoxFlat
+		if box:
+			box.border_color = color
 
 ## Picks the pressed level within the shown characteristic.
 func _on_level_pressed(level: int) -> void:
