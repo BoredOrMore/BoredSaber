@@ -197,6 +197,21 @@ func _ready() -> void:
 	check(is_equal_approx(WarningIcon._distance_to_edge(Vector2.ZERO, square), 1.0) and WarningIcon._distance_to_edge(Vector2(0.5, 0), square) < WarningIcon.REACH,
 			"the play area check measures the way to the guardian's nearest edge")
 
+	# the hover sound: once per button moved onto, not for a pointer shaking on the line between two, and not
+	# faster than HOVER_MIN_GAP_MS when sweeping a list
+	var audio: Variant = (load("res://game/ui/UI_AudioEngine/UI_AudioEngine.gd") as GDScript).new()
+	var a := Button.new()
+	var b := Button.new()
+	var c := Button.new()
+	var d := Button.new()
+	var heard := [audio.hover_sounds(a, 1000), audio.hover_sounds(b, 1300), audio.hover_sounds(a, 1330),
+			audio.hover_sounds(b, 1360), audio.hover_sounds(a, 1390), audio.hover_sounds(c, 1420), audio.hover_sounds(d, 1440),
+			audio.hover_sounds(a, 1800)]
+	check(heard == [true, true, false, false, false, true, false, true],
+			"the hover sound plays per button, not while the pointer shakes between two or faster than 70 ms (%s)" % [heard])
+	for node: Node in [audio, a, b, c, d]:
+		node.free()
+
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
