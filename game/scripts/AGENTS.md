@@ -58,7 +58,7 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
   Every change rewrites the whole file; `clear_table()` does not save.
 - Highscore format: `{map_key: {str(rank_key): [{score, player_name, epoch_time}, ...]}}`, at most
   `MAX_RECORDS_PER_KEY` = 10, sorted highest then oldest (`HighscoreTable.gd:9-24,210-220`). `map_key` is
-  `MapInfo.get_key()` (`BeatmapInfo/MapInfo.gd:63`). `get_rank_key` folds health, arrows, bombs, claws, width,
+  `MapInfo.get_key()` (`BeatmapInfo/MapInfo.gd:63`). `get_rank_key` folds health, arrows, bombs, claws, walls, block size, width,
   speed, flip and handedness into the rank (`HighscoreTable.gd:48-75`), so each modifier set has its own table.
   `get_records` does not fold (`HighscoreTable.gd:130-132`); pass a folded rank (`HighscorePanel.gd:26`).
   A score of 0 is never a highscore (`HighscoreTable.gd:43`).

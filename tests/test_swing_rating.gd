@@ -52,5 +52,15 @@ func _ready() -> void:
 	check(near.call(Constants.score_share(Constants.BLOCK_SIZE_SCORE, 225), -0.10), "Giant blocks -10%")
 	check(near.call(Constants.score_share(Constants.WIDTH_SCORE, 150), -0.05), "150% width -5%")
 
+	# block size goes into the highscore key, so each size keeps its own table
+	var size_before: int = Settings.block_size
+	for size: Array in Constants.SIZES:
+		Settings.block_size = size[0]
+		var key := HighscoreTable.get_rank_key(1)
+		var expected: int = {50: Constants.DIFFICULTY_BLOCK_SIZE_SMALL, 150: Constants.DIFFICULTY_BLOCK_SIZE_BIG,
+			225: Constants.DIFFICULTY_BLOCK_SIZE_GIANT}.get(size[0], 0)
+		check(key & Constants.DIFFICULTY_BLOCK_SIZE_MASK == expected, "%s are kept in their own highscore table" % size[1])
+	Settings.block_size = size_before
+
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
