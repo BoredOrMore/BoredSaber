@@ -254,6 +254,9 @@ func _ready() -> void:
 				shader_param,
 				(sphere_material.get_shader_parameter(shader_param) as float) * 2.2
 			)
+	# Neon Grid's terrain stays flat under the arches' footings
+	(($Level/NeonGrid/GridFloor as MeshInstance3D).material_override as ShaderMaterial).set_shader_parameter(
+			&"flat_spots", NeonGridRig.ground_spots())
 	# set_environment skips the current environment, and it starts as "classic": apply that one in full (its rig's
 	# lights placed, the old rings left out) as the stage capture does
 	var start := environment

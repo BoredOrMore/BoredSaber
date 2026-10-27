@@ -8,6 +8,12 @@ render_mode unshaded, fog_disabled, shadows_disabled;
 // NeonRibbon.gdshader does), and the floor fades into the horizon haze far away. The lines themselves fade out
 // between LINE_FADE_START and LINE_FADE_END: a repeating pattern that fills the view lets the eyes lock onto
 // it at the wrong depth (Apple visionOS HIG, Eyes), so the grid stays only around the player. All values untuned.
+// Terrain (owner, 2026-10-27: the ground far from the track rises and falls): flat in a valley along the track
+// (VALLEY_HALF either side, so the sun ahead stays clear), rising over VALLEY_RISE to rolling hills HILL_HEIGHT tall,
+// mirrored left and right, easing back to flat toward the floor's edge (EDGE_FLAT); flat again round each spot in
+// flat_spots (xz, radius: the arches' footings, set by EventDriver from NeonGridRig.ground_spots). Raised per vertex
+// (the plane is subdivided), and the hills darken with height (HILL_SHADE), so they read as dark shapes against the
+// glowing horizon past where the floor fades into the haze.
 global uniform vec4 env_haze;
 #include "res://game/env/fog_light.gdshaderinc"
 #include "res://game/env/height_fog.gdshaderinc"
@@ -29,15 +35,45 @@ const float LINE_FADE_START = 8.0;
 const float LINE_FADE_END = 25.0;
 // the skies' haze at the horizon (SKY_HAZE + 1 in both), so the floor meets the sky without a seam
 const float HORIZON_HAZE = 1.25;
+const float HILL_HEIGHT = 60.0;
+const float VALLEY_HALF = 120.0;
+const float VALLEY_RISE = 160.0;
+const vec2 EDGE_FLAT = vec2(700.0, 900.0);
+// the hills' rolls: wave numbers (per metre) across and along, and their shares of the height
+const vec4 HILL_WAVES = vec4(0.011, 0.004, 0.006, 0.013);
+const float HILL_SHADE = 0.7;
+// how far past a flat spot's radius the ground takes to rise again (times the radius)
+const float SPOT_RISE = 1.5;
+uniform vec3 flat_spots[8];
 
 varying vec3 world;
+// the terrain's height here, of HILL_HEIGHT
+varying float hill;
 // worked out per vertex (the plane is subdivided for it), since it changes slowly across the plane
 varying float fade;
 // the floor sits in the densest part of the height fog
 varying float ground_fog;
 
+// The terrain's height at a point on the plain, 0..1 of HILL_HEIGHT.
+float terrain(vec2 p) {
+	float side = abs(p.x);
+	float rise = smoothstep(VALLEY_HALF, VALLEY_HALF + VALLEY_RISE, side);
+	rise *= 1.0 - smoothstep(EDGE_FLAT.x, EDGE_FLAT.y, max(side, abs(p.y)));
+	for (int i = 0; i < 8; i++) {
+		// unused spots have no radius
+		if (flat_spots[i].z > 0.0) {
+			rise *= smoothstep(flat_spots[i].z, flat_spots[i].z * (1.0 + SPOT_RISE), distance(p, flat_spots[i].xy));
+		}
+	}
+	float rolls = 0.55 + 0.25 * sin(side * HILL_WAVES.x + p.y * HILL_WAVES.y) + 0.2 * sin(p.y * HILL_WAVES.w - side * HILL_WAVES.z);
+	return rise * rolls;
+}
+
 void vertex() {
 	world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	hill = terrain(world.xz);
+	VERTEX.y += hill * HILL_HEIGHT;
+	world.y += hill * HILL_HEIGHT;
 	fade = exp(-length(world.xz - CAMERA_POSITION_WORLD.xz) / FADE_DISTANCE);
 	ground_fog = height_fog(world, CAMERA_POSITION_WORLD);
 }
@@ -54,7 +90,7 @@ void fragment() {
 	line *= 1.0 - smoothstep(LINE_FADE_START, LINE_FADE_END, length(world.xz - CAMERA_POSITION_WORLD.xz));
 	vec3 line_col = mix(haze, vec3(max(env_haze.r, max(env_haze.g, env_haze.b))), LINE_DESATURATE);
 	vec3 near = mix(haze * GROUND_SHADE, line_col * LINE_GAIN + cut_wave_light(world) * CUT_WAVE_GAIN, line);
-	ALBEDO = mix(haze * HORIZON_HAZE, near, fade);
+	ALBEDO = mix(haze * HORIZON_HAZE, near, fade) * (1.0 - HILL_SHADE * hill);
 	ALBEDO = mix(ALBEDO, haze * HEIGHT_FOG_GLOW, ground_fog);
 	ALBEDO = fog_dither(ALBEDO, FRAGCOORD.xy);
 }

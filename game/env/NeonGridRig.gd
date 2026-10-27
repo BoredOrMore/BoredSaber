@@ -54,6 +54,9 @@ const SURVEY_MAST_TURNS: Array[float] = [0.4, 2.1, 1.0, 3.6]
 ## The site's props near the player, for scale (doc/assets/site_props/spec.md): a container behind on the left,
 ## barriers and a pile of beams on the right, one mesh built where they stand.
 const SITE_PROPS := preload("res://game/models/site_props.glb")
+## the flat ground kept round each arch footing in the floor's terrain, times the arch's section (the footing model is
+## 2.2 sections across)
+const FOOTING_CLEAR := 1.6
 
 func _ready() -> void:
 	var boxes: Array[Transform3D] = []
@@ -209,6 +212,18 @@ static func crane_lights(count: int) -> Array[Vector3]:
 ## end it is built up from) on the right.
 static func floodlight_bases() -> Array[Vector3]:
 	return [arch_point(ARCH_B, PI).origin, arch_point(ARCH_C, 0.0).origin]
+
+## Where the ground must stay flat (NeonGridFloor.gdshader's flat_spots): each built arch leg's footing, x and z, and a
+## radius FOOTING_CLEAR times its section's larger side.
+static func ground_spots() -> PackedVector3Array:
+	var spots := PackedVector3Array()
+	for arch: Array in [ARCH_A, ARCH_B, ARCH_C]:
+		var section: Vector2 = arch[5]
+		var legs := [0.0, PI] if float(arch[4]) >= 1.0 else [0.0]
+		for angle: float in legs:
+			var foot := arch_point(arch, angle).origin
+			spots.append(Vector3(foot.x, foot.z, maxf(section.x, section.y) * FOOTING_CLEAR))
+	return spots
 
 ## A unit box scaled to size and placed at centre.
 static func _box(centre: Vector3, size: Vector3) -> Transform3D:

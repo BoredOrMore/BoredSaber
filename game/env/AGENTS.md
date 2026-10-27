@@ -52,8 +52,9 @@ Classic (the giant test tunnel)
 Neon Grid
 - `NeonGridRig.gd` (tool): three megastructure arches (`ARCH_A/B/C`), crane on C, survey masts, site props; arch
   strips (`strip_material`, `ArchStrip.gdshader`) carry the square bars' light. Nothing mirrors; sun kept clear.
-- `NeonGridFloor.gdshader`: static glowing grid (no scroll: vection), `MIN_LINE_PIXELS` prefiltered lines; on the
-  scene's `NeonGrid` node.
+- `NeonGridFloor.gdshader`: static glowing grid (no scroll: vection), `MIN_LINE_PIXELS` prefiltered lines; terrain
+  raised per vertex past a flat valley along the track (`flat_spots` from `NeonGridRig.ground_spots`, set by EventDriver);
+  on the scene's `NeonGrid` node.
 - `NeonGridSky.gdshader`: sunset sky from baked masks `neon_grid_sky_sharp/soft.png` (`tools/bake_neon_grid_sky.py`;
   per-pixel version cost ~4.5 ms GPU).
 
