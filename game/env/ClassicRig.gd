@@ -15,12 +15,12 @@ class_name ClassicRig
 const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
 const ARCH_STRIP := preload("res://game/env/ArchStrip.gdshader")
 ## the bore: radius, its centre's height, the ribs' spacing, nearest and farthest z, boxes round each rib and the rib's
-## section (across the ring, along the bore). The centre sits half the radius above the track (owner, 2026-10-27: on the
-## circle's very bottom the track read as below the tunnel), so a flat floor fills the circle's lower part at FLOOR_Y,
-## just under the track deck, wall to wall, and the walls rise steeply from its edges; a lining closes the bore
-## between the ribs (LINING thick, behind them).
+## section (across the ring, along the bore). The track runs along the circle's bottom (owner, 2026-10-27: keep the
+## 59 m centre, its size). A lining closes the bore between the ribs (LINING thick, behind them), so the curve rises
+## from beside the track instead of opening onto the sky; the ribs and lining under FLOOR_Y are left out and a floor
+## plate there, just under the track deck, reaches the lowest lining panels.
 const BORE_RADIUS := 60.0
-const BORE_CENTRE_Y := 30.0
+const BORE_CENTRE_Y := 59.0
 const FLOOR_Y := -0.3
 const LINING := 0.3
 const RIB_STEP := 25.0
@@ -49,18 +49,19 @@ const PROPS := [
 ## the scissor lift's crossed arms, between its base and platform (centre, length, tilt)
 const SCISSOR := [Vector3(9.0, 3.2, -16.0), 6.6, 0.95]
 ## a ladder against the right catwalk: its foot and top x, z
-const LADDER := Vector3(50.8, 52.7, -30.0)
+const LADDER := Vector3(26.0, 28.6, -30.0)
 ## the moving heads' tilt axis this far above the truss's top chord (laser_fixture.py: yoke foot 0.54 under it)
 const FIXTURE_ABOVE := 0.84
 ## the rib strips: a segment on each rib box in the upper part of the ring (RIB_STRIP_FROM..1-RIB_STRIP_FROM of the
 ## circle from the floor), this wide and thick on the rib's inner face
 const RIB_STRIP_FROM := 0.15
 const RIB_STRIP := Vector2(0.5, 0.4)
-## Building the trusses during a song: each truss is hoisted on its own share of the show's build-up (EventDriver), the
-## far ones first, from FIRST_FRAME_AT to LAST_FRAME_AT; when its share is reached it rises DROP metres over
-## RISE_SECONDS, and stays. Lowered at a song's start and put back up for the menus. The timing is the old frames'
-## (right on the headset, 2026-10-24).
-const DROP := 18.0
+## Building the trusses during a song: each truss is flown in on its own share of the show's build-up (EventDriver),
+## the far ones first, from FIRST_FRAME_AT to LAST_FRAME_AT; when its share is reached it comes down FLY metres from
+## near the ceiling over RISE_SECONDS, and stays (owner, 2026-10-27: from above, so it never crosses the player's view;
+## from the floor it stood across the track at eye height). Flown out at a song's start and put back in place for the
+## menus. The timing is the old frames' (right on the headset, 2026-10-24).
+const FLY := 75.0
 const RISE_SECONDS := 1.5
 const FIRST_FRAME_AT := 0.1
 const LAST_FRAME_AT := 0.8
@@ -145,7 +146,10 @@ static func _above_floor(angle: float) -> bool:
 ## the haze, worked out per vertex, changes along them).
 static func _floor_and_lining() -> Array[Transform3D]:
 	var boxes: Array[Transform3D] = []
-	var half := bore_half_width(FLOOR_Y)
+	var lowest := 0
+	while not _above_floor(TAU * (lowest + 0.5) / RIB_SEGMENTS):
+		lowest += 1
+	var half := (BORE_RADIUS + RIB.x) * sin(TAU * lowest / RIB_SEGMENTS)
 	var length := TAU * BORE_RADIUS / RIB_SEGMENTS * 1.06
 	var z := RIB_NEAR
 	while z > RIB_FAR:
@@ -175,7 +179,8 @@ static func _catwalks() -> Array[Transform3D]:
 ## The ladder up to the right catwalk: two rails and a rung every 0.6 m.
 static func _ladder() -> Array[Transform3D]:
 	var boxes: Array[Transform3D] = []
-	var foot := Vector3(LADDER.x, 0.0, LADDER.z)
+	# its foot on the lining's inner face
+	var foot := Vector3(LADDER.x, BORE_CENTRE_Y - sqrt(pow(BORE_RADIUS + RIB.x * 0.5, 2.0) - LADDER.x * LADDER.x), LADDER.z)
 	var top := Vector3(LADDER.y, CATWALK.x, LADDER.z)
 	var d := top - foot
 	var basis := Basis(Vector3(0.0, 0.0, 1.0), -atan2(d.x, d.y))
@@ -265,17 +270,17 @@ func _process(delta: float) -> void:
 		if _lift[i] == _target[i]:
 			continue
 		_lift[i] = move_toward(_lift[i], _target[i], delta / RISE_SECONDS)
-		var down := DROP * (1.0 - smoothstep(0.0, 1.0, _lift[i]))
+		var up := FLY * (1.0 - smoothstep(0.0, 1.0, _lift[i]))
 		for b in BOXES_PER_TRUSS:
 			var box := _boxes[i * BOXES_PER_TRUSS + b]
-			_multimesh.set_instance_transform(i * BOXES_PER_TRUSS + b, Transform3D(box.basis, box.origin + Vector3.DOWN * down))
+			_multimesh.set_instance_transform(i * BOXES_PER_TRUSS + b, Transform3D(box.basis, box.origin + Vector3.UP * up))
 
-## How far below its place the truss at this z is now (0 when hoisted or when no truss is there): the lights on the
-## trusses go up with them (EventDriver hides them until their truss is up).
+## How far above its place the truss at this z is now (0 when in place or when no truss is there): EventDriver hides
+## the lights on a truss until it is in place.
 func drop_at(z: float) -> float:
 	for i in FRAME_Z.size():
 		if absf(FRAME_Z[i] - z) < 1.0:
-			return DROP * (1.0 - smoothstep(0.0, 1.0, _lift[i]))
+			return FLY * (1.0 - smoothstep(0.0, 1.0, _lift[i]))
 	return 0.0
 
 ## True while every truss is hoisted.

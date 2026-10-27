@@ -4,13 +4,14 @@
   no switch back).
 - Story: a lighting crew rehearses inside a test tunnel built for something far bigger than people (a wind tunnel, an
   accelerator): a round bore 120 m across running on past 600 m. The track is the maintenance walkway along its
-  bottom. The crew hoists its lighting trusses up as the song builds; on the drop, the tunnel's own test lights run
+  bottom. The crew flies its lighting trusses in from above as the song builds; on the drop, the tunnel's own test lights run
   along its ribs from far to near.
 - Layout (metres, player at the origin, the track toward -z):
   - The tunnel: ribs every 25 m from 25 m behind to 600 m ahead, each a ring of boxes, radius 60, its centre 59 m up
-    (the bore's floor just under the track). Between the ribs: nothing but the dark.
+    (the bore's bottom just under the track). Between the ribs a lining closes the bore, so the curve rises from beside
+    the track; a floor plate under the track reaches the lowest lining panels.
   - Six truss bridges across the bore at 20 m, at z -10 to -60 every 10 m (the old frames' places), spanning wall to
-    wall; hoisted from 2 m to 20 m as the song builds (the old frames' build-up: far ones first).
+    wall; flown in from 95 m down to 20 m as the song builds, never crossing the player's view (the old frames' build-up: far ones first).
   - Two catwalks along the bore's walls, 8 m up, z -8 to -64, with a rail.
   - Props near the track, uneven (left and right differ): flight cases, a cable reel, a scissor lift on one side, a
     ladder against a catwalk.
