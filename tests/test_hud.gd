@@ -46,5 +46,8 @@ func _ready() -> void:
 	check(Hud.grade_rises("A", "S") and Hud.grade_rises("B", "SS") and not Hud.grade_rises("S", "A")
 			and not Hud.grade_rises("", "SS") and not Hud.grade_rises("A", "A"),
 			"the live grade pops when it goes up, not when it stays or drops")
+	check(Hud.song_grade(0, 0, 1000.0) == "F" and Hud.song_grade(450, 500, 500.0) == "C"
+			and Hud.song_grade(950, 1000, 0.0) == "SS" and Hud.song_grade(0, 0, 0.0) == "F",
+			"the live grade counts the whole song: low at the start, the song's own grade at its end")
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
