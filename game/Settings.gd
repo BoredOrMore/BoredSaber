@@ -262,7 +262,6 @@ var audio_sfx: float:
 	set(value):
 		audio_sfx = value
 		AudioServer.set_bus_volume_db(AudioServer.get_bus_index(&"SFX"), linear_to_db(value))
-		AudioServer.set_bus_volume_db(AudioServer.get_bus_index(&"UI"), linear_to_db(value))
 		set_and_emit(&"audio_sfx", value)
 var spectator_view: bool:
 	set(value):
