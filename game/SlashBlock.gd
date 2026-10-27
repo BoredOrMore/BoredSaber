@@ -64,18 +64,24 @@ const TEXT_PIXEL := 0.001
 const TEXT_GAP := 0.07
 ## Light from the note (root AGENTS.md "Light": it comes from the note's surface, hot core and coloured falloff,
 ## no screen reads, no real light): the note's own glow (its shader's emission) breathes GLOW_PULSE_HZ (well away
-## from 0.2 Hz) between EMISSION_MIN and EMISSION_MAX; one additive halo HALO_SIZE across behind it; RAY_COUNT
-## faint short rays from its edges, RAY_LENGTH long, still. All of it breathes together between LIGHT_MIN and full.
-## A cut flashes it all to full for FLASH_SECONDS, then it fades with the halves over FADE_SECONDS.
+## from 0.2 Hz) between EMISSION_MIN and EMISSION_MAX; additive glow behind it in two layers, a bright core HALO_SIZE
+## across and a soft wide falloff OUTER_SIZE across (in place of the short straight rays, which read as sticks); the
+## small note its own small glow in its colour; and a soft pool of the note's colour on the floor under it, so it
+## lights the room. All of it breathes together between LIGHT_MIN and full. A cut flashes the note's glow to full
+## for FLASH_SECONDS, then it fades with the halves over FADE_SECONDS.
 const GLOW_PULSE_HZ := 1.0
 const EMISSION_MIN := 0.18
 const EMISSION_MAX := 0.45
-const HALO_SIZE := 0.55
+const HALO_SIZE := 0.7
 const HALO_ALPHA := 0.8
-const RAY_COUNT := 6
-const RAY_LENGTH := 0.16
-const RAY_WIDTH := 0.025
-const RAY_ALPHA := 0.35
+const OUTER_SIZE := 1.4
+const OUTER_ALPHA := 0.45
+const OTHER_HALO_SIZE := 0.3
+const OTHER_HALO_ALPHA := 0.7
+const POOL_SIZE := 1.0
+const POOL_ALPHA := 0.45
+## Just above the floor, so the pool isn't hidden in it.
+const POOL_Y := 0.01
 const LIGHT_MIN := 0.6
 const FLASH_SECONDS := 0.1
 const FADE_SECONDS := 0.3
@@ -97,7 +103,12 @@ var _label := Label3D.new()
 ## The light: halo and rays, with their materials, and the time for the breathing.
 var _light := Node3D.new()
 var _halo_material := StandardMaterial3D.new()
-var _ray_material := StandardMaterial3D.new()
+var _outer_material := StandardMaterial3D.new()
+var _other_halo := MeshInstance3D.new()
+var _other_halo_material := StandardMaterial3D.new()
+var _other_color := Color.WHITE
+var _pool := MeshInstance3D.new()
+var _pool_material := StandardMaterial3D.new()
 var _light_time := 0.0
 var _flash: Tween
 ## The halves a cut note breaks into (the game's CutPiece).
@@ -144,45 +155,38 @@ func _ready() -> void:
 	add_child(_sound)
 	set_shown(false)
 
-## The halo (a radial gradient on a camera-facing quad behind the note) and the rays (linear gradients fading
-## outward from the note's edges, in its plane), all additive and unshaded.
+## The glow: radial gradients on camera-facing quads behind the note (a bright core and a soft wide falloff) and
+## behind the small note, and one flat on the floor under the note; all additive and unshaded.
 func _add_light() -> void:
 	add_child(_light)
-	var halo_gradient := Gradient.new()
-	halo_gradient.offsets = PackedFloat32Array([0.0, 0.3, 1.0])
-	halo_gradient.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0.4), Color(1, 1, 1, 0)])
-	var halo_texture := GradientTexture2D.new()
-	halo_texture.gradient = halo_gradient
-	halo_texture.fill = GradientTexture2D.FILL_RADIAL
-	halo_texture.fill_from = Vector2(0.5, 0.5)
-	halo_texture.fill_to = Vector2(1.0, 0.5)
-	_setup_additive(_halo_material, halo_texture)
-	_halo_material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	var halo := MeshInstance3D.new()
-	var halo_quad := QuadMesh.new()
-	halo_quad.size = Vector2.ONE * HALO_SIZE
-	halo.mesh = halo_quad
-	halo.material_override = _halo_material
-	_light.add_child(halo)
-	var ray_gradient := Gradient.new()
-	ray_gradient.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0)])
-	var ray_texture := GradientTexture2D.new()
-	ray_texture.gradient = ray_gradient
-	ray_texture.fill_from = Vector2(0.5, 1.0)
-	ray_texture.fill_to = Vector2(0.5, 0.0)
-	_setup_additive(_ray_material, ray_texture)
-	var ray_quad := QuadMesh.new()
-	ray_quad.size = Vector2(RAY_WIDTH, RAY_LENGTH)
-	for i in RAY_COUNT:
-		# evenly round the note, none straight up into the words
-		var angle := TAU * i / RAY_COUNT
-		var outward := Vector3(cos(angle), sin(angle), 0.0)
-		var ray := MeshInstance3D.new()
-		ray.mesh = ray_quad
-		ray.material_override = _ray_material
-		ray.position = outward * (NOTE_SIZE * 0.55 + RAY_LENGTH / 2.0)
-		ray.rotation.z = angle - PI / 2.0
-		_light.add_child(ray)
+	_light.add_child(_glow_quad(_halo_material, HALO_SIZE, [0.0, 0.45, 1.0], [1.0, 0.7, 0.0], true))
+	_light.add_child(_glow_quad(_outer_material, OUTER_SIZE, [0.0, 0.25, 1.0], [1.0, 0.45, 0.0], true))
+	_other_halo = _glow_quad(_other_halo_material, OTHER_HALO_SIZE, [0.0, 0.45, 1.0], [1.0, 0.7, 0.0], true)
+	add_child(_other_halo)
+	_pool = _glow_quad(_pool_material, POOL_SIZE, [0.0, 0.4, 1.0], [1.0, 0.45, 0.0], false)
+	_pool.rotation.x = -PI / 2.0
+	add_child(_pool)
+
+## A quad size across with a radial gradient (alpha at each offset) in material, facing the camera or lying flat.
+func _glow_quad(material: StandardMaterial3D, size: float, offsets: Array, alphas: Array, billboard: bool) -> MeshInstance3D:
+	var gradient := Gradient.new()
+	gradient.offsets = PackedFloat32Array(offsets)
+	gradient.colors = PackedColorArray(alphas.map(func(alpha: float) -> Color: return Color(1, 1, 1, alpha)))
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(0.5, 0.5)
+	texture.fill_to = Vector2(1.0, 0.5)
+	_setup_additive(material, texture)
+	if billboard:
+		material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE * size
+	var glow := MeshInstance3D.new()
+	glow.mesh = quad
+	glow.material_override = material
+	glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return glow
 
 static func _setup_additive(material: StandardMaterial3D, texture: Texture2D) -> void:
 	material.albedo_texture = texture
@@ -210,12 +214,17 @@ func _process(delta: float) -> void:
 func _float(t: float) -> void:
 	position = _base_position + Vector3.UP * BOB_METRES * sin(TAU * BOB_HZ * t)
 	_other_mesh.position = _other_base + Vector3.UP * OTHER_BOB_METRES * sin(TAU * OTHER_BOB_HZ * t + 2.0)
+	# a little behind the small note, like the big one's glow
+	_other_halo.position = _other_mesh.position + Vector3(0.0, 0.0, -0.05)
+	_pool.global_position = Vector3(global_position.x, POOL_Y, global_position.z)
 
 ## Light strength 0..1 (1: brightest breath; above 1 only in the cut's flash).
 func _set_light(strength: float) -> void:
 	_material.set_shader_parameter(&"sub_emission_energy", lerpf(EMISSION_MIN, EMISSION_MAX, strength))
 	_halo_material.albedo_color = Color(_color, HALO_ALPHA * minf(strength, 1.0))
-	_ray_material.albedo_color = Color(_color, RAY_ALPHA * minf(strength, 1.0))
+	_outer_material.albedo_color = Color(_color, OUTER_ALPHA * minf(strength, 1.0))
+	_other_halo_material.albedo_color = Color(_other_color, OTHER_HALO_ALPHA * minf(strength, 1.0))
+	_pool_material.albedo_color = Color(_color, POOL_ALPHA * minf(strength, 1.0))
 
 ## A copy of the game's note model (with its own material) at the given edge length, added under this node.
 func _add_note_mesh(edge: float) -> MeshInstance3D:
@@ -236,7 +245,8 @@ func set_note(colors: Array[Color]) -> void:
 	_material.set_shader_parameter(&"color", _color)
 	_material.set_shader_parameter(&"is_dot", not Settings.arrows_enabled)
 	_material.set_shader_parameter(&"arrows_enabled", Settings.arrows_enabled)
-	_other_material.set_shader_parameter(&"color", colors[1 - _note_saber])
+	_other_color = colors[1 - _note_saber]
+	_other_material.set_shader_parameter(&"color", _other_color)
 	_other_material.set_shader_parameter(&"is_dot", not Settings.arrows_enabled)
 	_other_material.set_shader_parameter(&"arrows_enabled", Settings.arrows_enabled)
 	_label.text = SLASH_DOWN_TEXT if Settings.arrows_enabled else SLASH_TEXT
@@ -259,6 +269,8 @@ func set_shown(shown: bool) -> void:
 	# the node stays visible so the cut halves (its children) can fly off
 	_note_mesh.visible = shown
 	_other_mesh.visible = shown
+	_other_halo.visible = shown
+	_pool.visible = shown
 	_label.visible = shown
 	if shown:
 		if _flash:
@@ -338,13 +350,13 @@ func _slash(controller: BeepSaberController, cut_normal: Vector3) -> void:
 	# the light flashes, then fades out with the halves
 	_light.visible = true
 	_halo_material.albedo_color = Color(_color, 1.0)
-	_ray_material.albedo_color = Color(_color, 1.0)
+	_outer_material.albedo_color = Color(_color, OUTER_ALPHA / HALO_ALPHA)
 	_flash = create_tween()
 	_flash.tween_property(_light, ^"scale", Vector3.ONE * 1.5, FLASH_SECONDS)
 	_flash.set_parallel(false)
 	_flash.tween_method(func(fade: float) -> void:
 		_halo_material.albedo_color = Color(_color, fade)
-		_ray_material.albedo_color = Color(_color, fade * RAY_ALPHA / HALO_ALPHA), 1.0, 0.0, FADE_SECONDS)
+		_outer_material.albedo_color = Color(_color, fade * OUTER_ALPHA / HALO_ALPHA), 1.0, 0.0, FADE_SECONDS)
 	_flash.tween_callback(func() -> void: _light.visible = false)
 
 	_sound.stream = CUT_SOUND
