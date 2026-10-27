@@ -8,14 +8,12 @@ class_name SlashBlock
 signal slashed()
 
 ## Where it floats, from the player's spot (z = PLAYER_Z, facing -z): YAW to the dominant hand's side, HORIZONTAL
-## metres away, BELOW_EYES under the eyes (1.1 m high for 1.6 m eyes): 23.5 degrees down, as low as the song
-## menu's bottom corner (-22 degrees) and 24 degrees right of it (37 degrees), 1.25 m from the eyes and about 1.1 m
-## from the shoulder for a relaxed swing with the arm out. That is as close to the corner as it gets while no saber
-## reaches it during menu use (blades 1.25 m long from hands 0.3-0.5 m in front of the body, pointed anywhere on
-## the menu, flicked 25 degrees up or down: 0.19 m clear). Right at the corner a saber pointing there runs through
-## it (no clearance). 61 degrees is past the 55 degree comfortable head turn: a short turn for one swing. Mirrored
-## for left-handed players (beside the menu's left corner).
-const YAW_DEGREES := 61.0
+## metres away, BELOW_EYES under the eyes (1.1 m high for 1.6 m eyes): 23.5 degrees down, 1.25 m from the eyes and
+## about 1.1 m from the shoulder for a relaxed swing with the arm out. 67 degrees (owner, 2026-10-28: about 65): just
+## past the curved song menu's modifiers panel (its outer edge at 59 degrees, its bottom 12 degrees down), so a saber
+## pointed at the modifiers doesn't swing through it; past the 55 degree comfortable head turn, a short turn for one
+## swing. Mirrored for left-handed players (beside the menu's left panel).
+const YAW_DEGREES := 67.0
 const HORIZONTAL := 1.15
 const BELOW_EYES := 0.5
 const PLAYER_Z := 1.0
@@ -263,6 +261,9 @@ func set_shown(shown: bool) -> void:
 		rotation = Vector3(0.0, -yaw, 0.0)
 		_other_base = Vector3(side * ((NOTE_SIZE + OTHER_NOTE_SIZE) / 2.0 + OTHER_NOTE_GAP),
 				(NOTE_SIZE - OTHER_NOTE_SIZE) / 2.0, 0.0)
+		# the words start at the note's inner edge and run outward, clear of the song menu's side panel
+		_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if side > 0.0 else HORIZONTAL_ALIGNMENT_RIGHT
+		_label.position.x = -side * NOTE_SIZE / 2.0
 		_float(_light_time)
 		_touching.clear()
 	_shown = shown
