@@ -59,6 +59,8 @@ var _card_material: ShaderMaterial
 
 ## Paints the panel and the percent ring in the menu colours and starts with the buttons off.
 func _ready() -> void:
+	# the grade in the HUD's grade font (owner, 2026-10-27)
+	($GradeViewport/GradeLabel as RichTextLabel).add_theme_font_override(&"normal_font", Hud.GRADE_FONT)
 	var panel := (mesh as QuadMesh).material as ShaderMaterial
 	panel.set_shader_parameter(&"fill_color", Constants.UI_PANEL)
 	panel.set_shader_parameter(&"border_color", Constants.UI_BORDER)
