@@ -363,6 +363,7 @@ func _add_chip_row(index: int, title: String, names: Array, pick: Callable, hint
 	var chips := {}
 	for chip_name: String in names:
 		var chip := Button.new()
+		chip.theme_type_variation = &"ChipButton"
 		chip.text = chip_name
 		chip.toggle_mode = true
 		chip.button_group = group
@@ -372,9 +373,6 @@ func _add_chip_row(index: int, title: String, names: Array, pick: Callable, hint
 		chips[chip_name] = chip
 	visuals.add_child(row)
 	visuals.move_child(row, index)
-	# the song menu's chip padding, so three fit beside the row label
-	for chip: Button in chips.values():
-		ModifierChips.set_padding(chip, ModifierChips.CHIP_PADDING)
 	hint.add_theme_stylebox_override(&"normal", row_label.get_theme_stylebox(&"normal"))
 	hint.add_theme_color_override(&"font_color", Constants.UI_TEXT_MUTED)
 	hint.add_theme_font_size_override(&"font_size", 22)

@@ -714,8 +714,7 @@ func play_selected() -> void:
 	Settings.last_map = map.filepath
 	song_preview.cancel(SongPreview.PLAY_FADE_SECONDS)
 	Settings.save()
-	play_status.text = LOADING_TEXT
-	play_details.text = ""
+	_show_status(LOADING_TEXT)
 	_loading = true
 	# loading blocks the main thread, so let the status redraw first
 	await get_tree().process_frame
@@ -723,21 +722,21 @@ func play_selected() -> void:
 	_load_map_and_start(map)
 	_loading = false
 	# a load error (show_play_error) keeps its message for a while
-	if play_status.text == LOADING_TEXT:
-		_update_play_status()
+	if _status == LOADING_TEXT:
+		_show_status("")
 
-## Status where Play was: what slashing the block will play, or why there is no block.
-const SLASH_TEXT := "Slash to play"
-const PICK_TEXT := "Pick a song to play"
+## Shown in place of the stats pills while the picked song loads or when it can't (owner, 2026-10-28: no
+## "Slash to play" line on the panel; the note to slash says it).
 const LOADING_TEXT := "Loading song…"
 const LOAD_ERROR_TEXT := "Can't load this song. Pick another one."
 ## Seconds the load error stays before the status comes back.
 const LOAD_ERROR_SECONDS := 3.0
 var _loading := false
-## Two lines where Play was: what to do and the song, then its difficulty and changed modifiers (24 px: one 28 px
-## line held only "Slash to play · <song>").
-@onready var play_status := $PlayStatus/Lines/Label as Label
-@onready var play_details := $PlayStatus/Lines/Details as Label
+var _status := ""
+
+func _show_status(text: String) -> void:
+	_status = text
+	_sync_difficulty_picker()
 
 ## The selected song and difficulty, or nulls when none is picked.
 func selected_map() -> MapInfo:
@@ -751,53 +750,18 @@ func selected_difficulty() -> DifficultyInfo:
 func has_song_picked() -> bool:
 	return not _loading and current_selected >= 0 and current_selected < _currently_selected_songlist_ref.size()
 
-## "Slash to play · <song> · <difficulty> · <changed modifiers>", or "Pick a song to play".
+## Tells the game whether a song is ready to play (the note to slash shows then).
 func _update_play_status() -> void:
 	if _loading:
 		return
-	play_details.text = ""
-	if not has_song_picked():
-		play_status.text = PICK_TEXT
-	else:
-		var map := _currently_selected_songlist_ref[current_selected]
-		play_status.text = HighscorePanel.RUN_PARTS_SEPARATOR.join([SLASH_TEXT, map.song_name])
-		var parts := PackedStringArray()
-		if _map_difficulty >= 0 and _map_difficulty < map.difficulty_beatmaps.size():
-			parts.append(MapStats.level_name(map, map.difficulty_beatmaps[_map_difficulty]))
-		parts.append_array(_modifier_labels())
-		play_details.text = HighscorePanel.RUN_PARTS_SEPARATOR.join(parts)
 	play_ready_changed.emit()
 
-## The changed modifiers in the record table's words ("No Fail", "Speed 125%", "Mirror Left-Right"...).
-func _modifier_labels() -> PackedStringArray:
-	var labels := PackedStringArray()
-	if not Settings.health_mode or Settings.fail_mode != Constants.FAIL_MODE_BAR:
-		for option: Array in Constants.FAIL_OPTIONS:
-			if option[0] == Settings.health_mode and (not Settings.health_mode or option[1] == Settings.fail_mode):
-				labels.append(str(option[2]))
-	if not is_equal_approx(Settings.damage_scale, 1.0):
-		labels.append("Damage %d%%" % roundi(Settings.damage_scale * 100.0))
-	if not Settings.walls_enabled:
-		labels.append(Constants.NO_WALLS_LABEL)
-	if not Settings.bombs_enabled:
-		labels.append(Constants.NO_BOMBS_LABEL)
-	if not Settings.arrows_enabled:
-		labels.append(Constants.NO_ARROWS_LABEL)
-	if Settings.disable_map_color:
-		labels.append(NO_MAP_COLORS_LABEL)
-	for speed: Array in Constants.SPEEDS:
-		if speed[0] == Settings.music_speed and Settings.music_speed != 100:
-			labels.append(str(speed[1]))
-	labels.append_array(_mods.changed(true))
-	return labels
 
-const NO_MAP_COLORS_LABEL := "No map colors"
-
-## Tells the player on the status line that the selected song couldn't be loaded.
+## Tells the player, in place of the stats pills, that the selected song couldn't be loaded.
 func show_play_error() -> void:
-	play_status.text = LOAD_ERROR_TEXT
-	play_details.text = ""
+	_show_status(LOAD_ERROR_TEXT)
 	await get_tree().create_timer(LOAD_ERROR_SECONDS).timeout
+	_show_status("")
 	_update_play_status()
 
 func _on_Exit_Button_pressed() -> void:
@@ -812,7 +776,7 @@ const TAB_LABELS := ["Modifiers", "More"]
 func _build_tabs() -> void:
 	var group := ButtonGroup.new()
 	for i in TAB_LABELS.size():
-		$Tabs.add_child(ModifierChips.make_row_button(TAB_LABELS[i], group, _on_tab_pressed.bind(i)))
+		$Tabs.add_child(ModifierChips.make_row_button(TAB_LABELS[i], group, _on_tab_pressed.bind(i), &"TabButton"))
 	_show_tab(Tab.MODIFIERS)
 
 func _on_tab_pressed(tab: int) -> void:
@@ -1010,23 +974,19 @@ const CHARACTERISTIC_LABELS := {"OneSaber": "1 Saber", "NoArrows": "No Arrows", 
 
 ## Characteristic of each tab in characteristic_row, in tab order, for the selected map.
 var _characteristics: Array[String] = []
-## Side padding of the level buttons, so "Expert+" fits five to a row at full size.
-const LEVEL_BUTTON_PADDING := 4.0
 
 ## Fills the difficulty picker with one button per level and a pool of characteristic tabs, so nothing scrolls.
 func _build_difficulty_picker() -> void:
 	var tab_group := ButtonGroup.new()
 	for i in MAX_CHARACTERISTICS:
-		var tab := ModifierChips.make_row_button("", tab_group, _on_characteristic_pressed.bind(i))
+		# the level buttons' narrow kind, so "Standard" and "No Arrows" fit four or five to a row
+		var tab := ModifierChips.make_row_button("", tab_group, _on_characteristic_pressed.bind(i), &"DifficultyButton")
 		tab.add_theme_font_size_override(&"font_size", 20)
 		tab.clip_text = true
 		characteristic_row.add_child(tab)
-		# narrow padding like the level buttons, so "Standard" and "No Arrows" fit four or five to a row
-		ModifierChips.set_padding(tab, LEVEL_BUTTON_PADDING)
 	var level_group := ButtonGroup.new()
 	for i in LEVELS.size():
-		var button := ModifierChips.make_row_button(LEVELS[i][1], level_group, _on_level_pressed.bind(i))
-		button.add_theme_font_size_override(&"font_size", 22)
+		var button := ModifierChips.make_row_button(LEVELS[i][1], level_group, _on_level_pressed.bind(i), &"DifficultyButton")
 		var color: Color = Constants.DIFFICULTY_COLORS.get(LEVELS[i][0], Constants.UI_TEXT)
 		for state: StringName in [&"font_color", &"font_hover_color", &"font_focus_color"]:
 			button.add_theme_color_override(state, color)
@@ -1034,10 +994,8 @@ func _build_difficulty_picker() -> void:
 		for state: StringName in [&"font_pressed_color", &"font_hover_pressed_color"]:
 			button.add_theme_color_override(state, Constants.UI_TEXT)
 		level_row.add_child(button)
-		# five buttons share the column: narrow side padding (read once in the tree, from the menu theme),
-		# and the text never widens the row past the panel
+		# five buttons share the column (DifficultyButton's narrow padding): the text never widens the row
 		button.clip_text = true
-		ModifierChips.set_padding(button, LEVEL_BUTTON_PADDING)
 	_sync_difficulty_picker()
 
 ## The characteristic a difficulty belongs to; maps without one are Standard.
@@ -1052,7 +1010,8 @@ func _find_difficulty(map: MapInfo, characteristic: String, level: int) -> int:
 			return i
 	return -1
 
-## Shows the selected map's characteristics (tabs only when there is more than one), its levels and the picked one's stats.
+## Shows the selected map's characteristics (tabs only when there is more than one), its levels and the picked
+## one's stats, or the status while a song loads or failed to.
 func _sync_difficulty_picker() -> void:
 	if level_row.get_child_count() == 0:
 		return
@@ -1093,7 +1052,6 @@ func _sync_difficulty_picker() -> void:
 		var button := level_row.get_child(i) as Button
 		var index := _find_difficulty(map, _characteristic_of(picked), i) if picked else -1
 		button.text = LEVELS[i][1]
-		button.add_theme_font_size_override(&"font_size", 22)
 		button.remove_theme_color_override(&"font_color")
 		_set_picked_border(button, Constants.UI_ACCENT)
 		if index >= 0:
@@ -1107,7 +1065,9 @@ func _sync_difficulty_picker() -> void:
 		button.visible = index >= 0 or not picked
 		button.disabled = index < 0
 		button.set_pressed_no_signal(picked != null and picked.difficulty == LEVELS[i][0])
-	if picked:
+	if _status != "":
+		level_stats.text = "[center]%s[/center]" % _status
+	elif picked:
 		var stats := MapStats.get_stats(map, picked)
 		level_stats.text = stat_pills(map, picked, stats)
 	else:
@@ -1130,9 +1090,12 @@ static func stat_pills(map: MapInfo, difficulty: DifficultyInfo, stats: Dictiona
 ## Accessibility Guidelines, doc/research/game-ui.md).
 static func _set_picked_border(button: Button, color: Color) -> void:
 	for style: StringName in [&"pressed", &"hover_pressed"]:
-		var box := button.get_theme_stylebox(style) as StyleBoxFlat
+		# the button's own copy of its kind's style (DifficultyButton), so other buttons keep theirs
+		button.remove_theme_stylebox_override(style)
+		var box := button.get_theme_stylebox(style).duplicate() as StyleBoxFlat
 		if box:
 			box.border_color = color
+			button.add_theme_stylebox_override(style, box)
 
 ## Picks the pressed level within the shown characteristic.
 func _on_level_pressed(level: int) -> void:

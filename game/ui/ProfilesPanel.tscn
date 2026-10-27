@@ -40,6 +40,7 @@ text = "Who's playing?"
 vertical_alignment = 1
 
 [node name="Close_Button" type="Button" parent="Margin/VBox/Header"]
+theme_type_variation = &"BackButton"
 layout_mode = 2
 text = "Close"
 icon = ExtResource("icon_x")

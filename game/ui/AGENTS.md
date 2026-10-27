@@ -34,6 +34,13 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   (`MenuPanel.tscn`, a frame that takes no input), Settings, the Download page and "Who's playing?";
   `MenuSection.tscn` / `MenuSection.gd` (class `MenuSection`), a titled group of rows: rows `ROW_GAP` apart,
   sections `SECTION_GAP` apart (`section_list`), used by the modifier and More modifiers sections.
+  Button kinds are `menu_theme.tres` type variations, so each look and its states (normal, hover, pressed,
+  selected, disabled) and rounded corners live in one place; the hover sound is `UI_AudioEngine`'s for every
+  button: `Button` (secondary), `PrimaryButton` (the page's main action: Done, Download), `ChipButton` (modifier
+  and settings chips, Favorite, Reset, More modifiers; narrow padding, 48 px), `TabButton` (Modifiers/More; a
+  chip), `DifficultyButton` (level and characteristic buttons; narrow padding, 22 px text),
+  `BackButton` (Back and Close), `DestructiveButton` (every `ConfirmButton`; its words turn red on hover).
+  `ModifierChips.make_row_button` takes the kind.
 - `StatPills.gd` (class `StatPills`): a difficulty's short stats as icon pills (get ready, notes per second, swing
   flow, length, workout sets) for RichTextLabels; the song menu's stats line and the Download page's details.
   `LevelStrip.gd` draws each card's level strip (Easy..Expert+ slots, the player's level framed, "≈" while estimated)
@@ -42,8 +49,7 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   of the song menu (1536x1046 px at scale 2, curved on the menus' 2 m cylinder). (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
 - `ModifierChips.gd` (class `ModifierChips`, made by the menu's `_ready`): the Song tab's fail and damage rows,
   on/off and Speed chips, More modifiers, environment picker and reset, in step with `Settings`; `changed()` names
-  the modified ones. Its static `make_row_button`/`set_padding` and `CHIP_PADDING` are shared with the difficulty
-  picker and `settings_Panel.gd`.
+  the modified ones. Its static `make_row_button` (a button of a given kind) is shared with the difficulty picker.
 - `SongPreview.gd` (class `SongPreview`, on the menu's `song_prev` node): the song menu's preview player: fades between
   previews, plays from the preview's start to the song's end and loops, yields to the song itself. The menu's
   `play_selected_preview`, `play_preview` and `stop_preview` (used by game states and BeatSaver) go through it.

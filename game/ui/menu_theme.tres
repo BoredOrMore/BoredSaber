@@ -235,6 +235,114 @@ corner_radius_top_right = 10
 corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
+[sub_resource type="StyleBoxFlat" id="chip"]
+content_margin_left = 6.0
+content_margin_top = 7.0
+content_margin_right = 6.0
+content_margin_bottom = 7.0
+bg_color = Color(0.133, 0.149, 0.18, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="chip_hover"]
+content_margin_left = 6.0
+content_margin_top = 7.0
+content_margin_right = 6.0
+content_margin_bottom = 7.0
+bg_color = Color(0.173, 0.192, 0.231, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.37, 0.78, 0.94, 0.6)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="chip_pressed"]
+content_margin_left = 6.0
+content_margin_top = 7.0
+content_margin_right = 6.0
+content_margin_bottom = 7.0
+bg_color = Color(0.2, 0.36, 0.45, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.37, 0.78, 0.94, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="chip_disabled"]
+content_margin_left = 6.0
+content_margin_top = 7.0
+content_margin_right = 6.0
+content_margin_bottom = 7.0
+bg_color = Color(0.11, 0.12, 0.145, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="level"]
+content_margin_left = 4.0
+content_margin_top = 12.0
+content_margin_right = 4.0
+content_margin_bottom = 12.0
+bg_color = Color(0.133, 0.149, 0.18, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="level_hover"]
+content_margin_left = 4.0
+content_margin_top = 12.0
+content_margin_right = 4.0
+content_margin_bottom = 12.0
+bg_color = Color(0.173, 0.192, 0.231, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.37, 0.78, 0.94, 0.6)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="level_pressed"]
+content_margin_left = 4.0
+content_margin_top = 12.0
+content_margin_right = 4.0
+content_margin_bottom = 12.0
+bg_color = Color(0.2, 0.36, 0.45, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.37, 0.78, 0.94, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="level_disabled"]
+content_margin_left = 4.0
+content_margin_top = 12.0
+content_margin_right = 4.0
+content_margin_bottom = 12.0
+bg_color = Color(0.11, 0.12, 0.145, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
 [resource]
 default_font = ExtResource("1")
 default_font_size = 28
@@ -251,6 +359,7 @@ Button/styles/hover = SubResource("surface_hover")
 Button/styles/hover_pressed = SubResource("surface_pressed")
 Button/styles/normal = SubResource("surface")
 Button/styles/pressed = SubResource("surface_pressed")
+BackButton/base_type = &"Button"
 CheckButton/colors/font_color = Color(0.894, 0.902, 0.922, 1)
 CheckButton/colors/font_hover_color = Color(1, 1, 1, 1)
 CheckButton/colors/font_pressed_color = Color(1, 1, 1, 1)
@@ -264,6 +373,23 @@ CheckButton/styles/hover = SubResource("list_hover")
 CheckButton/styles/hover_pressed = SubResource("list_hover")
 CheckButton/styles/normal = SubResource("toggle_idle")
 CheckButton/styles/pressed = SubResource("toggle_idle")
+ChipButton/base_type = &"Button"
+ChipButton/styles/disabled = SubResource("chip_disabled")
+ChipButton/styles/focus = SubResource("empty")
+ChipButton/styles/hover = SubResource("chip_hover")
+ChipButton/styles/hover_pressed = SubResource("chip_pressed")
+ChipButton/styles/normal = SubResource("chip")
+ChipButton/styles/pressed = SubResource("chip_pressed")
+DestructiveButton/base_type = &"Button"
+DestructiveButton/colors/font_hover_color = Color(1, 0.45, 0.4, 1)
+DifficultyButton/base_type = &"Button"
+DifficultyButton/font_sizes/font_size = 22
+DifficultyButton/styles/disabled = SubResource("level_disabled")
+DifficultyButton/styles/focus = SubResource("empty")
+DifficultyButton/styles/hover = SubResource("level_hover")
+DifficultyButton/styles/hover_pressed = SubResource("level_pressed")
+DifficultyButton/styles/normal = SubResource("level")
+DifficultyButton/styles/pressed = SubResource("level_pressed")
 HBoxContainer/constants/separation = 16
 HSlider/styles/grabber_area = SubResource("slider_fill")
 HSlider/styles/grabber_area_highlight = SubResource("slider_fill")
@@ -300,6 +426,7 @@ PrimaryButton/styles/normal = SubResource("primary")
 PrimaryButton/styles/pressed = SubResource("primary_hover")
 SpinBox/colors/font_color = Color(0.894, 0.902, 0.922, 1)
 SpinBox/constants/buttons_width = 40
+TabButton/base_type = &"ChipButton"
 TabContainer/colors/font_hovered_color = Color(1, 1, 1, 1)
 TabContainer/colors/font_selected_color = Color(1, 1, 1, 1)
 TabContainer/colors/font_unselected_color = Color(0.6, 0.63, 0.67, 1)

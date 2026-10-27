@@ -124,7 +124,8 @@ Layout and look
 
 Process
 - Build UI as templates (owner, 2026-10-28): panel, section and button scenes plus the theme; pages only swap
-  content. Don't hand-build a frame, section or button look per page (`game/ui/AGENTS.md`, Templates).
+  content. Don't hand-build a frame, section or button look per page; a button takes one of the theme's button
+  kinds (`game/ui/AGENTS.md`, Templates).
 - For any menu, panel, HUD or score-screen work, follow `.claude/skills/vr-ui-design/SKILL.md` before
   building (flow, 3D placement, sizes, feedback) and `.claude/skills/vr-ui-review/SKILL.md` before calling
   it done (every game state that shows the node, overlap and depth checks, headset walk-through).

@@ -9,6 +9,9 @@ var _menu: MainMenu
 func _init(menu: MainMenu) -> void:
 	_menu = menu
 
+func _map_colors_row() -> HBoxContainer:
+	return _menu.get_node(^"Modifiers/Look/MapColorsRow") as HBoxContainer
+
 ## Fills every row with its chips; call once the menu is in the tree (the chips read its theme).
 func build() -> void:
 	_build_rows()
@@ -50,10 +53,8 @@ func _prefix_icon(label: Label, icon: Texture2D) -> void:
 	row.add_child(image)
 	row.move_child(image, 0)
 
-## Chip side padding, and the width of the Damage row's leading label.
-const CHIP_PADDING := 6.0
-## Top and bottom padding of chips, so the theme's 28 px text fits a 48 px row (3.2° at the menu's 2 m).
-const CHIP_VERTICAL_PADDING := 7.0
+## The width of the Damage row's leading label. (Chips' padding is the ChipButton kind's, menu_theme.tres: 28 px
+## text in a 48 px row, 3.2° at the menu's 2 m.)
 const ROW_LABEL_WIDTH := 110.0
 const MORE_MODS_TEXT := "More modifiers"
 ## On/off chips on the Song tab: [label, Settings key, value of the key while the chip is on].
@@ -78,9 +79,8 @@ func _build_chips() -> void:
 		chip.toggled.connect(func(on: bool) -> void:
 			Settings.set(toggle[1] as StringName, on == toggle[2])
 			_menu.update_view())
-		# Map colors is a look, beside the environment
-		(_menu.environment_row if toggle[1] == &"disable_map_color" else _menu.toggle_row).add_child(chip)
-		set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
+		# Map colors is a look, above the environment
+		(_map_colors_row() if toggle[1] == &"disable_map_color" else _menu.toggle_row).add_child(chip)
 	_add_option_chips(_menu.speed_row, &"music_speed", Constants.SPEEDS, Constants.SPEEDS.map(func(o: Array) -> String: return "%d%%" % o[0]))
 	MenuSection.section_list(_menu.more_mods_rows)
 	for row: Array in MORE_MOD_ROWS:
@@ -97,7 +97,6 @@ func _build_chips() -> void:
 		Settings.claws = on
 		_menu.update_view())
 	_menu.more_mods_rows.add_child(_claws_chip)
-	set_padding(_claws_chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 	environment_picker = OptionButton.new()
 	environment_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	environment_picker.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -108,12 +107,7 @@ func _build_chips() -> void:
 		environment_picker.set_item_icon(environment_picker.item_count - 1, environment_thumb(environment[0]))
 	environment_picker.item_selected.connect(func(item: int) -> void: Settings.environment = Settings.ENVIRONMENTS[item][0])
 	_menu.environment_row.add_child(environment_picker)
-	set_padding(environment_picker, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 	show_environment()
-	set_padding(_menu.reset_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-	set_padding(_menu.more_mods_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-	# the star and its label in a 48 px button: the theme's 12 px padding would make it 60 px, into the picker
-	set_padding(_menu.favorite_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 
 ## Adds one chip per option of an option table to parent, picking the option's value for key when pressed.
 func _add_option_chips(parent: Container, key: StringName, options: Array, labels: Array) -> void:
@@ -126,7 +120,6 @@ func _add_option_chips(parent: Container, key: StringName, options: Array, label
 			Settings.set(key, value)
 			_menu.update_view())
 		parent.add_child(chip)
-		set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 		chips.append(chip)
 	_option_rows.append([chips, key, values])
 
@@ -190,7 +183,6 @@ func _build_rows() -> void:
 	for i in Constants.FAIL_OPTIONS.size():
 		var chip := make_row_button(Constants.FAIL_OPTIONS[i][2], fail_group, _on_fail_option_pressed.bind(i))
 		_menu.fail_row.add_child(chip)
-		set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 	var damage_label := Label.new()
 	damage_label.text = "Damage"
 	damage_label.custom_minimum_size.x = ROW_LABEL_WIDTH
@@ -199,7 +191,6 @@ func _build_rows() -> void:
 	for i in Constants.DAMAGE_SCALES.size():
 		var chip := make_row_button(Constants.DAMAGE_SCALES[i][1], damage_group, _on_damage_option_pressed.bind(i))
 		_menu.damage_row.add_child(chip)
-		set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 	_sync_rows()
 
 ## Shows the saved fail mode and damage scale in the rows; damage only matters for the health bar.
@@ -229,7 +220,7 @@ func _on_damage_option_pressed(index: int) -> void:
 
 func sync() -> void:
 	_sync_rows()
-	var toggle_chips := _menu.toggle_row.get_children() + [_menu.environment_row.get_child(0)]
+	var toggle_chips := _menu.toggle_row.get_children() + _map_colors_row().get_children()
 	for i in TOGGLE_CHIPS.size():
 		var toggle: Array = TOGGLE_CHIPS[i]
 		(toggle_chips[i] as Button).set_pressed_no_signal(Settings.get(toggle[1] as StringName) == toggle[2])
@@ -262,24 +253,12 @@ func reset() -> void:
 	_menu.update_view()
 
 ## One option of a button row.
-static func make_row_button(text: String, group: ButtonGroup, on_pressed: Callable) -> Button:
+static func make_row_button(text: String, group: ButtonGroup, on_pressed: Callable, kind := &"ChipButton") -> Button:
 	var button := Button.new()
+	button.theme_type_variation = kind
 	button.text = text
 	button.toggle_mode = true
 	button.button_group = group
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.pressed.connect(on_pressed)
 	return button
-
-## Gives button, already in the tree so it reads the menu theme, narrower padding in every state, so a row
-## of chips fits the column; vertical padding changes only when given.
-static func set_padding(button: Button, side: float, vertical := -1.0) -> void:
-	for style: StringName in [&"normal", &"hover", &"pressed", &"hover_pressed", &"disabled", &"focus"]:
-		# the menu theme's Button look, also for an OptionButton (whose own focus style is the engine's)
-		var box := button.get_theme_stylebox(style, &"Button").duplicate() as StyleBox
-		box.content_margin_left = side
-		box.content_margin_right = side
-		if vertical >= 0.0:
-			box.content_margin_top = vertical
-			box.content_margin_bottom = vertical
-		button.add_theme_stylebox_override(style, box)
