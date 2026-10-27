@@ -346,23 +346,25 @@ layout_mode = 2
 theme_override_constants/separation = 4
 
 [node name="EnvironmentRow" type="HBoxContainer" parent="Modifiers/Look"]
-custom_minimum_size = Vector2(0, 60)
+custom_minimum_size = Vector2(0, 120)
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="MoreMods_Button" type="Button" parent="Modifiers"]
+[node name="Header" type="HBoxContainer" parent="Modifiers"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="MoreMods_Button" type="Button" parent="Modifiers/Header"]
 theme_type_variation = &"ChipButton"
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/icon_max_width = 28
 clip_text = true
 text_overrun_behavior = 3
 icon = ExtResource("icon_sliders-horizontal")
 script = ExtResource("icon_button")
-
-[node name="Header" type="HBoxContainer" parent="Modifiers"]
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
 
 [node name="Reset_Button" type="Button" parent="Modifiers/Header" unique_id=1815398217]
 theme_type_variation = &"ChipButton"
@@ -397,6 +399,39 @@ layout_mode = 2
 text = "Back"
 icon = ExtResource("icon_arrow-left")
 script = ExtResource("icon_button")
+
+[node name="EnvironmentPanel" type="Panel" parent="."]
+visible = false
+layout_mode = 0
+offset_left = 1289.0
+offset_top = 8.0
+offset_right = 1737.0
+offset_bottom = 737.0
+
+[node name="Rows" type="VBoxContainer" parent="EnvironmentPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+theme_override_constants/separation = 16
+
+[node name="Back_Button" type="Button" parent="EnvironmentPanel/Rows"]
+theme_type_variation = &"BackButton"
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+text = "Back"
+icon = ExtResource("icon_arrow-left")
+script = ExtResource("icon_button")
+
+[node name="Grid" type="GridContainer" parent="EnvironmentPanel/Rows"]
+layout_mode = 2
+theme_override_constants/h_separation = 8
+theme_override_constants/v_separation = 8
+columns = 2
 
 [node name="MorePanel" type="Panel" parent="."]
 visible = false
@@ -535,9 +570,10 @@ joystick_scroll = false
 [connection signal="toggled" from="FiltersPanel/Rows/FavoritesFilter" to="." method="_on_favorites_filter_toggled"]
 [connection signal="toggled" from="FiltersPanel/Rows/WorkoutFilter" to="." method="_on_workout_filter_toggled"]
 [connection signal="pressed" from="Modifiers/Header/Reset_Button" to="." method="_on_reset_button_pressed"]
-[connection signal="pressed" from="Modifiers/MoreMods_Button" to="." method="_show_more_modifiers" binds= [true]]
+[connection signal="pressed" from="Modifiers/Header/MoreMods_Button" to="." method="_show_more_modifiers" binds= [true]]
 [connection signal="pressed" from="MoreModsPanel/Rows/Back_Button" to="." method="_show_more_modifiers" binds= [false]]
 [connection signal="pressed" from="GetSongs_Button" to="." method="_on_get_songs_pressed"]
 [connection signal="pressed" from="Filters_Button" to="." method="_show_filters" binds= [true]]
 [connection signal="pressed" from="FiltersPanel/Rows/Back_Button" to="." method="_show_filters" binds= [false]]
 [connection signal="pressed" from="LicensePopup/Rows/Back_Button" to="." method="_on_licenses_pressed"]
+[connection signal="pressed" from="EnvironmentPanel/Rows/Back_Button" to="." method="show_environments" binds= [false]]

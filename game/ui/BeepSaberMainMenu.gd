@@ -50,7 +50,7 @@ const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 @onready var damage_row := $Modifiers/Fail/DamageRow as HBoxContainer
 @onready var toggle_row := $Modifiers/Notes/ToggleRow as HBoxContainer
 @onready var speed_row := $Modifiers/Speed/SpeedRow as HBoxContainer
-@onready var more_mods_button := $Modifiers/MoreMods_Button as Button
+@onready var more_mods_button := $Modifiers/Header/MoreMods_Button as Button
 @onready var environment_row := $Modifiers/Look/EnvironmentRow as HBoxContainer
 @onready var more_mods_rows := $MoreModsPanel/Rows as VBoxContainer
 @onready var favorite_button := $Favorite_Button as Button
@@ -790,6 +790,7 @@ func _on_settings_button_pressed() -> void:
 func _show_tab(tab: int) -> void:
 	$MorePanel.visible = tab == Tab.MORE
 	$MoreModsPanel.hide()
+	$EnvironmentPanel.hide()
 	for i in $Tabs.get_child_count():
 		($Tabs.get_child(i) as Button).set_pressed_no_signal(i == tab)
 
@@ -1160,5 +1161,9 @@ func _show_filters(open: bool) -> void:
 	$FiltersPanel.visible = open
 
 ## Opens More modifiers over the song details, or goes back to them.
+## Opens or closes the environment cards over the modifiers (the Environment button, Back, or a pick).
+func show_environments(open: bool) -> void:
+	$EnvironmentPanel.visible = open
+
 func _show_more_modifiers(open: bool) -> void:
 	$MoreModsPanel.visible = open

@@ -5,7 +5,7 @@ extends Node
 ## Smallest gap, in px, between two controls placed side by side with offsets (not by a container).
 const MIN_GAP := 4.0
 ## Panels that open over others: whatever lies wholly under a visible one is hidden, not overlapped.
-const OVERLAYS := ["MorePanel", "MoreModsPanel", "FiltersPanel"]
+const OVERLAYS := ["MorePanel", "MoreModsPanel", "FiltersPanel", "EnvironmentPanel"]
 ## The song menu's three panel backgrounds: what lies wholly on one is on it, not overlapping it.
 const BACKGROUNDS := ["LeftPanel", "CentrePanel", "RightPanel"]
 ## Rows the song list must show at once at its original 76 px row size (owner, 2026-10-28: the curved menu in the
@@ -111,6 +111,17 @@ func _ready() -> void:
 	menu._show_more_modifiers(true)
 	await _settle()
 	_check_layout(menu, "more modifiers")
+	menu._show_more_modifiers(false)
+	menu.show_environments(true)
+	await _settle()
+	_check_layout(menu, "environments")
+	var env_cards := menu.get_node(^"EnvironmentPanel/Rows/Grid").get_children()
+	var smallest := 1e9
+	for card: Control in env_cards:
+		smallest = minf(smallest, minf(card.size.x, card.size.y))
+	check(env_cards.size() == Settings.ENVIRONMENTS.size() and smallest >= 45.0,
+			"a picture card per environment, each %.0f px or more across (3 degrees is 45 px)" % smallest)
+	menu.show_environments(false)
 	menu._show_tab(MainMenu.Tab.MORE)
 	await _settle()
 	_check_layout(menu, "more tab")
@@ -415,8 +426,8 @@ func _check_children(parent: Control, bounds: Rect2, problems: PackedStringArray
 			problems.append("%s %s spills out of %s %s" % [child.name, rect, parent.name, bounds])
 		if not parent is Container:
 			placed.append(child)
-		# a scroll container's content is meant to run past it
-		if not child is ScrollContainer:
+		# a scroll container's content is meant to run past it; a picture card's layers sit on each other
+		if not child is ScrollContainer and not child is EnvironmentCard:
 			_check_children(child, rect, problems)
 	for i in placed.size():
 		for j in range(i + 1, placed.size()):

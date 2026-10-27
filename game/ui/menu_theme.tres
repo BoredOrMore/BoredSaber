@@ -343,6 +343,14 @@ corner_radius_top_right = 14
 corner_radius_bottom_right = 14
 corner_radius_bottom_left = 14
 
+[sub_resource type="StyleBoxFlat" id="card"]
+bg_color = Color(0.133, 0.149, 0.18, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+corner_detail = 6
+
 [resource]
 default_font = ExtResource("1")
 default_font_size = 28
@@ -360,6 +368,13 @@ Button/styles/hover_pressed = SubResource("surface_pressed")
 Button/styles/normal = SubResource("surface")
 Button/styles/pressed = SubResource("surface_pressed")
 BackButton/base_type = &"Button"
+CardButton/base_type = &"Button"
+CardButton/styles/disabled = SubResource("card")
+CardButton/styles/focus = SubResource("empty")
+CardButton/styles/hover = SubResource("card")
+CardButton/styles/hover_pressed = SubResource("card")
+CardButton/styles/normal = SubResource("card")
+CardButton/styles/pressed = SubResource("card")
 CheckButton/colors/font_color = Color(0.894, 0.902, 0.922, 1)
 CheckButton/colors/font_hover_color = Color(1, 1, 1, 1)
 CheckButton/colors/font_pressed_color = Color(1, 1, 1, 1)

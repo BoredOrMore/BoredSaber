@@ -21,7 +21,7 @@ func build() -> void:
 ## Icons before the Modifiers area's row headings (owner, 2026-10-27: more icons on the song menu), each with its
 ## word: a gauge for Speed, a cracked heart for Damage (the heart is health). ICON_SIZE px, the size of the chips'
 ## text. (The Modifiers heading has none: with many changes its Reset fills the row; Environment's dropdown shows
-## the environment's picture, and an icon would cut its name short.)
+## the environment's picture.)
 const ICON_SIZE := 28
 const SPEED_ICON := preload("res://game/ui/icons/gauge.svg")
 const DAMAGE_ICON := preload("res://game/ui/icons/heart-crack.svg")
@@ -97,16 +97,20 @@ func _build_chips() -> void:
 		Settings.claws = on
 		_menu.update_view())
 	_menu.more_mods_rows.add_child(_claws_chip)
-	environment_picker = OptionButton.new()
-	environment_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	environment_picker.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	environment_picker.add_theme_constant_override(&"icon_max_width", ENVIRONMENT_THUMB_WIDTH_CLOSED)
-	environment_picker.get_popup().add_theme_constant_override(&"icon_max_width", ENVIRONMENT_THUMB_WIDTH)
+	# the closed Environment button, and a card per environment over the modifiers once it's pressed
+	environment_button = EnvironmentCard.make(null, "")
+	environment_button.pressed.connect(_menu.show_environments.bind(true))
+	_menu.environment_row.add_child(environment_button)
+	var group := ButtonGroup.new()
 	for environment: Array in Settings.ENVIRONMENTS:
-		environment_picker.add_item(environment[1])
-		environment_picker.set_item_icon(environment_picker.item_count - 1, environment_thumb(environment[0]))
-	environment_picker.item_selected.connect(func(item: int) -> void: Settings.environment = Settings.ENVIRONMENTS[item][0])
-	_menu.environment_row.add_child(environment_picker)
+		var card := EnvironmentCard.make(environment_thumb(environment[0]), environment[1])
+		card.toggle_mode = true
+		card.button_group = group
+		card.custom_minimum_size.y = ENVIRONMENT_CARD_HEIGHT
+		card.pressed.connect(func() -> void:
+			Settings.environment = environment[0]
+			_menu.show_environments(false))
+		_environment_grid().add_child(card)
 	show_environment()
 
 ## Adds one chip per option of an option table to parent, picking the option's value for key when pressed.
@@ -147,33 +151,41 @@ func changed(rare_only := false) -> PackedStringArray:
 		names.append(Constants.CLAWS_LABEL)
 	return names
 
-## A small picture of each environment, by id, shown in the environment dropdown when the file exists.
+## Each environment's pictures (tools/capture/env_thumbnails.sh): the card, and the wide one for the closed button.
 const ENVIRONMENT_THUMBS := "res://game/env/thumbs/%s.png"
-## how wide the pictures show in the open list, and on the closed dropdown, which must stay one row high
-const ENVIRONMENT_THUMB_WIDTH := 128
-const ENVIRONMENT_THUMB_WIDTH_CLOSED := 36
-## The environment dropdown on the Song tab, under Damage (Settings.ENVIRONMENTS).
-var environment_picker: OptionButton
+const ENVIRONMENT_WIDE_THUMBS := "res://game/env/thumbs/%s_wide.png"
+## The cards' height: three rows of two fill the right panel under Back, so nothing scrolls (13 degrees at 2 m).
+const ENVIRONMENT_CARD_HEIGHT := 196
+## The closed Environment button in the Look section, showing the pick's picture (Settings.ENVIRONMENTS).
+var environment_button: EnvironmentCard
 
-## "Follow map" with a song selected names the environment that song will get, short enough for the Song tab.
+## "Follow map" with a song selected names the environment that song will get.
 const MAP_ENVIRONMENT_TEXT := "Map's: %s"
 
-## Shows the saved pick; "Follow map" also names the environment the selected song will get.
+func _environment_grid() -> GridContainer:
+	return _menu.get_node(^"EnvironmentPanel/Rows/Grid") as GridContainer
+
+## Shows the saved pick on the button and the cards; "Follow map" shows and names the environment the selected song
+## will get.
 func show_environment() -> void:
-	if not environment_picker:
+	if not environment_button:
 		return
 	var ids: Array = Settings.ENVIRONMENTS.map(func(e: Array) -> String: return e[0])
-	environment_picker.select(maxi(ids.find(Settings.environment), 0))
-	var follow: String = Settings.ENVIRONMENTS[0][1]
+	var picked := maxi(ids.find(Settings.environment), 0)
 	var resolved := EventDriver.map_environment(_menu._shown_map)
+	var follow: String = Settings.ENVIRONMENTS[0][1]
 	if _menu._shown_map:
 		follow = MAP_ENVIRONMENT_TEXT % Settings.ENVIRONMENTS[ids.find(resolved)][1]
-	environment_picker.set_item_text(0, follow)
-	environment_picker.set_item_icon(0, environment_thumb(resolved))
+	var shown: String = resolved if picked == 0 else ids[picked]
+	environment_button.show_card(environment_thumb(shown, true), follow if picked == 0 else Settings.ENVIRONMENTS[picked][1])
+	var cards := _environment_grid().get_children()
+	(cards[0] as EnvironmentCard).show_card(environment_thumb(resolved), follow)
+	for i in cards.size():
+		(cards[i] as EnvironmentCard).set_picked(i == picked)
 
-## The picture of an environment, or null when there is none.
-static func environment_thumb(id: String) -> Texture2D:
-	var path := ENVIRONMENT_THUMBS % id
+## The picture of an environment (its wide one for the closed button), or null when there is none.
+static func environment_thumb(id: String, wide := false) -> Texture2D:
+	var path := (ENVIRONMENT_WIDE_THUMBS if wide else ENVIRONMENT_THUMBS) % id
 	return load(path) as Texture2D if ResourceLoader.exists(path) else null
 
 ## Fills the fail and damage rows with one toggle button per option, so they're a single press away;
@@ -231,7 +243,7 @@ func sync() -> void:
 	_claws_chip.set_pressed_no_signal(Settings.claws)
 	var changed := changed()
 	_menu.reset_button.visible = changed.size() > 0
-	_menu.reset_button.text = "%d changed · Reset" % changed.size()
+	_menu.reset_button.text = "Reset (%d)" % changed.size()
 	var rare := changed(true)
 	_menu.more_mods_button.text = MORE_MODS_TEXT + (HighscorePanel.RUN_PARTS_SEPARATOR + ", ".join(rare) if rare.size() > 0 else "")
 
