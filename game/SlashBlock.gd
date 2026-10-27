@@ -40,10 +40,18 @@ const WRONG_RUMBLE_STRENGTH := 0.3
 const WRONG_RUMBLE_SECONDS := 0.2
 const CUT_SOUND := preload("res://game/data/cut_1.wav")
 const WRONG_SOUND := preload("res://game/data/bad_cut.wav")
-## The small note of the other colour: its edge in metres (40% of the big one), and the big note's corner its
-## centre sits on, seen from the player (x -1 left / 1 right, y 1 top / -1 bottom, mirrored for left-handed players).
+## The small note of the other colour: its edge in metres (40% of the big one), beside the big one on the side away
+## from the menu (right as seen from the player, mirrored for left-handed players), so the sabers' clearance from the
+## menu (above) holds; tops level, OTHER_NOTE_GAP apart so the two never touch.
 const OTHER_NOTE_SIZE := 0.12
-const OTHER_NOTE_CORNER := Vector2(-1.0, 1.0)
+const OTHER_NOTE_GAP := 0.05
+## Both notes float up and down, each on its own: the big one (and its words and light) BOB_METRES either way every
+## 1 / BOB_HZ seconds, the small one OTHER_BOB_METRES more on its own slower beat. Slow and small, so it reads as
+## floating and the big note stays easy to hit. Untuned.
+const BOB_METRES := 0.03
+const BOB_HZ := 0.25
+const OTHER_BOB_METRES := 0.02
+const OTHER_BOB_HZ := 0.19
 ## The words over the note: what to do, in the arrow's direction. A strip above it, so the arrow stays clear; the
 ## theme's Roboto Medium at 72 px with 1 mm per px is a 5 cm cap height, 2.3 degrees at 1.25 m (the menu's 28 px
 ## rule is 1.9 degrees), white with a dark outline.
@@ -97,6 +105,9 @@ var _pieces: Array[CutPiece] = []
 var _half_size := Vector3.ONE * 0.15
 var _sound := AudioStreamPlayer3D.new()
 var _shown := false
+## Where it floats around, set when it shows, and the small note's spot beside it.
+var _base_position := Vector3.ZERO
+var _other_base := Vector3.ZERO
 ## The note was near the middle of the view at the last check (for the log marker).
 var _in_view := false
 ## Within this cosine of straight ahead counts as looking at the note (about 40 degrees).
@@ -186,6 +197,7 @@ func _process(delta: float) -> void:
 		return
 	_light_time += delta
 	_set_light(lerpf(LIGHT_MIN, 1.0, 0.5 + 0.5 * sin(TAU * GLOW_PULSE_HZ * _light_time)))
+	_float(_light_time)
 	# a marker in the log, to line performance measurements up with looking at the note
 	if vr.vrCamera:
 		var to_note := (global_position - vr.vrCamera.global_position).normalized()
@@ -193,6 +205,11 @@ func _process(delta: float) -> void:
 		if in_view != _in_view:
 			_in_view = in_view
 			print("Slash note %s" % ("in view" if in_view else "out of view"))
+
+## Floats the note (with its words, light and hit area) and the small note on their own beats, t seconds in.
+func _float(t: float) -> void:
+	position = _base_position + Vector3.UP * BOB_METRES * sin(TAU * BOB_HZ * t)
+	_other_mesh.position = _other_base + Vector3.UP * OTHER_BOB_METRES * sin(TAU * OTHER_BOB_HZ * t + 2.0)
 
 ## Light strength 0..1 (1: brightest breath; above 1 only in the cut's flash).
 func _set_light(strength: float) -> void:
@@ -231,9 +248,12 @@ func set_shown(shown: bool) -> void:
 		var side := -1.0 if Settings.left_handed else 1.0
 		var yaw := deg_to_rad(YAW_DEGREES) * side
 		global_position = Vector3(HORIZONTAL * sin(yaw), eyes - BELOW_EYES, PLAYER_Z - HORIZONTAL * cos(yaw))
+		_base_position = position
 		# its front (+z) toward the player, arrow still pointing straight down
 		rotation = Vector3(0.0, -yaw, 0.0)
-		_other_mesh.position = Vector3(OTHER_NOTE_CORNER.x * side, OTHER_NOTE_CORNER.y, 0.0) * NOTE_SIZE / 2.0
+		_other_base = Vector3(side * ((NOTE_SIZE + OTHER_NOTE_SIZE) / 2.0 + OTHER_NOTE_GAP),
+				(NOTE_SIZE - OTHER_NOTE_SIZE) / 2.0, 0.0)
+		_float(_light_time)
 		_touching.clear()
 	_shown = shown
 	# the node stays visible so the cut halves (its children) can fly off
