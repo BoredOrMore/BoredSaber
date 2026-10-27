@@ -300,6 +300,7 @@ func _ready() -> void:
 		reaction_filter.add_item(level[0])
 	LevelStrip.prepare(self)
 	_add_details_toggle()
+	_make_details_box()
 	for filter: Array in Constants.LENGTH_FILTERS:
 		length_filter.add_item(filter[1])
 	_sync_filter_controls()
@@ -401,7 +402,9 @@ func update_list(req: BeatSaverRequest) -> void:
 			goto_maps_by.visible = false
 		song_data = []
 		item_selected = -1
-		($song_data as RichTextLabel).text = "Pick a song to see what it plays like."
+		if _song_text:
+			_song_text.text = "Pick a song to see what it plays like."
+			StatPills.fill(_level_rows, [])
 		($TextureRect as TextureRect).texture = placeholder_cover
 		_update_download_button()
 	if not httpcoverdownload:
@@ -533,7 +536,7 @@ func _on_ItemList_item_selected(index: int) -> void:
 	goto_maps_by.text = "More by %s" % selected_data.level_author_name
 	_details_toggle.visible = true
 	goto_maps_by.visible = selected_data.uploader_id != -1 and prev_request != null and prev_request.type != "uploader"
-	($song_data as RichTextLabel).text = _details_text(selected_data)
+	_show_details(selected_data)
 	($TextureRect as TextureRect).texture = item_list.get_item_icon(index)
 	_update_download_button()
 
@@ -587,25 +590,69 @@ func _details_text(song: BeatSaverSongInfo) -> String:
 		text += "\n\n[color=#%s]%s[/color]" % [muted, _escape(shown)]
 	return text
 
-## The picked map in a few words: title and artist, mapper and length, then each Standard difficulty as a bar in its
-## level's colour and name ("≈" while estimated) over its stats pills (StatPills: time to get ready, notes per second,
-## swing flow), measured once the map is in the library. Details shows the rest.
+## The picked map in a few words: title and artist, mapper and length; _level_row_controls adds each Standard
+## difficulty under it. Details shows the rest.
 func _short_details_text(song: BeatSaverSongInfo) -> String:
 	var muted := Constants.UI_TEXT_MUTED.to_html(false)
 	var seconds := int(song.duration)
-	var text := "[b]%s[/b]\n%s\n[color=#%s]Mapped by %s · %d:%02d[/color]" % [_escape(song.song_name),
+	return "[b]%s[/b]\n%s\n[color=#%s]Mapped by %s · %d:%02d[/color]" % [_escape(song.song_name),
 		_escape(song.song_author_name), muted, _escape(song.level_author_name), seconds / 60, seconds % 60]
+
+## Each Standard difficulty as a rounded bar in its level's colour and name ("≈" while estimated) over its stats
+## pills (StatPills: time to get ready, notes per second, swing flow), measured once the map is in the library;
+## then what "≈" means.
+func _level_row_controls(song: BeatSaverSongInfo) -> Array[Control]:
+	var controls: Array[Control] = []
 	var rows := _difficulty_rows(song)
 	rows.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	var estimated := _local_map(song) == null
 	for row: Array in rows:
 		var entry: Array = Constants.DIFFICULTY_LEVELS[row[0]]
-		text += "\n\n[font_size=%d][bgcolor=#%s][color=#%s] %s%s [/color][/bgcolor][/font_size]\n%s" % [LEVEL_BAR_SIZE,
-			(entry[1] as Color).to_html(false), Constants.UI_PANEL.to_html(false), entry[0], " ≈" if estimated else "",
-			StatPills.difficulty(row[1], row[2], row[3], PILL_ICON_SIZE)]
+		var bar := PanelContainer.new()
+		bar.theme_type_variation = &"LevelBar"
+		bar.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		var colored := bar.get_theme_stylebox(&"panel", &"LevelBar").duplicate() as StyleBoxFlat
+		colored.bg_color = entry[1]
+		bar.add_theme_stylebox_override(&"panel", colored)
+		var level_name := Label.new()
+		level_name.text = "%s%s" % [entry[0], " ≈" if estimated else ""]
+		level_name.add_theme_font_size_override(&"font_size", LEVEL_BAR_SIZE)
+		level_name.add_theme_color_override(&"font_color", Constants.UI_PANEL)
+		bar.add_child(level_name)
+		controls.append(bar)
+		var pills := StatPills.flow()
+		pills.alignment = FlowContainer.ALIGNMENT_BEGIN
+		StatPills.fill(pills, StatPills.difficulty(row[1], row[2], row[3], PILL_ICON_SIZE))
+		controls.append(pills)
 	if estimated:
-		text += "\n\n[color=#%s]%s[/color]" % [muted, ESTIMATE_HINT]
-	return text
+		var hint := Label.new()
+		hint.text = ESTIMATE_HINT
+		hint.add_theme_font_size_override(&"font_size", 22)
+		hint.add_theme_color_override(&"font_color", Constants.UI_TEXT_MUTED)
+		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		controls.append(hint)
+	return controls
+
+## The details' text and, in the short details, the level rows under it, in one column where song_data stood.
+var _song_text: RichTextLabel
+var _level_rows := VBoxContainer.new()
+
+func _make_details_box() -> void:
+	_song_text = $song_data as RichTextLabel
+	var box := VBoxContainer.new()
+	box.position = _song_text.position
+	box.size = _song_text.size
+	box.add_theme_constant_override(&"separation", 12)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(box)
+	_song_text.reparent(box)
+	_song_text.fit_content = true
+	box.add_child(_level_rows)
+	_level_rows.add_theme_constant_override(&"separation", 8)
+
+func _show_details(song: BeatSaverSongInfo) -> void:
+	_song_text.text = _details_text(song)
+	StatPills.fill(_level_rows, [] if _details_toggle.button_pressed else _level_row_controls(song))
 
 ## Icons in the details' pills, the size of their 22 px text.
 const PILL_ICON_SIZE := 24
@@ -650,7 +697,7 @@ func _add_details_toggle() -> void:
 	_details_toggle.toggled.connect(func(_on: bool) -> void:
 		var song := _get_selected_song()
 		if song != null:
-			($song_data as RichTextLabel).text = _details_text(song))
+			_show_details(song))
 	add_child(_details_toggle)
 	UI_AudioEngine.attach_button(_details_toggle)
 	goto_maps_by.size.x = half

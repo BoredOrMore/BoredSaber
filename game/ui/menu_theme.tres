@@ -351,6 +351,30 @@ corner_radius_bottom_right = 14
 corner_radius_bottom_left = 14
 corner_detail = 6
 
+[sub_resource type="StyleBoxFlat" id="pill"]
+content_margin_left = 10.0
+content_margin_top = 3.0
+content_margin_right = 10.0
+content_margin_bottom = 3.0
+bg_color = Color(0.133, 0.149, 0.18, 1)
+corner_radius_top_left = 20
+corner_radius_top_right = 20
+corner_radius_bottom_right = 20
+corner_radius_bottom_left = 20
+corner_detail = 6
+
+[sub_resource type="StyleBoxFlat" id="level_bar"]
+content_margin_left = 12.0
+content_margin_top = 2.0
+content_margin_right = 12.0
+content_margin_bottom = 2.0
+bg_color = Color(0.37, 0.78, 0.94, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+corner_detail = 6
+
 [resource]
 default_font = ExtResource("1")
 default_font_size = 28
@@ -406,6 +430,8 @@ DifficultyButton/styles/hover_pressed = SubResource("level_pressed")
 DifficultyButton/styles/normal = SubResource("level")
 DifficultyButton/styles/pressed = SubResource("level_pressed")
 HBoxContainer/constants/separation = 16
+LevelBar/base_type = &"PanelContainer"
+LevelBar/styles/panel = SubResource("level_bar")
 HSlider/styles/grabber_area = SubResource("slider_fill")
 HSlider/styles/grabber_area_highlight = SubResource("slider_fill")
 HSlider/styles/slider = SubResource("slider")
@@ -441,6 +467,8 @@ PrimaryButton/styles/normal = SubResource("primary")
 PrimaryButton/styles/pressed = SubResource("primary_hover")
 SpinBox/colors/font_color = Color(0.894, 0.902, 0.922, 1)
 SpinBox/constants/buttons_width = 40
+StatPill/base_type = &"PanelContainer"
+StatPill/styles/panel = SubResource("pill")
 TabButton/base_type = &"ChipButton"
 TabContainer/colors/font_hovered_color = Color(1, 1, 1, 1)
 TabContainer/colors/font_selected_color = Color(1, 1, 1, 1)

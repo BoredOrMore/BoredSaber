@@ -44,7 +44,7 @@ const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 @onready var songs_menu := $SongsMenu as SongList
 @onready var characteristic_row := $DifficultyPicker/CharacteristicRow as HBoxContainer
 @onready var level_row := $DifficultyPicker/LevelRow as HBoxContainer
-@onready var level_stats := $DifficultyPicker/LevelStats as RichTextLabel
+@onready var level_stats := $DifficultyPicker/LevelStats as HFlowContainer
 @onready var delete_button := $MorePanel/Delete_Button as ConfirmButton
 @onready var fail_row := $Modifiers/Fail/FailRow as HBoxContainer
 @onready var damage_row := $Modifiers/Fail/DamageRow as HBoxContainer
@@ -1067,25 +1067,26 @@ func _sync_difficulty_picker() -> void:
 		button.disabled = index < 0
 		button.set_pressed_no_signal(picked != null and picked.difficulty == LEVELS[i][0])
 	if _status != "":
-		level_stats.text = "[center]%s[/center]" % _status
+		var status := Label.new()
+		status.text = _status
+		StatPills.fill(level_stats, [status])
 	elif picked:
-		var stats := MapStats.get_stats(map, picked)
-		level_stats.text = stat_pills(map, picked, stats)
+		StatPills.fill(level_stats, stat_pills(map, picked, MapStats.get_stats(map, picked)))
 	else:
-		level_stats.text = ""
+		StatPills.fill(level_stats, [])
 
 ## Icons in the stats pills, the size of the 22 px text.
 const STAT_ICON_SIZE := 24
 
 ## The picked difficulty's stats as pills (StatPills): length, time to get ready, notes per second, swing flow,
 ## and a workout's sets.
-static func stat_pills(map: MapInfo, difficulty: DifficultyInfo, stats: Dictionary) -> String:
-	var pills := PackedStringArray([StatPills.length(float(stats.get("seconds", 0.0)), STAT_ICON_SIZE),
-		StatPills.difficulty(MapStats.reaction_seconds(map, difficulty), float(stats.get("nps", 0.0)) * MapStats._speed(),
-			float(stats.get("flow", 0.0)), STAT_ICON_SIZE)])
+static func stat_pills(map: MapInfo, difficulty: DifficultyInfo, stats: Dictionary) -> Array[Control]:
+	var pills: Array[Control] = [StatPills.length(float(stats.get("seconds", 0.0)), STAT_ICON_SIZE)]
+	pills.append_array(StatPills.difficulty(MapStats.reaction_seconds(map, difficulty),
+		float(stats.get("nps", 0.0)) * MapStats._speed(), float(stats.get("flow", 0.0)), STAT_ICON_SIZE))
 	if MapStats.workout_level(stats) > 0:
 		pills.append(StatPills.workout(int(stats.get("sets", 0)), STAT_ICON_SIZE))
-	return "[center]%s[/center]" % StatPills.GAP.join(pills)
+	return pills
 
 ## The picked level button's border in its difficulty's colour (the name on it stays white, for contrast; Game
 ## Accessibility Guidelines, doc/research/game-ui.md).

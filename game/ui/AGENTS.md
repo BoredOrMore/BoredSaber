@@ -39,14 +39,16 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   button: `Button` (secondary), `PrimaryButton` (the page's main action: Done, Download), `ChipButton` (modifier
   and settings chips, Favorite, Reset, More modifiers; narrow padding, 48 px), `TabButton` (Modifiers/More; a
   chip), `DifficultyButton` (level and characteristic buttons; narrow padding, 22 px text),
-  `BackButton` (Back and Close), `DestructiveButton` (every `ConfirmButton`; its words turn red on hover).
+  `BackButton` (Back and Close), `DestructiveButton` (every `ConfirmButton`; its words turn red on hover). Panel kinds:
+  `StatPill` (a stat, fully rounded), `LevelBar` (a level's name in its colour).
   `ModifierChips.make_row_button` takes the kind.
 - `EnvironmentCard.tscn` / `EnvironmentCard.gd` (class `EnvironmentCard`, kind `CardButton`): a button that is a
   picture, filling it (cover, rounded by the button, which clips it) with the name over a dark band; a ring while
   pointed at or picked. The Look section's Environment button (the pick's wide picture) opens `EnvironmentPanel`
   over the modifiers: Back and a card per environment, two to a row, nothing scrolling (`ModifierChips`).
-- `StatPills.gd` (class `StatPills`): a difficulty's short stats as icon pills (get ready, notes per second, swing
-  flow, length, workout sets) for RichTextLabels; the song menu's stats line and the Download page's details.
+- `StatPills.gd` (class `StatPills`): a difficulty's short stats as rounded icon pills (get ready, notes per second,
+  swing flow, length, workout sets; the `StatPill` kind) in a centred flow; the song menu's stats under the
+  difficulty and the Download page's details, whose level names sit in rounded `LevelBar`s.
   `LevelStrip.gd` draws each card's level strip (Easy..Expert+ slots, the player's level framed, "≈" while estimated)
   into its cover image.
   The menu's "Get songs" opens it directly (`BeepSaber_Game._open_beatsaver`), in front of the player in place
