@@ -57,16 +57,16 @@ class BeatSaverSongInfo extends RefCounted:
 	## doc/research/flow_research.py's note reader. Stacks and chains make it a little under 1.
 	const SWING_GAP_PER_NOTE_GAP := 0.84
 
-	## Difficulty a map difficulty plays at before it is downloaded (an index in Constants.DIFFICULTY_LEVELS):
-	## the harder of its reaction time and its swing pace estimated from notes per second, one up when its swings
-	## are Tangled. Downloaded maps use the measured swing gap instead (MapStats.level_of).
+	## Difficulty a map difficulty plays at before it is downloaded (an index in Constants.DIFFICULTY_LEVELS): the
+	## harder of its reaction time and its swing pace estimated from notes per second. Downloaded maps use the measured
+	## swing gap and swing flow instead (MapStats.level_of). Against them (doc/research/download-level-estimate.md, 49
+	## difficulties of the Mac's 18 songs) it matched 73%, one off 92%; BeatSaver's parity count no longer adds a level
+	## (it disagreed with the measured flow: 65% with it). The misses read easier: dense bursts the average hides.
 	func level_of(diff: Dictionary) -> int:
 		var level := MapStats.reaction_level(reaction_seconds(diff))
 		var nps := Utils.get_float(diff, "nps", 0.0)
 		if nps > 0.0:
 			level = maxi(level, MapStats.swing_pace_level(SWING_GAP_PER_NOTE_GAP * 2.0 / nps / MapStats._speed()))
-		if MapStats.flow_level(parity_percent(diff)) == Constants.FLOW_LEVELS.size() - 1:
-			level += 1
 		return mini(level, Constants.DIFFICULTY_LEVELS.size() - 1)
 
 	## Seconds a note of one difficulty (from versions[0].diffs) is visible before reaching the player.
