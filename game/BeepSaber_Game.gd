@@ -98,26 +98,32 @@ var pause_position := 0.0
 const LEAD_IN_MIN_SECONDS := 3.0
 ## The HUD in Beat Saber's arrangement (owner, 2026-10-27; checked against .claude/skills/vr-ui-design): on the left
 ## the combo, the score, then the accuracy and the live grade; on the right the multiplier in its filling ring and
-## the time played / the song's length. HUD_AHEAD metres ahead of the eye, beside the lanes (HUD_SIDE, or out past
-## the outer lane by HUD_LANE_MARGIN on wide modifiers), between HUD_TOP and about 0.9 m: 5-12 degrees below the eye
-## at most, so lower than Beat Saber's (which sits by the track) to stay in the comfort zone. Each piece turns to face
-## HUD_EYE. Text keeps its old size (HUD_SCALE); the ring is a little smaller (HUD_RING_SCALE) so the time fits
-## under it above the 12 degree line.
+## the time played / the song's length. Each side is one flat panel turned to face HUD_EYE, its lines laid on it
+## (owner: lines each turned their own way didn't sit on one plane). HUD_AHEAD metres ahead of the eye, beside the
+## lanes (HUD_SIDE, or out past the outer lane by HUD_LANE_MARGIN on wide modifiers), centred at HUD_Y: from about
+## 1.64 m down to 0.9 m, at most 12 degrees below the eye (lower than Beat Saber's, which sits by the track).
+## Sizes rank the lines by how much a glance needs them mid-song (owner: no hierarchy made a glance hard to read):
+## the combo count and the multiplier biggest, then the grade in its colour, then the score; the accuracy, the time
+## and the "Combo" caption small and muted. Sizes are the letters' height in metres; positions are on the panel.
 const HUD_EYE := Vector3(0.0, 1.6, 1.0)
 const HUD_AHEAD := -2.5
 const HUD_SIDE := 1.9
 const HUD_LANE_MARGIN := 0.7
-const HUD_SCALE := 1.5
-const HUD_RING_SCALE := 1.2
-## the tops of the left column's lines and the right column's ring centre and time line (metres up)
-## (measured: text starts 0.045 m under its anchor; the two-line combo is 0.33 m tall, one line 0.12 m, at HUD_SCALE)
-const HUD_TOP := 1.6
-const HUD_SCORE_Y := 1.215
-const HUD_ACCURACY_Y := 1.04
-const HUD_RING_Y := 1.33
-const HUD_TIME_Y := 1.045
-## the accuracy and the grade sit side by side, this far either side of the column's middle
-const HUD_GRADE_GAP := 0.22
+const HUD_Y := 1.25
+## The smallest lines are 0.11 m (capitals about 1.3 degrees at this distance); the old HUD's text was 0.15 m.
+const HUD_COMBO_CAPTION := Vector3(0.0, 0.38, 0.11)
+const HUD_COMBO := Vector3(0.0, 0.24, 0.22)
+const HUD_SCORE := Vector3(0.0, 0.05, 0.13)
+const HUD_ACCURACY := Vector3(-0.17, -0.11, 0.11)
+const HUD_GRADE := Vector3(0.19, -0.11, 0.2)
+## the multiplier ring's scale (its quad is 0.5 m) and centre, the multiplier's height, and the time line
+const HUD_RING_SIZE := 1.5
+const HUD_RING := Vector2(0.0, 0.15)
+const HUD_MULTIPLIER_HEIGHT := 0.2
+const HUD_TIME := Vector3(0.0, -0.3, 0.11)
+var _hud_left: Node3D
+var _hud_right: Node3D
+var _combo_caption: MeshInstance3D
 var _accuracy_label: MeshInstance3D
 var _grade_label: MeshInstance3D
 var _time_label: MeshInstance3D
@@ -845,47 +851,71 @@ static func _clock(seconds: int) -> String:
 	@warning_ignore("integer_division")
 	return "%d:%02d" % [seconds / 60, seconds % 60]
 
-## The accuracy, grade and time lines, made like the score's text (one line each).
+## The two panels and the lines the old HUD didn't have, made like the score's text. The panels show and hide
+## with the score (Playing, Paused, MapComplete... set its visibility).
 func _make_hud_labels() -> void:
-	_accuracy_label = _hud_label()
-	_grade_label = _hud_label()
+	_hud_left = Node3D.new()
+	_hud_right = Node3D.new()
+	for panel in [_hud_left, _hud_right]:
+		add_child(panel)
+	point_label.visibility_changed.connect(func() -> void:
+		_hud_left.visible = point_label.visible
+		_hud_right.visible = point_label.visible)
+	var muted := (point_label.material_override as BaseMaterial3D).duplicate() as BaseMaterial3D
+	muted.albedo_color = Constants.UI_TEXT_MUTED
+	_combo_caption = _hud_label(_hud_left, HUD_COMBO_CAPTION, muted)
+	(_combo_caption.mesh as TextMesh).text = "Combo"
+	_accuracy_label = _hud_label(_hud_left, HUD_ACCURACY, muted)
 	# its own material, for the grade's colour
-	_grade_label.material_override = (point_label.material_override as BaseMaterial3D).duplicate()
-	_time_label = _hud_label()
+	_grade_label = _hud_label(_hud_left, HUD_GRADE, (point_label.material_override as BaseMaterial3D).duplicate())
+	_time_label = _hud_label(_hud_right, HUD_TIME, muted)
+	# the combo count and the score keep their nodes (other scripts find them by path); they get the same letters
+	_set_letters(multiplier_label.mesh as TextMesh, HUD_COMBO.z)
+	_set_letters(point_label.mesh as TextMesh, HUD_SCORE.z)
+	(point_label.mesh as TextMesh).text = "0"
+	var combo := multiplier_label as ComboHud
+	combo.ring.reparent(_hud_right)
+	combo.set_multiplier_height(HUD_MULTIPLIER_HEIGHT / HUD_RING_SIZE)
 	# the ring under the score now shows as the accuracy line and the grade beside it
 	percent_indicator.visible = false
-	(point_label.mesh as TextMesh).text = "0"
+	_hud_right.visible = false
+	_hud_left.visible = false
 
-func _hud_label() -> MeshInstance3D:
+## A one-line label of letters height metres, centred on its spot.
+func _hud_label(panel: Node3D, spot: Vector3, material: BaseMaterial3D) -> MeshInstance3D:
 	var label := MeshInstance3D.new()
 	var mesh := (point_label.mesh as TextMesh).duplicate() as TextMesh
 	mesh.text = ""
+	_set_letters(mesh, spot.z)
 	label.mesh = mesh
-	label.material_override = point_label.material_override
+	label.material_override = material
 	label.layers = point_label.layers
-	# under the score, so it shows and hides with the rest of the HUD (Playing, Paused, MapComplete...)
-	point_label.add_child(label)
+	label.position = Vector3(spot.x, spot.y, 0.0)
+	panel.add_child(label)
 	return label
 
-## Puts the HUD's pieces in place for the lane width, each turned to face the eye.
+## Text height in metres (the font's size; capitals come out about 0.73 of it), rendered from a 100 px font, centred on
+## the label's origin. TextMesh caps font_size at 127, so the size goes through pixel_size.
+static func _set_letters(mesh: TextMesh, height: float) -> void:
+	mesh.font_size = 100
+	mesh.pixel_size = height / 100.0
+	mesh.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	mesh.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+
+## Puts the two panels in place for the lane width, each turned to face the eye, and the old nodes on them.
 func _place_hud() -> void:
 	var side := maxf(HUD_SIDE, 1.5 * Settings.LANE_DISTANCE_X + HUD_LANE_MARGIN)
-	var left := Vector3(-side, 0.0, HUD_AHEAD)
-	var right := Vector3(side, 0.0, HUD_AHEAD)
-	_face_eye(multiplier_label, left + Vector3.UP * HUD_TOP)
-	_face_eye(point_label, left + Vector3.UP * HUD_SCORE_Y)
-	_face_eye(_accuracy_label, left + Vector3(-HUD_GRADE_GAP, HUD_ACCURACY_Y, 0.0))
-	_face_eye(_grade_label, left + Vector3(HUD_GRADE_GAP, HUD_ACCURACY_Y, 0.0))
-	var combo := multiplier_label as ComboHud
-	if combo.ring.get_parent() != point_label:
-		combo.ring.reparent(point_label)
-	_face_eye(combo.ring, right + Vector3.UP * HUD_RING_Y, HUD_RING_SCALE)
-	_face_eye(_time_label, right + Vector3.UP * HUD_TIME_Y)
+	_hud_left.global_transform = _facing_eye(Vector3(-side, HUD_Y, HUD_AHEAD))
+	_hud_right.global_transform = _facing_eye(Vector3(side, HUD_Y, HUD_AHEAD))
+	point_label.global_transform = _hud_left.global_transform * Transform3D(Basis(), Vector3(HUD_SCORE.x, HUD_SCORE.y, 0.0))
+	multiplier_label.global_transform = _hud_left.global_transform * Transform3D(Basis(), Vector3(HUD_COMBO.x, HUD_COMBO.y, 0.0))
+	(multiplier_label as ComboHud).rest_at(multiplier_label.position)
+	(multiplier_label as ComboHud).ring.transform = Transform3D(Basis.from_scale(Vector3.ONE * HUD_RING_SIZE),
+			Vector3(HUD_RING.x, HUD_RING.y, 0.0))
 
-func _face_eye(node: Node3D, at: Vector3, size := HUD_SCALE) -> void:
-	node.global_transform = Transform3D(Basis.looking_at(HUD_EYE - at, Vector3.UP, true).scaled(Vector3.ONE * size), at)
-	if node is ComboHud:
-		(node as ComboHud).rest_at(node.position)
+## A panel at `at`, its face (+z) turned to the eye.
+static func _facing_eye(at: Vector3) -> Transform3D:
+	return Transform3D(Basis.looking_at(HUD_EYE - at, Vector3.UP, true), at)
 
 ## Whole seconds left in the current map, for the clock under the score.
 func _seconds_left() -> int:

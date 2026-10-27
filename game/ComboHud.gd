@@ -132,7 +132,8 @@ func _add_sound(stream: AudioStream) -> AudioStreamPlayer:
 
 ## Shows the current combo and multiplier; the ring moves to them over the next frames.
 func refresh() -> void:
-	var text := "Combo\n%d" % Scoreboard.combo
+	# the "Combo" caption is the game's HUD label above this count
+	var text := "%d" % Scoreboard.combo
 	if (mesh as TextMesh).text != text:
 		(mesh as TextMesh).text = text
 	_multiplier_mesh.text = "x%d" % Scoreboard.multiplier
@@ -152,6 +153,13 @@ func _process(delta: float) -> void:
 		_shake_left = maxf(_shake_left - delta, 0.0)
 		var amount := BREAK_SHAKE * _shake_left / BREAK_SHAKE_SECONDS
 		position = _base_position + Vector3(sin(_shake_left * BREAK_SHAKE_SPEED) * amount, 0, 0)
+
+## The multiplier's letter height in the ring's own units (metres before the ring is scaled).
+func set_multiplier_height(height: float) -> void:
+	# TextMesh caps font_size at 127, so the size goes through pixel_size
+	_multiplier_mesh.font_size = 100
+	_multiplier_mesh.pixel_size = height / 100.0
+	_multiplier_size = _multiplier_mesh.pixel_size
 
 ## Where the count rests, for the game's HUD layout (the broken-combo shake swings around it).
 func rest_at(at: Vector3) -> void:
