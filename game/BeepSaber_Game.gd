@@ -962,10 +962,11 @@ func _unpause_button() -> void:
 	show_sabers_for_map()
 	pause_countdown.visible = true
 	track.visible = true
+	# a second per number, so "3" means three seconds to get ready
 	for seconds in [3, 2, 1]:
 		pause_countdown.set_label_text(str(seconds))
 		play_countdown(seconds)
-		await get_tree().create_timer(0.5).timeout
+		await get_tree().create_timer(1.0).timeout
 	pause_countdown.visible = false
 	play_countdown(0)
 	
