@@ -138,6 +138,18 @@ const LOW_ROOF_EDGES := [[0, 0, 0.0, 0.7, 1.0], [0, 3, 0.0, 1.0, 0.6],
 	[1, 0, 0.2, 1.0, 0.8], [1, 1, 0.0, 0.5, 1.2],
 	[2, 0, 0.0, 0.45, 1.1], [2, 0, 0.55, 1.0, 1.1], [2, 2, 0.0, 1.0, 0.9],
 	[3, 0, 0.0, 1.0, 0.7], [3, 1, 0.3, 1.0, 0.7], [3, 3, 0.0, 0.6, 0.7]]
+## The lights on the tower wall stand on small steel maintenance platforms sticking out of it (AGENTS.md "Light",
+## rule 5; owner, 2026-10-26: the lights floated on the wall): the diagonal lasers at WALL_DIAGONAL_Y, the waving
+## searchlights at WALL_SEARCHLIGHT_Y (heights unchanged), each on a platform [out from the wall, along it] with a low
+## front rail and a strut under it, sizes a little different each (WALL_PLATFORM_SIZES). Boxes in the props' MultiMesh.
+const WALL_DIAGONAL_Y := [18.0, 34.0, 52.0, 72.0, 96.0]
+const WALL_SEARCHLIGHT_Y := [12.0, 40.0, 80.0, 120.0]
+## how many of each the wall carries (EventDriver hangs half the diagonal lasers and half the waving lasers there)
+const WALL_DIAGONALS := 5
+const WALL_SEARCHLIGHTS := 5
+const WALL_PLATFORM_SIZES: Array[Vector2] = [Vector2(1.5, 3.0), Vector2(1.3, 2.6), Vector2(1.7, 3.4), Vector2(1.4, 2.2)]
+const WALL_PLATFORM_SLAB := 0.2
+const WALL_PLATFORM_RAIL := 1.0
 ## the parapet wall's thickness; the coping's width, height and how far it hangs over both faces
 const PARAPET_WALL := 0.25
 const COPING := Vector2(0.4, 0.08)
@@ -297,7 +309,7 @@ func _add_props() -> void:
 			[LaserFixtures._model_mesh(ANTENNA), antennas],
 			[LaserFixtures._model_mesh(STAIR_HOUSE_MODEL), [Transform3D(Basis(Vector3.UP, -WALL_SIDE * PI * 0.5),
 				Vector3(WALL_SIDE * STAIR_HOUSE.x, ROOF_Y, STAIR_HOUSE.y))]],
-			[BoxMesh.new(), _mounts + _low_roof_edges()]]:
+			[BoxMesh.new(), _mounts + _low_roof_edges() + _wall_platforms()]]:
 		var placed: Array[Transform3D] = []
 		placed.assign(pair[1])
 		var multimesh := MultiMesh.new()
@@ -349,6 +361,50 @@ static func _low_roof_edges() -> Array[Transform3D]:
 		boxes.append(_span(start, end + wall_out + Vector3(0.0, height - COPING.y, 0.0)))
 		var lip := inward * (COPING.x - PARAPET_WALL) * 0.5
 		boxes.append(_span(start - lip + Vector3(0.0, height - COPING.y, 0.0), end + wall_out + lip + Vector3(0.0, height, 0.0)))
+	return boxes
+
+## Where diagonal laser j of `pairs` on the tower wall stands: on its platform, out from the wall's face.
+static func wall_diagonal_spot(j: int, pairs: int) -> Vector3:
+	var t := TOWERS[j % TOWERS.size()]
+	var z := lerpf(t.y, t.z, 0.3 + 0.4 * float(j) / maxi(pairs - 1, 1))
+	var out := WALL_PLATFORM_SIZES[j % WALL_PLATFORM_SIZES.size()].x * 0.5
+	return Vector3(WALL_SIDE * (t.x - out), WALL_DIAGONAL_Y[j % WALL_DIAGONAL_Y.size()], z)
+
+## Where waving searchlight j on the tower wall stands: on its platform, out from the wall's face.
+static func wall_searchlight_spot(j: int) -> Vector3:
+	var t := TOWERS[j % TOWERS.size()]
+	var out := WALL_PLATFORM_SIZES[(j + 2) % WALL_PLATFORM_SIZES.size()].x * 0.5
+	return Vector3(WALL_SIDE * (t.x - out), WALL_SEARCHLIGHT_Y[j % WALL_SEARCHLIGHT_Y.size()], lerpf(t.y, t.z, 0.5))
+
+## The tower wall's light platforms: under each fixture a slab out from the wall, a low rail along its front, two posts
+## and a strut from the slab's front edge back down to the wall.
+static func _wall_platforms() -> Array[Transform3D]:
+	var boxes: Array[Transform3D] = []
+	var spots: Array[Vector3] = []
+	var sizes: Array[Vector2] = []
+	for j in WALL_DIAGONALS:
+		spots.append(wall_diagonal_spot(j, WALL_DIAGONALS))
+		sizes.append(WALL_PLATFORM_SIZES[j % WALL_PLATFORM_SIZES.size()])
+	for j in WALL_SEARCHLIGHTS:
+		spots.append(wall_searchlight_spot(j))
+		sizes.append(WALL_PLATFORM_SIZES[(j + 2) % WALL_PLATFORM_SIZES.size()])
+	var o := -WALL_SIDE
+	for i in spots.size():
+		var s := spots[i]
+		var size := sizes[i]
+		# the wall's face at this spot: the fixture stands half the platform out from it
+		var face := s.x - o * size.x * 0.5
+		var top := s.y - 0.3
+		var front := face + o * size.x
+		boxes.append(_span(Vector3(face, top - WALL_PLATFORM_SLAB, s.z - size.y * 0.5), Vector3(front, top, s.z + size.y * 0.5)))
+		boxes.append(_span(Vector3(front - o * 0.06, top + WALL_PLATFORM_RAIL - 0.06, s.z - size.y * 0.5),
+			Vector3(front, top + WALL_PLATFORM_RAIL, s.z + size.y * 0.5)))
+		for end in [-1.0, 1.0]:
+			var z: float = s.z + end * (size.y * 0.5 - 0.04)
+			boxes.append(_span(Vector3(front - o * 0.06, top, z - 0.04), Vector3(front, top + WALL_PLATFORM_RAIL, z + 0.04)))
+		# the strut: from under the front edge down to the wall, a box turned 45 degrees about the wall's line
+		var mid := Vector3((face + front) * 0.5, top - WALL_PLATFORM_SLAB - size.x * 0.5, s.z)
+		boxes.append(Transform3D(Basis(Vector3(0.0, 0.0, 1.0), o * PI * 0.25) * Basis.from_scale(Vector3(0.08, size.x * 1.41, 0.12)), mid))
 	return boxes
 
 ## Where props stand on the low roofs: [low roof, across it, along it, turn] each.

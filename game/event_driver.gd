@@ -377,8 +377,6 @@ const CANYON_SKY_SCALE := 9.5
 ## the canyon's windows: how many the menu shows lit and how bright, and how bright they stay in a song's quiet parts
 const MENU_WINDOWS := 0.35
 const WINDOWS_QUIET := 0.4
-const CANYON_DIAGONAL_Y := [18.0, 34.0, 52.0, 72.0, 96.0]
-const CANYON_SEARCHLIGHT_Y := [12.0, 40.0, 80.0, 120.0]
 const CANYON_BILLBOARD_Y := [22.0, 30.0, 46.0, 58.0]
 
 func _hang_canyon(waving: Array[Node3D]) -> void:
@@ -390,9 +388,8 @@ func _hang_canyon(waving: Array[Node3D]) -> void:
 	for i in diagonal_lasers.size():
 		var j := i % pairs
 		if i < pairs:
-			var t: Vector4 = towers[j % towers.size()]
-			var z := lerpf(t.y, t.z, 0.3 + 0.4 * float(j) / maxi(pairs - 1, 1))
-			_aim(diagonal_lasers[i], Vector3(w * t.x, CANYON_DIAGONAL_Y[j % CANYON_DIAGONAL_Y.size()], z), Vector3(o * 0.6, 1.0, -0.1))
+			# on the maintenance platforms out of the tower wall (NightCityRig.wall_diagonal_spot)
+			_aim(diagonal_lasers[i], NightCityRig.wall_diagonal_spot(j, pairs), Vector3(o * 0.6, 1.0, -0.1))
 		else:
 			var r: Vector4 = roofs[j % roofs.size()]
 			_aim(diagonal_lasers[i], Vector3(o * r.x, r.w, (r.y + r.z) * 0.5), Vector3(w * 0.4, 1.0, 0.05))
@@ -401,9 +398,7 @@ func _hang_canyon(waving: Array[Node3D]) -> void:
 	for i in waving.size():
 		var j := i % half
 		if (i < half) == (w < 0.0):
-			var t: Vector4 = towers[j % towers.size()]
-			waving[i].global_position = Vector3(w * (t.x - 0.5), CANYON_SEARCHLIGHT_Y[j % CANYON_SEARCHLIGHT_Y.size()],
-				lerpf(t.y, t.z, 0.5))
+			waving[i].global_position = NightCityRig.wall_searchlight_spot(j)
 		else:
 			var r: Vector4 = roofs[j % roofs.size()]
 			waving[i].global_position = Vector3(o * (r.x + NightCityRig.LOW_ROOF_DEPTH * 0.6), r.w + 0.3, (r.y + r.z) * 0.5)
