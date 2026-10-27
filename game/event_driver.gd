@@ -179,9 +179,7 @@ var _bars_lowered := false
 @onready var sphere_material := ($Level/Sphere as MeshInstance3D).material_override as ShaderMaterial
 @onready var classic_sky_material := sphere_material
 @onready var neon_grid := $Level/NeonGrid as Node3D
-@onready var pulse_void := $Level/PulseVoid as Node3D
-## materials that follow the sky's light parameters besides the sky itself
-@onready var _light_followers: Array[ShaderMaterial] = [pulse_void.ring_material]
+@onready var pulse_void := $Level/PulseVoid as PulseVoid
 @onready var diagonal_lasers_material := ($Level/DiagonalLasers/laser1/Bar7 as MeshInstance3D).material_override as ShaderMaterial
 @onready var square_lasers_material := ($Level/SquareLasers/Bar7 as MeshInstance3D).material_override as ShaderMaterial
 @onready var left_waving_lasers_material := ($Level/LeftWavingLasers/laser1/Bar7 as MeshInstance3D).material_override as ShaderMaterial
@@ -337,8 +335,8 @@ func _apply_stinger_room(id: String) -> void:
 ## Each environment hangs the same five light groups (so a map's light show still drives them) on its own rig, so
 ## the stages don't all look alike: Classic keeps Beat Saber's layout; Neon Grid hangs them on its arches' building site
 ## (NeonGridRig: floodlights at the footings, survey beacons, the crane's work lights, strips along the arches); Night City sweeps its waving lasers like searchlights from far beside the track and crosses its
-## diagonal beams from rooftop height; Pulse Void mounts its lights on its rings: the diagonal lasers run as rails
-## from the nearest ring to the farthest, and the waving lasers stand on the rings' upper sides. Every beam starts at its fixture and turns around it (game/AGENTS.md). Positions in metres, untuned.
+## diagonal beams from rooftop height; Pulse Void stands its floodlights on the dish's feed legs and its beacons on masts
+## at the rim (PulseVoid). Every beam starts at its fixture and turns around it (game/AGENTS.md). Positions in metres, untuned.
 ## Each side's fan: from its stage, leaning RIG_FAN_MIN_DEG..RIG_FAN_MAX_DEG away from the track (never toward the sun).
 const RIG_FAN_MIN_DEG := 5.0
 const RIG_FAN_MAX_DEG := 70.0
@@ -363,13 +361,6 @@ const RAIL_BASIS := Basis(Vector3(1.0, 0.0, 0.0), Vector3(0.0, 1.0, 0.0), Vector
 ## below the roof and off the inner face
 const ROOF_TRIM_DROP := 0.15
 const ROOF_TRIM_OFFSET := 0.2
-## Pulse Void's diagonal lasers run straight along the tunnel from the nearest ring to the farthest, between
-## VOID_LOW_DEG and VOID_HIGH_DEG on each side (0 is level with the rings' centre, 90 the top), above the floor and
-## clear of the track
-const VOID_LOW_DEG := -5.0
-const VOID_HIGH_DEG := 85.0
-## where the waving lasers stand on their rings, in degrees above level
-const VOID_WAVING_DEG := 20.0
 const RIG_WAVING_Y := -1.26
 ## Metal Factory: the energy strips' centres along each rail (each 9.6 m long with RAIL_BASIS), just above the rail's
 ## top so they don't flicker into it
@@ -468,18 +459,9 @@ static func _aim(laser: Node3D, from: Vector3, direction: Vector3) -> void:
 	var aim := Basis.looking_at(direction.normalized(), Vector3.UP if absf(direction.normalized().y) < 0.99 else Vector3.FORWARD)
 	laser.global_transform = Transform3D(Basis(aim.x, aim.y, aim.z * length), from)
 
-## Aims a laser fixture at `from` toward `to` and sets its beam to end there.
-static func _span(laser: Node3D, from: Vector3, to: Vector3) -> void:
-	_aim(laser, from, to - from)
-	# the beam runs from the fixture to twice its centre's distance along local -z
-	var reach := -2.0 * (laser.get_child(0) as Node3D).position.z
-	var b := laser.global_transform.basis
-	laser.global_transform.basis = Basis(b.x, b.y, b.z.normalized() * from.distance_to(to) / reach)
-
-## Neon Grid's arch strips: how far up they are lit (how far the show has built, all of B on the drop) and their light,
-## never dark.
-func _update_strips() -> void:
-	var material := neon_grid_rig.strip_material
+## Neon Grid's arch strips and Pulse Void's dish seams: how far up (in from the rim) they are lit (how far the show has
+## built, all of arch B or the whole dish on the drop) and their light, never dark.
+func _update_strips(material: ShaderMaterial) -> void:
 	material.set_shader_parameter(&"level", MENU_STRIPS if menu_focus else maxf(STRIP_MIN, _built))
 	material.set_shader_parameter(&"drop", 1.0 if not menu_focus and _intensity > STRIP_DROP else 0.0)
 	var color: Color = square_lasers_material.get_shader_parameter(&"light_color")
@@ -531,7 +513,7 @@ func _apply_rig(id: String) -> void:
 	var sky_scale := 1.0
 	if id == "night_city" and not Settings.classic_night_city:
 		sky_scale = CANYON_SKY_SCALE
-	elif id == "neon_grid" or id == "classic":
+	elif id == "neon_grid" or id == "classic" or id == "pulse_void":
 		# Classic's tunnel runs 600 m ahead (ClassicRig): the sky behind its far end
 		sky_scale = NEON_SKY_SCALE
 	($Level/Sphere as Node3D).scale = Vector3.ONE * sky_scale
@@ -539,7 +521,7 @@ func _apply_rig(id: String) -> void:
 	var key: Vector4 = FOG_KEYS.get(id, Vector4(0.0, 0.0, -1.0, 0.0))
 	var key_dir := Vector3(key.x, key.y, key.z).normalized()
 	RenderingServer.global_shader_parameter_set(&"fog_key", Vector4(key_dir.x, key_dir.y, key_dir.z, key.w))
-	# Pulse Void's beams narrower and dimmer, so its rings lead and the notes stay brightest (Light rule 1; owner,
+	# Pulse Void's beams narrower and dimmer, so the dish's lights lead and the notes stay brightest (Light rule 1; owner,
 	# 2026-10-25: too bright); the rest keep the beams' own width and brightness
 	for material: ShaderMaterial in [diagonal_lasers_material, left_waving_lasers_material, right_waving_lasers_material]:
 		if not _beam_rest.has(material):
@@ -618,18 +600,12 @@ func _apply_rig(id: String) -> void:
 					Vector3(side * (NightCityRig.INNER_FACE_X - ROOF_TRIM_OFFSET), b.z - ROOF_TRIM_DROP, b.x))
 				sign_i += 1
 		"pulse_void":
-			var pairs := diagonal_lasers.size() >> 1
+			# the giant receiving dish (PulseVoid): floodlights on the feed legs, beacons on the rim masts; the dish's seam rows
+			# carry the square bars' light (_update_strips), so the bars are left out
 			for i in diagonal_lasers.size():
-				var j := i % pairs
-				var a := deg_to_rad(lerpf(VOID_LOW_DEG, VOID_HIGH_DEG, float(j) / maxi(pairs - 1, 1)))
-				if i < pairs:
-					# left side: mirrored
-					a = PI - a
-				_span(diagonal_lasers[i], PulseVoid.ring_point(0, a), PulseVoid.ring_point(PulseVoid.RING_COUNT - 1, a))
+				diagonal_lasers[i].global_position = PulseVoid.leg_floodlight(i, diagonal_lasers.size())
 			for i in waving.size():
-				var a := deg_to_rad(VOID_WAVING_DEG)
-				waving[i].global_position = PulseVoid.ring_point(1 + 3 * (i % half), PI - a if i < half else a)
-			# the rings carry the square lasers' light (PulseRing.gdshader), so the bars would only float in the void
+				waving[i].global_position = PulseVoid.rim_beacon(i, waving.size())
 			for bar in _square_bars():
 				bar.visible = false
 		"metal_factory":
@@ -779,7 +755,10 @@ func _process(delta: float) -> void:
 			night_city_rig.billboard_material.set_shader_parameter(&"light_color",
 				square_lasers_material.get_shader_parameter(&"light_color"))
 	if environment == "neon_grid" and neon_grid_rig.strip_material:
-		_update_strips()
+		_update_strips(neon_grid_rig.strip_material)
+	if environment == "pulse_void" and pulse_void.seam_material:
+		_update_strips(pulse_void.seam_material)
+		pulse_void.drop_beam.visible = not menu_focus and _intensity > STRIP_DROP
 	if environment == "classic" and classic_rig.rib_strip_material:
 		_update_rib_strips(delta)
 	_follow_frames()
@@ -1202,8 +1181,6 @@ func fade_light(type: int, from: Color, to: Color, turn_off_after_fade: bool, tr
 func _on_Tween_tween_step(value: Color, id: int) -> void:
 	_set_light_param(INTENSITY_PARAMS[id], value.v)
 
-## Sets one of the sky's light parameters, on the sky and on everything that follows it.
+## Sets one of the sky's light parameters.
 func _set_light_param(param: StringName, value: Variant) -> void:
 	sphere_material.set_shader_parameter(param, value)
-	for material in _light_followers:
-		material.set_shader_parameter(param, value)

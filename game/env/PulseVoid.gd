@@ -1,108 +1,209 @@
+@tool
 class_name PulseVoid
 extends Node3D
-## Pulse Void: rings of light around the track that beat with the music. One MultiMesh draws every ring, and a
-## spectrum analyzer on the Music bus, added only while this environment shows, gives each ring its band.
-## Bass is near the player, treble far away. All values untuned.
+## Pulse Void (doc/assets/pulse_void_dish/spec.md; owner, 2026-10-27: the giant receiving dish, blockout): a signal from
+## deep space, the player its receiver. They stand on the feed cabin at the focus of a radio dish DISH_RADIUS * 2
+## across, its rim round the horizon at the track's height; the track is the cabin's maintenance beam. Four feed legs
+## hold the cabin from the dish. Lights on things that belong there (AGENTS.md "Light", rule 5): the square bars' light
+## in rows along the panel seams (seam strips, ArchStrip.gdshader), lit from the rim inward as the show builds and all
+## of them on the drop with a beam up from the far rim (EventDriver); floodlights on the legs (diagonal lasers),
+## beacons on masts at the rim (waving lasers). Main elements symmetric; the props on the dish are not.
+## Dark boxes in one MultiMesh with the scenery's shader, the seam strips in their own. A tool script, so the dish shows
+## in the editor too (built, not saved: no owner). Sizes in metres, blockout, untuned.
 
-const PULSE_RING := preload("res://game/env/PulseRing.gdshader")
-const SEGMENTS := 96
-const RING_COUNT := 16
-## the first ring goes round the player (who stands at z 1), so the tunnel starts where they stand
-const FIRST_Z := 1.0
-const RING_GAP := 3.5
-## the rings' centre height and radius in metres; wide enough to stay clear of every note and wall
-const CENTER_Y := 1.5
-const RADIUS := 6.0
-## each ring is this much wider than the one before it, so the far ones still frame the view
-const RADIUS_STEP := 0.25
-## frequency bands, low to high, in Hz, shared out in order from the nearest ring to the farthest
-const BANDS: Array[Vector2] = [
-	Vector2(30, 80), Vector2(80, 160), Vector2(160, 320), Vector2(320, 640),
-	Vector2(640, 1250), Vector2(1250, 2500), Vector2(2500, 5000), Vector2(5000, 10000),
-]
-## quietest band level that shows, in dB
-const FLOOR_DB := -60.0
-## how fast a ring dims after a beat, in level per second; it brightens at once
-const RELEASE := 3.0
+const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
+const ARCH_STRIP := preload("res://game/env/ArchStrip.gdshader")
+## the dish: its radius, its vertex's height (the focus, a quarter of the diameter above it, is at the track; so is the
+## rim), panel rings from DISH_INNER to the rim, segments round, the panels' thickness; the rim truss's section
+const DISH_RADIUS := 250.0
+const VERTEX_Y := -125.0
+const DISH_INNER := 20.0
+const DISH_RINGS := 14
+const DISH_SEGMENTS := 48
+const PANEL := 0.6
+const RIM := 3.0
+## the feed cabin under the player (size, its top just under the track deck) and the maintenance beam under the track
+## (width, depth, to z)
+const CABIN := Vector3(12.0, 7.0, 12.0)
+const CABIN_TOP := -0.4
+const BEAM := Vector3(4.0, 1.2, -61.0)
+## the feed legs: from the cabin's corners down to the dish LEG_REACH out, at 45 degrees either side of ahead and behind;
+## their section
+const LEG_REACH := 150.0
+const LEG := 2.5
+## the masts on the rim for the beacons: their height, section, and the angles they stand at either side of ahead
+const MAST := Vector2(40.0, 2.0)
+const MAST_FROM_DEG := 20.0
+const MAST_TO_DEG := 70.0
+## the floodlights on the legs: their tilt axis this far above a leg's top face, from LEG_FROM to LEG_TO of its length
+const FLOOD_ABOVE := 0.84
+const LEG_FROM := 0.25
+const LEG_TO := 0.75
+## the seam strips: on the dish's face at each panel ring's outer edge, this wide (along the dish) and thick; the drop's
+## beam from the far rim straight up, its width and height
+const SEAM := Vector2(1.2, 0.3)
+const DROP_BEAM := Vector2(4.0, 800.0)
+## props on the dish's surface, uneven: a control room (left of ahead), a cherry picker (right): [x, z, size]
+const CONTROL_ROOM := [Vector3(-45.0, 0.0, -70.0), Vector3(14.0, 6.0, 10.0)]
+const CHERRY_PICKER := Vector3(70.0, 0.0, -95.0)
+const CABLE_TRAY := 0.8
 
-## A point on ring `ring` (0 is the nearest) at `angle` radians from +x, counter-clockwise as the player sees it,
-## where EventDriver mounts a light. At the ring's resting radius; the ring grows only 4% with the music.
-static func ring_point(ring: int, angle: float) -> Vector3:
-	var radius := RADIUS + ring * RADIUS_STEP
-	return Vector3(cos(angle) * radius, CENTER_Y + sin(angle) * radius, FIRST_Z - ring * RING_GAP)
-
-## takes the left and right laser lights from EventDriver
-var ring_material: ShaderMaterial
-var _multimesh: MultiMesh
-var _levels := PackedFloat32Array()
-var _analyzer: AudioEffectSpectrumAnalyzerInstance
-
-func _init() -> void:
-	ring_material = ShaderMaterial.new()
-	ring_material.shader = PULSE_RING
+var seam_material: ShaderMaterial
+var drop_beam: MeshInstance3D
 
 func _ready() -> void:
-	_multimesh = MultiMesh.new()
-	_multimesh.transform_format = MultiMesh.TRANSFORM_3D
-	_multimesh.use_custom_data = true
-	_multimesh.mesh = _ring_mesh()
-	_multimesh.instance_count = RING_COUNT
-	_levels.resize(RING_COUNT)
-	for i in RING_COUNT:
-		_multimesh.set_instance_transform(i, Transform3D(Basis(), Vector3(0, CENTER_Y, FIRST_Z - i * RING_GAP)))
-		_multimesh.set_instance_custom_data(i, Color(0, i % 2, RADIUS + i * RADIUS_STEP))
-	var rings := MultiMeshInstance3D.new()
-	rings.multimesh = _multimesh
-	rings.material_override = ring_material
-	rings.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	# the shader places the vertices, so the mesh bounds don't cover the rings
-	var reach := RADIUS + RING_COUNT * RADIUS_STEP + 1.0
-	rings.custom_aabb = AABB(Vector3(-reach, CENTER_Y - reach, FIRST_Z - RING_COUNT * RING_GAP), Vector3(2 * reach, 2 * reach, RING_COUNT * RING_GAP + 1.0))
-	add_child(rings)
-	visibility_changed.connect(_on_visibility_changed)
-	_on_visibility_changed()
+	var boxes: Array[Transform3D] = []
+	boxes.append_array(_dish())
+	boxes.append(_box(Vector3(0.0, CABIN_TOP - CABIN.y * 0.5, 0.0), CABIN))
+	boxes.append(_box(Vector3(0.0, CABIN_TOP - BEAM.y * 0.5, (BEAM.z - CABIN.z * 0.5) * 0.5),
+		Vector3(BEAM.x, BEAM.y, -BEAM.z - CABIN.z * 0.5)))
+	for k in 4:
+		boxes.append(_bar(_leg_top(k), _leg_foot(k), LEG))
+	for side in [-1.0, 1.0]:
+		for i in 3:
+			var a: float = deg_to_rad(lerpf(MAST_FROM_DEG, MAST_TO_DEG, i / 2.0)) * side
+			var foot := _rim(a)
+			boxes.append(_box(foot + Vector3(0.0, MAST.x * 0.5, 0.0), Vector3(MAST.y, MAST.x, MAST.y)))
+	boxes.append_array(_props())
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.mesh = BoxMesh.new()
+	multimesh.instance_count = boxes.size()
+	for i in boxes.size():
+		multimesh.set_instance_transform(i, boxes[i])
+	var material := ShaderMaterial.new()
+	material.shader = ENV_SOLID
+	var instance := MultiMeshInstance3D.new()
+	instance.multimesh = multimesh
+	instance.material_override = material
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(instance)
+	_add_seams()
 
-## A unit circle as a strip: each vertex keeps its direction in x, y and which edge of the line it is on in z.
-static func _ring_mesh() -> ArrayMesh:
-	var vertices := PackedVector3Array()
-	var indices := PackedInt32Array()
-	for i in SEGMENTS + 1:
-		var angle := TAU * i / SEGMENTS
-		vertices.append(Vector3(cos(angle), sin(angle), -1.0))
-		vertices.append(Vector3(cos(angle), sin(angle), 1.0))
-		if i < SEGMENTS:
-			var a := 2 * i
-			indices.append_array([a, a + 1, a + 2, a + 1, a + 3, a + 2])
-	var arrays := []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = vertices
-	arrays[Mesh.ARRAY_INDEX] = indices
-	var mesh := ArrayMesh.new()
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	return mesh
+## The dish's height at a distance from its axis.
+static func dish_y(r: float) -> float:
+	return VERTEX_Y + r * r / (4.0 * -VERTEX_Y)
 
-func _on_visibility_changed() -> void:
-	var bus := AudioServer.get_bus_index(&"Music")
-	if bus < 0:
-		return
-	if is_visible_in_tree() and not _analyzer:
-		AudioServer.add_bus_effect(bus, AudioEffectSpectrumAnalyzer.new())
-		_analyzer = AudioServer.get_bus_effect_instance(bus, AudioServer.get_bus_effect_count(bus) - 1)
-	elif not is_visible_in_tree() and _analyzer:
-		for i in AudioServer.get_bus_effect_count(bus):
-			if AudioServer.get_bus_effect(bus, i) is AudioEffectSpectrumAnalyzer:
-				AudioServer.remove_bus_effect(bus, i)
-				break
-		_analyzer = null
-	set_process(_analyzer != null)
+## The point on the dish at distance r and angle a (0 straight ahead, toward +x positive).
+static func dish_point(r: float, a: float) -> Vector3:
+	return Vector3(sin(a) * r, dish_y(r), -cos(a) * r)
 
-func _process(delta: float) -> void:
-	for i in RING_COUNT:
-		@warning_ignore("integer_division")
-		var band := BANDS[i * BANDS.size() / RING_COUNT]
-		var magnitude := _analyzer.get_magnitude_for_frequency_range(band.x, band.y)
-		var target := clampf((linear_to_db(maxf(magnitude.x, magnitude.y)) - FLOOR_DB) / -FLOOR_DB, 0.0, 1.0)
-		_levels[i] = maxf(target, _levels[i] - RELEASE * delta)
-		var data := _multimesh.get_instance_custom_data(i)
-		data.r = _levels[i]
-		_multimesh.set_instance_custom_data(i, data)
+static func _rim(a: float) -> Vector3:
+	return dish_point(DISH_RADIUS, a)
+
+## A panel (or seam strip) of the dish between radii r0 and r1 round angle a, `span` radians wide, `thick` deep, its
+## top face on the dish.
+static func _panel(r0: float, r1: float, a: float, span: float, thick: float) -> Transform3D:
+	var p0 := dish_point(r0, a)
+	var p1 := dish_point(r1, a)
+	var down := p1 - p0
+	var across := Vector3(cos(a), 0.0, sin(a)) * span * (r0 + r1) * 0.5
+	var normal := across.cross(down).normalized()
+	if normal.y < 0.0:
+		normal = -normal
+	return Transform3D(Basis(across, normal * thick, down), (p0 + p1) * 0.5 - normal * thick * 0.5)
+
+## The dish's panels, a hub plate in the middle and the rim truss.
+static func _dish() -> Array[Transform3D]:
+	var boxes: Array[Transform3D] = []
+	var span := TAU / DISH_SEGMENTS
+	for ring in DISH_RINGS:
+		var r0 := lerpf(DISH_INNER, DISH_RADIUS, float(ring) / DISH_RINGS)
+		var r1 := lerpf(DISH_INNER, DISH_RADIUS, float(ring + 1) / DISH_RINGS)
+		for s in DISH_SEGMENTS:
+			boxes.append(_panel(r0, r1, span * (s + 0.5), span * 1.02, PANEL))
+	boxes.append(_box(Vector3(0.0, dish_y(0.0) - PANEL * 0.5, 0.0), Vector3(DISH_INNER * 2.0, PANEL, DISH_INNER * 2.0)))
+	for s in DISH_SEGMENTS:
+		var a := span * (s + 0.5)
+		var t := _panel(DISH_RADIUS, DISH_RADIUS + RIM, a, span * 1.02, RIM)
+		boxes.append(t)
+	return boxes
+
+## Feed leg k's ends: the cabin's corner and its foot on the dish (k 0 ahead right, then round).
+static func _leg_top(k: int) -> Vector3:
+	var a := deg_to_rad(45.0 + 90.0 * k)
+	return Vector3(sin(a) * CABIN.x * 0.5, CABIN_TOP - CABIN.y, -cos(a) * CABIN.z * 0.5)
+
+static func _leg_foot(k: int) -> Vector3:
+	return dish_point(LEG_REACH, deg_to_rad(45.0 + 90.0 * k))
+
+## A square bar from a to b.
+static func _bar(a: Vector3, b: Vector3, thick: float) -> Transform3D:
+	var d := b - a
+	var x := d.cross(Vector3.UP).normalized()
+	var y := x.cross(d).normalized()
+	return Transform3D(Basis(x * thick, y * thick, d), (a + b) * 0.5)
+
+## The props on the dish's surface: the control room, the cherry picker (base, boom, bucket), the cable trays down the
+## front-right leg.
+static func _props() -> Array[Transform3D]:
+	var boxes: Array[Transform3D] = []
+	var at: Vector3 = CONTROL_ROOM[0]
+	var size: Vector3 = CONTROL_ROOM[1]
+	boxes.append(_box(Vector3(at.x, dish_y(Vector2(at.x, at.z).length()) + size.y * 0.5, at.z), size))
+	var base := Vector3(CHERRY_PICKER.x, dish_y(Vector2(CHERRY_PICKER.x, CHERRY_PICKER.z).length()), CHERRY_PICKER.z)
+	boxes.append(_box(base + Vector3(0.0, 1.0, 0.0), Vector3(3.0, 2.0, 6.0)))
+	var tip := base + Vector3(-6.0, 18.0, 4.0)
+	boxes.append(_bar(base + Vector3(0.0, 2.0, 0.0), tip, 0.6))
+	boxes.append(_box(tip + Vector3(0.0, 0.6, 0.0), Vector3(2.0, 1.2, 1.5)))
+	var side := Vector3(1.0, 0.0, 1.0).normalized() * (LEG * 0.5 + CABLE_TRAY)
+	boxes.append(_bar(_leg_top(0) + side, _leg_foot(0) + side, CABLE_TRAY))
+	return boxes
+
+## The seam strips' MultiMesh: a strip on each panel's outer edge, custom data x its order from the rim (0 the rim: lit
+## first as the show builds) and y 1 (all lit on the drop); and the drop's beam, in the same light, shown only then
+## (EventDriver: unlit it would be a dark line across the pulsar).
+func _add_seams() -> void:
+	var spots: Array[Transform3D] = []
+	var data: Array[Color] = []
+	var span := TAU / DISH_SEGMENTS
+	for ring in DISH_RINGS:
+		var r := lerpf(DISH_INNER, DISH_RADIUS, float(ring + 1) / DISH_RINGS)
+		for s in DISH_SEGMENTS:
+			var t := _panel(r - SEAM.x, r, span * (s + 0.5), span * 0.96, SEAM.y)
+			t.origin += t.basis.y.normalized() * SEAM.y
+			spots.append(t)
+			data.append(Color(1.0 - float(ring + 1) / DISH_RINGS, 1.0, 0.0, 0.0))
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.use_custom_data = true
+	multimesh.mesh = BoxMesh.new()
+	multimesh.instance_count = spots.size()
+	for i in spots.size():
+		multimesh.set_instance_transform(i, spots[i])
+		multimesh.set_instance_custom_data(i, data[i])
+	seam_material = ShaderMaterial.new()
+	seam_material.shader = ARCH_STRIP
+	var instance := MultiMeshInstance3D.new()
+	instance.multimesh = multimesh
+	instance.material_override = seam_material
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(instance)
+	drop_beam = MeshInstance3D.new()
+	drop_beam.mesh = BoxMesh.new()
+	drop_beam.transform = _box(_rim(0.0) + Vector3(0.0, DROP_BEAM.y * 0.5, 0.0), Vector3(DROP_BEAM.x, DROP_BEAM.y, DROP_BEAM.x))
+	drop_beam.material_override = seam_material
+	drop_beam.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	drop_beam.visible = false
+	add_child(drop_beam)
+
+## Where floodlight i of `count` stands: on top of a feed leg, the legs taken in turn, spread along each.
+static func leg_floodlight(i: int, count: int) -> Vector3:
+	var k := i % 4
+	@warning_ignore("integer_division")
+	var per_leg := maxi(count / 4, 1)
+	@warning_ignore("integer_division")
+	var t := lerpf(LEG_FROM, LEG_TO, float(i / 4) / maxf(per_leg - 1, 1))
+	return _leg_top(k).lerp(_leg_foot(k), t) + Vector3(0.0, LEG * 0.5 + FLOOD_ABOVE, 0.0)
+
+## Where beacon i of `count` stands: on top of a rim mast, the first half on the left.
+static func rim_beacon(i: int, count: int) -> Vector3:
+	@warning_ignore("integer_division")
+	var half := maxi(count / 2, 1)
+	var side := -1.0 if i < half else 1.0
+	var a := deg_to_rad(lerpf(MAST_FROM_DEG, MAST_TO_DEG, float((i % half) % 3) / 2.0)) * side
+	return _rim(a) + Vector3(0.0, MAST.x + 0.6, 0.0)
+
+## A unit box scaled to size and placed at centre.
+static func _box(centre: Vector3, size: Vector3) -> Transform3D:
+	return Transform3D(Basis.from_scale(size), centre)
