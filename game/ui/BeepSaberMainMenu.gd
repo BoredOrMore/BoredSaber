@@ -556,8 +556,14 @@ func _select_song(id: int, with_preview: bool = true) -> void:
 	if with_preview and Settings.audio_music_preview > 0 and map.have_song:
 		play_preview(Utils.read_binary_file(map.filepath, map.song_filename), map.preview_start_time, map.preview_duration)
 	
-	var d := PlayCount.get_last_difficulty(map)
-	_select_difficulty(0 if d < 0 else (d & Constants.DIFFICULTY_MASK))
+	# the difficulty last played (its rank), or the first
+	var rank := PlayCount.get_last_difficulty(map) & Constants.DIFFICULTY_MASK
+	var last := 0
+	for i in map.difficulty_beatmaps.size():
+		if map.difficulty_beatmaps[i].difficulty_rank == rank:
+			last = i
+			break
+	_select_difficulty(last)
 
 ## Fades out the playing preview and drops any preview still waiting to start.
 func stop_preview() -> void:

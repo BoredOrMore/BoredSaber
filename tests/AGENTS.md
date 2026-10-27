@@ -1,6 +1,7 @@
 # Headless tests
 
-Engine-level checks that run without a headset or XR runtime: map `Info.dat` parsing and the menu layout.
+Engine-level checks that run without a headset or XR runtime. CI runs every one (`.github/workflows/build-pico4.yml`,
+5 minutes each); a new test goes there too.
 
 ## File map
 
@@ -10,7 +11,6 @@ Engine-level checks that run without a headset or XR runtime: map `Info.dat` par
     `Map.load_map_info` and checks BPM 127 from `_beatsPerMinute`.
   - v4: writes a minimal v4 `Info.dat` (`V4_INFO`) to `user://test_maps/v4/`, loads it, and checks version
     prefix `4.`, BPM 128 from `audio.bpm`, `previewStartTime`, and one difficulty.
-- Not covered: difficulty files (`Map.load_beatmap`, notes/arcs/chains), threading, gameplay, XR.
 
 - `test_menu_layout.tscn` / `.gd` - lays out the song menu (Song tab, More modifiers, More tab) and "Who's playing?"
   headless with worst-case content (every modifier changed, a long player name and title, eight characteristic
@@ -24,6 +24,18 @@ Engine-level checks that run without a headset or XR runtime: map `Info.dat` par
   approach counts in full, a step whose plane turned past 90° ends the count, a follow-through stops at the turn back.
 - `test_sabers.tscn` / `.gd` - every saber in `Settings.SABER_VISUALS` loads, takes a colour and runs a frame without a
   script error stopping it part-way; the particle sword finds its particles.
+- `test_beatmap.tscn` / `.gd` + `data/beatmap/` (small v2, v3, v4 maps) - `Map.load_beatmap`: counts, stack order (popped
+  from the back), lanes, layers, colours and cut directions of notes, bombs, walls, arcs, chains and light events in
+  each format, plain and mirrored (`Settings.flip`); `half_jump_beats_for`/`set_note_jump`; gradual rotation; a v4 map
+  leaves no lights from the last map; a stray non-object v2 note is skipped (it once looped forever).
+- `test_scoreboard.tscn` / `.gd` - `Scoreboard`: multiplier steps (2, 6, 14 hits) and halving, combo, max points and
+  accuracy, modifier shares and No Fail, bad cuts, walls, chain links, `restart`. A `FakeGame` stands in for
+  `GlobalReferences.main_game_scene`. Not covered: `note_cut` (needs a real saber).
+- `test_highscores.tscn` / `.gd` - `HighscoreTable` on a file of its own: order, the 10-record limit, ties, a table per
+  map, difficulty and modifier set, player names, saving.
+- `test_spawn.tscn` / `.gd` - notes, bombs, walls and arcs from their real pools: place on spawn (lane, row, beat),
+  movement per second, and a reused one placed as a fresh one would be (arcs once kept their old place). Not covered:
+  chains, rotated lanes, the arc's magnet hookup.
 - `test_show_intensity.tscn` / `.gd` - checks `EventDriver.intensity_curve` (the build-up of the stage): a calm part
   low and a dense part high, values in 0..1, no curve without light events, finite values for a flat light show.
 

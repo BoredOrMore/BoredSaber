@@ -156,7 +156,9 @@ static func load_note_stack_v2(note_data: Array, rotations: Array) -> void:
 		var bomb_array: Array[BombInfo] = []
 		var i := start
 		while i < end:
-			if not note_data[i] is Dictionary: continue
+			if not note_data[i] is Dictionary:
+				i += 1
+				continue
 			@warning_ignore("unsafe_cast")
 			var note_dict := note_data[i] as Dictionary
 			var note_type := int(Utils.get_float(note_dict, "_type", -1.0))
@@ -618,7 +620,9 @@ static func load_beatmap(info: MapInfo, difficulty: DifficultyInfo, map_data: Di
 					rotations
 					])
 			if v4:
-				pass #TODO
+				# v4 keeps its lights in a separate lightshow file, which isn't read yet: no events rather than the
+				# last map's
+				event_stack.clear()
 			else:
 				Utils.custom_thread_call(event_thread_0, load_event_stack_v3, [Utils.get_array(map_data, "basicBeatmapEvents", [])])
 			current_info = info
