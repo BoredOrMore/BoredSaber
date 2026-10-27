@@ -17,16 +17,18 @@ class_name NeonGridRig
 const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
 const ARCH_STRIP := preload("res://game/env/ArchStrip.gdshader")
 ## The arches' light strips (ArchStrip.gdshader): a segment on each of an arch's boxes, along its inner face, this wide
-## (part of the arch's width) and thick; one MultiMesh, one draw call. EventDriver sets the material's light and level.
+## (part of the arch's depth) and thick, on the side facing PLAYER; one MultiMesh, one draw call. EventDriver sets the material's light and level.
 const STRIP_WIDTH := 0.3
 const STRIP_THICK := 0.6
+const PLAYER := Vector3(0.0, 1.7, 0.0)
 var strip_material: ShaderMaterial
-## An arch: [centre of its span on the ground (x, z), radius, span direction (0 across the track, 1 along it), lean
-## (degrees, turned about its span's line: + tips its top toward -x, or toward +z for an arch across the track), how
-## much of the half circle is built (1 all), section (width, depth)].
+## An arch: [centre of its span on the ground (x, z), radius, the span's direction (degrees from +x toward +z: 0 across
+## the track, 90 along it), lean (degrees, turned about its span's line), how much of the half circle is built (1 all),
+## section (width, depth)]. B and C are turned partly toward the player (owner, 2026-10-27: they sat too far out of
+## view), each by its own amount, their sides and strips toward the player's forward view; still clear of the sun.
 const ARCH_A := [Vector2(110.0, 160.0), 300.0, 0.0, -6.0, 1.0, Vector2(18.0, 12.0)]
-const ARCH_B := [Vector2(-450.0, -420.0), 350.0, 1.0, 15.0, 1.0, Vector2(26.0, 18.0)]
-const ARCH_C := [Vector2(450.0, -450.0), 260.0, 1.0, -8.0, 0.62, Vector2(16.0, 12.0)]
+const ARCH_B := [Vector2(-450.0, -420.0), 350.0, 104.0, 5.0, 1.0, Vector2(26.0, 18.0)]
+const ARCH_C := [Vector2(450.0, -450.0), 260.0, 70.0, -3.0, 0.62, Vector2(16.0, 12.0)]
 ## boxes along each arch's half circle
 const ARCH_SEGMENTS := 28
 ## the arch's parts (doc/assets/arch_parts/spec.md); the section model's axes (Blender's x, z up, -y along: in Godot x,
@@ -141,8 +143,11 @@ func _add_strips() -> void:
 		for i in int(ceil(ARCH_SEGMENTS * float(arch[4]))):
 			var angle := (i + 0.5) * step
 			var t := arch_point(arch, angle)
-			var size := Vector3(section.x * STRIP_WIDTH, STRIP_THICK, radius * step * 1.02)
-			spots.append(Transform3D(t.basis * Basis.from_scale(size), t.origin + t.basis.y * (section.y * 0.5 + STRIP_THICK * 0.5)))
+			# on the side facing the player, near the inner edge, so it shows without looking up through the arch
+			var side := signf(t.basis.x.dot(PLAYER - t.origin))
+			var size := Vector3(STRIP_THICK, section.y * STRIP_WIDTH, radius * step * 1.02)
+			var at := t.origin + t.basis.x * side * (section.x * 0.5 + STRIP_THICK * 0.5) + t.basis.y * (section.y * 0.3)
+			spots.append(Transform3D(t.basis * Basis.from_scale(size), at))
 			data.append(Color(sin(angle), 1.0 if arch == ARCH_B else 0.0, 0.0, 0.0))
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
@@ -164,7 +169,8 @@ func _add_strips() -> void:
 static func arch_point(arch: Array, angle: float) -> Transform3D:
 	var centre: Vector2 = arch[0]
 	var radius: float = arch[1]
-	var along := Vector3(1.0, 0.0, 0.0) if float(arch[2]) == 0.0 else Vector3(0.0, 0.0, 1.0)
+	var yaw := deg_to_rad(float(arch[2]))
+	var along := Vector3(cos(yaw), 0.0, sin(yaw))
 	var lean := deg_to_rad(float(arch[3]))
 	var local := (along * (-cos(angle) * radius) + Vector3.UP * (sin(angle) * radius)).rotated(along, lean)
 	var tangent := (along * sin(angle) + Vector3.UP * cos(angle)).rotated(along, lean)
