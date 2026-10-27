@@ -256,6 +256,11 @@ func _ready() -> void:
 				shader_param,
 				(sphere_material.get_shader_parameter(shader_param) as float) * 2.2
 			)
+	# set_environment skips the current environment, and it starts as "classic": apply that one in full (its rig's
+	# lights placed, the old rings left out) as the stage capture does
+	var start := environment
+	environment = ""
+	set_environment(start)
 
 func set_background_texture() -> void:
 	if not Settings.background_texture.begins_with("res:"):
@@ -547,6 +552,9 @@ func _apply_rig(id: String) -> void:
 		var void_stage := id == "pulse_void"
 		material.set_shader_parameter(&"width", rest[0] * VOID_BEAM_WIDTH if void_stage else rest[0])
 		material.set_shader_parameter(&"brightness", rest[1] * VOID_BEAM_BRIGHTNESS if void_stage else rest[1])
+	# Classic's waving lasers leave from follow spots, every other laser from a moving head (LaserFixtures)
+	for i in waving.size():
+		_fixtures.set_kind(diagonal_lasers.size() + i, LaserFixtures.FOLLOW_SPOT if id == "classic" else LaserFixtures.MOVING_HEAD)
 	match id:
 		"classic":
 			# the giant test tunnel (ClassicRig): moving heads standing on the hanging scaffolds' decks, follow spots on the wall

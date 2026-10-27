@@ -52,6 +52,8 @@ const CABLE_X := 16.0
 const CABLE := 0.2
 ## the catwalks along the walls, their wall edge against the lining: height, width, from z, to z
 const CATWALK := Vector4(8.0, 3.0, -8.0, -64.0)
+## the follow spots' tilt axis this far above the catwalk's deck (follow_spot.py PIVOT: on a tripod)
+const FOLLOW_SPOT_PIVOT := 1.5
 ## the moving heads' tilt axis this far above the scaffold's deck (laser_fixture.py: yoke foot 0.54 under it)
 const FIXTURE_ABOVE := 0.84
 ## the rib strips: a segment on each rib box in the upper part of the ring (RIB_STRIP_FROM..1-RIB_STRIP_FROM of the
@@ -270,7 +272,7 @@ static func follow_spot(i: int, count: int) -> Vector3:
 	var side := -1.0 if i < per_side else 1.0
 	var j := i % per_side
 	var x := side * catwalk_x()
-	return Vector3(x, CATWALK.x + 0.6, lerpf(CATWALK.z - 6.0, CATWALK.w + 10.0, float(j) / maxf(per_side - 1, 1)))
+	return Vector3(x, CATWALK.x + FOLLOW_SPOT_PIVOT, lerpf(CATWALK.z - 6.0, CATWALK.w + 10.0, float(j) / maxf(per_side - 1, 1)))
 
 ## Where square bar i of `count` hangs: under a scaffold's deck, along it, beside the track.
 static func scaffold_bar(i: int, count: int) -> Transform3D:
