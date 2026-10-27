@@ -54,8 +54,8 @@ head, run `adb shell setprop pvr.factorytest.never.sleep 1` (it resets on reboot
 
 ## Credits
 
-- Based on [Beep Saber](https://github.com/NeoSpark314/BeepSaber) by Holger Dammertz (NeoSpark314) and Open Saber
-  Plus by Alexander Pruss, with the
+- Based on [Beep Saber](https://github.com/NeoSpark314/BeepSaber) by Holger Dammertz (NeoSpark314) and
+  [Open Saber Plus](https://github.com/arpruss/OpenSaberPlus) by Alexander Pruss, with the
   [Godot Oculus Quest Toolkit](https://github.com/NeoSpark314/godot_oculus_quest_toolkit) (`OQ_Toolkit/`, partly
   ported to Godot 4 and OpenXR).
 - Included song: Time Lapse by TheFatRat.
