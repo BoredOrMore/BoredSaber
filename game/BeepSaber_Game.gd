@@ -96,6 +96,31 @@ var _shown_seconds_left := -1
 var pause_position := 0.0
 
 const LEAD_IN_MIN_SECONDS := 3.0
+## The HUD in Beat Saber's arrangement (owner, 2026-10-27; checked against .claude/skills/vr-ui-design): on the left
+## the combo, the score, then the accuracy and the live grade; on the right the multiplier in its filling ring and
+## the time played / the song's length. HUD_AHEAD metres ahead of the eye, beside the lanes (HUD_SIDE, or out past
+## the outer lane by HUD_LANE_MARGIN on wide modifiers), between HUD_TOP and about 0.9 m: 5-12 degrees below the eye
+## at most, so lower than Beat Saber's (which sits by the track) to stay in the comfort zone. Each piece turns to face
+## HUD_EYE. Text keeps its old size (HUD_SCALE); the ring is a little smaller (HUD_RING_SCALE) so the time fits
+## under it above the 12 degree line.
+const HUD_EYE := Vector3(0.0, 1.6, 1.0)
+const HUD_AHEAD := -2.5
+const HUD_SIDE := 1.9
+const HUD_LANE_MARGIN := 0.7
+const HUD_SCALE := 1.5
+const HUD_RING_SCALE := 1.2
+## the tops of the left column's lines and the right column's ring centre and time line (metres up)
+## (measured: text starts 0.045 m under its anchor; the two-line combo is 0.33 m tall, one line 0.12 m, at HUD_SCALE)
+const HUD_TOP := 1.6
+const HUD_SCORE_Y := 1.215
+const HUD_ACCURACY_Y := 1.04
+const HUD_RING_Y := 1.33
+const HUD_TIME_Y := 1.045
+## the accuracy and the grade sit side by side, this far either side of the column's middle
+const HUD_GRADE_GAP := 0.22
+var _accuracy_label: MeshInstance3D
+var _grade_label: MeshInstance3D
+var _time_label: MeshInstance3D
 # seconds left before the song starts, so the first notes can fly in; counted down by Playing
 var lead_in := 0.0
 
@@ -186,6 +211,7 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	_in_wall = false
 	Scoreboard.restart()
 	
+	_place_hud()
 	_display_points()
 	percent_indicator.start_map()
 	if Settings.health_mode:
@@ -482,6 +508,8 @@ func _ready() -> void:
 	@warning_ignore("return_value_discarded")
 	Scoreboard.score_changed.connect(_display_points)
 	(multiplier_label as ComboHud).milestone_reached.connect(_on_combo_milestone)
+	_make_hud_labels()
+	_place_hud()
 	@warning_ignore("return_value_discarded")
 	Scoreboard.points_awarded.connect(points_label_driver.show_points)
 	
@@ -788,12 +816,76 @@ func _on_combo_milestone(_combo: int) -> void:
 func _display_points() -> void:
 	if gamestate == gamestate_playing:
 		event_driver.set_combo_multiplier(Scoreboard.multiplier)
-	var seconds_left := _seconds_left()
+	_set_text(point_label, _grouped(Scoreboard.points))
+	var played := 0 if Map.current_info == null else int(get_current_time())
+	var length := 0 if Map.current_info == null else int(Map.current_info.get_length_seconds())
+	_set_text(_time_label, "%s / %s" % [_clock(clampi(played, 0, length)), _clock(length)])
+	var accuracy := Scoreboard.accuracy()
+	_set_text(_accuracy_label, "%.1f%%" % (accuracy * 100.0))
+	var grade := EndScore.grade(accuracy)
+	_set_text(_grade_label, grade)
+	(_grade_label.material_override as BaseMaterial3D).albedo_color = Constants.RANK_COLORS[grade]
+	percent_indicator.update_percent(accuracy)
+
+static func _set_text(label: MeshInstance3D, text: String) -> void:
+	var mesh := label.mesh as TextMesh
+	if mesh.text != text:
+		mesh.text = text
+
+## 236336 as "236 336", as Beat Saber shows its score
+static func _grouped(value: int) -> String:
+	var digits := str(absi(value))
+	var out := ""
+	while digits.length() > 3:
+		out = " " + digits.right(3) + out
+		digits = digits.left(digits.length() - 3)
+	return ("-" if value < 0 else "") + digits + out
+
+static func _clock(seconds: int) -> String:
 	@warning_ignore("integer_division")
-	var display = "Score %6d\n%02d:%02d" % [Scoreboard.points,seconds_left / 60,seconds_left % 60]
-	if (point_label.mesh as TextMesh).text != display:
-		(point_label.mesh as TextMesh).text = display
-	percent_indicator.update_percent(Scoreboard.accuracy())
+	return "%d:%02d" % [seconds / 60, seconds % 60]
+
+## The accuracy, grade and time lines, made like the score's text (one line each).
+func _make_hud_labels() -> void:
+	_accuracy_label = _hud_label()
+	_grade_label = _hud_label()
+	# its own material, for the grade's colour
+	_grade_label.material_override = (point_label.material_override as BaseMaterial3D).duplicate()
+	_time_label = _hud_label()
+	# the ring under the score now shows as the accuracy line and the grade beside it
+	percent_indicator.visible = false
+	(point_label.mesh as TextMesh).text = "0"
+
+func _hud_label() -> MeshInstance3D:
+	var label := MeshInstance3D.new()
+	var mesh := (point_label.mesh as TextMesh).duplicate() as TextMesh
+	mesh.text = ""
+	label.mesh = mesh
+	label.material_override = point_label.material_override
+	label.layers = point_label.layers
+	# under the score, so it shows and hides with the rest of the HUD (Playing, Paused, MapComplete...)
+	point_label.add_child(label)
+	return label
+
+## Puts the HUD's pieces in place for the lane width, each turned to face the eye.
+func _place_hud() -> void:
+	var side := maxf(HUD_SIDE, 1.5 * Settings.LANE_DISTANCE_X + HUD_LANE_MARGIN)
+	var left := Vector3(-side, 0.0, HUD_AHEAD)
+	var right := Vector3(side, 0.0, HUD_AHEAD)
+	_face_eye(multiplier_label, left + Vector3.UP * HUD_TOP)
+	_face_eye(point_label, left + Vector3.UP * HUD_SCORE_Y)
+	_face_eye(_accuracy_label, left + Vector3(-HUD_GRADE_GAP, HUD_ACCURACY_Y, 0.0))
+	_face_eye(_grade_label, left + Vector3(HUD_GRADE_GAP, HUD_ACCURACY_Y, 0.0))
+	var combo := multiplier_label as ComboHud
+	if combo.ring.get_parent() != point_label:
+		combo.ring.reparent(point_label)
+	_face_eye(combo.ring, right + Vector3.UP * HUD_RING_Y, HUD_RING_SCALE)
+	_face_eye(_time_label, right + Vector3.UP * HUD_TIME_Y)
+
+func _face_eye(node: Node3D, at: Vector3, size := HUD_SCALE) -> void:
+	node.global_transform = Transform3D(Basis.looking_at(HUD_EYE - at, Vector3.UP, true).scaled(Vector3.ONE * size), at)
+	if node is ComboHud:
+		(node as ComboHud).rest_at(node.position)
 
 ## Whole seconds left in the current map, for the clock under the score.
 func _seconds_left() -> int:

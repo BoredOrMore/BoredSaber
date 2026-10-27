@@ -41,6 +41,8 @@ var _base_position: Vector3
 var _text_material: BaseMaterial3D
 var _text_color: Color
 var _ring_material: ShaderMaterial
+## the multiplier in its filling ring; the game moves it to the right of the view, apart from the combo count
+var ring: MeshInstance3D
 var _multiplier_mesh: TextMesh
 var _multiplier_material: BaseMaterial3D
 var _multiplier_size: float
@@ -67,7 +69,7 @@ func _ready() -> void:
 	material_override = _text_material
 	_text_color = _text_material.albedo_color
 
-	var ring := MeshInstance3D.new()
+	ring = MeshInstance3D.new()
 	var quad := QuadMesh.new()
 	quad.size = Vector2(RING_SIZE, RING_SIZE)
 	ring.mesh = quad
@@ -150,6 +152,10 @@ func _process(delta: float) -> void:
 		_shake_left = maxf(_shake_left - delta, 0.0)
 		var amount := BREAK_SHAKE * _shake_left / BREAK_SHAKE_SECONDS
 		position = _base_position + Vector3(sin(_shake_left * BREAK_SHAKE_SPEED) * amount, 0, 0)
+
+## Where the count rests, for the game's HUD layout (the broken-combo shake swings around it).
+func rest_at(at: Vector3) -> void:
+	_base_position = at
 
 ## True for the combos that get a milestone: 50, 100, 200, 300...
 static func is_milestone(combo: int) -> bool:

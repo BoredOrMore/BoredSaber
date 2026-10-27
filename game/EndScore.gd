@@ -178,7 +178,7 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 		while tw.is_running() and is_visible_in_tree():
 			var progress := animated_percent / percent if percent > 0.0 else 1.0
 			percent_indicator.update_percent(animated_percent)
-			var rank := _grade(animated_percent)
+			var rank := grade(animated_percent)
 			if rank != "F" and rank != shown_rank:
 				shown_rank = rank
 				_show_rank(grade_label, rank)
@@ -199,7 +199,7 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 		
 		percent_indicator.update_percent(animated_percent)
 		details_mesh.text = "Score\n%d\n\nRecord\n%d" % [score, record]
-		var final_rank := _grade(percent)
+		var final_rank := grade(percent)
 		if final_rank != shown_rank:
 			_show_rank(grade_label, final_rank)
 		var final_color := Constants.RANK_COLORS[final_rank] as Color
@@ -249,7 +249,8 @@ func _reveal_marks() -> void:
 
 ## The rank for an accuracy, with Beat Saber's thresholds (SS 90%, S 80%, A 65%, B 50%, C 35%, D 20%); below that,
 ## or after a fail, F.
-func _grade(percent: float) -> String:
+## The grade for an accuracy (0..1), as on the score screen; the HUD shows it live too.
+static func grade(percent: float) -> String:
 	for rank: Array in GRADES:
 		if percent >= rank[0]:
 			return rank[1]

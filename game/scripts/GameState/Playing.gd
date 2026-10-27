@@ -13,7 +13,6 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.show_sabers_for_map()
 	game.multiplier_label.visible = true
 	game.point_label.visible = true
-	game.percent_indicator.visible = true
 	game.health_rails.visible = Settings.health_mode
 	game.track.visible = true
 	game.left_ui_raycast.visible = false
