@@ -17,6 +17,8 @@
 [ext_resource type="Texture2D" path="res://game/ui/icons/user.svg" id="icon_user"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/x.svg" id="icon_x"]
 [ext_resource type="Script" path="res://game/ui/IconButton.gd" id="icon_button"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/list-filter.svg" id="icon_list-filter"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/sliders-horizontal.svg" id="icon_sliders-horizontal"]
 [ext_resource type="Script" path="res://game/ui/SongList.gd" id="song_list"]
 [ext_resource type="Script" path="res://game/ui/ConfirmButton.gd" id="confirm_button"]
 
@@ -44,14 +46,17 @@ script = ExtResource("icon_button")
 layout_mode = 0
 offset_left = 100.0
 offset_top = 24.0
-offset_right = 368.0
+offset_right = 408.0
 offset_bottom = 84.0
+theme_override_constants/icon_max_width = 28
 clip_text = true
 text_overrun_behavior = 3
+icon = ExtResource("icon_list-filter")
+script = ExtResource("icon_button")
 
 [node name="PlaylistSelector" type="OptionButton" parent="." unique_id=301008456]
 layout_mode = 0
-offset_left = 376.0
+offset_left = 416.0
 offset_top = 24.0
 offset_right = 588.0
 offset_bottom = 84.0
@@ -349,8 +354,11 @@ text = "Environment"
 [node name="MoreMods_Button" type="Button" parent="Modifiers"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
+theme_override_constants/icon_max_width = 28
 clip_text = true
 text_overrun_behavior = 3
+icon = ExtResource("icon_sliders-horizontal")
+script = ExtResource("icon_button")
 
 [node name="MoreModsPanel" type="Panel" parent="."]
 visible = false

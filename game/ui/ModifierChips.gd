@@ -13,6 +13,42 @@ func _init(menu: MainMenu) -> void:
 func build() -> void:
 	_build_rows()
 	_build_chips()
+	_add_heading_icons()
+
+## Icons before the Modifiers area's row headings (owner, 2026-10-27: more icons on the song menu), each with its
+## word: a gauge for Speed, a cracked heart for Damage (the heart is health). ICON_SIZE px, the size of the chips'
+## text. (The Modifiers heading has none: with many changes its Reset fills the row; Environment's dropdown shows
+## the environment's picture, and an icon would cut its name short.)
+const ICON_SIZE := 28
+const SPEED_ICON := preload("res://game/ui/icons/gauge.svg")
+const DAMAGE_ICON := preload("res://game/ui/icons/heart-crack.svg")
+
+func _add_heading_icons() -> void:
+	_prefix_icon(_menu.get_node(^"Modifiers/SpeedLabel") as Label, SPEED_ICON)
+	_prefix_icon(_menu.damage_row.get_child(0) as Label, DAMAGE_ICON)
+
+## Puts icon just before label: in its row, the label giving up the icon's room so the columns stay put, or in a
+## new row where the label stood alone.
+func _prefix_icon(label: Label, icon: Texture2D) -> void:
+	var image := TextureRect.new()
+	image.texture = icon
+	image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	image.custom_minimum_size = Vector2.ONE * ICON_SIZE
+	image.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var parent := label.get_parent()
+	if parent is HBoxContainer:
+		parent.add_child(image)
+		parent.move_child(image, label.get_index())
+		if label.custom_minimum_size.x > 0.0:
+			label.custom_minimum_size.x -= ICON_SIZE + (parent as HBoxContainer).get_theme_constant(&"separation")
+		return
+	var row := HBoxContainer.new()
+	parent.add_child(row)
+	parent.move_child(row, label.get_index())
+	label.reparent(row)
+	row.add_child(image)
+	row.move_child(image, 0)
 
 ## Chip side padding, and the width of the Damage row's leading label.
 const CHIP_PADDING := 6.0
@@ -174,8 +210,8 @@ func _sync_rows() -> void:
 		(_menu.fail_row.get_child(i) as Button).set_pressed_no_signal(option[0] == Settings.health_mode and (not Settings.health_mode or option[1] == Settings.fail_mode))
 	var damage_counts := Settings.health_mode and Settings.fail_mode == Constants.FAIL_MODE_BAR
 	for i in Constants.DAMAGE_SCALES.size():
-		# child 0 is the "Damage" label
-		var button := _menu.damage_row.get_child(i + 1) as Button
+		# the row starts with the "Damage" icon and label
+		var button := _menu.damage_row.get_child(_menu.damage_row.get_child_count() - Constants.DAMAGE_SCALES.size() + i) as Button
 		button.set_pressed_no_signal(is_equal_approx(Constants.DAMAGE_SCALES[i][0], Settings.damage_scale))
 		button.disabled = not damage_counts
 
