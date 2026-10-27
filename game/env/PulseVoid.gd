@@ -25,6 +25,9 @@ const FEED_LEG := preload("res://game/models/feed_leg.glb")
 ## a rim mast with its beacon's platform (origin at its foot, the platform's top MAST up) (doc/assets/rim_parts/spec.md)
 const RIM_SEGMENT := preload("res://game/models/rim_segment.glb")
 const RIM_MAST := preload("res://game/models/rim_mast.glb")
+## the crew's kit where it stands, uneven left and right (doc/assets/dish_props/spec.md: a control room ahead left, a
+## cherry picker ahead right, a cable tray down the front-right leg), one mesh at the origin
+const DISH_PROPS := preload("res://game/models/dish_props.glb")
 ## the dish: its radius, its vertex's height (the focus, a quarter of the diameter above it, is at the track; so is the
 ## rim), panel rings from DISH_INNER to the rim, segments round, the panels' thickness; the rim truss's section
 const DISH_RADIUS := 250.0
@@ -40,7 +43,7 @@ const CABIN := Vector3(6.0, 7.0, 6.0)
 const CABIN_TOP := -0.4
 ## the feed legs: from the cabin's corners down to the dish LEG_REACH out, near the rim as on a real dish (owner,
 ## 2026-10-27: at 150 m they dropped too steeply to show past the cabin's roof), at 45 degrees either side of ahead and behind;
-## their section (the cable trays run beside it)
+## their section
 const LEG_REACH := 200.0
 const LEG := 2.5
 ## the masts on the rim for the beacons: their height to the beacon's platform (rim_parts.py MAST_HEIGHT), and the
@@ -58,10 +61,6 @@ const FLOOD_ABOVE := 0.84
 ## beam from the far rim straight up, its width and height
 const SEAM := Vector2(1.2, 0.3)
 const DROP_BEAM := Vector2(4.0, 800.0)
-## props on the dish's surface, uneven: a control room (left of ahead), a cherry picker (right): [x, z, size]
-const CONTROL_ROOM := [Vector3(-45.0, 0.0, -70.0), Vector3(14.0, 6.0, 10.0)]
-const CHERRY_PICKER := Vector3(70.0, 0.0, -95.0)
-const CABLE_TRAY := 0.8
 
 var seam_material: ShaderMaterial
 var drop_beam: MeshInstance3D
@@ -69,7 +68,6 @@ var drop_beam: MeshInstance3D
 func _ready() -> void:
 	var boxes: Array[Transform3D] = []
 	boxes.append(_box(Vector3(0.0, dish_y(0.0) - PANEL * 0.5, 0.0), Vector3(DISH_INNER * 2.0, PANEL, DISH_INNER * 2.0)))
-	boxes.append_array(_props())
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	multimesh.mesh = BoxMesh.new()
@@ -102,6 +100,7 @@ func _ready() -> void:
 			# turned with the rim, so the masts either side are mirror images
 			masts.append(Transform3D(Basis(Vector3.UP, -a), _rim(a)))
 	_add_model(RIM_MAST, masts, material)
+	_add_model(DISH_PROPS, [Transform3D.IDENTITY], material)
 	_add_seams()
 
 ## One MultiMesh of a model at these places, with the scenery's material.
@@ -168,29 +167,6 @@ static func _leg_top(k: int) -> Vector3:
 
 static func _leg_foot(k: int) -> Vector3:
 	return dish_point(LEG_REACH, deg_to_rad(45.0 + 90.0 * k))
-
-## A square bar from a to b.
-static func _bar(a: Vector3, b: Vector3, thick: float) -> Transform3D:
-	var d := b - a
-	var x := d.cross(Vector3.UP).normalized()
-	var y := x.cross(d).normalized()
-	return Transform3D(Basis(x * thick, y * thick, d), (a + b) * 0.5)
-
-## The props on the dish's surface: the control room, the cherry picker (base, boom, bucket), the cable trays down the
-## front-right leg.
-static func _props() -> Array[Transform3D]:
-	var boxes: Array[Transform3D] = []
-	var at: Vector3 = CONTROL_ROOM[0]
-	var size: Vector3 = CONTROL_ROOM[1]
-	boxes.append(_box(Vector3(at.x, dish_y(Vector2(at.x, at.z).length()) + size.y * 0.5, at.z), size))
-	var base := Vector3(CHERRY_PICKER.x, dish_y(Vector2(CHERRY_PICKER.x, CHERRY_PICKER.z).length()), CHERRY_PICKER.z)
-	boxes.append(_box(base + Vector3(0.0, 1.0, 0.0), Vector3(3.0, 2.0, 6.0)))
-	var tip := base + Vector3(-6.0, 18.0, 4.0)
-	boxes.append(_bar(base + Vector3(0.0, 2.0, 0.0), tip, 0.6))
-	boxes.append(_box(tip + Vector3(0.0, 0.6, 0.0), Vector3(2.0, 1.2, 1.5)))
-	var side := Vector3(1.0, 0.0, 1.0).normalized() * (LEG * 0.5 + CABLE_TRAY)
-	boxes.append(_bar(_leg_top(0) + side, _leg_foot(0) + side, CABLE_TRAY))
-	return boxes
 
 ## The seam strips' MultiMesh: a strip on each panel's outer edge, custom data x its order from the rim (0 the rim: lit
 ## first as the show builds) and y 1 (all lit on the drop); and the drop's beam, in the same light, shown only then

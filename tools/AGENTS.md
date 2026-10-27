@@ -43,7 +43,7 @@ Run: `blender -b -P tools/models/<script>.py -- game/models` (`OUT_DIR` = first 
 
 - `model_export.py`: shared `bake_and_export(obj, out_dir, name)`: AO baked to vertex red, face attr `glow` 1/2 to
   green/blue (EnvSolid vents), flat shading, GLB Y-up, prints triangles.
-- Using it: `ac_unit`, `antenna`, `dish_panel`, `feed_cabin`, `feed_leg`, `hanging_scaffold`, `platform_frame`, `site_props`,
+- Using it: `ac_unit`, `antenna`, `dish_panel`, `dish_props`, `feed_cabin`, `feed_leg`, `hanging_scaffold`, `platform_frame`, `site_props`,
   `stair_house`, `survey_mast`, `tower_crane`, `track_edge`, `track_end`, `wall_catwalk`, `water_tank` (one `.glb`
   each, same name); `arch_parts` (arch_section/footing/scaffold), `classic_props` (classic_props, tool_box),
   `follow_spot` (+`follow_spot_stand`), `rim_parts` (rim_segment, rim_mast), `tunnel_parts` (tunnel_rib, tunnel_lining), `wall_kit` (wall_column/panel/

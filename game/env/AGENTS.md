@@ -67,7 +67,7 @@ Night City (canyon default, classic layout optional)
 - `NightCitySky.gdshader`: tower skyline from `night_city_sky_sharp/soft.png` (`tools/bake_night_city_sky.py`).
 
 Pulse Void (the giant receiving dish)
-- `PulseVoid.gd` (tool, `PulseVoid`): dish panels, feed cabin, four legs, rim masts; seam strips (`seam_material`,
+- `PulseVoid.gd` (tool, `PulseVoid`): dish panels, feed cabin, four legs, rim girder and masts, props (glb models); seam strips (`seam_material`,
   `ArchStrip.gdshader`) lit rim-inward; `drop_beam` shown on the drop; `leg_floodlight`/`rim_beacon` place lasers.
 - `PulseVoidSky.gdshader`: dark space with a glow down the track, computed from view direction (no texture).
 
