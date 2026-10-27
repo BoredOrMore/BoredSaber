@@ -18,7 +18,9 @@ extends Node3D
 ## normal size, bigger and livelier as it gets better): GRADE_SIZES of its normal 0.2 m (2.9 degrees at the eye; 4 at
 ## SS), shown at normal size until the song's first note. A grade going up pops from GRADE_POPS times its size, and S
 ## and SS flash toward white (GRADE_FLASHES), settling over GRADE_POP_SECONDS with a little overshoot, like the end
-## screen's grade; a grade going down shrinks back over GRADE_SHRINK_SECONDS without a pop.
+## screen's grade; a grade going down shrinks back over GRADE_SHRINK_SECONDS without a pop. While it stays at A, S or
+## SS it keeps pulsing (owner), more the better it is: GRADE_PULSES [size swing, flash toward white] at GRADE_PULSE_HZ,
+## slow, well under flicker rates.
 ## where the eye is taken to be before a song has started (a standing player, 1 m behind the track's origin)
 const HUD_EYE := Vector3(0.0, 1.6, 1.0)
 const HUD_DISTANCE := 5.83
@@ -37,6 +39,8 @@ const GRADE_POPS := {"SS": 1.45, "S": 1.35, "A": 1.25, "B": 1.15}
 const GRADE_FLASHES := {"SS": 0.7, "S": 0.4}
 const GRADE_POP_SECONDS := 0.3
 const GRADE_SHRINK_SECONDS := 0.3
+const GRADE_PULSES := {"SS": [0.08, 0.35], "S": [0.05, 0.15], "A": [0.03, 0.0]}
+const GRADE_PULSE_HZ := 1.2
 ## the multiplier ring's scale (its quad is 0.5 m) and centre, the multiplier's height, and the time line
 const HUD_RING_SIZE := 1.5
 const HUD_RING := Vector2(0.0, 0.15)
@@ -54,6 +58,8 @@ var _grade_label: MeshInstance3D
 ## The grade shown, "" before a song's first note, to pop the label when it goes up.
 var _grade := ""
 var _grade_tween: Tween
+var _grade_size := 1.0
+var _pulse_time := 0.0
 var _time_label: MeshInstance3D
 
 func _init(point_label: MeshInstance3D, combo: ComboHud, percent_indicator: PercentIndicator) -> void:
@@ -94,6 +100,7 @@ func _ready() -> void:
 ## old nodes on them.
 func place(eye := HUD_EYE) -> void:
 	_grade = ""
+	_grade_size = 1.0
 	_grade_label.scale = Vector3.ONE
 	_left.global_transform = _panel(eye, -1.0)
 	_right.global_transform = _panel(eye, 1.0)
@@ -128,7 +135,9 @@ func show_points(points: int, played: int, length: int, accuracy: float) -> void
 		return
 	if grade == _grade:
 		return
-	var size := Vector3.ONE * float(GRADE_SIZES.get(grade, 1.0))
+	_grade_size = float(GRADE_SIZES.get(grade, 1.0))
+	_pulse_time = 0.0
+	var size := Vector3.ONE * _grade_size
 	if _grade_tween:
 		_grade_tween.kill()
 	_grade_tween = create_tween().set_parallel()
@@ -142,6 +151,17 @@ func show_points(points: int, played: int, length: int, accuracy: float) -> void
 		material.albedo_color = Constants.RANK_COLORS[grade]
 	_grade = grade
 	_percent_indicator.update_percent(accuracy)
+
+## The pulse at A, S and SS, once a pop or shrink has settled.
+func _process(delta: float) -> void:
+	if not _left.visible or not GRADE_PULSES.has(_grade) or (_grade_tween and _grade_tween.is_running()):
+		return
+	_pulse_time += delta
+	var pulse: Array = GRADE_PULSES[_grade]
+	var wave := sin(TAU * GRADE_PULSE_HZ * _pulse_time)
+	_grade_label.scale = Vector3.ONE * _grade_size * (1.0 + pulse[0] * wave)
+	(_grade_label.material_override as BaseMaterial3D).albedo_color = \
+			(Constants.RANK_COLORS[_grade] as Color).lerp(Color.WHITE, pulse[1] * (0.5 + 0.5 * wave))
 
 ## Whether the grade went up from before to after (not the first one of a song).
 static func grade_rises(before: String, after: String) -> bool:
