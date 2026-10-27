@@ -52,13 +52,13 @@ const GRADE_RUMBLES := {"SS": [0.02, 4.0, 0.3], "S": [0.012, 2.5, 0.15], "A": [0
 const GRADE_RUMBLE_HZ := 25.0
 const GRADE_RUMBLE_BOOST := 2.0
 const GRADE_RUMBLE_BOOST_SECONDS := 0.6
-## A high grade glows in its own colour (owner, 2026-10-27): a soft additive patch behind the letter that shakes and
-## grows with it, GRADE_GLOWS its opacity (stronger the better, brighter by the rumble's boost just after going up),
-## GRADE_GLOW_HEIGHT and GRADE_GLOW_WIDTH per letter in the letter's metres. Drawn by itself, so it shows with the Glow
-## setting off too. Untuned.
+## A high grade glows in its own colour, in the letter's own shape (owner, 2026-10-27): the letter drawn again behind
+## itself as outlines only, GRADE_GLOW_LAYERS [outline in font pixels, share of the glow] wider and fainter, so the
+## light hugs each letter's outline and fades outward. GRADE_GLOWS is the glow's strength (the better, the stronger; brighter by the rumble's
+## boost just after going up). The copies share the letter's text and shake and grow with it. Drawn by themselves, so
+## they show with the Glow setting off too. Untuned.
 const GRADE_GLOWS := {"SS": 0.6, "S": 0.4, "A": 0.2}
-const GRADE_GLOW_HEIGHT := 0.34
-const GRADE_GLOW_WIDTH := 0.26
+const GRADE_GLOW_LAYERS := [[10, 0.6], [22, 0.3], [38, 0.15]]
 ## the multiplier ring's scale (its quad is 0.5 m) and centre, the multiplier's height, and the time line
 const HUD_RING_SIZE := 1.5
 const HUD_RING := Vector2(0.0, 0.15)
@@ -76,8 +76,8 @@ var _grade_label: MeshInstance3D
 ## The grade shown, "" before a song's first note, to pop the label when it goes up.
 var _grade := ""
 var _grade_tween: Tween
-var _grade_glow := MeshInstance3D.new()
-var _grade_glow_material := StandardMaterial3D.new()
+var _grade_glow := Node3D.new()
+var _grade_glow_labels: Array[Label3D] = []
 var _grade_size := 1.0
 ## seconds to the rumble's next offset, and how much of the grade-up boost is left (1 just after, 0 settled)
 var _rumble_wait := 0.0
@@ -192,8 +192,10 @@ func _process(delta: float) -> void:
 	var rumble: Array = GRADE_RUMBLES[_grade]
 	_rumble_boost = maxf(_rumble_boost - delta / GRADE_RUMBLE_BOOST_SECONDS, 0.0)
 	var strength := 1.0 + (GRADE_RUMBLE_BOOST - 1.0) * _rumble_boost
-	(_grade_glow.mesh as QuadMesh).size = Vector2(GRADE_GLOW_WIDTH * (_grade.length() + 0.5), GRADE_GLOW_HEIGHT)
-	_grade_glow_material.albedo_color = Color(Constants.RANK_COLORS[_grade], minf(GRADE_GLOWS.get(_grade, 0.0) * strength, 1.0))
+	for i in GRADE_GLOW_LAYERS.size():
+		_grade_glow_labels[i].text = (_grade_label.mesh as TextMesh).text
+		_grade_glow_labels[i].outline_modulate = Color(Constants.RANK_COLORS[_grade],
+				minf(float(GRADE_GLOWS.get(_grade, 0.0)) * strength * GRADE_GLOW_LAYERS[i][1], 1.0))
 	_rumble_wait -= delta
 	if _rumble_wait <= 0.0:
 		_rumble_wait = 1.0 / GRADE_RUMBLE_HZ
@@ -203,26 +205,27 @@ func _process(delta: float) -> void:
 		(_grade_label.material_override as BaseMaterial3D).albedo_color = \
 				(Constants.RANK_COLORS[_grade] as Color).lerp(Color.WHITE, rumble[2])
 
-## The glow behind the grade letter: a radial gradient on a quad just behind it, additive and unshaded, moving with it.
+## The glow behind the grade letter: the same letters as outlines only (no fill), widest at the back, moving with it.
 func _add_grade_glow() -> void:
-	var gradient := Gradient.new()
-	gradient.offsets = PackedFloat32Array([0.0, 0.45, 1.0])
-	gradient.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0.45), Color(1, 1, 1, 0)])
-	var texture := GradientTexture2D.new()
-	texture.gradient = gradient
-	texture.fill = GradientTexture2D.FILL_RADIAL
-	texture.fill_from = Vector2(0.5, 0.5)
-	texture.fill_to = Vector2(1.0, 0.5)
-	_grade_glow_material.albedo_texture = texture
-	_grade_glow_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_grade_glow_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
-	_grade_glow_material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
-	_grade_glow_material.render_priority = -1
-	_grade_glow.mesh = QuadMesh.new()
-	_grade_glow.material_override = _grade_glow_material
-	_grade_glow.layers = _point_label.layers
-	_grade_glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	_grade_glow.position.z = -0.01
+	var mesh := _grade_label.mesh as TextMesh
+	for i in GRADE_GLOW_LAYERS.size():
+		var glow := Label3D.new()
+		glow.font = mesh.font
+		glow.font_size = mesh.font_size
+		glow.pixel_size = mesh.pixel_size
+		glow.outline_size = GRADE_GLOW_LAYERS[i][0]
+		glow.modulate = Color(1, 1, 1, 0)
+		glow.horizontal_alignment = mesh.horizontal_alignment
+		glow.vertical_alignment = mesh.vertical_alignment
+		glow.shaded = false
+		glow.double_sided = false
+		glow.layers = _point_label.layers
+		glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		glow.render_priority = -1 - i
+		glow.outline_render_priority = -1 - i
+		glow.position.z = -0.005 * (i + 1)
+		_grade_glow_labels.append(glow)
+		_grade_glow.add_child(glow)
 	_grade_glow.visible = false
 	_grade_label.add_child(_grade_glow)
 
