@@ -13,10 +13,12 @@ extends Node3D
 ## the notes and the HUD. The lines' sizes and places below are metres on a panel HUD_LAID_OUT_DISTANCE from the eye;
 ## the panels grow by HUD_DISTANCE / HUD_LAID_OUT_DISTANCE, so every line keeps that size in view.
 ## Sizes rank the lines by how much a glance needs them mid-song (owner: no hierarchy made a glance hard to read):
-## the grade in its colour biggest (owner, 2026-10-27: bigger, 0.28 m at 4 m is 4 degrees, capitals about 2.9), then
-## the combo count and the multiplier, then the score; the accuracy, the time and the "Combo" caption small and muted.
-## A grade going up pops (GRADE_POP_SCALE to full over GRADE_POP_SECONDS, overshooting a little), as the end
-## screen's grade does.
+## the combo count and the multiplier biggest, then the grade in its colour, then the score; the accuracy, the time
+## and the "Combo" caption small and muted. The grade grows with how good it is (owner, 2026-10-27: start at the
+## normal size, bigger and livelier as it gets better): GRADE_SIZES of its normal 0.2 m (2.9 degrees at the eye; 4 at
+## SS), shown at normal size until the song's first note. A grade going up pops from GRADE_POPS times its size, and S
+## and SS flash toward white (GRADE_FLASHES), settling over GRADE_POP_SECONDS with a little overshoot, like the end
+## screen's grade; a grade going down shrinks back over GRADE_SHRINK_SECONDS without a pop.
 ## where the eye is taken to be before a song has started (a standing player, 1 m behind the track's origin)
 const HUD_EYE := Vector3(0.0, 1.6, 1.0)
 const HUD_DISTANCE := 5.83
@@ -29,9 +31,12 @@ const HUD_COMBO_CAPTION := Vector3(0.0, 0.38, 0.11)
 const HUD_COMBO := Vector3(0.0, 0.24, 0.22)
 const HUD_SCORE := Vector3(0.0, 0.05, 0.13)
 const HUD_ACCURACY := Vector3(-0.17, -0.15, 0.11)
-const HUD_GRADE := Vector3(0.22, -0.15, 0.28)
-const GRADE_POP_SCALE := EndScore.RANK_POP_SCALE
-const GRADE_POP_SECONDS := EndScore.RANK_POP_SECONDS
+const HUD_GRADE := Vector3(0.22, -0.15, 0.2)
+const GRADE_SIZES := {"SS": 1.4, "S": 1.2}
+const GRADE_POPS := {"SS": 1.45, "S": 1.35, "A": 1.25, "B": 1.15}
+const GRADE_FLASHES := {"SS": 0.7, "S": 0.4}
+const GRADE_POP_SECONDS := 0.3
+const GRADE_SHRINK_SECONDS := 0.3
 ## the multiplier ring's scale (its quad is 0.5 m) and centre, the multiplier's height, and the time line
 const HUD_RING_SIZE := 1.5
 const HUD_RING := Vector2(0.0, 0.15)
@@ -46,8 +51,9 @@ var _left: Node3D
 var _right: Node3D
 var _accuracy_label: MeshInstance3D
 var _grade_label: MeshInstance3D
-## The grade shown, "" before a song's first, to pop the label when it goes up.
+## The grade shown, "" before a song's first note, to pop the label when it goes up.
 var _grade := ""
+var _grade_tween: Tween
 var _time_label: MeshInstance3D
 
 func _init(point_label: MeshInstance3D, combo: ComboHud, percent_indicator: PercentIndicator) -> void:
@@ -88,6 +94,7 @@ func _ready() -> void:
 ## old nodes on them.
 func place(eye := HUD_EYE) -> void:
 	_grade = ""
+	_grade_label.scale = Vector3.ONE
 	_left.global_transform = _panel(eye, -1.0)
 	_right.global_transform = _panel(eye, 1.0)
 	_point_label.global_transform = _left.global_transform * Transform3D(Basis(), Vector3(HUD_SCORE.x, HUD_SCORE.y, 0.0))
@@ -113,13 +120,27 @@ func show_points(points: int, played: int, length: int, accuracy: float) -> void
 	_set_text(_time_label, "%s / %s" % [_clock(clampi(played, 0, length)), _clock(length)])
 	_set_text(_accuracy_label, "%.1f%%" % (accuracy * 100.0))
 	var grade := EndScore.grade(accuracy)
-	if grade != _grade:
-		if grade_rises(_grade, grade):
-			create_tween().set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT) \
-				.tween_property(_grade_label, ^"scale", Vector3.ONE, GRADE_POP_SECONDS).from(Vector3.ONE * GRADE_POP_SCALE)
-		_grade = grade
 	_set_text(_grade_label, grade)
-	(_grade_label.material_override as BaseMaterial3D).albedo_color = Constants.RANK_COLORS[grade]
+	var material := _grade_label.material_override as BaseMaterial3D
+	# before the first note the accuracy reads 100%: the normal size, no pop
+	if Scoreboard.max_points <= 0:
+		material.albedo_color = Constants.RANK_COLORS[grade]
+		return
+	if grade == _grade:
+		return
+	var size := Vector3.ONE * float(GRADE_SIZES.get(grade, 1.0))
+	if _grade_tween:
+		_grade_tween.kill()
+	_grade_tween = create_tween().set_parallel()
+	if grade_rises(_grade, grade) or _grade == "":
+		_grade_tween.tween_property(_grade_label, ^"scale", size, GRADE_POP_SECONDS).from(size * float(GRADE_POPS.get(grade, 1.0))) \
+				.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		var flash := Constants.RANK_COLORS[grade].lerp(Color.WHITE, float(GRADE_FLASHES.get(grade, 0.0))) as Color
+		_grade_tween.tween_property(material, ^"albedo_color", Constants.RANK_COLORS[grade], GRADE_POP_SECONDS).from(flash)
+	else:
+		_grade_tween.tween_property(_grade_label, ^"scale", size, GRADE_SHRINK_SECONDS).set_trans(Tween.TRANS_QUAD)
+		material.albedo_color = Constants.RANK_COLORS[grade]
+	_grade = grade
 	_percent_indicator.update_percent(accuracy)
 
 ## Whether the grade went up from before to after (not the first one of a song).
