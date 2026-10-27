@@ -55,8 +55,10 @@ For each visible piece in each state, compute its world centre and size:
 
 Flag:
 
-- [ ] Reading/pressing area outside ~±30° yaw, +20° / -12° pitch (lower is fine only for short,
-      tilted tasks like the keyboard).
+- [ ] UI looked at while still (HUD, countdown, score) outside ~±30° yaw, +20° / -12° pitch; a menu
+      the player turns to use outside ±45° yaw, +35° / -27° pitch (past ±45° only for a glance, never
+      past ±70°); lower is fine only for short, tilted tasks like the keyboard.
+- [ ] Anything on the song page other than the song list scrolls.
 - [ ] Distance under 0.5 m or over 2.5 m for something the player must read; pointer targets
       closer than 0.8 m or further than 3 m [Meta hands UI].
 - [ ] Two pieces overlapping in view whose depths differ by less than ~5 cm, or the one to read is

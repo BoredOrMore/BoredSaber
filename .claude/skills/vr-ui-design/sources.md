@@ -12,6 +12,9 @@ Checked 2026-10-20. Numbers are what each source states; conversions marked "our
 | Shapes | Rounded shapes (circles, pills, rounded rectangles) lead the eye to the centre; flat, no thick outlines; centre text and glyphs with generous padding | Apple 10073, 303 |
 | Placement | Main content in the centre of view, secondary actions toward the edges; interactive content at one depth, subtle depth only for hierarchy; custom windows face the viewer | Apple 10073 |
 | Comfort zone | Head turn comfortable ±30° (max 55°), 20° up (max 60°), 12° down (max 40°); eye strain under 0.5 m, Oculus minimum 0.75 m | Alex Chu (Samsung) and Mike Alger, "Visual Design Methods for Virtual Reality" (2015), via the summary at dummies.com |
+| Head turn plus eyes | Eyes alone comfortable to about 15° from the line of sight, then the head turns too; content zones: 55-77° to the side visible but needs a turn, 77-102° strain | Aviation rule of thumb quoted in DTIC ADA460169; Udacity VR Developer lesson "Viewing Angles" (after Alger) |
+| Looking down | Normal line of sight about 15° below the horizon; eyes range 40° up to 20° down from it | MIL-STD-1472D, quoted in a Virginia Tech thesis (vtechworks.lib.vt.edu); Panero & Zelnik, "Human Dimension and Interior Space" (1979) |
+| Neck posture | Head held up (extension) or bent far forward for long is not acceptable; small forward tilt is | ISO 11226:2000, "Ergonomics: evaluation of static working postures" |
 | Hover | Every interactive element gets a highlight whose shape matches it; no hidden targets without a visible anchor; text stays put while hovered; don't swap the whole view between states; few custom effects, no surprise motion | Apple 303 |
 | Testing | Judge on the real headset; video and simulators don't show how it feels | Apple 303, Meta "Typography" |
 

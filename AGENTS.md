@@ -65,6 +65,10 @@ Each rule below names its source and a bug it would have caught here.
 
 Everything the player looks at or interacts with is placed and sized from their real eye (the headset's position),
 as angles and distances, never from a fixed eye height (owner, 2026-10-27); `.claude/skills/vr-ui-design/` section 2.
+Two zones (owner, 2026-10-28): UI the player stares at without moving (HUD, countdown, score) stays in the
+no-head-turn zone (±30°, 20° up, 12° down); menus the player turns to use may fill the head-turn-plus-eyes zone
+(±45°, 35° up, 27° down; to ±70° only for a glance), biased below eye level. On the song page nothing but the song
+list scrolls.
 
 Words and choices
 - Speak the player's language, not the code's: no `NJS`, `HJD`, `RT`, `NPS`, `BPM`, `JSON`, `null`,

@@ -5,10 +5,12 @@ extends Node
 ## camera's field of view plays no part.
 ## Run: godot --headless --path . res://tools/capture/ui_angles.tscn -- --out /tmp/ui_angles.md [--eye 1.6]
 
-## comfort for reading and pressing: left/right, up, down (degrees from straight ahead)
-const YAW_LIMIT := 30.0
-const PITCH_UP := 20.0
-const PITCH_DOWN := -12.0
+## menus are used with a head turn plus the eyes: comfortable within these, left/right, up, down (degrees from
+## straight ahead); past TURN_YAW only for a glance, up to GLANCE_YAW (vr-ui-design section 2)
+const TURN_YAW := 45.0
+const TURN_UP := 35.0
+const TURN_DOWN := -27.0
+const GLANCE_YAW := 70.0
 ## panel and pointer target distances (m)
 const NEAR := 0.8
 const FAR_READ := 2.5
@@ -50,8 +52,8 @@ func _ready() -> void:
 	for button: UIRaycastButton in game.find_children("*", "UIRaycastButton", true, false):
 		_button3d(game, button)
 	var report := "# Menu angles from the eye (%.2f m high)\n\n" % eye.y
-	report += "Limits (vr-ui-design): within %d° left/right, %d° up, %d° down; panels %.1f-%.1f m (pointer targets to %.1f m); " % [
-		YAW_LIMIT, PITCH_UP, -PITCH_DOWN, NEAR, FAR_READ, FAR_POINT]
+	report += "Limits (vr-ui-design): within %d° left/right (%d° for a glance), %d° up, %d° down; panels %.1f-%.1f m (pointer targets to %.1f m); " % [
+		TURN_YAW, GLANCE_YAW, TURN_UP, -TURN_DOWN, NEAR, FAR_READ, FAR_POINT]
 	report += "targets at least %.1f° (%.1f° recommended); body text at least %.2f°.\n\n" % [TARGET_FAIL, TARGET_WARN, TEXT_BASE]
 	report += "## Outside the limits (%d)\n\n" % problems.size() + "\n".join(problems) + "\n\n"
 	report += "## Every panel\n\n| Panel | yaw | pitch | distance | width × height |\n|---|---|---|---|---|\n" + "\n".join(rows) + "\n"
@@ -81,18 +83,23 @@ func _canvas(game: Node, canvas: OQ_UI2DCanvas) -> void:
 	var width: float = (_place(canvas, size, Vector2(size.x, size.y / 2.0)) - _place(canvas, size, Vector2(0, size.y / 2.0))).length()
 	var height: float = (_place(canvas, size, Vector2(size.x / 2.0, 0)) - _place(canvas, size, Vector2(size.x / 2.0, size.y))).length()
 	var curved := canvas.curve_radius > 0.0
-	# a curved panel's width is an arc around the eye: its angle is the arc's
-	var width_angle := rad_to_deg(canvas.curve_size().x / canvas.curve_radius) if curved else _angle(width, centre)
-	rows.append("| %s | %.1f° | %.1f° | %.2f m | %.0f° × %.0f° |" % [name_, seen.x, seen.y, seen.z, width_angle, _angle(height, centre)])
+	# a curved panel's width and height are arcs around the eye: its angles are the arcs'
+	var arcs := canvas.curve_size() / canvas.curve_radius if curved else Vector2.ZERO
+	var width_angle := rad_to_deg(arcs.x) if curved else _angle(width, centre)
+	var height_angle := rad_to_deg(arcs.y) if curved else _angle(height, centre)
+	rows.append("| %s | %.1f° | %.1f° | %.2f m | %.0f° × %.0f° |" % [name_, seen.x, seen.y, seen.z, width_angle, height_angle])
 	var keyboard := name_.containsn("keyboard")
 	for corner: Vector2 in [Vector2.ZERO, Vector2(size.x, 0), Vector2(0, size.y), size]:
 		var s := _seen(_place(canvas, size, corner))
-		if absf(s.x) > YAW_LIMIT or s.y > PITCH_UP or (s.y < PITCH_DOWN and not keyboard):
-			problems.append("- **%s**: a corner at %.0f° left/right, %.0f° up/down (panel reaches past the comfort zone)" % [name_, s.x, s.y])
+		if absf(s.x) > GLANCE_YAW or s.y > TURN_UP or (s.y < TURN_DOWN and not keyboard):
+			problems.append("- **%s**: a corner at %.0f° left/right, %.0f° up/down (panel reaches past the head-turn zone)" % [name_, s.x, s.y])
+			break
+		if absf(s.x) > TURN_YAW:
+			problems.append("- %s: a corner at %.0f° left/right, glance only (past the comfortable %d° head turn)" % [name_, s.x, TURN_YAW])
 			break
 	if seen.z < NEAR or seen.z > FAR_READ:
 		problems.append("- **%s**: %.2f m from the eye (panels %.1f-%.1f m)" % [name_, seen.z, NEAR, FAR_READ])
-	if keyboard and seen.y < PITCH_DOWN:
+	if keyboard and seen.y < TURN_DOWN:
 		rows.append("| ↳ %s is a keyboard: %.0f° down is allowed for short typing if tilted to the eye |  |  |  |  |" % [name_, seen.y])
 	var px_to_m: float = (canvas.curve_size().x if curved else width) / size.x
 	for control: Control in root.find_children("*", "Control", true, false):
@@ -117,15 +124,12 @@ func _canvas(game: Node, canvas: OQ_UI2DCanvas) -> void:
 			if text != "" and text_a < TEXT_BASE - 0.01:
 				problems.append("- %s (\"%s\"): text %.2f° (%d px), under the %.2f° body baseline" % [label, text.left(30), text_a, font_px, TEXT_BASE])
 
-## a pixel of a canvas's control (size px) on its quad, or on its arc when curved, in the world
+## a pixel of a canvas's control (size px) on its quad, or on its sphere when curved, in the world
 static func _place(canvas: OQ_UI2DCanvas, size: Vector2, px: Vector2) -> Vector3:
 	var area := canvas.ui_area.global_transform
 	if canvas.curve_radius <= 0.0:
 		return area * Vector3(px.x / size.x - 0.5, 0.5 - px.y / size.y, 0.0)
-	var metres := canvas.curve_size()
-	var angle := (px.x / size.x - 0.5) * metres.x / canvas.curve_radius
-	return area * Vector3(canvas.curve_radius * sin(angle), (0.5 - px.y / size.y) * metres.y,
-			canvas.curve_radius * (1.0 - cos(angle)))
+	return area * canvas.curve_point(px)
 
 ## visible within its canvas (the canvas itself may be hidden in this state)
 func _visible_below(root: Control, control: Control) -> bool:
@@ -160,7 +164,7 @@ func _button3d(game: Node, button: UIRaycastButton) -> void:
 		problems.append("- **%s** (3D button): target %.1f° (at least %.1f°)" % [label, a, TARGET_FAIL])
 	elif a < TARGET_WARN:
 		problems.append("- %s (3D button): target %.1f° (under the recommended %.1f°)" % [label, a, TARGET_WARN])
-	if absf(seen.x) > YAW_LIMIT or seen.y > PITCH_UP or seen.y < PITCH_DOWN:
+	if absf(seen.x) > GLANCE_YAW or seen.y > TURN_UP or seen.y < TURN_DOWN:
 		problems.append("- **%s** (3D button): at %.0f° left/right, %.0f° up/down" % [label, seen.x, seen.y])
 	if seen.z < NEAR or seen.z > FAR_POINT:
 		problems.append("- **%s** (3D button): %.2f m away (pointer targets %.1f-%.1f m)" % [label, seen.z, NEAR, FAR_POINT])
