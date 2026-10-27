@@ -19,22 +19,22 @@ from model_export import bake_and_export
 OUT_DIR = sys.argv[sys.argv.index("--") + 1]
 
 # the cabin (PulseVoid CABIN): width, depth, height; pilasters round it every PILASTER_STEP (width, how far out)
-CABIN = (12.0, 12.0, 7.0)
+CABIN = (6.0, 6.0, 7.0)
 PILASTER_STEP = 3.0
 PILASTER = (0.3, 0.15)
 # the front's window band: height of its middle, the windows' size and count, their frames' depth
 WINDOW_Y = -2.5
 WINDOW = (2.0, 1.2)
-WINDOWS = 4
+WINDOWS = 2
 FRAME = 0.12
 # louvred vents on the sides: slats, their size, the lowest slat's height under the top
 SLATS = 4
-SLAT = (3.0, 0.12, 0.25)
+SLAT = (2.4, 0.12, 0.25)
 SLAT_TOP = -4.5
 # the roof's parapet: height, thickness
 PARAPET = (0.4, 0.2)
 # the feed horn under the cabin: mouth radius, throat radius, length, sides
-HORN = (2.2, 0.8, 3.0, 12)
+HORN = (1.8, 0.7, 3.0, 12)
 # the beam: from the cabin's front to this far ahead, width, depth; chord size; a Warren truss panel every PANEL_STEP
 BEAM_END = 61.0
 BEAM = (5.0, 2.5)

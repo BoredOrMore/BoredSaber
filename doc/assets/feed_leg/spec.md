@@ -4,11 +4,11 @@
   reviews.
 - Purpose: the four legs holding the feed cabin over the dish, and the carriers of the diagonal lasers (AGENTS.md
   "Light", rule 5): floodlights standing on platforms along them.
-- Parts: a triangular lattice truss 161 m long (two top chords 2.5 m apart, a bottom chord 2.5 m under them, zigzag
+- Parts: a triangular lattice truss 163 m long (two top chords 2.5 m apart, a bottom chord 2.5 m under them, zigzag
   bracing on its sides every 20 m); three level platforms on its top at a quarter, half and three quarters of its
   length, each with a rail on three sides (open toward the cabin).
 - Size and pivot: origin at the leg's top end, on its axis (the cabin's underside corner); the leg runs along Godot
-  -z down to the dish 150 m out (26.8 degrees down); the platforms' tops 1.5 m over the axis, level.
+  -z down to the dish 150 m out (26.3 degrees down); the platforms' tops 1.5 m over the axis, level.
 - Lights: ten floodlights, two a leg at a quarter and three quarters; the two left over on the front legs' middle
   platforms, left and right alike (PulseVoid.leg_floodlight). Before this, the last two stood past the legs' feet.
 - Sightlines: the legs leave the cabin's underside at 45 degrees either side of ahead and behind and only go down:

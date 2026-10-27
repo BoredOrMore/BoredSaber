@@ -4,8 +4,9 @@
   reviews.
 - Purpose: the receiver at the dish's focus, the player standing on its roof: the cabin with the feed horn aimed down
   at the dish, and the beam the track runs out on. Seen looking down past the track and to the sides.
-- Parts: the cabin (12 x 12 x 7 m) with pilasters every 3 m round it, a band of four framed windows on its front,
-  louvred vents on its sides, a parapet round the roof (open at the front), the feed horn under it (4.4 m mouth);
+- Parts: the cabin (6 x 6 x 7 m; owner, 2026-10-27: down from 12 x 12, whose roof hid the feed legs from the player)
+  with pilasters every 3 m round it, two framed windows on its front,
+  louvred vents on its sides, a parapet round the roof (open at the front), the feed horn under it (3.6 m mouth);
   the beam from the cabin's front to 61 m ahead, 5 m wide and 2.5 m deep: four chords, Warren bracing on both sides,
   cross members under it, a walkway plate under the track deck, handrails either side (posts every 10 m, a top and a
   middle rail) at x ±2.5, clear of the note corridor (lanes ±1.2 m).

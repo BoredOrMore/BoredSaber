@@ -30,8 +30,9 @@ const DISH_RINGS := 14
 const DISH_SEGMENTS := 48
 const PANEL := 0.6
 const RIM := 3.0
-## the feed cabin under the player (size, its top just under the track deck; the model's, where the legs meet it)
-const CABIN := Vector3(12.0, 7.0, 12.0)
+## the feed cabin under the player (size, its top just under the track deck; the model's, where the legs meet it):
+## small, so the legs show past its roof's edge (owner, 2026-10-27: 6 x 6 m; at 12 m the roof hid them)
+const CABIN := Vector3(6.0, 7.0, 6.0)
 const CABIN_TOP := -0.4
 ## the feed legs: from the cabin's corners down to the dish LEG_REACH out, at 45 degrees either side of ahead and behind;
 ## their section (the cable trays run beside it)
