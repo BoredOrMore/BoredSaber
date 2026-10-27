@@ -342,22 +342,21 @@ offset_left = 1289.0
 offset_top = 76.0
 offset_right = 1737.0
 offset_bottom = 760.0
-theme_override_constants/separation = 3
+theme_override_constants/separation = 6
 
-[node name="Header" type="HBoxContainer" parent="Modifiers"]
-custom_minimum_size = Vector2(0, 48)
+[node name="NotesLabel" type="Label" parent="Modifiers"]
 layout_mode = 2
-
-[node name="Reset_Button" type="Button" parent="Modifiers/Header" unique_id=1815398217]
-layout_mode = 2
-size_flags_horizontal = 10
-icon = ExtResource("icon_undo-2")
-script = ExtResource("icon_button")
+text = "Notes"
 
 [node name="ToggleRow" type="HBoxContainer" parent="Modifiers"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_constants/separation = 4
+
+[node name="Gap1" type="Control" parent="Modifiers"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+mouse_filter = 2
 
 [node name="SpeedLabel" type="Label" parent="Modifiers"]
 layout_mode = 2
@@ -367,6 +366,15 @@ text = "Speed"
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_constants/separation = 4
+
+[node name="Gap2" type="Control" parent="Modifiers"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="FailLabel" type="Label" parent="Modifiers"]
+layout_mode = 2
+text = "Fail"
 
 [node name="FailRow" type="HBoxContainer" parent="Modifiers" unique_id=1730492217]
 custom_minimum_size = Vector2(0, 48)
@@ -378,14 +386,24 @@ custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_constants/separation = 4
 
+[node name="Gap3" type="Control" parent="Modifiers"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="LookLabel" type="Label" parent="Modifiers"]
+layout_mode = 2
+text = "Look"
+
 [node name="EnvironmentRow" type="HBoxContainer" parent="Modifiers"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Label" type="Label" parent="Modifiers/EnvironmentRow"]
+[node name="Gap4" type="Control" parent="Modifiers"]
+custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
-text = "Environment"
+mouse_filter = 2
 
 [node name="MoreMods_Button" type="Button" parent="Modifiers"]
 custom_minimum_size = Vector2(0, 48)
@@ -396,13 +414,23 @@ text_overrun_behavior = 3
 icon = ExtResource("icon_sliders-horizontal")
 script = ExtResource("icon_button")
 
+[node name="Header" type="HBoxContainer" parent="Modifiers"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+
+[node name="Reset_Button" type="Button" parent="Modifiers/Header" unique_id=1815398217]
+layout_mode = 2
+size_flags_horizontal = 10
+icon = ExtResource("icon_undo-2")
+script = ExtResource("icon_button")
+
 [node name="MoreModsPanel" type="Panel" parent="."]
 visible = false
 layout_mode = 0
 offset_left = 1289.0
-offset_top = 76.0
+offset_top = 8.0
 offset_right = 1737.0
-offset_bottom = 760.0
+offset_bottom = 768.0
 
 [node name="Rows" type="VBoxContainer" parent="MoreModsPanel"]
 layout_mode = 1
@@ -503,14 +531,26 @@ title = "Licenses"
 position = Vector2i(1289, 16)
 size = Vector2i(448, 744)
 
-[node name="ScrollContainer" type="ScrollContainer" parent="LicensePopup" unique_id=1670075562]
+[node name="Rows" type="VBoxContainer" parent="LicensePopup"]
 offset_left = 20.0
 offset_top = 12.0
 offset_right = 428.0
 offset_bottom = 732.0
+theme_override_constants/separation = 8
+
+[node name="Back_Button" type="Button" parent="LicensePopup/Rows"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+text = "Back"
+icon = ExtResource("icon_arrow-left")
+script = ExtResource("icon_button")
+
+[node name="ScrollContainer" type="ScrollContainer" parent="LicensePopup/Rows" unique_id=1670075562]
+layout_mode = 2
+size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="Label" type="Label" parent="LicensePopup/ScrollContainer" unique_id=1044749430]
+[node name="Label" type="Label" parent="LicensePopup/Rows/ScrollContainer" unique_id=1044749430]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 20
@@ -551,3 +591,4 @@ joystick_scroll = false
 [connection signal="pressed" from="GetSongs_Button" to="." method="_on_get_songs_pressed"]
 [connection signal="pressed" from="Filters_Button" to="." method="_show_filters" binds= [true]]
 [connection signal="pressed" from="FiltersPanel/Rows/Back_Button" to="." method="_show_filters" binds= [false]]
+[connection signal="pressed" from="LicensePopup/Rows/Back_Button" to="." method="_on_licenses_pressed"]

@@ -979,7 +979,7 @@ func _on_body_test_pressed() -> void:
 
 func _on_licenses_pressed() -> void:
 	var license := FileAccess.open("res://LICENSE", FileAccess.READ).get_as_text()
-	$LicensePopup/ScrollContainer/Label.text = license
+	$LicensePopup/Rows/ScrollContainer/Label.text = license
 	if licenses_showing:
 		$LicensePopup.hide()
 	else:

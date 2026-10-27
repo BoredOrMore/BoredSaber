@@ -114,6 +114,15 @@ func _ready() -> void:
 	menu._show_tab(MainMenu.Tab.MORE)
 	await _settle()
 	_check_layout(menu, "more tab")
+	# the licenses open over the right panel with a Back button above their scrolling text, 3 degrees or more tall
+	var licenses := menu.get_node(^"LicensePopup") as Window
+	menu._on_licenses_pressed()
+	await _settle()
+	var back := menu.get_node(^"LicensePopup/Rows/Back_Button") as Button
+	var back_shown := licenses.visible and back.is_visible_in_tree() and back.size.y >= 45.0
+	back.pressed.emit()
+	await _settle()
+	check(back_shown and not licenses.visible, "the licenses show a Back button (%.0f px tall) that closes them" % back.size.y)
 	Highscores.HIGHSCORES_FILEPATH = TEST_HIGHSCORES
 	Highscores.clear_table()
 	Highscores.HIGHSCORES_FILEPATH = saved_highscores
@@ -240,8 +249,8 @@ func _ready() -> void:
 	check(limiter is AudioEffectHardLimiter and is_equal_approx(limiter.ceiling_db, -1.0),
 			"the Master bus ends in a limiter at -1 dB, so music and effects together don't clip")
 
-	# a curved panel (OQ_UI2DCanvas.curve_radius): a pixel's point on the sphere maps back to that pixel (centre,
-	# edges and corners), and its width and height are kept as arcs
+	# a curved panel (OQ_UI2DCanvas.curve_radius): a pixel's point on the cylinder maps back to that pixel (centre,
+	# edges and corners), its width kept as arc, its height straight
 	var curved := (load("res://OQ_Toolkit/OQ_UI2D/OQ_UI2DCanvas.tscn") as PackedScene).instantiate() as OQ_UI2DCanvas
 	curved.curve_radius = 2.0
 	curved.scale = Vector3(2.4, 2.4, 1.0)
@@ -251,19 +260,18 @@ func _ready() -> void:
 	add_child(curved)
 	await get_tree().process_frame
 	var arc_worst := 0.0
-	var on_sphere := 0.0
+	var on_cylinder := 0.0
 	for u: float in [0.0, 0.02, 0.5, 0.98, 1.0]:
 		for v: float in [0.0, 0.03, 0.5, 0.97, 1.0]:
 			var want := Vector2(u * 1000.0, v * 500.0)
 			var point := curved.curve_point(want)
-			on_sphere = maxf(on_sphere, absf((point - Vector3(0.0, 0.0, 2.0)).length() - 2.0))
+			on_cylinder = maxf(on_cylinder, absf(Vector2(point.x, point.z - 2.0).length() - 2.0))
 			# through the world and back, as a pointer hit is
 			var hit := curved.ui_area.to_local(curved.ui_area.to_global(point))
 			arc_worst = maxf(arc_worst, curved.curve_pixel(hit).distance_to(want))
 	var span := curved.curve_size() / curved.curve_radius
-	check(arc_worst < 0.01 and on_sphere < 1e-5 and is_equal_approx(span.x, 1000.0 * 2.4 / 1024.0 / 2.0)
-			and is_equal_approx(span.y, 500.0 * 2.4 / 1024.0 / 2.0),
-			"a curved panel maps its points back to its pixels, corners included (worst %.3f px), width and height kept as arcs" % arc_worst)
+	check(arc_worst < 0.01 and on_cylinder < 1e-5 and is_equal_approx(span.x, 1000.0 * 2.4 / 1024.0 / 2.0),
+			"a curved panel maps its points back to its pixels, corners included (worst %.3f px), width kept as arc" % arc_worst)
 	curved.queue_free()
 
 	print("%d failure(s)" % failures)

@@ -78,10 +78,12 @@ func _build_chips() -> void:
 		chip.toggled.connect(func(on: bool) -> void:
 			Settings.set(toggle[1] as StringName, on == toggle[2])
 			_menu.update_view())
-		_menu.toggle_row.add_child(chip)
+		# Map colors is a look, beside the environment
+		(_menu.environment_row if toggle[1] == &"disable_map_color" else _menu.toggle_row).add_child(chip)
 		set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 	_add_option_chips(_menu.speed_row, &"music_speed", Constants.SPEEDS, Constants.SPEEDS.map(func(o: Array) -> String: return "%d%%" % o[0]))
 	for row: Array in MORE_MOD_ROWS:
+		_menu.more_mods_rows.add_child(section_gap())
 		var title := Label.new()
 		title.text = str(row[0])
 		_menu.more_mods_rows.add_child(title)
@@ -95,6 +97,7 @@ func _build_chips() -> void:
 	_claws_chip.toggled.connect(func(on: bool) -> void:
 		Settings.claws = on
 		_menu.update_view())
+	_menu.more_mods_rows.add_child(section_gap())
 	_menu.more_mods_rows.add_child(_claws_chip)
 	set_padding(_claws_chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 	environment_picker = OptionButton.new()
@@ -113,6 +116,16 @@ func _build_chips() -> void:
 	set_padding(_menu.more_mods_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 	# the star and its label in a 48 px button: the theme's 12 px padding would make it 60 px, into the picker
 	set_padding(_menu.favorite_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
+
+## Space between the sections of the modifier panels (owner, 2026-10-28: a gap between each section), about 1°
+## at the menu's 2 m, three times the gap between rows of a section.
+const SECTION_GAP := 16.0
+
+static func section_gap() -> Control:
+	var gap := Control.new()
+	gap.custom_minimum_size.y = SECTION_GAP
+	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return gap
 
 ## Adds one chip per option of an option table to parent, picking the option's value for key when pressed.
 func _add_option_chips(parent: Container, key: StringName, options: Array, labels: Array) -> void:
@@ -228,9 +241,10 @@ func _on_damage_option_pressed(index: int) -> void:
 
 func sync() -> void:
 	_sync_rows()
-	for chip: Button in _menu.toggle_row.get_children():
-		var toggle: Array = TOGGLE_CHIPS[chip.get_index()]
-		chip.set_pressed_no_signal(Settings.get(toggle[1] as StringName) == toggle[2])
+	var toggle_chips := _menu.toggle_row.get_children() + [_menu.environment_row.get_child(0)]
+	for i in TOGGLE_CHIPS.size():
+		var toggle: Array = TOGGLE_CHIPS[i]
+		(toggle_chips[i] as Button).set_pressed_no_signal(Settings.get(toggle[1] as StringName) == toggle[2])
 	for row: Array in _option_rows:
 		var chips: Array = row[0]
 		for i in chips.size():
