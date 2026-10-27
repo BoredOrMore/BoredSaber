@@ -32,7 +32,8 @@ arrangement (owner, 2026-10-27).
 - `Points_label_driver.gd/.tscn` (class `PointsLabelDriver`): pools and places `points_label.tscn` instances.
 - `points_label.gd/.tscn`: one popped number or miss mark; `MissMark.gdshader` draws the miss X from a distance field.
 - `HealthRails.gd` (class `HealthRails`) + `HealthRail.gdshader`: health as two strips beside the track (bar mode
-  shortens them, 4 Lives splits them into pips); `HealthRails.EDGE_PAD` must match `edge_pad` in the shader.
+  shortens them, 4 Lives splits them into pips); `HealthRails.EDGE_PAD` must match `edge_pad` in the shader. `start_map(lives, how_full, eye)` places them from the
+  player's eye: they start `RAIL_NEAR_DEGREES` (22°) below it and widen with that distance.
 
 ## Invariants and gotchas
 

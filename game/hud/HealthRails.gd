@@ -11,8 +11,14 @@ const RAIL_MARGIN := 0.55
 const RAIL_LIFT := 0.04
 ## How far each strip leans toward the player, so it reads as a band rather than a thin line.
 const RAIL_TILT_DEGREES := 30.0
-## Where the strips start, in front of the player.
+## Where the strips start, in front of the player, before a song has given the player's eye (start_map).
 const RAIL_NEAR_Z := -1.0
+## Worked out from the player's real eye (owner, 2026-10-27: further out, like the HUD, and from the eye): the strips
+## start where the floor is RAIL_NEAR_DEGREES below it (they began 38 degrees down at 2 m, under a look down the
+## track) and grow with that distance against RAIL_LAID_OUT_DISTANCE, so their width and the heart keep their size
+## in view.
+const RAIL_NEAR_DEGREES := 22.0
+const RAIL_LAID_OUT_DISTANCE := 2.0
 ## Length of a full strip.
 const RAIL_LENGTH := 5.0
 ## Width of a strip; its ends are rounded with half this as the radius.
@@ -31,6 +37,10 @@ const LOST_BRIGHTNESS := 0.25
 const DANGER_FROM := 0.8
 
 var _how_full := 1.0
+## where the strips start and how much wider they are, for the player's eye (start_map)
+var _near_z := RAIL_NEAR_Z
+var _grow := 1.0
+var _pip_length := 0.0
 var _how_full_display := 1.0
 var _lives := false
 var _bars: Array[MeshInstance3D] = []
@@ -44,11 +54,11 @@ var _lit_material := _rail_material(Constants.HEALTH_FULL_COLOR)
 var _lost_material := _rail_material(Color.BLACK)
 
 func _ready() -> void:
-	var pip_length := (RAIL_LENGTH - PIP_GAP * (Constants.FAIL_LIVES - 1)) / Constants.FAIL_LIVES
+	_pip_length = (RAIL_LENGTH - PIP_GAP * (Constants.FAIL_LIVES - 1)) / Constants.FAIL_LIVES
 	for side in [-1.0, 1.0]:
 		_bars.append(_strip(side, RAIL_LENGTH, RAIL_NEAR_Z - RAIL_LENGTH / 2, _bar_material))
 		for i in Constants.FAIL_LIVES:
-			_pips.append(_strip(side, pip_length, RAIL_NEAR_Z - pip_length / 2 - i * (pip_length + PIP_GAP), _lost_material))
+			_pips.append(_strip(side, _pip_length, RAIL_NEAR_Z - _pip_length / 2 - i * (_pip_length + PIP_GAP), _lost_material))
 	_icon.texture = preload("res://game/ui/heart.svg")
 	_icon.pixel_size = ICON_SIZE / _icon.texture.get_width()
 	_icon.billboard = BaseMaterial3D.BILLBOARD_ENABLED
@@ -58,8 +68,19 @@ func _ready() -> void:
 	visibility_changed.connect(func() -> void: set_process(visible))
 	set_process(visible)
 
-## Picks bar or pip display for the coming map, starting from how_full.
-func start_map(lives: bool, how_full: float) -> void:
+## Picks bar or pip display for the coming map, starting from how_full, placed for the player's eye.
+func start_map(lives: bool, how_full: float, eye := Hud.HUD_EYE) -> void:
+	var distance := (eye.y - RAIL_LIFT) / tan(deg_to_rad(RAIL_NEAR_DEGREES))
+	_near_z = eye.z - distance
+	_grow = distance / RAIL_LAID_OUT_DISTANCE
+	for i in _pips.size():
+		var k := i % Constants.FAIL_LIVES
+		_pips[i].position.z = _near_z - _pip_length / 2 - k * (_pip_length + PIP_GAP)
+	for strip: MeshInstance3D in _bars + _pips:
+		strip.scale.x = _grow
+	_icon.position.z = _near_z
+	_icon.position.y = RAIL_LIFT + ICON_LIFT * _grow
+	_icon.scale = Vector3.ONE * _grow
 	_lives = lives
 	_danger = Map.color_obstacle
 	var lost := _danger * LOST_BRIGHTNESS
@@ -93,7 +114,7 @@ func _process(delta: float) -> void:
 	var length := maxf(_how_full_display, 0.001) * RAIL_LENGTH
 	for bar in _bars:
 		bar.scale.z = length / RAIL_LENGTH
-		bar.position.z = RAIL_NEAR_Z - length / 2
+		bar.position.z = _near_z - length / 2
 	_bar_material.set_shader_parameter(&"color", _health_color(_how_full_display))
 	_icon.modulate = _health_color(_how_full_display)
 

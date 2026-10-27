@@ -194,7 +194,7 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	# No Fail still keeps a health bar out of sight: running it out halves the score (Scoreboard.spend_no_fail)
 	current_health = Health.start_value(Settings.health_mode, Settings.fail_mode)
 	if Settings.health_mode:
-		health_rails.start_map(Settings.fail_mode == Constants.FAIL_MODE_LIVES, current_health / Constants.HEALTH_MAX)
+		health_rails.start_map(Settings.fail_mode == Constants.FAIL_MODE_LIVES, current_health / Constants.HEALTH_MAX, _eye())
 	
 	_clear_track()
 	_lowered_resolution = false

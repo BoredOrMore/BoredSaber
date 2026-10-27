@@ -85,10 +85,13 @@ func spawn(note_info: ColorNoteInfo, current_beat: float) -> void:
 	
 	rotation.z = note_info.cut_angle
 	
-	piece_left.set_color(color, is_dot)
-	piece_right.set_color(color, is_dot)
+	# No Arrows shows every note as a dot, as Beat Saber does and as the menu's slash note already did (owner,
+	# 2026-10-27: the same look in every mode); its hit box stays the note's own
+	var shows_dot := is_dot or not Settings.arrows_enabled
+	piece_left.set_color(color, shows_dot)
+	piece_right.set_color(color, shows_dot)
 	_mat.set_shader_parameter(&"color", color)
-	_mat.set_shader_parameter(&"is_dot", is_dot)
+	_mat.set_shader_parameter(&"is_dot", shows_dot)
 	_mat.set_shader_parameter(&"arrows_enabled", Settings.arrows_enabled)
 	# since cube instances get recycled, we gotta reset cubes that were chain
 	# heads in a past life
