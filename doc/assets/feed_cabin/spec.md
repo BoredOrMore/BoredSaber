@@ -19,5 +19,6 @@
 - Export: `game/models/feed_cabin.glb`; source `tools/models/feed_cabin.py`.
 - Review: owner in Blender and Godot, then on the headset.
 - Bridge (owner, 2026-10-27): the beam now runs on to the front rim, 250 m, landing on the rim ring (its stays from
-  the front masts were taken out again: dark spikes beside the track; what holds it is still open); bracing every 10 m, posts every 20 m.
+  the front masts were taken out again: dark spikes beside the track); a deep truss, 8 m under the track, that carries
+  itself (owner's pick); bracing every 10 m, posts every 20 m.
   About 1,400 triangles with the cabin.

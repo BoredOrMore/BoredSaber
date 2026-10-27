@@ -36,9 +36,10 @@ SLAT_TOP = -4.5
 PARAPET = (0.4, 0.2)
 # the feed horn under the cabin: mouth radius, throat radius, length, sides
 HORN = (1.8, 0.7, 3.0, 12)
-# the beam: from the cabin's front to this far ahead, width, depth; chord size; a Warren truss panel every PANEL_STEP
+# the bridge: from the cabin's front to this far ahead, width, depth (owner, 2026-10-27: a deep truss that carries itself
+# the 250 m to the rim, all of it under the track, rather than stays from the masts); chord size; a Warren truss panel every PANEL_STEP
 BEAM_END = 250.0
-BEAM = (5.0, 2.5)
+BEAM = (5.0, 8.0)
 CHORD = 0.25
 PANEL_STEP = 10.0
 BRACE = 0.18
