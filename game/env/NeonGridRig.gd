@@ -29,6 +29,13 @@ const ARCH_B := [Vector2(-450.0, -420.0), 350.0, 1.0, 15.0, 1.0, Vector2(26.0, 1
 const ARCH_C := [Vector2(450.0, -450.0), 260.0, 1.0, -8.0, 0.62, Vector2(16.0, 12.0)]
 ## boxes along each arch's half circle
 const ARCH_SEGMENTS := 28
+## the arch's parts (doc/assets/arch_parts/spec.md); the section model's axes (Blender's x, z up, -y along: in Godot x,
+## y along, -z outward) turned to the boxes' (x across, y inward, z along); the scaffold's foot this far below C's end
+const ARCH_SECTION := preload("res://game/models/arch_section.glb")
+const ARCH_FOOTING := preload("res://game/models/arch_footing.glb")
+const ARCH_SCAFFOLD := preload("res://game/models/arch_scaffold.glb")
+const ARCH_SECTION_AXES := Basis(Vector3(1.0, 0.0, 0.0), Vector3(0.0, 0.0, 1.0), Vector3(0.0, -1.0, 0.0))
+const SCAFFOLD_BELOW_END := 20.0
 ## The tower crane at C's unfinished end (doc/assets/tower_crane/spec.md): the model stands on the end; its jib's root
 ## is CRANE_JIB_Y above its foot, the jib CRANE_JIB.x long toward the track, the work lights CRANE_JIB.y under it.
 const TOWER_CRANE := preload("res://game/models/tower_crane.glb")
@@ -48,8 +55,6 @@ const SITE_PROPS := preload("res://game/models/site_props.glb")
 
 func _ready() -> void:
 	var boxes: Array[Transform3D] = []
-	for arch: Array in [ARCH_A, ARCH_B, ARCH_C]:
-		boxes.append_array(arch_boxes(arch))
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	multimesh.mesh = BoxMesh.new()
@@ -76,6 +81,7 @@ func _ready() -> void:
 	mast_instance.material_override = material
 	mast_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(mast_instance)
+	_add_arches(material)
 	var props := MeshInstance3D.new()
 	props.mesh = LaserFixtures._model_mesh(SITE_PROPS)
 	props.material_override = material
@@ -88,6 +94,41 @@ func _ready() -> void:
 	crane.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(crane)
 	_add_strips()
+
+## The arches (doc/assets/arch_parts/spec.md): their sections along each curve (one MultiMesh, the section model
+## turned from Blender's axes to the boxes' x across, y inward, z along: ARCH_SECTION_AXES), the footings under each
+## built leg (one MultiMesh) and the scaffold round C's unfinished end.
+func _add_arches(material: ShaderMaterial) -> void:
+	var sections: Array[Transform3D] = []
+	var footings: Array[Transform3D] = []
+	for arch: Array in [ARCH_A, ARCH_B, ARCH_C]:
+		for box in arch_boxes(arch):
+			sections.append(Transform3D(box.basis * ARCH_SECTION_AXES, box.origin))
+		var section: Vector2 = arch[5]
+		var legs := [0.0, PI] if float(arch[4]) >= 1.0 else [0.0]
+		for angle: float in legs:
+			var foot := arch_point(arch, angle).origin
+			footings.append(Transform3D(Basis.from_scale(Vector3.ONE * maxf(section.x, section.y)), Vector3(foot.x, 0.0, foot.z)))
+	for pair: Array in [[ARCH_SECTION, sections], [ARCH_FOOTING, footings]]:
+		var placed: Array[Transform3D] = []
+		placed.assign(pair[1])
+		var multimesh := MultiMesh.new()
+		multimesh.transform_format = MultiMesh.TRANSFORM_3D
+		multimesh.mesh = LaserFixtures._model_mesh(pair[0])
+		multimesh.instance_count = placed.size()
+		for i in placed.size():
+			multimesh.set_instance_transform(i, placed[i])
+		var instance := MultiMeshInstance3D.new()
+		instance.multimesh = multimesh
+		instance.material_override = material
+		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(instance)
+	var scaffold := MeshInstance3D.new()
+	scaffold.mesh = LaserFixtures._model_mesh(ARCH_SCAFFOLD)
+	scaffold.position = arch_point(ARCH_C, PI * float(ARCH_C[4])).origin - Vector3(0.0, SCAFFOLD_BELOW_END, 0.0)
+	scaffold.material_override = material
+	scaffold.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(scaffold)
 
 ## The strips' MultiMesh: a segment per arch box, custom data its height on the arch and whether the arch is B.
 func _add_strips() -> void:
