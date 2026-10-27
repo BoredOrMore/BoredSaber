@@ -15,6 +15,8 @@ class_name ClassicRig
 
 const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
 const ARCH_STRIP := preload("res://game/env/ArchStrip.gdshader")
+## the hanging scaffold (doc/assets/hanging_scaffold/spec.md): deck, tubes and rails; origin at the deck's top centre
+const HANGING_SCAFFOLD := preload("res://game/models/hanging_scaffold.glb")
 ## the bore: radius, its centre's height, the ribs' spacing, nearest and farthest z, boxes round each rib and the rib's
 ## section (across the ring, along the bore). The track runs along the circle's bottom (owner, 2026-10-27: keep the
 ## 59 m centre, its size). A lining closes the bore between the ribs (LINING thick, behind them), so the curve rises
@@ -29,16 +31,12 @@ const RIB_NEAR := 25.0
 const RIB_FAR := -600.0
 const RIB_SEGMENTS := 24
 const RIB := Vector2(2.4, 3.0)
-## The hanging scaffolds at the old frames' places, their decks' tops SCAFFOLD_Y up when in place: a deck (across,
-## thick, deep), scaffold tubes standing every SCAFFOLD_BAY across at its front and back edges with a top and a middle
-## rail, and a cable from each corner up through the ceiling (thin but seen); a tool box on each deck, not in the same
-## place twice.
+## The hanging scaffolds at the old frames' places, their decks' tops SCAFFOLD_Y up when in place: the model (across,
+## depth under the deck's top, deep), a cable from each of its lugs (CABLE_X) up through the ceiling (thin but seen),
+## and a tool box on each deck, not in the same place twice.
 const FRAME_Z: Array[float] = [-10.0, -20.0, -30.0, -40.0, -50.0, -60.0]
 const SCAFFOLD_Y := 20.0
 const SCAFFOLD := Vector3(40.0, 0.3, 3.0)
-const SCAFFOLD_BAY := 10.0
-const SCAFFOLD_RAIL := 1.1
-const SCAFFOLD_TUBE := 0.08
 const CABLE_X := 16.0
 const CABLE := 0.2
 ## the catwalks along the walls: height, width, from z, to z
@@ -74,11 +72,12 @@ const FLY := 75.0
 const RISE_SECONDS := 1.5
 const FIRST_FRAME_AT := 0.1
 const LAST_FRAME_AT := 0.8
-## deck, tool box, posts (two per bay edge), rails (two per side), cables (four)
-const BOXES_PER_SCAFFOLD := 2 + 2 * (int(40.0 / 10.0) + 1) + 4 + 4
+## tool box, cables (four)
+const BOXES_PER_SCAFFOLD := 5
 
 var rib_strip_material: ShaderMaterial
 var _multimesh: MultiMesh
+var _scaffolds: MultiMesh
 var _boxes: Array[Transform3D] = []
 ## per scaffold (FRAME_Z order): how far up it is (0 down, 1 hoisted) and where it is heading
 var _lift := PackedFloat32Array()
@@ -117,26 +116,28 @@ func _ready() -> void:
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
+	_scaffolds = MultiMesh.new()
+	_scaffolds.transform_format = MultiMesh.TRANSFORM_3D
+	_scaffolds.mesh = LaserFixtures._model_mesh(HANGING_SCAFFOLD)
+	_scaffolds.instance_count = FRAME_Z.size()
+	for i in FRAME_Z.size():
+		_scaffolds.set_instance_transform(i, _scaffold_place(i, 0.0))
+	var scaffolds := MultiMeshInstance3D.new()
+	scaffolds.multimesh = _scaffolds
+	scaffolds.material_override = material
+	scaffolds.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(scaffolds)
 	_add_rib_strips()
 
-## Hanging scaffold i (FRAME_Z order) in its place.
+## Hanging scaffold i's boxes (FRAME_Z order) in its place: its tool box and cables (the model is drawn apart).
 static func _scaffold(i: int) -> Array[Transform3D]:
 	var boxes: Array[Transform3D] = []
 	var z: float = FRAME_Z[i]
 	var w := SCAFFOLD.x
 	var top := SCAFFOLD_Y
-	boxes.append(_box(Vector3(0.0, top - SCAFFOLD.y * 0.5, z), SCAFFOLD))
 	# the tool box: a different spot along the deck on each scaffold
 	boxes.append(_box(Vector3(w * (fmod(i * 0.37, 0.8) - 0.4), top + 0.3, z - SCAFFOLD.z * 0.25), Vector3(1.0, 0.6, 0.5)))
-	for edge in [-0.5, 0.5]:
-		var ez: float = z + edge * (SCAFFOLD.z - SCAFFOLD_TUBE)
-		var x := -w * 0.5
-		while x <= w * 0.5 + 0.01:
-			boxes.append(_box(Vector3(x, top + SCAFFOLD_RAIL * 0.5, ez), Vector3(SCAFFOLD_TUBE, SCAFFOLD_RAIL, SCAFFOLD_TUBE)))
-			x += SCAFFOLD_BAY
-		for h in [SCAFFOLD_RAIL, SCAFFOLD_RAIL * 0.5]:
-			boxes.append(_box(Vector3(0.0, top + h, ez), Vector3(w, SCAFFOLD_TUBE, SCAFFOLD_TUBE)))
-	# the cables, up past the ceiling from the deck's corners
+	# the cables, up past the ceiling from the deck's lugs
 	for cx in [-CABLE_X, CABLE_X]:
 		var ceiling := BORE_CENTRE_Y + sqrt(BORE_RADIUS * BORE_RADIUS - cx * cx)
 		for edge in [-0.5, 0.5]:
@@ -303,6 +304,11 @@ func _process(delta: float) -> void:
 		for b in BOXES_PER_SCAFFOLD:
 			var box := _boxes[i * BOXES_PER_SCAFFOLD + b]
 			_multimesh.set_instance_transform(i * BOXES_PER_SCAFFOLD + b, Transform3D(box.basis, box.origin + Vector3.UP * up))
+		_scaffolds.set_instance_transform(i, _scaffold_place(i, up))
+
+## Where scaffold model i stands, `up` metres above its place.
+static func _scaffold_place(i: int, up: float) -> Transform3D:
+	return Transform3D(Basis.IDENTITY, Vector3(0.0, SCAFFOLD_Y + up, FRAME_Z[i]))
 
 ## How far above its place the scaffold at this z is now (0 when in place or when no scaffold is there): EventDriver hides
 ## the lights on a scaffold until it is in place.
