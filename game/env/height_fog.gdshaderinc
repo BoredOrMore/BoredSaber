@@ -4,7 +4,7 @@
 // the fog takes the colour of the lights that are on (env_haze). Analytic integral of exponential height fog
 // along the view ray (Quilez, "Better fog", 2010). Values untuned; shared by the scenery shaders.
 // fog density at the floor (per metre), and how fast it thins out going up (per metre)
-const float HEIGHT_FOG_DENSITY = 0.06;
+const float HEIGHT_FOG_DENSITY = 0.03;
 const float HEIGHT_FOG_FALLOFF = 0.8;
 // how much brighter the fog layer is than the plain haze, as it catches the stage's light
 const float HEIGHT_FOG_GLOW = 1.4;
@@ -14,15 +14,22 @@ global uniform float atmosphere_eerie;
 const float EERIE_FOG_DENSITY = 2.5;
 const float EERIE_FOG_FALLOFF = 1.8;
 
-// How much of the view from cam to world is fogged (0 clear, 1 all fog).
-float height_fog(vec3 world, vec3 cam) {
+// How much of the view from cam to world is fogged (0 clear, 1 all fog), for fog `density` per metre at height
+// `floor_y`, thinning out by `falloff` per metre above it.
+float height_fog_from(vec3 world, vec3 cam, float floor_y, float density, float falloff) {
 	vec3 ray = world - cam;
 	float dist = length(ray);
 	float ry = ray.y / max(dist, 1e-4);
-	float falloff = HEIGHT_FOG_FALLOFF * mix(1.0, EERIE_FOG_FALLOFF, atmosphere_eerie);
-	float start = HEIGHT_FOG_DENSITY * mix(1.0, EERIE_FOG_DENSITY, atmosphere_eerie) * exp(-max(cam.y, 0.0) * falloff);
+	float start = density * exp(-max(cam.y - floor_y, 0.0) * falloff);
 	float amount = abs(ry) < 1e-3
 		? start * dist
 		: start * (1.0 - exp(-dist * ry * falloff)) / (ry * falloff);
 	return 1.0 - exp(-max(amount, 0.0));
+}
+
+// The stage's height fog from cam to world (0 clear, 1 all fog), measured from the floor (y 0).
+float height_fog(vec3 world, vec3 cam) {
+	float falloff = HEIGHT_FOG_FALLOFF * mix(1.0, EERIE_FOG_FALLOFF, atmosphere_eerie);
+	float density = HEIGHT_FOG_DENSITY * mix(1.0, EERIE_FOG_DENSITY, atmosphere_eerie);
+	return height_fog_from(world, cam, 0.0, density, falloff);
 }

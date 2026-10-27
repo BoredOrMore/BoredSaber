@@ -13,7 +13,6 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.show_sabers_for_map()
 	game.multiplier_label.visible = true
 	game.point_label.visible = true
-	game.percent_indicator.visible = true
 	game.health_rails.visible = Settings.health_mode
 	game.track.visible = true
 	game.left_ui_raycast.visible = false
@@ -24,9 +23,11 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.right_saber.set_swingcast_enabled(true)
 	Scoreboard.paused = false
 	_lead_in_shown = -1
+	DebugView.cycle_from_flag()
 
 func _physics_process(game: BeepSaber_Game) -> void:
 	DebugView.cycle_tick()
+	DebugView.apply(game)
 	if game.failing:
 		return
 	for controller: BeepSaberController in [game.left_controller, game.right_controller]:
@@ -67,6 +68,16 @@ func _process_map(game: BeepSaber_Game) -> void:
 		return
 	
 	var current_beat := game.get_current_time() * Map.current_info.beats_per_minute * 0.016666666666666667
+	spawn_due(current_beat)
+	
+	game.event_driver.show_beat = current_beat
+	while not Map.event_stack.is_empty() and Map.event_stack[-1].beat <= current_beat:
+		game.event_driver.process_event(Map.event_stack.pop_back() as EventInfo)
+
+## Spawns the map's notes, bombs, walls, arcs and chains that are due by `current_beat` (within the jump's half,
+## Map.half_jump_beats, ahead), from the GlobalReferences pools. Shared with the stage preview
+## (tools/capture/stage_capture.gd --notes).
+static func spawn_due(current_beat: float) -> void:
 	var look_ahead := current_beat + Map.half_jump_beats
 	
 	# chains connect to a regular colornote and modify it, so we have to keep
@@ -126,7 +137,3 @@ func _process_map(game: BeepSaber_Game) -> void:
 		var chain_info := Map.chain_stack.pop_back() as ChainInfo
 		if chain_info.slice_count > 1: # skip if the chain doesn't have any links
 			ChainLink.construct_chain(chain_info, current_beat, note_info_refs, cube_refs)
-	
-	game.event_driver.show_beat = current_beat
-	while not Map.event_stack.is_empty() and Map.event_stack[-1].beat <= current_beat:
-		game.event_driver.process_event(Map.event_stack.pop_back() as EventInfo)

@@ -59,14 +59,17 @@ const OPENSABER_ANGLE_ACCURACY_SCORE := 50.
 const OPENSABER_DISTANCE_ACCURACY_SCORE := 50.
 const OPENSABER_GOOD_SCORE := 88.
 const OPENSABER_CHAIN_LINK_SCORE := 20
-const SWING_CHAIN_HEAD_SCORE = 90
-const SWING_ACCURACY_SCORE = 20.
-const SWING_PRESWING_SCORE = 90.
-const SWING_FOLLOWTHROUGH_SCORE = 40.
+## Beat Saber's points (owner, 2026-10-26; bsmg.wiki/ranking-guide.html): 70 approach + 30 follow-through + 15
+## centre = 115 a note, a chain head 70 + 15 = 85 and a link 20. They were 90 / 40 / 20 (150), the same shares.
+const SWING_CHAIN_HEAD_SCORE = 85
+const SWING_ACCURACY_SCORE = 15.
+const SWING_PRESWING_SCORE = 70.
+const SWING_FOLLOWTHROUGH_SCORE = 30.
 const TARGET_PRESWING_ANGLE = 100.
 const TARGET_FOLLOWTHROUGH_ANGLE = 60.
-const SWING_GOOD_SCORE := 95.
-const SWING_CHAIN_LINK_SCORE := 25
+## a cut at or above this shows its number in the accent colour (95 of 150 before, the same share of 115)
+const SWING_GOOD_SCORE := 73.
+const SWING_CHAIN_LINK_SCORE := 20
 const HEALTH_MISS := -15.
 const HEALTH_BAD_CUT := -10.
 const HEALTH_HIT  := 1.
@@ -159,8 +162,35 @@ const DIFFICULTY_BLOCK_SIZE_GIANT := 0x1000000 | 0x2000000
 ## Set in a record's rank when walls were off. 0x10000 is avoided: old records used it for small blocks.
 const DIFFICULTY_NO_WALLS := 0x4000000
 const NO_WALLS_LABEL := "No Walls"
-## Score kept with walls off, as Beat Saber's No Walls modifier (-5%, bsmg.wiki/ranking-guide.html).
-const NO_WALLS_SCORE_SCALE := 0.95
+## Modifiers change the score as Beat Saber's do (owner, 2026-10-26; bsmg.wiki/ranking-guide.html): their shares
+## add up and the points are kept at 1 plus the sum. Ours that Beat Saber has take its values; speeds it lacks are read
+## off a straight line through its (speed %, share) points, extended past the last; ours that make the game easier
+## and have no Beat Saber match (wider lanes, bigger blocks, half damage) take a share in proportion. Harder ones
+## without a match (short sabers, more damage), the health modes, flips and handedness: 0.
+const NO_WALLS_SCORE := -0.05
+const NO_BOMBS_SCORE := -0.10
+const NO_ARROWS_SCORE := -0.30
+## No Fail: half the score once health would have run out (Beat Saber: "0.00 / -0.50")
+const NO_FAIL_SPENT_SCORE := -0.50
+## Beat Saber's Slower (85%), Faster (120%) and Super Fast (150%) songs
+const SPEED_SCORE: Array[Vector2] = [Vector2(85, -0.30), Vector2(100, 0.0), Vector2(120, 0.08), Vector2(150, 0.10)]
+## wider lanes: -10% at 200% width; bigger blocks: -5% Big (150), -10% Giant (225); half damage: -10%
+const WIDTH_SCORE: Array[Vector2] = [Vector2(100, 0.0), Vector2(200, -0.10)]
+const BLOCK_SIZE_SCORE: Array[Vector2] = [Vector2(100, 0.0), Vector2(150, -0.05), Vector2(225, -0.10)]
+const HALF_DAMAGE_SCORE := -0.10
+
+## The share on a straight line through points (sorted by x), extended past the ends; nothing below the first for
+## tables that start at 100 (sizes and widths under 100 are not easier).
+static func score_share(points: Array[Vector2], x: float) -> float:
+	if x <= points[0].x:
+		return points[0].y if points[0].x >= 100.0 else _lerp_through(points[0], points[1], x)
+	for i in range(1, points.size()):
+		if x <= points[i].x:
+			return _lerp_through(points[i - 1], points[i], x)
+	return _lerp_through(points[-2], points[-1], x)
+
+static func _lerp_through(a: Vector2, b: Vector2, x: float) -> float:
+	return a.y + (b.y - a.y) * (x - a.x) / (b.x - a.x)
 
 # Menu colours, shared by the 3D panels (end score, buttons); keep in step with game/ui/menu_theme.tres.
 const UI_PANEL := Color(0.086, 0.094, 0.114)
@@ -182,11 +212,10 @@ const MISS_COLOR := Color("ff4d5e")
 const COMBO_RING_COLOR := UI_TEXT
 const COMBO_RING_EMPTY_COLOR := Color(0.26, 0.28, 0.32)
 
-# Shadow toning for the scenery: black becomes SHADOW_TINT, fading out toward mid-tones (game/env/shadow_tone.gdshaderinc).
-const SHADOW_TINT := Color(0.0, 0.0, 0.102)
-# The Eerie atmosphere (Settings.atmosphere, agreed with the user 2026-10-22): shadows lean cold blue-green instead,
-# and the haze is pulled toward this cold grey; both stay dark, so the note colours keep standing out most.
-const EERIE_SHADOW_TINT := Color(0.0, 0.055, 0.075)
+# The scenery's shadows stay black: no colour toning (a navy tint in the darks was removed on the owner's request,
+# 2026-10-26: it turned every stage's darkest colour dark navy).
+# The Eerie atmosphere (Settings.atmosphere, agreed with the user 2026-10-22): the haze is pulled toward this cold
+# grey; it stays dark, so the note colours keep standing out most.
 const EERIE_HAZE_TINT := Color(0.8, 0.95, 1.05)
 # Walls and bombs use one danger colour: Beat Saber's default wall red (agreed with the user 2026-10-19), unless the
 # map sets its own wall colour.
@@ -220,16 +249,17 @@ const MAP_ENVIRONMENTS := {
 # Environment for a map whose environment is Default, by the first of its BeatSaver genre tags found here.
 const TAG_ENVIRONMENTS := {
 	"electronic": "neon_grid", "house": "neon_grid", "techno": "neon_grid", "trance": "neon_grid",
-	"dubstep": "neon_grid", "drum-and-bass": "neon_grid",
 	"pop": "night_city", "k-pop": "night_city", "j-pop": "night_city", "hip-hop-rap": "night_city",
 	"rb": "night_city", "dance": "night_city", "anime": "night_city", "vocaloid": "night_city",
-	"rock": "pulse_void", "metal": "pulse_void", "punk": "pulse_void", "hardcore": "pulse_void",
-	"alternative": "pulse_void",
+	"rock": "pulse_void", "punk": "pulse_void", "hardcore": "pulse_void", "alternative": "pulse_void",
+	# the owner's pick, 2026-10-25 (BeatSaver has no "industrial" tag)
+	"metal": "metal_factory", "dubstep": "metal_factory", "drum-and-bass": "metal_factory",
 	"classical-orchestral": "classic", "jazz": "classic", "ambient": "classic", "kids-family": "classic",
 	"tv-movie-soundtrack": "classic", "video-game-soundtrack": "classic",
 }
 # Environments a map with neither a known environment nor a genre tag is spread over, the same one for a song
 # every time.
+# Metal Factory stays out: only its genre tags pick it (owner, 2026-10-27).
 const AUTO_ENVIRONMENTS := ["classic", "neon_grid", "night_city", "pulse_void"]
 
 # Difficulty colours as players know them from Beat Saber, keyed by the map's difficulty name.

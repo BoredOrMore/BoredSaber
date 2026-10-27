@@ -34,6 +34,12 @@ const HALO_REST := 0.6
 const PULSE_SCALE := 1.06
 const PULSE_SECONDS := 0.35
 const TOP_RANK_SPARKLE := 0.8
+## How wide the song's lines may run on the board (metres, from the name label's left edge): the first to the board's
+## right padding, the second (level and map author) to just before "New Record!" (NRMesh). Longer lines end in "…"
+## instead of spilling off the board (owner on the headset, 2026-10-25: the score board's content overflowed).
+const NAME_WIDTHS := [1.8, 1.3]
+## the name card's text, one line, at most this wide
+const CARD_TEXT_WIDTH := 1.5
 ## The name card under the score (where this run stands on the map's board, and the button to name it) lights its
 ## border once when the count lands, so the eye goes to it after the score (untuned).
 const CARD_GLOW_SECONDS := 0.8
@@ -124,6 +130,13 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 	var name_label := ($NameLabel as MeshInstance3D).mesh as TextMesh
 	
 	details_material.albedo_color = Color.TRANSPARENT
+	# the count-up starts from nothing: animated_percent still held the last song's accuracy until the tween's first
+	# step, so the first frames showed its rank (SS) and a score counted past this one's (owner, 2026-10-25)
+	animated_percent = 0.0
+	# the rank, Full Combo and New Record letters live in small viewports whose pictures still hold the last song's
+	# until they render again: hidden until they have, so no frame shows the old rank (owner, 2026-10-25)
+	grade_label.text = ""
+	_reveal_marks()
 	grade_label.modulate = Color.TRANSPARENT
 	fc_label.modulate = Color.TRANSPARENT
 	nr_label.modulate = Color.TRANSPARENT
@@ -138,7 +151,10 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 	var shown_rank := ""
 	fc_label.visible = is_full_combo
 	nr_label.visible = is_new_record
-	name_label.text = song_string
+	var lines := song_string.split("\n")
+	for i in lines.size():
+		lines[i] = _fit(($NameLabel as MeshInstance3D).mesh as TextMesh, lines[i], NAME_WIDTHS[mini(i, NAME_WIDTHS.size() - 1)])
+	name_label.text = "\n".join(lines)
 	details_mesh.text = "Score\n%d\n\nRecord\n%d" % [score,record]
 	# after a fail, trying again is the likely next step
 	var repeat_button := $Repeat as UIRaycastButton
@@ -162,7 +178,7 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 		while tw.is_running() and is_visible_in_tree():
 			var progress := animated_percent / percent if percent > 0.0 else 1.0
 			percent_indicator.update_percent(animated_percent)
-			var rank := _grade(animated_percent)
+			var rank := grade(animated_percent)
 			if rank != "F" and rank != shown_rank:
 				shown_rank = rank
 				_show_rank(grade_label, rank)
@@ -183,7 +199,7 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 		
 		percent_indicator.update_percent(animated_percent)
 		details_mesh.text = "Score\n%d\n\nRecord\n%d" % [score, record]
-		var final_rank := _grade(percent)
+		var final_rank := grade(percent)
 		if final_rank != shown_rank:
 			_show_rank(grade_label, final_rank)
 		var final_color := Constants.RANK_COLORS[final_rank] as Color
@@ -216,9 +232,25 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 	tw.tween_property(nr_label,^"modulate",Color.WHITE,2).from(Color.TRANSPARENT)
 	tw.play()
 
+## Hides the rank, Full Combo and New Record pictures until their viewports have drawn this song's text.
+func _reveal_marks() -> void:
+	var marks: Array[MeshInstance3D] = [$GradeMesh, $FCMesh, $NRMesh]
+	for mark in marks:
+		mark.visible = false
+	# drawn once this frame (they may have been off while the screen was hidden), then shown
+	for viewport: SubViewport in [$GradeViewport, $FCViewport, $NRViewport]:
+		viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	await RenderingServer.frame_post_draw
+	await RenderingServer.frame_post_draw
+	for mark in marks:
+		mark.visible = true
+	for viewport: SubViewport in [$GradeViewport, $FCViewport, $NRViewport]:
+		viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_VISIBLE
+
 ## The rank for an accuracy, with Beat Saber's thresholds (SS 90%, S 80%, A 65%, B 50%, C 35%, D 20%); below that,
 ## or after a fail, F.
-func _grade(percent: float) -> String:
+## The grade for an accuracy (0..1), as on the score screen; the HUD shows it live too.
+static func grade(percent: float) -> String:
 	for rank: Array in GRADES:
 		if percent >= rank[0]:
 			return rank[1]
@@ -243,7 +275,8 @@ func set_buttons_disabled(disabled: bool) -> void:
 ## Shows a line on the name card.
 func show_name_card(text: String) -> void:
 	_name_card.visible = true
-	_name_label.text = text
+	# one line: the card is one line tall
+	_name_label.text = _fit(_name_label, text.replace("\n", "  ·  "), CARD_TEXT_WIDTH)
 	($MainMenu as UIRaycastButton).set_primary(_finished)
 
 func hide_name_card() -> void:
@@ -261,3 +294,16 @@ func _on_Repeat_button_up() -> void:
 func _on_MainMenu_button_up() -> void:
 	set_buttons_disabled(true)
 	mainmenu.emit()
+
+## `text` cut to fit `width` metres in `mesh`'s font, ending in "…" when cut.
+static func _fit(mesh: TextMesh, text: String, width: float) -> String:
+	var font := mesh.font
+	var size := mesh.font_size
+	var fits := func(t: String) -> bool:
+		return font.get_string_size(t, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x * mesh.pixel_size <= width
+	if fits.call(text):
+		return text
+	var cut := text.length()
+	while cut > 1 and not fits.call(text.substr(0, cut).strip_edges() + "…"):
+		cut -= 1
+	return text.substr(0, cut).strip_edges() + "…"

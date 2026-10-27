@@ -74,7 +74,7 @@ const FADE_SECONDS := 0.3
 ## Push that throws the two halves of a cut note apart (the game's notes use the same).
 const SPLIT_IMPULSE := 2.0
 ## The game's note model and look.
-const NOTE_SCENE := preload("res://game/BeepCube/BeepCube.tscn")
+const NOTE_SCENE := preload("res://game/notes/BeepCube/BeepCube.tscn")
 
 ## The sabers that can cut it, set by the game.
 var sabers: Array[LightSaber] = []

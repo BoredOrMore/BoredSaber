@@ -32,7 +32,7 @@ const NOTE_STYLES := [ ["solid", "Solid"], ["neon", "Neon"] ]
 const NOTE_DARK_VALUE := 0.7
 ## the scenery around the track, picked on the song menu's Song tab; "auto" follows the environment each map was made for
 ## (EventDriver.pick_environment)
-const ENVIRONMENTS := [ ["auto", "Follow map"], ["classic", "Classic"], ["neon_grid", "Neon Grid"], ["pulse_void", "Pulse Void"], ["night_city", "Night City"] ]
+const ENVIRONMENTS := [ ["auto", "Follow map"], ["classic", "Classic"], ["neon_grid", "Neon Grid"], ["pulse_void", "Pulse Void"], ["night_city", "Night City"], ["metal_factory", "Metal Factory"] ]
 ## Graphics presets in Settings > Visuals: the effects each sets (Settings key: value). Glow was the only one
 ## measured to cost much on the headset (about 6 of a 13.9 ms frame). Both keep the light show (about 0.2 ms) and the
 ## slash note's light (about 0.3 ms): players missed them off.
@@ -41,19 +41,18 @@ const GRAPHICS_PRESETS := {
 	"Normal": {&"glare": true, &"smoke": true, &"saber_tail": true, &"cube_cuts_falloff": true, &"background": "dynamic"},
 }
 const GRAPHICS_CUSTOM := "Custom"
-## Render scales (OpenXR render target size multiplier) the Low preset may use: [name, scale]. Measured on the
-## headset: Low at 1.44x takes about 11 of the 13.9 ms frame in a song; Normal is over budget already at 1.2x, so
-## everything but Low renders at 1x.
+## Render scales (OpenXR render target size multiplier) the player may pick: [name, scale]. Measured on the headset:
+## Low at 1.44x takes about 11 of the 13.9 ms frame in a song; Normal was over budget already at 1.2x, so only Low
+## could pick one, until the owner unlocked it on every preset (2026-10-25); a song that stutters still lowers Full to
+## Sharp (resolution_cap).
 const RESOLUTIONS := [["Normal", 1.0], ["Sharp", 1.2], ["Full", 1.44]]
 
 ## A RESOLUTIONS name the render scale is held at or below for the rest of the session ("" none): the game lowers
 ## Full to Sharp when a song stutters, leaving the picked resolution as it is.
 var resolution_cap := ""
 
-## The render scale in use: the picked resolution on Low (at most resolution_cap), 1 otherwise.
+## The render scale in use: the picked resolution, at most resolution_cap.
 func render_scale() -> float:
-	if graphics_preset() != "Low":
-		return 1.0
 	var scale := _resolution_scale(resolution)
 	if not resolution_cap.is_empty():
 		scale = minf(scale, _resolution_scale(resolution_cap))
@@ -217,7 +216,7 @@ var bombs_enabled: bool:
 	set(value):
 		bombs_enabled = value
 		set_and_emit(&"bombs_enabled", value)
-## Walls modifier: off leaves every wall out of the song, for 5% less score (Constants.NO_WALLS_SCORE_SCALE).
+## Walls modifier: off leaves every wall out of the song, for 5% less score (Constants.NO_WALLS_SCORE).
 var walls_enabled: bool:
 	set(value):
 		walls_enabled = value
@@ -269,6 +268,35 @@ var spectator_view: bool:
 	set(value):
 		spectator_view = value
 		set_and_emit(&"spectator_view", value)
+## the old see-through track sheet instead of the deck with curbs (TrackDeck), to compare them (owner, 2026-10-25)
+var old_track: bool:
+	set(value):
+		old_track = value
+		set_and_emit(&"old_track", value)
+## the older note looks (Solid or Neon, note_style) instead of the glossy default one (BeepCube.gdshader), to compare
+## them (owner, 2026-10-25)
+var classic_notes: bool:
+	set(value):
+		classic_notes = value
+		set_and_emit(&"classic_notes", value)
+## the older walls (DangerWall.gdshader: two blended faces, a wide halo) instead of the framed default ones
+## (FramedWall.gdshader), to compare them (owner, 2026-10-25)
+var classic_walls: bool:
+	set(value):
+		classic_walls = value
+		set_and_emit(&"classic_walls", value)
+## Night City's classic layout (rows of buildings on both sides) instead of the giant building canyon (NightCityRig),
+## to compare them (owner, 2026-10-25)
+var classic_night_city: bool:
+	set(value):
+		classic_night_city = value
+		set_and_emit(&"classic_night_city", value)
+## The display at 90 Hz instead of 72 when the headset offers it (vr.apply_refresh_rate): 72 is the default for every
+## scene, a 13.9 ms frame (owner, 2026-10-26)
+var refresh_90: bool:
+	set(value):
+		refresh_90 = value
+		set_and_emit(&"refresh_90", value)
 var spectator_hud: bool:
 	set(value):
 		spectator_hud = value
@@ -313,7 +341,7 @@ func msaa_mode() -> Viewport.MSAA:
 			return entry[1]
 	return Viewport.MSAA_DISABLED
 
-## The resolution picked for the Low preset (a RESOLUTIONS name), kept while on another preset.
+## The resolution picked (a RESOLUTIONS name), on any preset.
 var resolution: String:
 	set(value):
 		resolution = value
@@ -462,6 +490,11 @@ var default_values = {
 	audio_sfx = 0.8,
 	spectator_view = false,
 	spectator_hud = true,
+	old_track = false,
+	classic_notes = false,
+	classic_walls = false,
+	classic_night_city = false,
+	refresh_90 = false,
 	background = "dynamic",
 	environment = "auto",
 	note_style = "solid",

@@ -39,6 +39,13 @@ const TOTAL := "total"
 ## The flag file's mode for the refresh rate (tools/bench.sh --only hz90): the menu and a song at 72 and at 90 Hz, on
 ## the player's own settings, plus a song at 90 Hz on Low; 72 Hz again last, as the headset warms up through a run.
 const HZ90 := "hz90"
+## The flag file's mode for the stages' cost (tools/bench.sh --only fog): in a song on Night City (the canyon), all on,
+## then the glow lighter (LIGHT_GLOW), then the scenery (EnvSolid: towers, roofs, deck edges) drawn one flat colour,
+## then left out, then all on again; then the same on Metal Factory. Flat against all on is the scenery shader's cost,
+## flat against none the area it covers. Each fog part on its own cost under half a millisecond (bench, 2026-10-25),
+## so those phases are gone. Each phase sets its state every frame, as the song's start hangs the stage again.
+const FOG := "fog"
+const FOG_SONG_SECONDS := 20.0
 const HZ_SONG_SECONDS := 20.0
 const RENDER_SCALES: Array[float] = [1.0, 1.2, 1.44]
 const RESOLUTION_SONG_SECONDS := 20.0
@@ -95,7 +102,29 @@ static func requested() -> Variant:
 ## settings): if the game closes mid-run, the next launch puts them back (restore_interrupted).
 const BACKUP_FILE := "benchmark_settings.json"
 const SAVED_KEYS: Array[StringName] = [&"glare", &"smoke", &"saber_tail", &"cube_cuts_falloff", &"background", &"health_mode",
-		&"msaa", &"glow_quality", &"atmosphere"]
+		&"msaa", &"glow_quality", &"atmosphere", &"environment", &"classic_night_city"]
+
+## The fog mode's stage: Night City's canyon (environment is put back with the rest of the saved settings).
+func _night_city() -> void:
+	Settings.environment = "night_city"
+	Settings.classic_night_city = false
+
+## The glow image's height before the run, and the lighter glow's share of it.
+var _glow_height := LowResGlow.height
+const LIGHT_GLOW := 0.75
+
+func _metal_factory() -> void:
+	Settings.environment = "metal_factory"
+
+## Glow, scenery and its shading on, but the one named ("" none off), on any stage.
+func _stage_parts(off: String) -> void:
+	var glare := off != "glow"
+	if Settings.glare != glare:
+		Settings.glare = glare
+	# a lighter glow: its image LIGHT_GLOW of its height (fewer pixels to draw and blur, a softer glow)
+	LowResGlow.height = roundi(_glow_height * LIGHT_GLOW) if off == "light_glow" else _glow_height
+	var views := {"scenery": DebugView.RINGS, "shading": DebugView.FLAT_SCENERY}
+	RenderingServer.global_shader_parameter_set(&"debug_view", views.get(off, 0))
 
 ## Puts back and saves the settings of a run the game closed in the middle of; call at launch.
 static func restore_interrupted() -> void:
@@ -137,6 +166,15 @@ func _phases(mode: String) -> Array:
 		for phase: Array in glow_phases:
 			phases.append([phase[0] + "_song", Callable(), _set_glow.bind(phase[1], phase[2], phase[3], phase[4], phase[5]),
 					MSAA_SONG_SECONDS, true])
+		return phases
+	if mode == FOG:
+		var phases := []
+		for stage: Array in [["night_city", _night_city], ["metal_factory", _metal_factory]]:
+			for off: String in ["", "light_glow", "shading", "scenery"]:
+				phases.append(["%s_%s_song" % [stage[0], "all_on" if off == "" else "no_" + off],
+					func(_t: float) -> void: _stage_parts(off), stage[1], FOG_SONG_SECONDS, true])
+			phases.append(["%s_all_on_again_song" % stage[0], func(_t: float) -> void: _stage_parts(""), stage[1],
+				FOG_SONG_SECONDS, true])
 		return phases
 	if mode == HZ90:
 		var phases := []
@@ -355,6 +393,7 @@ func _show_status(phase_name: String) -> void:
 
 ## Puts every setting the benchmark touches back.
 func _restore() -> void:
+	LowResGlow.height = _glow_height
 	for key: StringName in _saved:
 		if Settings.get(key) != _saved[key]:
 			Settings.set(key, _saved[key])

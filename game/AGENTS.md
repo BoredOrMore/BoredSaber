@@ -43,14 +43,13 @@ constraints apply here unchanged.
 
 ## File map (root)
 
-- `BeepSaber_Game.gd/.tscn` — main scene: states, pools, health/fail, colours, HUD text, rumble, recenter.
+- `BeepSaber_Game.gd/.tscn` — main scene: states, pools, health/fail, colours, rumble, recenter; makes the `Hud` (`hud/`).
 - `Map.gd` — beatmap v2/v3/v4 parsing into stacks, note jump (`set_note_jump`), `beats_per_second()`
   (includes `Settings.music_speed`), map/custom colours with handedness overrides.
 - `Constants.gd` — layout, scoring, health, fail modes, modifier bitmasks, UI/danger colours.
 - `Settings.gd` — persisted `config.ini` options; every setter calls `set_and_emit()` -> `changed(name)`.
 - `Scoreboard.gd` — points, combo/multiplier, accuracy, wall/miss/bomb penalties; signals
   `score_changed`, `points_awarded`.
-- `Cuttable.gd` — base for `BeepCube`, `ChainLink`, `Bomb`: lane movement, rotation, miss, piece release.
 - `LightSaber.gd/.tscn/.gdshader` — saber collision, show/hide anims, swing history for swing
   scoring, floor burn raycast, `left_saber`/`right_saber` shader globals.
 - `settings_Panel.gd/.tscn` — settings UI (`SettingsPanel`, `apply` signal saves config).
@@ -67,24 +66,20 @@ constraints apply here unchanged.
   last two columns, `guard` the left and right fist-to-eye distance in `time_ms`/`peak_speed`, `low_stance` the eye
   drop in the eye-drop column; charged rows put the hold in `interval_ms` and ok / no_stance / broke_at_<ms> / missed
   in the last `outcome` column). Thresholds are untuned starting values.
-- `EndScore`, `HighscorePanel`, `Pause_Panel` — end, highscore and pause panels.
-- `PercentIndicator` — accuracy ring; `HealthRails` — health strips on the floor along the track edges (bar or 4 life pips); `Points_label_driver` + `points_label` — pool of 8
-  floating score/miss labels (miss "X" uses `MissMark.gdshader`).
+- `EndScore.gd/.tscn`, `HighscorePanel.gd/.tscn`, `Pause_Panel.gd/.tscn` — end, highscore and pause panels;
+  `RankHalo.gdshader` — soft glow round the end screen's result ring (`EndScore.tscn`).
+- `CutFlash.gd` (class `CutFlash`) + `SparkStreak.gdshader` — sparks along the cut line, trails drawn by the shader.
+- `LowResGlow.gd` (class `LowResGlow`) — glow without Godot's glow pass (that pass costs ~5 ms on the Pico 4).
+- `Benchmark.gd` (class `Benchmark`) — hands-off GPU benchmark (Settings > Advanced, or `tools/bench.sh`).
+- `DebugView.gd` (class `DebugView`) — Settings > Advanced switches that leave parts of the scene out to measure
+  their GPU cost; bits of the `debug_view` shader global, never saved.
 - `event_driver.gd/.tscn` — lighting events and background; `floor.gd/.tscn` — floor and burn marks.
-- `SpectatorWindow` — desktop spectator camera/HUD; `vr_slider` — joystick scrolling for UI lists.
-- `UI_Panel.gdshader`, `vr_goggles.*`, `GodotSplash.tscn`, `BlackWhiteThem.tres`, `background*.tres` — visuals.
+- `SpectatorWindow.gd/.tscn` — desktop spectator camera/HUD; `vr_slider.gd/.tscn` — joystick scrolling for UI lists.
+- `UI_Panel.gdshader`, `vr_goggles.gdshader` + `.glb` (the headset model in `BeepSaber_Game.tscn`), `GodotSplash.tscn`, `BlackWhiteThem.tres`, `background*.tres` — visuals.
 
 ## Entity folders
 
-- `BeepCube/` — `BeepCube.gd` (note; `cutted` signal, scoring, rumble), `BeepCube_CutPiece.gd`
-  (`CutPiece` RigidBody halves, `MAX_LIFETIME` 0.3 s), `BeepCube_SliceParticles` (GPU particles freed
-  on Android/Web), `BeepCube.gdshader` (`color`, `is_dot`, `arrows_enabled`, `is_chain_head`, cut uniforms).
-  `BeepCubeTest.tscn` is a standalone test scene.
-- `Chain/` — `ChainLink.gd` (bezier link placement, lenient hitbox, link scoring), shader, mesh.
-- `Arc/` — `Arc.gd` (mesh from `ArcInfo.mesh_arrays`, magnet material on head cut), `Arc.gdshader`
-  (reads `left_saber`/`right_saber`). Static `left_material`/`right_material(_magnet)` are shared.
-- `Bomb/` — `Bomb.gd`, `BombGlow.gdshader` + `bomb_glow.tres` (`danger_color`), meshes.
-- `Wall/` — `Wall.gd` (resizes box mesh/shape per wall), `DangerWall.gdshader` + `danger_wall.tres`.
+- `notes/` — notes, chain links, arcs, bombs, walls and their `Cuttable` base; see `notes/AGENTS.md`.
 - `sabers/` — saber visuals listed in `Settings.SABER_VISUALS`: `default/` (`DefaultSaber`,
   `SaberTail`), `particles/` (`particles_saber.gd` extends `DefaultSaber`, clash sounds).
 - `data/` — static assets: `background/` panoramas and backdrop meshes, `maps/` bundled `Songs/` and
@@ -154,14 +149,14 @@ constraints apply here unchanged.
   `Scoreboard.gd`, cut accuracy in `BeepCube.cut`, swing angles in `LightSaber.gd`.
 - Note colours/presets: `Settings.COLOR_PRESETS`/`color_left/right`; map overrides in
   `Map.set_colors_from_custom_data()`; propagation in `update_left/right_color()`.
-- HUD element: node in `BeepSaber_Game.tscn`, `@onready` in `BeepSaber_Game.gd`, update from
-  `Scoreboard.score_changed` (see `_display_points`), toggle visibility in every
-  `scripts/GameState/*.gd` `_ready`; mirror in `SpectatorWindow` if it should show there.
+- HUD element: see `hud/AGENTS.md`; mirror in `SpectatorWindow` if it should show there.
 - Test: `godot --headless --path . res://tests/test_map_info.tscn` for parsing changes; anything
   touching spawning, cutting, rendering, rumble or XR needs a headset run with `adb logcat`.
 
 ## Subfolders with their own docs
 
+- `notes/` — the things that fly at the player; see `notes/AGENTS.md`.
+- `hud/` — in-song HUD (score, combo, accuracy, time, health, cut numbers); see `hud/AGENTS.md`.
 - `scripts/` — game states, scene pools, controller, UI raycast, highscores, utils; see `scripts/AGENTS.md`.
 - `ui/` — map download/BeatSaver/name-selector panels, UI audio, menu theme; see `ui/AGENTS.md`.
 - `BeatmapInfo/` — parsed map/difficulty/note info classes; see `BeatmapInfo/AGENTS.md`.

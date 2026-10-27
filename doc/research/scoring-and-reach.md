@@ -47,6 +47,21 @@ later notes (fixed da7109c) inflated logged approach scores, so these use the me
 Same songs: Renai Circulation Normal 65% → 77%, Psycho Easy 57% → 80%. The player: "feels much better", arcs and
 chains stay on their notes. Beat Saber's 100°/60° targets stay; lowering them is no longer needed.
 
+## Cut angle: 60° like Beat Saber (2026-10-25)
+
+`score_summary` from two songs on the headset (cc0fb30) split where the grade went:
+
+| Song | Score | Full multiplier | Perfect cuts | Hits / lost | Per cut | Multiplier drops |
+|---|---|---|---|---|---|---|
+| Silhouette Normal | 41.2% (C) | 63.7% | 58.0% | 219 / 24 | 0.70 | bad cut 16, wrong saber 2, wall 2, miss 2 |
+| Crossing Field Normal | 26.0% (D) | 55.4% | 36.2% | 163 / 46 | 0.71 | bad cut 20, wrong saber 2, miss 3 |
+
+The multiplier lost more than the cuts did, and most of its drops were bad-angle cuts: a cut counted only within
+about 46° of the arrow (dot 0.7). Beat Saber allows 60°, a community figure from the decompiled game, not
+published by Beat Games. The owner picked 60°: `BeepCube.GOOD_CUT_DOT` 0.5, the angle points (OpenSaber scoring)
+ramping 0 to 1 over the new range. Each bad-angle cut now logs `bad_angle off <deg> speed <m/s> beat <b> arrow
+<deg> saber <n>`, to check the rule against real swings.
+
 ## Sources
 
 - Points, targets, grades: BSMG Ranking & Scoring Guide, https://bsmg.wiki/ranking-guide.html; AccSaber wiki,
@@ -57,3 +72,34 @@ chains stay on their notes. Beat Saber's 100°/60° targets stay; lowering them 
   `DefaultPlayerHeight = 1.8`, `playerHeightOffset = clamp((height - 1.8) / 2, -0.2, 0.6)`,
   `PlayerCutPlaneDistance = 0.65`. The 0.85 m bottom row is the commonly cited value; ArcViewer gives the offsets
   between rows. Not from Beat Games directly: confirm on the headset.
+
+## Centre points: Beat Saber's formula (2026-10-26)
+
+Beat Saber gives 15 * (1 - Clamp01(d / 0.3)) centre points, d the cut plane's distance from the note's centre in
+metres (BeatLeader's open replay format, github.com/BeatLeader/BS-Open-Replay; community, not published by Beat
+Games). Full only on the centre (about 1 cm with Beat Saber's rounding), about one point per 2 cm, none from 30 cm,
+which is past the block's edge, so any cut that touches a block earns some. Ours was full within 2 cm and none at
+19 cm (the edge of our 0.375 m block): 53% at 10 cm (Beat Saber 67%), 24% at 15 cm (50%), none past 19 cm (37% at 19
+cm). The owner chose Beat Saber's formula: `BeepCube.CUT_CENTRE_FULL` 0, `CUT_CENTRE_REACH` 0.3, the same share of 20.
+Beat Saber's hit boxes (SimSaber, github.com/MetaGuard/SimSaber): good cut 0.8 x 0.5 x 1.0 for arrows (0.8 x 0.8 x 1.0
+for dots) centred 0.25 behind the note, bad cut 0.4 x 0.4 x 0.4; ours match (bad cut 0.375).
+
+## Beat Saber's points and swing measurement (2026-10-26)
+
+The owner chose Beat Saber's numbers: 70 approach + 30 follow-through + 15 centre = 115 a note, chain head 85, link 20
+(were 90 / 40 / 20 = 150, link 25: the same shares, so accuracy and grades don't move; totals are about 0.77 of before).
+Swing angles are now measured as Beat Saber does (SimSaber): the sweep is added up step by step for up to 0.4 s before
+and after the cut while its plane stays within 90° of the cut's, steps past 75° counting less (`LightSaber.swept`).
+Before, the widest angle reached in 0.2 s each way. Not changed: arcs (ours give the head free approach points and the
+tail free follow-through; no source found for Beat Saber's rule) and a minimum swing speed (no confirmed figure).
+
+## Arcs and modifiers (2026-10-26)
+
+Arcs as Beat Saber scores them (owner's source): the note an arc leaves from needs no follow-through, the note it ends
+at needs no approach; ours had them the other way round. Modifiers change the score as Beat Saber's do, shares added
+(Constants.SPEED_SCORE and the rest): No Bombs -10%, No Walls -5%, No Arrows -30%, No Fail -50% once health would
+have run out (No Fail keeps a hidden health bar for this), speed 85% -30% (Beat Saber's Slower Song), 125% +8.3%,
+150% +10%, 175% +11.7% (a line through Beat Saber's 120% +8% and 150% +10%, carried on). Ours without a Beat Saber
+match that make the game easier: width -10% at 200% (in proportion), Big blocks -5%, Giant -10%, half damage -10%.
+Old saved scores (77, all before the 115-point build) were scaled by 115/150 on the headset; the file from before is
+`highscores-backup-2026-10-26-before-115.json` next to it.

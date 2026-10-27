@@ -5,12 +5,12 @@ owner rather than inventing answers.
 
 ## Core experience
 - Genre: VR rhythm game, cutting notes to music with two sabers (Beat Saber maps from BeatSaver).
-- Platform: Pico 4 (standalone, Godot Compatibility renderer, 72 or 90 Hz); a Quest build too.
+- Platform: Pico 4 (standalone, Godot Compatibility renderer, 72 Hz for every scene: a 13.9 ms frame (owner, 2026-10-26)); a Quest build too.
 - Viewpoint: first person, standing, facing -z.
 - Comfort: no artificial movement; short, moderate flashes; nothing large and saturated.
 
 ## World premise
-- Setting: four stages: Classic (steel tunnel and rings), Neon Grid, Night City, Pulse Void.
+- Setting: five stages: Classic (steel tunnel and rings), Neon Grid, Night City, Pulse Void, Metal Factory.
 - What the space is: a concert stage built for the song being played.
 
 ## Gameplay constraints
@@ -21,6 +21,15 @@ See `SPATIAL_LAYOUT.md` (origin, bounds, corridor, exclusion zones) and the root
 - Stages change during a song: structure can assemble during a build-up. Design still to be agreed (below).
 - Each stage has a story (below).
 
+## Metal Factory (owner, 2026-10-25)
+- Its energy strips take the note colours like every other light: no orange, no new colour role.
+- Pistons slam on the map's beat (from its BPM, every beat or every 2 beats), only while the show's intensity is high.
+- At the drop only the side and far pieces turn, on different axes and in different directions; the floor and the
+  track never move (a rest frame against vection).
+- On "Auto" a song tagged metal, dubstep or drum-and-bass on BeatSaver plays in it (on since 2026-10-25; BeatSaver has
+  no "industrial" tag). A map that names a Beat Saber environment in `Constants.MAP_ENVIRONMENTS` keeps that one first,
+  and of several tags the first the table knows wins.
+
 ## Stage stories (agreed with the owner, 2026-10-24, as a first version)
 - Classic: a steel tunnel where a lighting crew rehearses its show. The rings are calibration gates; the moving
   heads are the crew's rig, waiting for the song to start.
@@ -28,6 +37,7 @@ See `SPATIAL_LAYOUT.md` (origin, bounds, corridor, exclusion zones) and the root
 - Night City: a rooftop concert among tall towers. The lasers are mounted on the roofs, and the whole city moves to
   the beat.
 - Pulse Void: a signal from deep space. The rings are the signal itself; the player is its receiver.
+- Metal Factory (owner, 2026-10-25): an underground power plant that the player's signal wakes up.
 
 ## Open questions
 - What does each stage's story change in how it looks or moves (and in its build-up)?

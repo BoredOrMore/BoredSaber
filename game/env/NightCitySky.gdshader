@@ -8,7 +8,7 @@ render_mode unshaded, fog_disabled, shadows_disabled;
 // 1 ring lights -> roof rims and street glow, 2/3 left/right lasers -> half the windows each, 4 centre lights ->
 // the glow over the city.
 global uniform vec4 env_haze;
-#include "res://game/env/shadow_tone.gdshaderinc"
+#include "res://game/env/fog_light.gdshaderinc"
 // DebugView.SKY draws the sky plain black
 global uniform int debug_view;
 // r haze, g window, b the window's random number, a roof rims and street glow
@@ -29,18 +29,27 @@ uniform lowp float bg_4_intensity = 0.0;
 // must match tools/bake_night_city_sky.py
 const float V_TOP = 0.5 - 75.0 / 180.0;
 const float V_BOTTOM = 0.5 + 5.0 / 180.0;
-const float HAZE_SCALE = 1.5;
+const float HAZE_SCALE = 0.75;
 const float RIM_SCALE = 1.0;
 const float BAND_SCALE = 0.25;
 const float GLOW_SCALE = 0.5;
 // windows: how bright they glow with their light, how faintly with the haze alone, the share switched on, and
 // how many seconds each one stays as it is
 const float WINDOW_LIGHT = 0.9;
-const float WINDOW_HAZE = 2.0;
+const float WINDOW_HAZE = 1.0;
 const float WINDOWS_ON = 0.7;
 const float WINDOW_PERIOD = 6.0;
 
+// the haze lit from the key light, per vertex: the sky and the cloud sea are fine enough meshes that it looks the same
+// as per pixel, for less work (fog benchmark, 2026-10-25)
+varying vec3 haze_v;
+void vertex() {
+	haze_v = fog_lit(env_haze.rgb, (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz - CAMERA_POSITION_WORLD);
+}
+
 void fragment() {
+	// the haze lit from the stage's key light, seen this way (fog_light.gdshaderinc)
+	vec3 haze = haze_v;
 	if ((debug_view & 16) != 0) {
 		ALBEDO = vec3(0.0);
 	} else {
@@ -51,11 +60,11 @@ void fragment() {
 		mediump float cycle = floor(TIME / WINDOW_PERIOD + sharp.b * 8.0);
 		mediump float on = step(fract(sharp.b * 91.7 + cycle * 0.618), WINDOWS_ON);
 		mediump vec3 window_light = mix(bg_2_tint.rgb * bg_2_intensity, bg_3_tint.rgb * bg_3_intensity, step(0.5, fract(sharp.b * 3.7)));
-		ALBEDO = env_haze.rgb * (sharp.r * HAZE_SCALE)
-				+ (window_light * WINDOW_LIGHT + env_haze.rgb * WINDOW_HAZE) * (sharp.g * on)
+		ALBEDO = haze * (sharp.r * HAZE_SCALE)
+				+ (window_light * WINDOW_LIGHT + haze * WINDOW_HAZE) * (sharp.g * on)
 				+ bg_1_tint.rgb * (bg_1_intensity * sharp.a * RIM_SCALE)
 				+ bg_0_tint.rgb * (bg_0_intensity * soft.r * BAND_SCALE)
 				+ bg_4_tint.rgb * (bg_4_intensity * soft.g * GLOW_SCALE);
-		ALBEDO = shadow_tone(ALBEDO);
+		ALBEDO = fog_dither(ALBEDO, FRAGCOORD.xy);
 	}
 }

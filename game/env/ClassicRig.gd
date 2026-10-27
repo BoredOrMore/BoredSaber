@@ -1,69 +1,93 @@
+@tool
 extends Node3D
 class_name ClassicRig
-## The Classic environment's structure, which its lights are mounted on (AGENTS.md "Light", rule 5): a portal
-## frame behind each square light frame, so those bars run along steel beams like Beat Saber's tunnel, and a
-## pedestal under every diagonal and waving laser fixture, so the beams leave a surface instead of empty air.
-## A smaller frame stands around the player, the tunnel's first gate.
-## Dark boxes drawn in one MultiMesh with the scenery's fog shader. Sizes in metres; fixture positions come
-## from event_driver.tscn. Untuned.
+## The Classic environment (doc/assets/classic_tunnel/spec.md; owner, 2026-10-27: the giant test tunnel, blockout): a
+## lighting crew rehearses inside a test tunnel built for something far bigger than people, a round bore 120 m
+## across (BORE_RADIUS), its ribs running on past RIB_FAR ahead; the track is the maintenance walkway along its
+## bottom. The crew flies six hanging scaffolds in from the ceiling as the song builds (the old frames' build-up, far
+## ones first; owner, 2026-10-27: suspended scaffolds instead of wall-to-wall trusses); on the
+## drop the tunnel's own test lights run along its ribs from far to near (rib strips, EventDriver).
+## Lights on things that belong there (AGENTS.md "Light", rule 5): the square bars under the scaffolds' decks and the
+## rib strips, the moving heads standing on the decks, the waving lasers' follow spots on the wall catwalks.
+## Main elements (bore, scaffolds, catwalks) symmetric; the props near the track and the scaffolds' tool boxes are not.
+## Dark boxes in one MultiMesh with the scenery's shader; the rib strips in their own (ArchStrip.gdshader). A tool
+## script, so the tunnel shows in the editor too (built, not saved: no owner). Sizes in metres, blockout, untuned.
 
 const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
-## the square light frames sit at x +-11 (side bars from y -4.8 to 4.8) and y 11, every 10 m from z -10 to -60;
-## the frames just outside them
+const ARCH_STRIP := preload("res://game/env/ArchStrip.gdshader")
+## the hanging scaffold (doc/assets/hanging_scaffold/spec.md): deck, tubes and rails; origin at the deck's top centre
+const HANGING_SCAFFOLD := preload("res://game/models/hanging_scaffold.glb")
+## a rib segment and a lining panel (doc/assets/tunnel_parts/spec.md), each at its box's centre and in metres, placed
+## with the boxes' transforms unscaled
+const TUNNEL_RIB := preload("res://game/models/tunnel_rib.glb")
+const TUNNEL_LINING := preload("res://game/models/tunnel_lining.glb")
+## an 8 m span of a wall catwalk (doc/assets/wall_catwalk/spec.md): origin at the deck's top centre, +x toward the wall
+const WALL_CATWALK := preload("res://game/models/wall_catwalk.glb")
+const CATWALK_SPAN := 8.0
+## the crew's kit where it stands, uneven left and right (doc/assets/classic_props/spec.md: flight cases, a cable reel,
+## a scissor lift, the ladder up to the right catwalk), one mesh at the origin; and the tool box on each scaffold
+const CLASSIC_PROPS := preload("res://game/models/classic_props.glb")
+const TOOL_BOX := preload("res://game/models/tool_box.glb")
+## the bore: radius, its centre's height, the ribs' spacing, nearest and farthest z, boxes round each rib and the rib's
+## section (across the ring, along the bore). The track runs along the circle's bottom (owner, 2026-10-27: keep the
+## 59 m centre, its size). A lining closes the bore between the ribs (LINING thick, behind them), so the curve rises
+## from beside the track instead of opening onto the sky; the ribs and lining under FLOOR_Y are left out and a floor
+## plate there, just under the track deck, reaches the lowest lining panels.
+const BORE_RADIUS := 60.0
+const BORE_CENTRE_Y := 59.0
+const FLOOR_Y := -0.3
+const LINING := 0.3
+const RIB_STEP := 25.0
+const RIB_NEAR := 25.0
+const RIB_FAR := -600.0
+const RIB_SEGMENTS := 24
+const RIB := Vector2(2.4, 3.0)
+## The hanging scaffolds at the old frames' places, their decks' tops SCAFFOLD_Y up when in place: the model (across,
+## depth under the deck's top, deep), a cable from each of its lugs (CABLE_X) up through the ceiling (thin but seen),
+## and a tool box on each deck, not in the same place twice.
 const FRAME_Z: Array[float] = [-10.0, -20.0, -30.0, -40.0, -50.0, -60.0]
-const FRAME_HALF_WIDTH := 11.6
-const FRAME_TOP := 11.6
-const FRAME_BOTTOM := -5.0
-const BEAM := 0.5
-## Near the player, out of the note lane and clear of the view ahead, a few pieces stand within a few metres so
-## they move against the far scenery as the head moves (parallax), which makes the player feel they stand in the
-## place rather than in front of it.
-## The gate around the player: its z (the player stands at 1), half width and top.
-const NEAR_FRAME := Vector3(0.5, 3.5, 4.5)
-## diagonal laser fixtures (x, z) and waving laser fixtures (x, z), with the pedestal under each
-const DIAGONAL_FIXTURES: Array[Vector2] = [
-	Vector2(4.57, -30.0), Vector2(4.57, -35.0), Vector2(4.57, -40.0), Vector2(4.57, -45.0), Vector2(4.57, -50.0),
-	Vector2(-4.43, -30.0), Vector2(-4.43, -35.0), Vector2(-4.43, -40.0), Vector2(-4.43, -45.0), Vector2(-4.43, -50.0),
-]
-const WAVING_FIXTURES: Array[Vector2] = [
-	Vector2(-12.43, -21.0), Vector2(-12.43, -24.0), Vector2(-12.43, -27.0), Vector2(-12.43, -30.0),
-	Vector2(12.43, -30.0), Vector2(12.43, -27.0), Vector2(12.43, -24.0), Vector2(12.43, -21.0),
-]
-const PEDESTAL := Vector3(1.6, 3.0, 1.2)
-const PEDESTAL_TOP := 0.05
-## the laser fixtures' tilt axes (their pivots, LaserFixtures.gd) sit this high: the yoke's foot is 0.54 m below its
-## tilt axis (tools/models/laser_fixture.py prints it), standing on the pedestal's top
-const FIXTURE_Y := PEDESTAL_TOP + 0.54
-## Building the tunnel during a song (the crew sets up its rig as the song builds, doc/world/GAME_BIBLE.md): each
-## frame stands on its own share of the show's build-up (EventDriver), the far ones first, from FIRST_FRAME_AT to
-## LAST_FRAME_AT; when its share is reached it rises out of the dark below the floor, DROP metres, over RISE_SECONDS,
-## and stays. Taken down at a song's start (during the opening blackout) and put back for the menus. The player found
-## the timing right on the headset (2026-10-24).
-const DROP := 18.0
+const SCAFFOLD_Y := 20.0
+const SCAFFOLD := Vector3(40.0, 0.3, 3.0)
+const CABLE_X := 16.0
+const CABLE := 0.2
+## the catwalks along the walls, their wall edge against the lining: height, width, from z, to z
+const CATWALK := Vector4(8.0, 3.0, -8.0, -64.0)
+## the follow spots' tilt axis this far above the catwalk's deck (follow_spot.py PIVOT: on a tripod)
+const FOLLOW_SPOT_PIVOT := 1.5
+## the moving heads' tilt axis this far above the scaffold's deck (laser_fixture.py: yoke foot 0.54 under it)
+const FIXTURE_ABOVE := 0.84
+## the rib strips: a segment on each rib box in the upper part of the ring (RIB_STRIP_FROM..1-RIB_STRIP_FROM of the
+## circle from the floor), this wide and thick on the rib's inner face
+const RIB_STRIP_FROM := 0.15
+const RIB_STRIP := Vector2(0.5, 0.4)
+## Building the scaffolds during a song: each scaffold is flown in on its own share of the show's build-up (EventDriver),
+## the far ones first, from FIRST_FRAME_AT to LAST_FRAME_AT; when its share is reached it comes down FLY metres from
+## near the ceiling over RISE_SECONDS, and stays (owner, 2026-10-27: from above, so it never crosses the player's view;
+## from the floor it stood across the track at eye height). Flown out at a song's start and put back in place for the
+## menus. The timing is the old frames' (right on the headset, 2026-10-24).
+const FLY := 75.0
 const RISE_SECONDS := 1.5
 const FIRST_FRAME_AT := 0.1
 const LAST_FRAME_AT := 0.8
+## cables (four)
+const BOXES_PER_SCAFFOLD := 4
 
+var rib_strip_material: ShaderMaterial
 var _multimesh: MultiMesh
+var _scaffolds: MultiMesh
+var _tool_boxes: MultiMesh
 var _boxes: Array[Transform3D] = []
-## per frame (FRAME_Z order): how far up it is (0 down, 1 standing) and where it is heading
+## per scaffold (FRAME_Z order): how far up it is (0 down, 1 hoisted) and where it is heading
 var _lift := PackedFloat32Array()
 var _target := PackedFloat32Array()
 
 func _ready() -> void:
 	var boxes: Array[Transform3D] = []
-	# the frames' boxes come first, three per frame in FRAME_Z order (set_built moves them)
-	for z in FRAME_Z:
-		var height := FRAME_TOP - FRAME_BOTTOM
-		for side in [-1.0, 1.0]:
-			boxes.append(_box(Vector3(side * FRAME_HALF_WIDTH, FRAME_BOTTOM + height * 0.5, z), Vector3(BEAM, height, BEAM)))
-		boxes.append(_box(Vector3(0.0, FRAME_TOP, z), Vector3(FRAME_HALF_WIDTH * 2.0 + BEAM, BEAM, BEAM)))
-	var near_height := NEAR_FRAME.z - FRAME_BOTTOM
-	for side in [-1.0, 1.0]:
-		boxes.append(_box(Vector3(side * NEAR_FRAME.y, FRAME_BOTTOM + near_height * 0.5, NEAR_FRAME.x), Vector3(BEAM, near_height, BEAM)))
-	boxes.append(_box(Vector3(0.0, NEAR_FRAME.z, NEAR_FRAME.x), Vector3(NEAR_FRAME.y * 2.0 + BEAM, BEAM, BEAM)))
-	for fixture in DIAGONAL_FIXTURES + WAVING_FIXTURES:
-		boxes.append(_box(Vector3(fixture.x, PEDESTAL_TOP - PEDESTAL.y * 0.5, fixture.y), PEDESTAL))
+	# the scaffolds' boxes come first, BOXES_PER_SCAFFOLD each in FRAME_Z order (_process moves them)
+	for i in FRAME_Z.size():
+		boxes.append_array(_scaffold(i))
+	assert(boxes.size() == FRAME_Z.size() * BOXES_PER_SCAFFOLD)
+	boxes.append_array(_floor())
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	multimesh.mesh = BoxMesh.new()
@@ -82,12 +106,189 @@ func _ready() -> void:
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
+	var places: Array[Transform3D] = []
+	var tools: Array[Transform3D] = []
+	for i in FRAME_Z.size():
+		places.append(_scaffold_place(i, 0.0))
+		tools.append(_tool_box_place(i, 0.0))
+	_scaffolds = _add_model(HANGING_SCAFFOLD, places, material)
+	_tool_boxes = _add_model(TOOL_BOX, tools, material)
+	_add_model(CLASSIC_PROPS, [Transform3D.IDENTITY], material)
+	_add_model(TUNNEL_RIB, _ribs(), material)
+	_add_model(TUNNEL_LINING, _lining(), material)
+	_add_model(WALL_CATWALK, _catwalks(), material)
+	_add_rib_strips()
 
-## How much of the show has been built, 0 to 1: frames whose share is reached rise, the rest go (or stay) down.
+## One MultiMesh of a model at these places, with the scenery's material.
+func _add_model(model: PackedScene, places: Array[Transform3D], material: Material) -> MultiMesh:
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.mesh = LaserFixtures._model_mesh(model)
+	multimesh.instance_count = places.size()
+	for i in places.size():
+		multimesh.set_instance_transform(i, places[i])
+	var instance := MultiMeshInstance3D.new()
+	instance.multimesh = multimesh
+	instance.material_override = material
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(instance)
+	return multimesh
+
+## Hanging scaffold i's boxes (FRAME_Z order) in its place: its cables (the model and tool box are drawn apart).
+static func _scaffold(i: int) -> Array[Transform3D]:
+	var boxes: Array[Transform3D] = []
+	var z: float = FRAME_Z[i]
+	var top := SCAFFOLD_Y
+	# the cables, up past the ceiling from the deck's lugs
+	for cx in [-CABLE_X, CABLE_X]:
+		var ceiling := BORE_CENTRE_Y + sqrt(BORE_RADIUS * BORE_RADIUS - cx * cx)
+		for edge in [-0.5, 0.5]:
+			var cz: float = z + edge * SCAFFOLD.z
+			boxes.append(_box(Vector3(cx, (top + ceiling) * 0.5, cz), Vector3(CABLE, ceiling - top, CABLE)))
+	return boxes
+
+## Half the bore's width at a height.
+static func bore_half_width(y: float) -> float:
+	return sqrt(BORE_RADIUS * BORE_RADIUS - pow(BORE_CENTRE_Y - y, 2.0))
+
+## Where a point at `angle` round a rib (0 straight down, increasing up the right wall) sits, and the rib box there.
+static func _rib_box(z: float, angle: float, length: float, size: Vector2) -> Transform3D:
+	var dir := Vector3(sin(angle), -cos(angle), 0.0)
+	var tangent := Vector3(cos(angle), sin(angle), 0.0)
+	var basis := Basis(tangent * length, -dir * size.x, Vector3(0.0, 0.0, size.y))
+	return Transform3D(basis, Vector3(0.0, BORE_CENTRE_Y, z) + dir * BORE_RADIUS)
+
+## The ribs: a ring of segments every RIB_STEP from RIB_NEAR to RIB_FAR (the model's places, unscaled).
+static func _ribs() -> Array[Transform3D]:
+	var boxes: Array[Transform3D] = []
+	var length := TAU * BORE_RADIUS / RIB_SEGMENTS * 1.06
+	var z := RIB_NEAR
+	while z >= RIB_FAR:
+		for i in RIB_SEGMENTS:
+			if _above_floor(TAU * (i + 0.5) / RIB_SEGMENTS):
+				boxes.append(_rib_box(z, TAU * (i + 0.5) / RIB_SEGMENTS, length, RIB).orthonormalized())
+		z -= RIB_STEP
+	return boxes
+
+## Whether the rib box at `angle` round the ring stands above the tunnel's floor (the ones under it are left out).
+static func _above_floor(angle: float) -> bool:
+	return BORE_CENTRE_Y - BORE_RADIUS * cos(angle) > FLOOR_Y
+
+## The floor plate, one slab for each bay between two ribs (cut per bay so the haze, worked out per vertex, changes
+## along it), reaching the lowest lining panels.
+static func _floor() -> Array[Transform3D]:
+	var boxes: Array[Transform3D] = []
+	var lowest := 0
+	while not _above_floor(TAU * (lowest + 0.5) / RIB_SEGMENTS):
+		lowest += 1
+	var half := (BORE_RADIUS + RIB.x) * sin(TAU * lowest / RIB_SEGMENTS)
+	var z := RIB_NEAR
+	while z > RIB_FAR:
+		boxes.append(_box(Vector3(0.0, FLOOR_Y - 0.5, z - RIB_STEP * 0.5), Vector3(half * 2.0, 1.0, RIB_STEP)))
+		z -= RIB_STEP
+	return boxes
+
+## The lining panels' places (unscaled), one per segment for each bay.
+static func _lining() -> Array[Transform3D]:
+	var boxes: Array[Transform3D] = []
+	var length := TAU * BORE_RADIUS / RIB_SEGMENTS * 1.06
+	var z := RIB_NEAR
+	while z > RIB_FAR:
+		var mid := z - RIB_STEP * 0.5
+		for i in RIB_SEGMENTS:
+			var angle := TAU * (i + 0.5) / RIB_SEGMENTS
+			if _above_floor(angle):
+				var t := _rib_box(mid, angle, length, Vector2(LINING, RIB_STEP))
+				t.origin -= t.basis.y.normalized() * (RIB.x + LINING) * 0.5
+				boxes.append(t.orthonormalized())
+		z -= RIB_STEP
+	return boxes
+
+## The catwalk spans' places along both walls (the left ones turned half round, their wall side out).
+static func _catwalks() -> Array[Transform3D]:
+	var places: Array[Transform3D] = []
+	var z := CATWALK.z - CATWALK_SPAN * 0.5
+	while z > CATWALK.w:
+		places.append(Transform3D(Basis.IDENTITY, Vector3(catwalk_x(), CATWALK.x, z)))
+		places.append(Transform3D(Basis(Vector3.UP, PI), Vector3(-catwalk_x(), CATWALK.x, z)))
+		z -= CATWALK_SPAN
+	return places
+
+## How far from the track the right catwalk's middle is: its wall edge on the lining's face.
+static func catwalk_x() -> float:
+	return sqrt(pow(BORE_RADIUS + RIB.x * 0.5, 2.0) - pow(BORE_CENTRE_Y - CATWALK.x, 2.0)) - CATWALK.y * 0.5
+
+## The rib strips' MultiMesh: a segment on each rib box's inner face in the upper part of the ring, custom data x its
+## order far to near (0 the farthest rib), so the tunnel's test lights run from far to near as `level` rises.
+func _add_rib_strips() -> void:
+	var spots: Array[Transform3D] = []
+	var data: Array[Color] = []
+	var length := TAU * BORE_RADIUS / RIB_SEGMENTS
+	var count := int((RIB_NEAR - RIB_FAR) / RIB_STEP) + 1
+	var z := RIB_NEAR
+	var n := 0
+	while z >= RIB_FAR:
+		for i in RIB_SEGMENTS:
+			var angle := TAU * (i + 0.5) / RIB_SEGMENTS
+			var from_floor := minf(angle, TAU - angle) / PI
+			if from_floor < RIB_STRIP_FROM or not _above_floor(angle):
+				continue
+			var t := _rib_box(z, angle, length, Vector2(1.0, 1.0))
+			var inward := t.basis.y.normalized()
+			var basis := Basis(t.basis.x.normalized() * length * 0.9, inward * RIB_STRIP.y, Vector3(0.0, 0.0, RIB_STRIP.x))
+			spots.append(Transform3D(basis, t.origin + inward * (RIB.x * 0.5 + RIB_STRIP.y * 0.5)))
+			data.append(Color(1.0 - float(n) / maxf(count - 1, 1), 0.0, 0.0, 0.0))
+		z -= RIB_STEP
+		n += 1
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.use_custom_data = true
+	multimesh.mesh = BoxMesh.new()
+	multimesh.instance_count = spots.size()
+	for i in spots.size():
+		multimesh.set_instance_transform(i, spots[i])
+		multimesh.set_instance_custom_data(i, data[i])
+	rib_strip_material = ShaderMaterial.new()
+	rib_strip_material.shader = ARCH_STRIP
+	var instance := MultiMeshInstance3D.new()
+	instance.multimesh = multimesh
+	instance.material_override = rib_strip_material
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(instance)
+
+## Where moving head i of `count` stands: on a scaffold's deck, pairs either side of the track.
+static func moving_head_spot(i: int, count: int) -> Vector3:
+	@warning_ignore("integer_division")
+	var per_side := count / 2
+	var side := -1.0 if i < per_side else 1.0
+	var j := i % per_side
+	var scaffold := FRAME_Z.size() - 1 - (j % (FRAME_Z.size() - 1))
+	return Vector3(side * (5.0 + 3.0 * (j % 2)), SCAFFOLD_Y + FIXTURE_ABOVE, FRAME_Z[scaffold])
+
+## Where follow spot i of `count` stands: on a wall catwalk, the first half on the left.
+static func follow_spot(i: int, count: int) -> Vector3:
+	@warning_ignore("integer_division")
+	var per_side := count / 2
+	var side := -1.0 if i < per_side else 1.0
+	var j := i % per_side
+	var x := side * catwalk_x()
+	return Vector3(x, CATWALK.x + FOLLOW_SPOT_PIVOT, lerpf(CATWALK.z - 6.0, CATWALK.w + 10.0, float(j) / maxf(per_side - 1, 1)))
+
+## Where square bar i of `count` hangs: under a scaffold's deck, along it, beside the track.
+static func scaffold_bar(i: int, count: int) -> Transform3D:
+	var scaffold := i % FRAME_Z.size()
+	@warning_ignore("integer_division")
+	var side := -1.0 if (i / FRAME_Z.size()) % 2 == 0 else 1.0
+	# a bar is 32 m along its z; laid along the deck (x), 0.4 of it
+	var basis := Basis(Vector3(0.0, 1.0, 0.0), PI * 0.5) * Basis.from_scale(Vector3(1.0, 1.0, 0.4))
+	var x := side * 14.0 if count > FRAME_Z.size() else 0.0
+	return Transform3D(basis, Vector3(x, SCAFFOLD_Y - SCAFFOLD.y - 0.3, FRAME_Z[scaffold]))
+
+## How much of the show has been built, 0 to 1: scaffolds whose share is reached go up, the rest down.
 func set_built(built: float) -> void:
 	var count := FRAME_Z.size()
 	for i in count:
-		# FRAME_Z runs near to far; the far frames go up first
+		# FRAME_Z runs near to far; the far scaffolds go up first
 		var share := lerpf(FIRST_FRAME_AT, LAST_FRAME_AT, float(count - 1 - i) / maxf(count - 1, 1))
 		_target[i] = 1.0 if built >= share else 0.0
 
@@ -96,23 +297,30 @@ func _process(delta: float) -> void:
 		if _lift[i] == _target[i]:
 			continue
 		_lift[i] = move_toward(_lift[i], _target[i], delta / RISE_SECONDS)
-		var down := DROP * (1.0 - smoothstep(0.0, 1.0, _lift[i]))
-		# all the way down it isn't drawn: against the haze the sunken frames showed as a ladder under the track
-		# (desktop capture, tools/capture, 2026-10-24)
-		var size := 0.0 if _lift[i] == 0.0 else 1.0
-		for b in 3:
-			var box := _boxes[i * 3 + b]
-			_multimesh.set_instance_transform(i * 3 + b, Transform3D(box.basis * size, box.origin + Vector3.DOWN * down))
+		var up := FLY * (1.0 - smoothstep(0.0, 1.0, _lift[i]))
+		for b in BOXES_PER_SCAFFOLD:
+			var box := _boxes[i * BOXES_PER_SCAFFOLD + b]
+			_multimesh.set_instance_transform(i * BOXES_PER_SCAFFOLD + b, Transform3D(box.basis, box.origin + Vector3.UP * up))
+		_scaffolds.set_instance_transform(i, _scaffold_place(i, up))
+		_tool_boxes.set_instance_transform(i, _tool_box_place(i, up))
 
-## How far below its place the frame at this z is now (0 when standing or when no frame is there): the square light
-## bars mounted on the frames go down and up with them (EventDriver).
+## Where scaffold i's tool box stands, `up` metres above its place: a different spot along the deck on each.
+static func _tool_box_place(i: int, up: float) -> Transform3D:
+	return Transform3D(Basis.IDENTITY, Vector3(SCAFFOLD.x * (fmod(i * 0.37, 0.8) - 0.4), SCAFFOLD_Y + up, FRAME_Z[i] - SCAFFOLD.z * 0.25))
+
+## Where scaffold model i stands, `up` metres above its place.
+static func _scaffold_place(i: int, up: float) -> Transform3D:
+	return Transform3D(Basis.IDENTITY, Vector3(0.0, SCAFFOLD_Y + up, FRAME_Z[i]))
+
+## How far above its place the scaffold at this z is now (0 when in place or when no scaffold is there): EventDriver hides
+## the lights on a scaffold until it is in place.
 func drop_at(z: float) -> float:
 	for i in FRAME_Z.size():
 		if absf(FRAME_Z[i] - z) < 1.0:
-			return DROP * (1.0 - smoothstep(0.0, 1.0, _lift[i]))
+			return FLY * (1.0 - smoothstep(0.0, 1.0, _lift[i]))
 	return 0.0
 
-## True while every frame stands.
+## True while every scaffold is hoisted.
 func standing() -> bool:
 	return _lift.count(1.0) == _lift.size()
 

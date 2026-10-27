@@ -7,6 +7,7 @@
 # --only glowb: just the glow phases, in a song (about 3.5 minutes).
 # --only total: the whole look's cost, each setup in a song between no-glow phases (about 6.5 minutes).
 # --only hz90: the menu and a song at 72 and 90 Hz (about 3 minutes).
+# --only fog: Night City then Metal Factory in a song: all on, lighter glow, scenery flat-coloured, scenery off, all on again (about 4 minutes).
 set -e
 MODE=
 if [ "$1" = "--only" ]; then MODE=$2; shift 2; fi

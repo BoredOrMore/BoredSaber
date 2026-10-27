@@ -48,5 +48,35 @@ func _ready() -> void:
 		finite = finite and is_finite(v) and v >= 0.0 and v <= 1.0
 	check(finite, "a flat light show gives finite values in range")
 
+	# Metal Factory's hammers (MetalFactoryRig.hammer_drop): on the anvil at the beat, raised mid-cycle, falling
+	# faster near the end
+	var cycle := 0.5
+	check(MetalFactoryRig.hammer_drop(0.0, cycle) == 1.0, "a hammer is on the anvil on the beat")
+	check(MetalFactoryRig.hammer_drop(cycle - 0.0001, cycle) > 0.99, "a hammer lands just as the next beat comes")
+	var top := MetalFactoryRig.hammer_drop(cycle - MetalFactoryRig.SLAM_FALL_SECONDS, cycle)
+	check(top < 0.01, "a hammer is raised before it falls (got %.2f)" % top)
+	var fall := MetalFactoryRig.SLAM_FALL_SECONDS
+	var early := MetalFactoryRig.hammer_drop(cycle - fall * 0.75, cycle) - MetalFactoryRig.hammer_drop(cycle - fall, cycle)
+	var late := MetalFactoryRig.hammer_drop(cycle - 0.0001, cycle) -MetalFactoryRig.hammer_drop(cycle - fall * 0.25, cycle)
+	check(late > early, "a hammer speeds up as it falls")
+	var in_sync := true
+	for lag in MetalFactoryRig.SLAM_LAG_SECONDS:
+		in_sync = in_sync and lag >= 0.0 and lag <= 0.08
+	check(in_sync, "every hammer lands after the beat and within 80 ms of it")
+	# the walls' breath stays between 1.4 and 3 s (far from 0.2 Hz) at any tempo
+	var steady := true
+	for bpm in [40.0, 60.0, 90.0, 120.0, 174.0, 240.0, 400.0]:
+		var seconds: float = MetalFactoryRig.breath_beats(bpm) * 60.0 / bpm
+		steady = steady and seconds >= MetalFactoryRig.BREATH_SECONDS.x and seconds <= MetalFactoryRig.BREATH_SECONDS.y
+	check(steady, "the walls breathe once every 1.4 to 3 s at any tempo")
+
+	# on Auto, metal, dubstep and drum-and-bass songs (BeatSaver's tag spellings) play in the Metal Factory, which the
+	# environment menu lists too
+	var heavy := true
+	for tag in ["metal", "dubstep", "drum-and-bass"]:
+		heavy = heavy and Constants.TAG_ENVIRONMENTS.get(tag) == "metal_factory"
+	check(heavy, "metal, dubstep and drum-and-bass pick the Metal Factory")
+	check(Settings.ENVIRONMENTS.any(func(e: Array) -> bool: return e[0] == "metal_factory"), "the menu offers the Metal Factory")
+
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)

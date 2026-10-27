@@ -66,7 +66,7 @@ var current_health := Constants.HEALTH_START
 @onready var online_search_keyboard := $Keyboard_online_search as OQ_UI2DKeyboard
 @onready var beatsaver_canvas := $MapSourceDialogs/BeatSaver_Canvas as OQ_UI2DCanvas
 
-@onready var cube_template := preload("res://game/BeepCube/BeepCube.tscn").instantiate() as BeepCube
+@onready var cube_template := preload("res://game/notes/BeepCube/BeepCube.tscn").instantiate() as BeepCube
 
 @onready var track := $Track as Node3D
 @onready var standing_ground := $StandingGround as Floor
@@ -96,6 +96,8 @@ var _shown_seconds_left := -1
 var pause_position := 0.0
 
 const LEAD_IN_MIN_SECONDS := 3.0
+## The score, combo, accuracy and time panels (game/hud/Hud.gd)
+var hud: Hud
 # seconds left before the song starts, so the first notes can fly in; counted down by Playing
 var lead_in := 0.0
 
@@ -104,7 +106,7 @@ const FAIL_SECONDS := 1.5
 var _new_record := {}
 ## The song menu showed the record table when the BeatSaver page opened over it.
 var _menu_highscores_shown := false
-const DANGER_WALL_MATERIAL := preload("res://game/Wall/danger_wall.tres")
+const DANGER_WALL_MATERIAL := preload("res://game/notes/Wall/danger_wall.tres")
 ## Mistake sounds (tools/make_hit_sounds.py): a dull buzz for a bad cut or the wrong saber, a boom for a bomb.
 ## A miss gets a soft swipe (tools/make_feedback_sounds.py), quieter than a bad cut.
 const BAD_CUT_SOUND := preload("res://game/data/bad_cut.wav")
@@ -120,7 +122,7 @@ const LOW_HEALTH_SOUND := preload("res://game/data/low_health.wav")
 const LOW_HEALTH_FRACTION := 0.25
 var _song_end_player: AudioStreamPlayer
 var _low_health_player: AudioStreamPlayer
-const BOMB_GLOW_MATERIAL := preload("res://game/Bomb/bomb_glow.tres")
+const BOMB_GLOW_MATERIAL := preload("res://game/notes/Bomb/bomb_glow.tres")
 # how long a rumble that was on when the song failed takes to fade out
 const FAIL_RUMBLE_FADE_SECONDS := 0.6
 # a combo milestone buzzes both controllers once, after the cut's own rumble has passed (untuned)
@@ -186,11 +188,15 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	_in_wall = false
 	Scoreboard.restart()
 	
+	hud.place()
 	_display_points()
 	percent_indicator.start_map()
 	if Settings.health_mode:
 		current_health = Constants.HEALTH_START if Settings.fail_mode == Constants.FAIL_MODE_BAR else Constants.HEALTH_MAX
 		health_rails.start_map(Settings.fail_mode == Constants.FAIL_MODE_LIVES, current_health / Constants.HEALTH_MAX)
+	else:
+		# No Fail still keeps a health bar out of sight: running it out halves the score (Scoreboard.spend_no_fail)
+		current_health = Constants.HEALTH_START
 	
 	_clear_track()
 	_lowered_resolution = false
@@ -199,6 +205,11 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 ## Changes health by delta in the health bar mode. mistake is a miss, bad cut, bomb or wall
 ## entry, which costs a life in 4 Lives mode and ends the song in Instant Fail mode.
 func update_health(delta: float, mistake: bool = false) -> void:
+	if not Settings.health_mode:
+		current_health = minf(current_health + delta, Constants.HEALTH_MAX)
+		if current_health <= 0.0 and gamestate == gamestate_playing:
+			Scoreboard.spend_no_fail()
+		return
 	if Settings.health_mode:
 		match Settings.fail_mode:
 			Constants.FAIL_MODE_LIVES:
@@ -437,7 +448,6 @@ func _ready() -> void:
 	_apply_msaa()
 	_apply_note_style()
 	_apply_environment()
-	# the scenery shaders tint their own shadows (game/env/shadow_tone.gdshaderinc)
 	_apply_atmosphere()
 	
 	if not vr.inVR:
@@ -475,6 +485,8 @@ func _ready() -> void:
 	@warning_ignore("return_value_discarded")
 	Scoreboard.score_changed.connect(_display_points)
 	(multiplier_label as ComboHud).milestone_reached.connect(_on_combo_milestone)
+	hud = Hud.new(point_label, multiplier_label as ComboHud, percent_indicator)
+	add_child(hud)
 	@warning_ignore("return_value_discarded")
 	Scoreboard.points_awarded.connect(points_label_driver.show_points)
 	
@@ -556,12 +568,11 @@ func _apply_glow() -> void:
 	if low_res_glow:
 		low_res_glow.stage = glow - Glow.NEW_VIEWPORTS_ONLY + 1 if glow >= Glow.NEW_VIEWPORTS_ONLY else 0
 
-## The scenery shaders' share of Settings.atmosphere (height fog, dust, shadow tone) and the stage smoke; the haze and
+## The scenery shaders' share of Settings.atmosphere (height fog, dust) and the stage smoke; the haze and
 ## menu lights read it themselves.
 func _apply_atmosphere() -> void:
 	var eerie := Settings.atmosphere == "Eerie"
 	RenderingServer.global_shader_parameter_set(&"atmosphere_eerie", 1.0 if eerie else 0.0)
-	RenderingServer.global_shader_parameter_set(&"shadow_tint", Constants.EERIE_SHADOW_TINT if eerie else Constants.SHADOW_TINT)
 	event_driver.stage_smoke.apply_atmosphere()
 
 ## Sets the 3D view's anti-aliasing to Settings.msaa (it applies to both eyes).
@@ -661,11 +672,13 @@ func _process(delta: float) -> void:
 func on_settings_changed(key: StringName) -> void:
 	# ensures proper initialization of tree for proper first frame setting loading
 	await get_tree().process_frame
-	# the render scale follows the Low preset's resolution (Settings.render_scale)
+	# the render scale follows the picked resolution (Settings.render_scale)
 	# (not while the benchmark sets scales itself)
-	if (key == &"resolution" or key in Settings.GRAPHICS_PRESETS["Low"]) and not has_node(^"Benchmark"):
+	if key == &"resolution" and not has_node(^"Benchmark"):
 		_apply_render_scale()
 	match key:
+		&"refresh_90":
+			vr.apply_refresh_rate()
 		&"left_handed":
 			if Settings.left_handed:
 				left_ui_raycast.active = true
@@ -679,7 +692,7 @@ func on_settings_changed(key: StringName) -> void:
 			update_right_color(Settings.color_right)
 		&"width":
 			event_driver.set_background()
-		&"background", &"smoke":
+		&"background", &"smoke", &"old_track":
 			event_driver.set_background()
 		&"background_texture":
 			set_background_texture()
@@ -694,7 +707,7 @@ func on_settings_changed(key: StringName) -> void:
 			_apply_glow()
 		&"msaa":
 			_apply_msaa()
-		&"note_style", &"darker_notes":
+		&"note_style", &"darker_notes", &"classic_notes":
 			_apply_note_style()
 		&"environment":
 			_apply_environment()
@@ -702,9 +715,12 @@ func on_settings_changed(key: StringName) -> void:
 			if not _height_held:
 				xr_origin.transform.origin.y = Constants.view_shift(Settings.player_height_offset)
 
-## Tells the note shaders which look the player picked, and how bright their colours may be.
+## Tells the note shaders which look the player picked (the glossy one, 2, unless Classic notes is on), and how
+## bright their colours may be.
 func _apply_note_style() -> void:
 	var style := maxi(Settings.NOTE_STYLES.map(func(s: Array) -> String: return s[0]).find(Settings.note_style), 0)
+	if not Settings.classic_notes:
+		style = 2
 	RenderingServer.global_shader_parameter_set(&"note_style", style)
 	RenderingServer.global_shader_parameter_set(&"note_max_value", Settings.NOTE_DARK_VALUE if Settings.darker_notes else 1.0)
 
@@ -732,7 +748,9 @@ func play_miss_sound() -> void:
 ## Colours walls and bombs with the song's danger colour.
 static func _update_danger_color(danger: Color) -> void:
 	(DANGER_WALL_MATERIAL as ShaderMaterial).set_shader_parameter(&"danger_color", danger)
+	(Wall.FRAMED_MATERIAL as ShaderMaterial).set_shader_parameter(&"danger_color", danger)
 	(BOMB_GLOW_MATERIAL as ShaderMaterial).set_shader_parameter(&"danger_color", danger)
+	(Bomb.MERGED_MATERIAL as ShaderMaterial).set_shader_parameter(&"danger_color", danger)
 
 func update_left_color(color: Color) -> void:
 	if !left_saber:
@@ -775,12 +793,9 @@ func _on_combo_milestone(_combo: int) -> void:
 func _display_points() -> void:
 	if gamestate == gamestate_playing:
 		event_driver.set_combo_multiplier(Scoreboard.multiplier)
-	var seconds_left := _seconds_left()
-	@warning_ignore("integer_division")
-	var display = "Score %6d\n%02d:%02d" % [Scoreboard.points,seconds_left / 60,seconds_left % 60]
-	if (point_label.mesh as TextMesh).text != display:
-		(point_label.mesh as TextMesh).text = display
-	percent_indicator.update_percent(Scoreboard.accuracy())
+	var played := 0 if Map.current_info == null else int(get_current_time())
+	var length := 0 if Map.current_info == null else int(Map.current_info.get_length_seconds())
+	hud.show_points(Scoreboard.points, played, length, Scoreboard.accuracy())
 
 ## Whole seconds left in the current map, for the clock under the score.
 func _seconds_left() -> int:
@@ -833,6 +848,7 @@ func _on_song_ended() -> void:
 		current_percent = Scoreboard.accuracy()
 		_song_end_player.stream = CLEAR_SOUND
 		_song_end_player.play()
+	print(Scoreboard.summary())
 	endscore.show_score(
 		Scoreboard.points,
 		highscore,

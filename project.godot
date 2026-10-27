@@ -166,7 +166,7 @@ note_max_value={
 }
 note_style={
 "type": "int",
-"value": 0
+"value": 2
 }
 left_saber={
 "type": "vec3",
@@ -181,10 +181,6 @@ env_haze={
 "value": Color(0, 0, 0, 1)
 }
 env_light={
-"type": "color",
-"value": Color(0, 0, 0, 1)
-}
-shadow_tint={
 "type": "color",
 "value": Color(0, 0, 0, 1)
 }
@@ -211,6 +207,14 @@ right_saber_color={
 debug_view={
 "type": "int",
 "value": 0
+}
+fog_key={
+"type": "vec4",
+"value": Vector4(0, 0, -1, 0)
+}
+fog_dither_on={
+"type": "float",
+"value": 1.0
 }
 
 [xr]

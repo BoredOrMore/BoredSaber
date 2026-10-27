@@ -9,14 +9,15 @@ render_mode unshaded, fog_disabled, shadows_disabled;
 // between LINE_FADE_START and LINE_FADE_END: a repeating pattern that fills the view lets the eyes lock onto
 // it at the wrong depth (Apple visionOS HIG, Eyes), so the grid stays only around the player. All values untuned.
 global uniform vec4 env_haze;
-#include "res://game/env/shadow_tone.gdshaderinc"
+#include "res://game/env/fog_light.gdshaderinc"
 #include "res://game/env/height_fog.gdshaderinc"
 #include "res://game/env/player_light.gdshaderinc"
 // metres between lines
 const float SPACING = 2.0;
 const float LINE_WIDTH = 0.04;
 const float MIN_LINE_PIXELS = 1.0;
-const float LINE_GAIN = 2.5;
+// 2.5 lit the whole floor's lines brighter than the stage (owner, 2026-10-25: too bright)
+const float LINE_GAIN = 1.2;
 // how bright a cut's wave runs along the lines (player_light.gdshaderinc)
 const float CUT_WAVE_GAIN = 2.0;
 // the floor lines are a big area, so they stay part grey (AGENTS.md "Light", rule 3). Untuned.
@@ -25,7 +26,7 @@ const float GROUND_SHADE = 0.3;
 const float FADE_DISTANCE = 60.0;
 // metres from the player where the lines start fading, and where they are gone
 const float LINE_FADE_START = 8.0;
-const float LINE_FADE_END = 35.0;
+const float LINE_FADE_END = 25.0;
 // the skies' haze at the horizon (SKY_HAZE + 1 in both), so the floor meets the sky without a seam
 const float HORIZON_HAZE = 1.25;
 
@@ -42,6 +43,8 @@ void vertex() {
 }
 
 void fragment() {
+	// the haze lit from the stage's key light, seen this way (fog_light.gdshaderinc)
+	vec3 haze = fog_lit(env_haze.rgb, (INV_VIEW_MATRIX * vec4(-VIEW, 0.0)).xyz);
 	// metres to the nearest line along each axis
 	mediump vec2 to_line = abs(fract(world.xz / SPACING + 0.5) - 0.5) * SPACING;
 	vec2 px = fwidth(world.xz);
@@ -49,9 +52,9 @@ void fragment() {
 	vec2 lines = (1.0 - smoothstep(half_width - px, half_width + px, to_line)) * (LINE_WIDTH * 0.5 / half_width);
 	float line = max(lines.x, lines.y);
 	line *= 1.0 - smoothstep(LINE_FADE_START, LINE_FADE_END, length(world.xz - CAMERA_POSITION_WORLD.xz));
-	vec3 line_col = mix(env_haze.rgb, vec3(max(env_haze.r, max(env_haze.g, env_haze.b))), LINE_DESATURATE);
-	vec3 near = mix(env_haze.rgb * GROUND_SHADE, line_col * LINE_GAIN + cut_wave_light(world) * CUT_WAVE_GAIN, line);
-	ALBEDO = mix(env_haze.rgb * HORIZON_HAZE, near, fade);
-	ALBEDO = mix(ALBEDO, env_haze.rgb * HEIGHT_FOG_GLOW, ground_fog);
-	ALBEDO = shadow_tone(ALBEDO);
+	vec3 line_col = mix(haze, vec3(max(env_haze.r, max(env_haze.g, env_haze.b))), LINE_DESATURATE);
+	vec3 near = mix(haze * GROUND_SHADE, line_col * LINE_GAIN + cut_wave_light(world) * CUT_WAVE_GAIN, line);
+	ALBEDO = mix(haze * HORIZON_HAZE, near, fade);
+	ALBEDO = mix(ALBEDO, haze * HEIGHT_FOG_GLOW, ground_fog);
+	ALBEDO = fog_dither(ALBEDO, FRAGCOORD.xy);
 }

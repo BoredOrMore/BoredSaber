@@ -12,15 +12,23 @@ class_name LaserFixtures
 ## The heads and yokes are objects, not light: they stay when their light turns off (which hides the beam's node) and
 ## only go with the rest of the scenery (EventDriver: mixed reality, simple background).
 ## Models: game/models/laser_fixture(_yoke).glb, made by tools/models/laser_fixture.py; shaders LaserFixture.gdshader
-## (head and yoke) and LaserFlare.gdshader (glow).
+## (head and yoke) and LaserFlare.gdshader (glow). A stage may give a laser another kind of fixture (set_kind):
+## FOLLOW_SPOT, Classic's follow spots on the wall catwalks (tools/models/follow_spot.py), a long can on a tripod, its
+## lens further out. Each kind is its own MultiMeshes over all the lasers; a laser's other kinds are drawn at no size.
 
 const HEAD := preload("res://game/models/laser_fixture.glb")
 const YOKE := preload("res://game/models/laser_fixture_yoke.glb")
+const FOLLOW_SPOT_HEAD := preload("res://game/models/follow_spot.glb")
+const FOLLOW_SPOT_STAND := preload("res://game/models/follow_spot_stand.glb")
+const MOVING_HEAD := 0
+const FOLLOW_SPOT := 1
 const BODY_SHADER := preload("res://game/env/LaserFixture.gdshader")
 const FLARE_SHADER := preload("res://game/env/LaserFlare.gdshader")
 ## how far in front of the head's centre the glow sits (the lens is 0.26 m out), and its size in metres; halved with the
 ## fixture (tools/models/laser_fixture.py SIZE). Untuned.
 const FLARE_FORWARD := 0.3
+## the follow spot's lens is 0.46 m out (follow_spot.py)
+const FOLLOW_SPOT_FLARE_FORWARD := 0.5
 const FLARE_SIZE := 0.8
 ## A head whose light has been off for REST_AFTER_SECONDS lowers its nose to REST_TILT_DEG below level, as a rig
 ## waiting for the show; it wakes and aims again when its light comes on, fast so the beam is not left behind.
@@ -32,8 +40,14 @@ const WAKE_SPEED := 25.0
 
 var _lasers: Array[Node3D] = []
 var _materials: Array[ShaderMaterial] = []
-var _heads: MultiMesh
-var _yokes: MultiMesh
+## per kind (MOVING_HEAD, FOLLOW_SPOT)
+var _heads: Array[MultiMesh] = []
+var _yokes: Array[MultiMesh] = []
+var _kinds := PackedInt32Array()
+## every part, for the colour
+var _parts: Array[MultiMesh] = []
+## per kind, its head's and yoke's nodes: hidden while no laser uses the kind (no draw calls)
+var _kind_nodes: Array[Array] = []
 var _flares: MultiMesh
 ## each yoke's fixed turn and the place it was set for
 var _yoke_bases: Array[Basis] = []
@@ -51,14 +65,27 @@ func setup(lasers: Array[Node3D], materials: Array[ShaderMaterial]) -> void:
 	var flare := ShaderMaterial.new()
 	flare.shader = FLARE_SHADER
 	var quad := QuadMesh.new()
-	_heads = _add_part(_model_mesh(HEAD), body)
-	_yokes = _add_part(_model_mesh(YOKE), body)
+	for models in [[HEAD, YOKE], [FOLLOW_SPOT_HEAD, FOLLOW_SPOT_STAND]]:
+		_heads.append(_add_part(_model_mesh(models[0]), body))
+		_yokes.append(_add_part(_model_mesh(models[1]), body))
+		_kind_nodes.append([get_child(-2), get_child(-1)])
+	_kinds.resize(lasers.size())
+	set_kind(0, MOVING_HEAD)
 	_flares = _add_part(quad, flare)
+	_parts.assign(_heads + _yokes)
+	_parts.append(_flares)
 	_yoke_bases.resize(lasers.size())
 	_yoke_places.resize(lasers.size())
 	_yoke_places.fill(Vector3.INF)
 	_tilts.resize(lasers.size())
 	_dark.resize(lasers.size())
+
+## Which fixture laser i (setup's order) stands on: MOVING_HEAD or FOLLOW_SPOT.
+func set_kind(i: int, kind: int) -> void:
+	_kinds[i] = kind
+	for k in _kind_nodes.size():
+		for node: Node3D in _kind_nodes[k]:
+			node.visible = _kinds.has(k)
 
 static func _model_mesh(scene: PackedScene) -> Mesh:
 	var model: Node = scene.instantiate()
@@ -96,11 +123,14 @@ func _process(delta: float) -> void:
 		var aim := deg_to_rad(REST_TILT_DEG) if resting else atan2(local.y, -local.z)
 		_tilts[i] = lerp_angle(_tilts[i], aim, 1.0 - exp(-delta * (REST_SPEED if resting else WAKE_SPEED)))
 		var head := yoke * Basis(Vector3.RIGHT, _tilts[i])
-		_heads.set_instance_transform(i, Transform3D(head, at))
-		_yokes.set_instance_transform(i, Transform3D(yoke, at))
-		_flares.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3.ONE * FLARE_SIZE), at + beam * FLARE_FORWARD))
-		for part in [_heads, _yokes, _flares]:
-			(part as MultiMesh).set_instance_custom_data(i, color)
+		for k in _heads.size():
+			var shown := k == _kinds[i]
+			_heads[k].set_instance_transform(i, Transform3D(head if shown else Basis.from_scale(Vector3.ZERO), at))
+			_yokes[k].set_instance_transform(i, Transform3D(yoke if shown else Basis.from_scale(Vector3.ZERO), at))
+		var forward := FOLLOW_SPOT_FLARE_FORWARD if _kinds[i] == FOLLOW_SPOT else FLARE_FORWARD
+		_flares.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3.ONE * FLARE_SIZE), at + beam * forward))
+		for part in _parts:
+			part.set_instance_custom_data(i, color)
 
 ## Upright, with its arms (x) across the plane the beam sweeps in: the beam's sideways axis, level. A laser that turns
 ## about one level axis (the waving ones) keeps that axis whatever its angle, so the head follows it exactly.

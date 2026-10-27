@@ -11,6 +11,8 @@
 resource_local_to_scene = true
 radius = 0.0005
 height = 1.2
+radial_segments = 16
+rings = 2
 
 [sub_resource type="ShaderMaterial" id="hilt_grip_mat"]
 render_priority = 0

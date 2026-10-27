@@ -44,6 +44,11 @@ signal benchmark_requested()
 @onready var audio_sfx_control := $Tabs/Audio/VBox/audio/sfx/sfx_slider as HSlider
 @onready var spectator_view_control := $Tabs/Advanced/VBox/spectator_view as CheckButton
 @onready var spectator_hud_control := $Tabs/Advanced/VBox/spectator_hud as CheckButton
+@onready var old_track_control := $Tabs/Advanced/VBox/old_track as CheckButton
+@onready var classic_notes_control := $Tabs/Advanced/VBox/classic_notes as CheckButton
+@onready var classic_walls_control := $Tabs/Advanced/VBox/classic_walls as CheckButton
+@onready var classic_night_city_control := $Tabs/Advanced/VBox/classic_night_city as CheckButton
+@onready var refresh_90_control := $Tabs/Advanced/VBox/refresh_90 as CheckButton
 @onready var background_mode_control := $Tabs/Visuals/VBox/background_mode_grid/background_mode as OptionButton
 @onready var background_texture_control := $Tabs/Visuals/VBox/background_texture_grid/background_texture as OptionButton
 @onready var note_style_control := $Tabs/Visuals/VBox/note_style_grid/note_style as OptionButton
@@ -180,6 +185,11 @@ func set_controls_from_settings() -> void:
 	audio_sfx_control.value = Settings.audio_sfx
 	spectator_view_control.button_pressed = Settings.spectator_view
 	spectator_hud_control.button_pressed = Settings.spectator_hud
+	old_track_control.button_pressed = Settings.old_track
+	classic_notes_control.button_pressed = Settings.classic_notes
+	classic_walls_control.button_pressed = Settings.classic_walls
+	classic_night_city_control.button_pressed = Settings.classic_night_city
+	refresh_90_control.button_pressed = Settings.refresh_90
 
 func _restore_defaults() -> void:
 	Settings.restore_defaults()
@@ -285,7 +295,6 @@ const RESOLUTION_HINTS := {
 	"Sharp": "Sharper",
 	"Full": "Sharpest",
 }
-const RESOLUTION_NEEDS_LOW := "Needs Graphics: Low"
 const GLOW_HINTS := {
 	"Soft": "Soft light around the lasers",
 	"Crisp": "Crisper light around the lasers",
@@ -316,7 +325,7 @@ var _glow_chips := {}
 var _glow_hint := Label.new()
 
 ## At the top of Visuals: "Graphics: Low | Normal" chips setting the effects below (a third chip, Custom, can't be
-## picked and lights up when the effects match neither), then "Resolution: Normal | Sharp | Full", only on Low.
+## picked and lights up when the effects match neither), then "Resolution: Normal | Sharp | Full", on any preset.
 func _add_graphics_row() -> void:
 	_graphics_chips = _add_chip_row(0, "Graphics", Settings.GRAPHICS_PRESETS.keys() + [Settings.GRAPHICS_CUSTOM],
 			Settings.set_graphics_preset, _graphics_hint)
@@ -374,7 +383,7 @@ func _add_chip_row(index: int, title: String, names: Array, pick: Callable, hint
 	UI_AudioEngine.attach_children(row)
 	return chips
 
-## Lights the chips of the preset the effects match and of the resolution (greyed off Low), and shows the effects'
+## Lights the chips of the preset the effects match and of the resolution, and shows the effects'
 ## switches as set (a preset sets them).
 func _sync_graphics() -> void:
 	var preset := Settings.graphics_preset()
@@ -383,12 +392,9 @@ func _sync_graphics() -> void:
 	_graphics_hint.text = GRAPHICS_HINTS[preset]
 	# Custom only reads as a choice while it applies
 	(_graphics_chips[Settings.GRAPHICS_CUSTOM] as Button).modulate.a = 1.0 if preset == Settings.GRAPHICS_CUSTOM else 0.4
-	var low := preset == "Low"
 	for name: String in _resolution_chips:
-		var chip := _resolution_chips[name] as Button
-		chip.disabled = not low
-		chip.set_pressed_no_signal(name == (Settings.resolution if low else "Normal"))
-	_resolution_hint.text = RESOLUTION_HINTS.get(Settings.resolution, "") if low else RESOLUTION_NEEDS_LOW
+		(_resolution_chips[name] as Button).set_pressed_no_signal(name == Settings.resolution)
+	_resolution_hint.text = RESOLUTION_HINTS.get(Settings.resolution, "")
 	for name: String in _msaa_chips:
 		(_msaa_chips[name] as Button).set_pressed_no_signal(name == Settings.msaa)
 	_msaa_hint.text = MSAA_HINTS.get(Settings.msaa, "")
@@ -523,6 +529,26 @@ func _on_spectator_view_toggled(value: bool) -> void:
 
 func _on_spectator_hud_toggled(value: bool) -> void:
 	Settings.spectator_hud = value
+
+## Switches between the old see-through track and the deck with curbs.
+func _on_old_track_toggled(value: bool) -> void:
+	Settings.old_track = value
+
+## Switches between the glossy notes and the older looks (the Note style picked on the Visuals tab).
+func _on_classic_notes_toggled(value: bool) -> void:
+	Settings.classic_notes = value
+
+## Switches between the framed walls and the older ones (walls already flying keep theirs until they respawn).
+func _on_classic_walls_toggled(value: bool) -> void:
+	Settings.classic_walls = value
+
+## Switches Night City between the building canyon and its classic layout.
+func _on_classic_night_city_toggled(value: bool) -> void:
+	Settings.classic_night_city = value
+
+## The display at 90 Hz instead of 72.
+func _on_refresh_90_toggled(value: bool) -> void:
+	Settings.refresh_90 = value
 
 
 func _on_recenter_button_up() -> void:

@@ -42,7 +42,8 @@ before building something new.
 - `const` for values tuned once; `uniform` only for what the game sets per object; `global uniform` only
   for what the whole scene shares (`env_haze`, `left_saber_color`, `cut_waves`, `note_style`...). Reuse
   those before adding a new one, and reuse the `.gdshaderinc` helpers in `game/env/`
-  (`height_fog`, `shadow_tone`, `player_light`).
+  (`height_fog`, `fog_light`, `player_light`). No colour toning of the darks (gradient mapping, shadow
+  tints): the owner had a navy shadow tint removed (2026-10-26); blacks stay black.
 - Untuned values say "untuned"; tuned ones say what they were tuned against (headset test, player
   request). Cite where a technique comes from (paper, Beat Saber modding wiki, a Godot doc).
 - Typed constants only (`const float X = 1.0;`): an untyped `const` is a SHADER ERROR on the Pico.

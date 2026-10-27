@@ -17,7 +17,7 @@ from pathlib import Path
 
 OUT = Path(__file__).resolve().parent.parent / "game" / "data" / "background" / "stage_sky.png"
 WIDTH, HEIGHT = 1024, 512
-TOP = (0.020, 0.022, 0.030)  # zenith: near black with a hint of navy (SHADOW_TINT direction)
+TOP = (0.020, 0.022, 0.030)  # zenith: near black
 HORIZON = (0.110, 0.115, 0.130)  # haze lit by the stage, nearly grey
 HORIZON_SHARPNESS = 7.0
 HAZE_AMOUNT = 0.9  # how much the drifting haze brightens the sky where it is thick

@@ -10,7 +10,15 @@ class_name HighscorePanel
 @onready var _song_info = $Margin/VBox/LeftRight/VBox/SongInfo_Label
 @onready var _song_info_panel = $Margin/VBox/LeftRight/VBox
 
+## The rows' columns: a name too long for its room ends in "…"; the score keeps a fixed width, right-aligned, so long
+## modifier titles (they wrap) and long names can't push it off the board (owner on the headset, 2026-10-25).
+const SCORE_WIDTH := 150.0
+
 func _ready() -> void:
+	(_base_row.get_child(1) as Label).text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	var score := _base_row.get_child(2) as Label
+	score.custom_minimum_size.x = SCORE_WIDTH
+	score.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_clear_list()
 	_song_info_panel.visible = show_song_info
 	

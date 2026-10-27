@@ -5,15 +5,25 @@ BoredSaber is a Godot 4.6 (GDScript) Beat Saber-style game for standalone Pico 4
 ## Repository map
 
 Each folder below has its own `AGENTS.md` with a file map, gotchas and "where to change X" recipes.
-Read the one for the folder you are changing before editing.
+Read the one for the folder you are changing before editing. A commit that adds, moves or removes a script,
+scene or shader updates that folder's `AGENTS.md` in the same commit: CI runs `python3 tools/check_agent_docs.py`
+and fails when a `.gd`, `.tscn`, `.gdshader` or `.gdshaderinc` under `game/`, `tests/` or `tools/` isn't named in
+the nearest `AGENTS.md` above it, or when an `AGENTS.md` has no `CLAUDE.md` beside it. That `CLAUDE.md` is the one
+line `@AGENTS.md`, so Claude Code loads the folder's doc when it opens a file there. Write agent docs in English.
 
-- `game/`: main scene, autoloads, note/bomb/chain/arc/wall/saber entities, assets in `game/data/`.
+- `game/`: main scene, autoloads, assets in `game/data/`.
+- `game/notes/`: notes, chain links, arcs, bombs, walls and their `Cuttable` base.
+- `game/hud/`: the in-song HUD (score, combo, accuracy, time, health, cut numbers).
+- `game/env/`: stage environments (rigs, scenery shaders, laser fixtures, haze).
+- `game/sabers/`: saber visuals.
 - `game/scripts/`: shared scripts (utils, controllers, highscores, pools, raycasts, song uploader).
 - `game/scripts/GameState/`: the game state machine (menu, playing, paused, fail, score screen).
 - `game/BeatmapInfo/`: beatmap data model and how `game/Map.gd` parses Beat Saber map formats.
 - `game/ui/`: menus, shared theme and UI palette, BeatSaver download panels.
 - `OQ_Toolkit/`: partially ported VR toolkit (`vr` autoload, 2D-in-VR canvases, keyboard).
 - `tests/`: headless tests.
+- `tools/`: capture scenes, Blender model scripts, asset generators, headset bench, the doc checker;
+  `tools/asset_pipeline/` has its own rules.
 - `.github/`: CI build, APK release and how to test a build on the headset with adb.
 - `addons/`: not tracked; CI installs godot_openxr_vendors there.
 
@@ -133,7 +143,7 @@ motion), and HUD placement.
 ## Colour rules
 
 Every colour in the game has one job, so players can read the scene at a glance. Colours live in
-one place: `game/Constants.gd` (UI palette `UI_*`, `MISS_COLOR`, `SHADOW_TINT`, `DANGER_COLOR`,
+one place: `game/Constants.gd` (UI palette `UI_*`, `MISS_COLOR`, `DANGER_COLOR`,
 `DIFFICULTY_COLORS`, `RANK_COLORS`) and `COLOR_PRESETS` in `game/Settings.gd`; `game/ui/menu_theme.tres` must stay in
 step with the `UI_*` values. Don't hard-code a new `Color(...)` in a scene or script; add a named
 constant with its role, or reuse one.
@@ -150,8 +160,8 @@ constant with its role, or reuse one.
 - Neutrals (`UI_PANEL`, `UI_SURFACE*`, `UI_BORDER`, `UI_TEXT`, `UI_TEXT_MUTED`) for everything else.
 - `DIFFICULTY_COLORS` only label difficulties and reaction-time levels.
 - `RANK_COLORS` only colour the rank letter and the result ring on the score screen.
-- The environment stays dark navy (`SHADOW_TINT` in the shadows) and takes its light colours from the
-  note colours, so the scene never competes with notes or danger.
+- The environment stays dark, its shadows black (no colour toning of the darks: a navy tint was removed on the
+  owner's request, 2026-10-26), and takes its light colours from the note colours, so the scene never competes with notes or danger.
 - Never rely on hue alone (colour-blind players): pair a colour with a shape, pattern or word
   (the see-through box with a glowing frame for walls, the ✕ for a miss, text on difficulty buttons).
 - Comfort: no large areas of saturated or pure-white colour, keep flashes short and moderate, and
@@ -170,7 +180,7 @@ channel), so brightness comes from contrast and the size of bright areas, not fr
 2. Hot core, coloured falloff: a bright emitter burns toward white at its centre and shows its colour in
    the glow around it (overexposure desaturates). Brighten by mixing toward white or widening the
    bright part, never by multiplying a saturated colour past 1 (it clips to a flat, fully saturated
-   colour). Walls already do this (`game/Wall/DangerWall.gdshader`: white-hot frame, red halo).
+   colour). Walls already do this (`game/notes/Wall/DangerWall.gdshader`: white-hot frame, red halo).
 3. Saturation lives in small areas: full note colour only on fixtures, beams and their halos; large
    surfaces (floor, sky, haze, walls' glass) stay dark and low in saturation.
 4. Limited palette: the two note colours, the danger colour, and neutrals (cool or warm grey, white).
@@ -183,6 +193,9 @@ channel), so brightness comes from contrast and the size of bright areas, not fr
    haze, and fades with distance and along its length; far things lose contrast toward the haze colour
    (aerial perspective). Keep each environment's signature view clear: structure goes to the sides and below the
    horizon, never in front of it (a backdrop behind Neon Grid's horizon read as clutter).
+   The carrier belongs to the world (owner, 2026-10-26): every light is on something that would exist in that place
+   and fits its story (fixtures built into the structure, signal lights on a tower, work lights on a crane), never a
+   pole or box that is there only to hold a light.
 6. Haze reveals, it doesn't paint: the air stays mostly neutral and is tinted only a little by nearby
    lights (`EventDriver.HAZE_LIGHT_WEIGHT`).
 7. Fixtures move like machines: pan and tilt around the fixture with ease in and out at plausible

@@ -9,7 +9,7 @@ render_mode unshaded, fog_disabled, shadows_disabled;
 // a high band, 1 ring lights -> the horizon line and the mountain rims, 2/3 left/right lasers -> glow on that
 // side, 4 centre lights -> the sun.
 global uniform vec4 env_haze;
-#include "res://game/env/shadow_tone.gdshaderinc"
+#include "res://game/env/fog_light.gdshaderinc"
 // DebugView.SKY draws the sky plain black
 global uniform int debug_view;
 // r haze, g sun, b ring lights (horizon line and rims)
@@ -30,7 +30,7 @@ uniform lowp float bg_4_intensity = 0.0;
 // must match tools/bake_neon_grid_sky.py: the UV.y band the masks cover, and the scale each mask is stored at
 const float V_TOP = 0.5 - 50.0 / 180.0;
 const float V_BOTTOM = 0.5 + 5.0 / 180.0;
-const float HAZE_SCALE = 1.5;
+const float HAZE_SCALE = 0.75;
 const float SUN_SCALE = 2.0;
 const float RING_SCALE = 1.5;
 const float BAND_SCALE = 0.25;
@@ -52,7 +52,16 @@ vec3 traced(vec3 tint, float mask) {
 	return mix(tint, vec3(peak), CORE_WHITE * smoothstep(0.5, 1.0, mask));
 }
 
+// the haze lit from the key light, per vertex: the sky and the cloud sea are fine enough meshes that it looks the same
+// as per pixel, for less work (fog benchmark, 2026-10-25)
+varying vec3 haze_v;
+void vertex() {
+	haze_v = fog_lit(env_haze.rgb, (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz - CAMERA_POSITION_WORLD);
+}
+
 void fragment() {
+	// the haze lit from the stage's key light, seen this way (fog_light.gdshaderinc)
+	vec3 haze = haze_v;
 	if ((debug_view & 16) != 0) {
 		ALBEDO = vec3(0.0);
 	} else {
@@ -61,11 +70,11 @@ void fragment() {
 		mediump vec3 sharp = texture(sharp_masks, band_uv).rgb;
 		mediump vec2 soft = texture(soft_masks, band_uv).rg;
 		mediump vec3 side_light = mix(bg_3_tint.rgb * bg_3_intensity, bg_2_tint.rgb * bg_2_intensity, step(0.5, UV.x));
-		ALBEDO = env_haze.rgb * (sharp.r * HAZE_SCALE)
+		ALBEDO = haze * (sharp.r * HAZE_SCALE)
 				+ traced(bg_4_tint.rgb, sharp.g) * (mix(SUN_FLOOR, 1.0, bg_4_intensity) * sharp.g * SUN_SCALE * SUN_GAIN)
 				+ traced(bg_1_tint.rgb, sharp.b) * (bg_1_intensity * sharp.b * RING_SCALE * RING_GAIN)
 				+ bg_0_tint.rgb * (bg_0_intensity * soft.r * BAND_SCALE)
 				+ side_light * (soft.g * SIDE_SCALE);
-		ALBEDO = shadow_tone(ALBEDO);
+		ALBEDO = fog_dither(ALBEDO, FRAGCOORD.xy);
 	}
 }

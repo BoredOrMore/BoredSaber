@@ -31,8 +31,15 @@ const FLOOR_RUMBLE := 0.3
 
 var history := Array()
 const history_size := 300
-const preswing_time := 200
-const followthrough_time := 200
+## Swing angles as Beat Saber measures them (SimSaber, github.com/MetaGuard/SimSaber, from the game's replays): the
+## saber's sweep is added up from the cut back (approach) and on (follow-through) for at most SWING_WINDOW_MS, one
+## frame's step at a time, while the plane it sweeps through stays within SWING_STOP_DEG of the cut's: a step turned
+## past SWING_FULL_DEG counts less and less, and the first past SWING_STOP_DEG ends the count. It used to be the widest
+## angle reached in a fixed 0.2 s before and after, which short-changed long, slower swings (owner, 2026-10-26).
+const SWING_WINDOW_MS := 400
+const SWING_FULL_DEG := 75.0
+const SWING_STOP_DEG := 90.0
+const followthrough_time := SWING_WINDOW_MS
 var history_tail := history_size - 1
 
 # entry: [time,position,pointing,preswing_angle,accuracy]
@@ -142,42 +149,63 @@ func _update_history(time: int) -> void:
 func add_score(position: Vector3, lane_rotation: float, accuracy: float, arc_head: bool, arc_tail: bool) -> void:
 	var time = Time.get_ticks_msec()
 	var pointing := get_pointing()
-	var preswing := get_preswing_angle(time, pointing) if not arc_head else Constants.TARGET_PRESWING_ANGLE
-	if arc_tail:
+	# Arcs as in Beat Saber (owner, 2026-10-26): the note an arc leaves from needs no follow-through (the arc carries the
+	# swing on) and the note it ends at needs no approach. It was the other way round.
+	var approach := get_preswing(time)
+	var preswing: float = approach[0] if not arc_tail else Constants.TARGET_PRESWING_ANGLE
+	if arc_head:
 		Scoreboard.add_swing_score(position, lane_rotation, accuracy, preswing, Constants.TARGET_FOLLOWTHROUGH_ANGLE)
 	else:
-		score_queue.append([Time.get_ticks_msec(), position, lane_rotation, get_pointing(), preswing, accuracy])
+		score_queue.append([Time.get_ticks_msec(), position, lane_rotation, pointing, preswing, accuracy, approach[1]])
 	
 func add_chain_head_score(position: Vector3, lane_rotation: float, accuracy: float) -> void:
 	var time = Time.get_ticks_msec()
 	var pointing := get_pointing()
-	var preswing := get_preswing_angle(time, pointing)
-	Scoreboard.add_swing_score(position, lane_rotation, accuracy, preswing, 0., true)
+	Scoreboard.add_swing_score(position, lane_rotation, accuracy, get_preswing(time)[0], 0., true)
 	
-func get_preswing_angle(time: int, pointing: Vector3) -> float:
-	if history[history_tail].size() == 0:
-		return 0.
-	var start_time := time - preswing_time
-	var i := (history_tail - 1 + history_size) % history_size
-	var smallest_dot_product := 1.
-	while i != history_tail and history[i].size() > 0 and history[i][0] >= start_time:
-		var dot := pointing.dot(history[i][1])
-		if dot < smallest_dot_product:
-			smallest_dot_product = dot
-		i = (i - 1 + history_size) % history_size
-	return 180. / PI * acos(smallest_dot_product)
-	
-func get_followthrough_angle(time: int, pointing: Vector3) -> float:
-	if history[history_tail].size() == 0:
-		return 0.
-	var smallest_dot_product := pointing.dot(history[history_tail][1])
-	var i := (history_tail - 1 + history_size) % history_size
-	while i != history_tail and history[i].size() > 0 and history[i][0] > time:
-		var dot := pointing.dot(history[i][1])
-		if dot < smallest_dot_product:
-			smallest_dot_product = dot
-		i = (i - 1 + history_size) % history_size
-	return 180. / PI * acos(smallest_dot_product)
+## The approach before a cut at time (ms): [degrees swept, the plane's normal at the cut (zero if the saber stood still)].
+func get_preswing(time: int) -> Array:
+	var before := _history_between(time - SWING_WINDOW_MS, time)
+	before.reverse()
+	var steps: Array[Vector3] = []
+	for entry: Array in before:
+		steps.append(entry[1] as Vector3)
+	# the plane of the last step before the cut, oriented with the swing (older cross newer)
+	var reference := Vector3.ZERO
+	for k in steps.size() - 1:
+		var n := steps[k + 1].cross(steps[k])
+		if n.length_squared() > 1e-10:
+			reference = n.normalized()
+			break
+	return [swept(steps, reference, true), reference]
+
+## The follow-through after a cut at time (ms), measured against the approach's plane.
+func get_followthrough(time: int, reference: Vector3) -> float:
+	var steps: Array[Vector3] = []
+	for entry: Array in _history_between(time - 1, time + SWING_WINDOW_MS):
+		steps.append(entry[1] as Vector3)
+	return swept(steps, reference, false)
+
+## Degrees the saber swept along pointings (unit vectors, starting at the cut and going away from it: back in time
+## when backward), adding each step while its plane stays within SWING_STOP_DEG of reference (the cut's plane,
+## oriented with the swing's direction), and less and less past SWING_FULL_DEG.
+static func swept(pointings: Array[Vector3], reference: Vector3, backward: bool) -> float:
+	if reference == Vector3.ZERO:
+		return 0.0
+	var total := 0.0
+	for k in pointings.size() - 1:
+		# the step in the swing's own direction of travel (older to newer)
+		var from := pointings[k + 1] if backward else pointings[k]
+		var to := pointings[k] if backward else pointings[k + 1]
+		var n := from.cross(to)
+		if n.length_squared() < 1e-12:
+			continue
+		var off := rad_to_deg(n.normalized().angle_to(reference))
+		if off > SWING_STOP_DEG:
+			break
+		var weight := 1.0 if off <= SWING_FULL_DEG else (SWING_STOP_DEG - off) / (SWING_STOP_DEG - SWING_FULL_DEG)
+		total += rad_to_deg(from.angle_to(to)) * weight
+	return total
 	
 func _update_score(score_entry) -> void:
 	var position := score_entry[1] as Vector3
@@ -185,7 +213,7 @@ func _update_score(score_entry) -> void:
 	var pointing := score_entry[3] as Vector3
 	var preswing := score_entry[4] as float
 	var other_component := score_entry[5] as float
-	var followthrough := get_followthrough_angle(score_entry[0], pointing)
+	var followthrough := get_followthrough(score_entry[0], score_entry[6] as Vector3)
 	Scoreboard.add_swing_score(position, lane_rotation, other_component, preswing, followthrough)
 	_cut_log.append([score_entry[0], pointing, other_component, preswing, followthrough])
 

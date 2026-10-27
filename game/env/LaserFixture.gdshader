@@ -15,7 +15,7 @@ render_mode unshaded, fog_disabled, shadows_disabled;
 
 global uniform vec4 env_haze;
 global uniform vec4 env_light;
-#include "res://game/env/shadow_tone.gdshaderinc"
+#include "res://game/env/fog_light.gdshaderinc"
 #include "res://game/env/height_fog.gdshaderinc"
 
 // 1. base
@@ -29,7 +29,7 @@ const float SPILL = 0.12;
 // 4. lens: how far its colour leans toward white at full brightness
 const float LENS_WHITE = 0.6;
 // 5. haze: per metre, and how much of the height fog the body takes
-const float FOG_DENSITY = 0.03;
+const float FOG_DENSITY = 0.015;
 const float SOLID_HEIGHT_FOG = 0.55;
 
 varying float shade;
@@ -46,14 +46,17 @@ void vertex() {
 	lens = COLOR.g;
 	beam = INSTANCE_CUSTOM.rgb;
 	float dist = length(world - CAMERA_POSITION_WORLD);
-	fog = max(1.0 - exp(-FOG_DENSITY * dist), height_fog(world, CAMERA_POSITION_WORLD) * SOLID_HEIGHT_FOG);
+	// at most the scenery's share of haze (EnvSolid FAR_HAZE_MAX)
+	fog = min(max(1.0 - exp(-FOG_DENSITY * dist), height_fog(world, CAMERA_POSITION_WORLD) * SOLID_HEIGHT_FOG), 0.6);
 }
 
 void fragment() {
+	// the haze lit from the stage's key light, seen this way (fog_light.gdshaderinc)
+	vec3 haze = fog_lit(env_haze.rgb, (INV_VIEW_MATRIX * vec4(-VIEW, 0.0)).xyz);
 	vec3 body = (METAL + env_light.rgb * SPILL) * shade;
 	float level = max(beam.r, max(beam.g, beam.b));
 	vec3 glow = mix(beam, vec3(level), LENS_WHITE * level);
 	vec3 lit = mix(body, glow, lens * step(0.001, level));
 	// the lens is a light: haze dims it less than the body
-	ALBEDO = shadow_tone(mix(lit, env_haze.rgb, fog * (1.0 - 0.5 * lens)));
+	ALBEDO = fog_dither(mix(lit, haze, fog * (1.0 - 0.5 * lens)), FRAGCOORD.xy);
 }

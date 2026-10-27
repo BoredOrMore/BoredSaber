@@ -1,6 +1,6 @@
 ---
 name: rhythm-world-design
-description: Standard for designing or changing BoredSaber's environments (Classic, Neon Grid, Night City, Pulse Void) and anything placed in them - structure, fixtures, lights, music-reactive effects, generated layouts. Use before any environment or scene-layout change, and when proposing one to the user.
+description: Standard for designing or changing BoredSaber's environments (Classic, Neon Grid, Night City, Pulse Void, Metal Factory, and any new one) and anything placed in them - structure, fixtures, lights, music-reactive effects, scene evolution during a song (build-up, drop), generated layouts. Use before any environment or scene-layout change, and when proposing one to the user.
 ---
 
 # Rhythm-world design for BoredSaber
@@ -47,7 +47,8 @@ Don't detail what may still move.
 
 ## 5. Placement contract
 For every significant piece or group, be able to say: why it exists, why here, why facing that way, what holds it
-up (nothing floats: Light rule 5), how big next to the player and its neighbours, what it adds to composition or
+up (nothing floats: Light rule 5), for a light what it is in the world (a carrier that belongs there and fits the
+story, never a stand just to hold the light: Light rule 5), how big next to the player and its neighbours, what it adds to composition or
 rhythm, and whether it can block a note, a wall or the player's view. If it can't be justified, move or remove it.
 
 ## 6. Three layers
@@ -64,7 +65,7 @@ the note corridor authored; vary only chosen properties within stated ranges; re
 2. From the player's eye: a Blender render of the layout before building, then headset screenshots in play,
    compared with the style frame (Classic target look).
 3. Busy light sections and quiet ones; menus too (pre-show lighting).
-4. GPU: `tools/bench.sh` before and after; budget 11.1 ms at 90 Hz, 13.9 ms at 72 Hz.
+4. GPU: `tools/bench.sh` before and after; budget 13.9 ms at 72 Hz, the refresh rate for every scene (owner, 2026-10-26).
 5. Anything that moves the playspace follows the playspace rule in `game/AGENTS.md`.
 
 ## 9. Done means

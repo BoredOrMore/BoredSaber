@@ -68,6 +68,7 @@ const SKY_SHADERS := {
 	"neon_grid": preload("res://game/env/NeonGridSky.gdshader"),
 	"pulse_void": preload("res://game/env/PulseVoidSky.gdshader"),
 	"night_city": preload("res://game/env/NightCitySky.gdshader"),
+	"metal_factory": preload("res://game/env/MetalFactorySky.gdshader"),
 }
 
 var ring_rot_speed := 0.0
@@ -93,6 +94,10 @@ const STINGER_ROOMS := {
 			&"tap2_active": true, &"tap2_delay_ms": 190.0, &"tap2_level_db": -16.0, &"tap2_pan": 0.3}],
 	"pulse_void": [{&"room_size": 0.7, &"damping": 0.8, &"wet": 0.15},
 			{&"tap1_active": false, &"tap2_active": false}],
+	# Metal Factory: a big hard hall, bright and long-ish, with a slap off the side walls (18 m away, ~105 ms)
+	"metal_factory": [{&"room_size": 0.6, &"damping": 0.3, &"wet": 0.2},
+			{&"tap1_active": true, &"tap1_delay_ms": 105.0, &"tap1_level_db": -14.0, &"tap1_pan": 0.0,
+			&"tap2_active": false}],
 }
 
 ## The scenery around the track, one of the ids in Settings.ENVIRONMENTS other than "auto".
@@ -143,6 +148,8 @@ const INTENSITY_RISE_SECONDS := 1.0
 const INTENSITY_FALL_SECONDS := 3.0
 ## the song's beat now, set by the Playing state; the curve and the smoothed intensity
 var show_beat := 0.0
+## the song's tempo, for the Metal Factory's pistons
+var _show_bpm := 0.0
 var _intensity_curve := PackedFloat32Array()
 var _intensity := 0.0
 ## the highest the smoothed intensity has been this song: what the crew has built so far (it never comes down)
@@ -172,9 +179,7 @@ var _bars_lowered := false
 @onready var sphere_material := ($Level/Sphere as MeshInstance3D).material_override as ShaderMaterial
 @onready var classic_sky_material := sphere_material
 @onready var neon_grid := $Level/NeonGrid as Node3D
-@onready var pulse_void := $Level/PulseVoid as Node3D
-## materials that follow the sky's light parameters besides the sky itself
-@onready var _light_followers: Array[ShaderMaterial] = [pulse_void.ring_material]
+@onready var pulse_void := $Level/PulseVoid as PulseVoid
 @onready var diagonal_lasers_material := ($Level/DiagonalLasers/laser1/Bar7 as MeshInstance3D).material_override as ShaderMaterial
 @onready var square_lasers_material := ($Level/SquareLasers/Bar7 as MeshInstance3D).material_override as ShaderMaterial
 @onready var left_waving_lasers_material := ($Level/LeftWavingLasers/laser1/Bar7 as MeshInstance3D).material_override as ShaderMaterial
@@ -185,6 +190,7 @@ var _bars_lowered := false
 @onready var track_lights_right := $Level/TrackLights/Bar1 as MeshInstance3D
 @onready var track_lights_left := $Level/TrackLights/Bar2 as MeshInstance3D
 @onready var end_path := $Level/Endpath as MeshInstance3D
+@onready var track_deck := $Level/TrackDeck as TrackDeck
 @onready var stage_smoke := $Level/StageSmoke as StageSmoke
 ## the player's platform border (game/floor.tscn): always lit, white-hot with the right note colour at its edges,
 ## whatever the map's light show does, so the player always sees where they stand
@@ -192,6 +198,7 @@ const PLATFORM_LIGHTS := preload("res://game/env/platform_lights.tres")
 @onready var classic_rig := $Level/ClassicRig as ClassicRig
 @onready var neon_grid_rig := $Level/NeonGridRig as NeonGridRig
 @onready var night_city_rig := $Level/NightCityRig as NightCityRig
+@onready var metal_factory_rig := $Level/MetalFactoryRig as MetalFactoryRig
 
 @onready var ring_anim_player := $Level/rings/AnimationPlayer as AnimationPlayer
 @onready var left_laser_anim_player := $Level/LeftWavingLasers/AnimationPlayer as AnimationPlayer
@@ -202,9 +209,9 @@ const PLATFORM_LIGHTS := preload("res://game/env/platform_lights.tres")
 func _ready() -> void:
 	classic_sky_material.render_priority = SKY_RENDER_PRIORITY
 	$Level.add_child(_dust)
-	# each laser leaves a moving head on top of its pedestal (ClassicRig), not from inside it
+	# each laser's own transform (its aim), put back before a rig hangs it (Classic's places it on the tunnel's hanging scaffolds
+	# and catwalks, ClassicRig)
 	for laser: Node3D in diagonal_lasers + _waving_lasers():
-		laser.global_position.y = ClassicRig.FIXTURE_Y
 		_classic_rig[laser] = laser.global_transform
 	var fixture_lasers: Array[Node3D] = []
 	var fixture_materials: Array[ShaderMaterial] = []
@@ -217,7 +224,18 @@ func _ready() -> void:
 				else right_waving_lasers_material)
 	_fixtures.setup(fixture_lasers, fixture_materials)
 	$Level.add_child(_fixtures)
+	# Night City's layout follows its Classic switch, the lights hung again on the one shown
+	Settings.changed.connect(func(key: StringName) -> void:
+		if key == &"classic_night_city":
+			night_city_rig.build(Settings.classic_night_city)
+			if environment == "night_city":
+				_apply_rig(environment))
+	# each group's bars in one draw call (LaserBatch)
+	for holder: Node3D in [diagonal_lasers_holder, square_lasers_holder, left_waving_lasers_holder, right_waving_lasers_holder]:
+		LaserBatch.make(holder, $Level)
 	_classic_rig[square_lasers_holder] = square_lasers_holder.transform
+	for strip: MeshInstance3D in [track_lights_left, track_lights_right]:
+		_strip_rest[strip] = strip.global_transform
 	for bar in _square_bars():
 		_classic_rig[bar] = bar.global_transform
 	track_lights_holder.hide()
@@ -236,6 +254,11 @@ func _ready() -> void:
 				shader_param,
 				(sphere_material.get_shader_parameter(shader_param) as float) * 2.2
 			)
+	# set_environment skips the current environment, and it starts as "classic": apply that one in full (its rig's
+	# lights placed, the old rings left out) as the stage capture does
+	var start := environment
+	environment = ""
+	set_environment(start)
 
 func set_background_texture() -> void:
 	if not Settings.background_texture.begins_with("res:"):
@@ -291,9 +314,11 @@ func set_environment(id: String) -> void:
 				sky.set_shader_parameter(param, value)
 	sphere_material = sky
 	($Level/Sphere as MeshInstance3D).material_override = sky
-	rings_enabled = id == "classic"
+	# the old Classic's rotating rings are retired (its new tunnel's ribs took their place, 2026-10-27)
+	rings_enabled = false
 	_apply_stinger_room(id)
 	_apply_rig(id)
+	track_deck.set_stage(id)
 	show_scenery_for_mixed_reality()
 	set_background()
 
@@ -308,32 +333,108 @@ func _apply_stinger_room(id: String) -> void:
 			target.set(property, room[effect][property])
 
 ## Each environment hangs the same five light groups (so a map's light show still drives them) on its own rig, so
-## the stages don't all look alike: Classic keeps Beat Saber's layout; Neon Grid fans its diagonal lasers outward
-## from a stage on each side of the sun, lines its waving lasers along the grid's edges and hangs the square bars far above
-## the horizon; Night City sweeps its waving lasers like searchlights from far beside the track and crosses its
-## diagonal beams from rooftop height; Pulse Void mounts its lights on its rings: the diagonal lasers run as rails
-## from the nearest ring to the farthest, and the waving lasers stand on the rings' upper sides. Every beam starts at its fixture and turns around it (game/AGENTS.md). Positions in metres, untuned.
+## the stages don't all look alike: Classic keeps Beat Saber's layout; Neon Grid hangs them on its arches' building site
+## (NeonGridRig: floodlights at the footings, survey beacons, the crane's work lights, strips along the arches); Night City sweeps its waving lasers like searchlights from far beside the track and crosses its
+## diagonal beams from rooftop height; Pulse Void stands its floodlights on the dish's feed legs and its beacons on masts
+## at the rim (PulseVoid). Every beam starts at its fixture and turns around it (game/AGENTS.md). Positions in metres, untuned.
 ## Each side's fan: from its stage, leaning RIG_FAN_MIN_DEG..RIG_FAN_MAX_DEG away from the track (never toward the sun).
 const RIG_FAN_MIN_DEG := 5.0
 const RIG_FAN_MAX_DEG := 70.0
-const RIG_GRID_EDGE_X := NeonGridRig.POLE_X
-## Neon Grid's square bars: the horizontal ones become light rails between neighbouring lamp poles, along the
-## track; the vertical ones are left out there, as the poles are shorter than a bar.
+## The arches' strips climb with the show (owner, 2026-10-26): a strip segment is lit once the show has built up to its
+## height on the arch (as Night City's windows, _built), at least STRIP_MIN; on the drop (show intensity over STRIP_DROP)
+## all of arch B lights; when the square bars' light is off they keep STRIP_QUIET of their last colour (dim, never
+## dark). They carry the square bars' light group (NeonGridRig's strips; the bars are left out there). Untuned.
+const STRIP_MIN := 0.25
+const STRIP_DROP := 0.85
+const STRIP_QUIET := 0.15
+const MENU_STRIPS := 0.5
+var _strip_last := Color.BLACK
+## Classic's rib strips: how far from the far end they are lit, out of the song's drops, and how fast that runs
+const RIB_QUIET := 0.2
+const RIB_SWEEP_SECONDS := 1.2
+const RIB_FADE_SECONDS := 4.0
+var _rib_sweep := 0.0
+## the sky sphere drawn this many times as far in Neon Grid, behind the arches (950 m, inside the camera's 1024 m far plane)
+const NEON_SKY_SCALE := 9.5
 const RAIL_BASIS := Basis(Vector3(1.0, 0.0, 0.0), Vector3(0.0, 1.0, 0.0), Vector3(0.0, 0.0, 0.3))
 ## Night City's square bars trim the buildings' roof edges facing the track, as architectural accent light: this far
 ## below the roof and off the inner face
 const ROOF_TRIM_DROP := 0.15
 const ROOF_TRIM_OFFSET := 0.2
-## Pulse Void's diagonal lasers run straight along the tunnel from the nearest ring to the farthest, between
-## VOID_LOW_DEG and VOID_HIGH_DEG on each side (0 is level with the rings' centre, 90 the top), above the floor and
-## clear of the track
-const VOID_LOW_DEG := -5.0
-const VOID_HIGH_DEG := 85.0
-## where the waving lasers stand on their rings, in degrees above level
-const VOID_WAVING_DEG := 20.0
-const RIG_WAVING_Y := -1.26
+## Metal Factory: the energy strips' centres along each rail (each 9.6 m long with RAIL_BASIS), just above the rail's
+## top so they don't flicker into it
+const FACTORY_STRIP_Z: Array[float] = [-8.0, -22.0, -36.0]
+const FACTORY_STRIP_LIFT := 0.01
 ## each laser's and the square bars' Classic transform, put back before another rig is hung
 var _classic_rig := {}
+## the edge light strips' transforms along the old track, put back with the Old track setting
+var _strip_rest := {}
+
+## Night City's canyon (NightCityRig, blockout): the wall side's lights on the tower wall's face, the open side's on
+## the low roofs. The diagonal lasers cross over the canyon from both; the waving lasers are searchlights on the wall's
+## face at several heights and on the low roofs; the horizontal square bars alternate between trims on the low roofs'
+## inner edges and billboards on the wall's face; the vertical ones are left out. Heights in metres, untuned.
+const CANYON_SKY_SCALE := 9.5
+## the canyon's windows: how many the menu shows lit and how bright, and how bright they stay in a song's quiet parts
+const MENU_WINDOWS := 0.35
+const WINDOWS_QUIET := 0.4
+const CANYON_BILLBOARD_Y := [22.0, 30.0, 46.0, 58.0]
+
+func _hang_canyon(waving: Array[Node3D]) -> void:
+	var w := NightCityRig.WALL_SIDE
+	var o := -w
+	var towers := NightCityRig.TOWERS
+	var roofs := NightCityRig.LOW_ROOFS
+	var pairs := diagonal_lasers.size() >> 1
+	for i in diagonal_lasers.size():
+		var j := i % pairs
+		if i < pairs:
+			# on the maintenance platforms out of the tower wall (NightCityRig.wall_diagonal_spot)
+			_aim(diagonal_lasers[i], NightCityRig.wall_diagonal_spot(j, pairs), Vector3(o * 0.6, 1.0, -0.1))
+		else:
+			var r: Vector4 = roofs[j % roofs.size()]
+			_aim(diagonal_lasers[i], Vector3(o * r.x, r.w, (r.y + r.z) * 0.5), Vector3(w * 0.4, 1.0, 0.05))
+	@warning_ignore("integer_division")
+	var half := waving.size() / 2
+	for i in waving.size():
+		var j := i % half
+		if (i < half) == (w < 0.0):
+			waving[i].global_position = NightCityRig.wall_searchlight_spot(j)
+		else:
+			var r: Vector4 = roofs[j % roofs.size()]
+			waving[i].global_position = Vector3(o * (r.x + NightCityRig.LOW_ROOF_DEPTH * 0.6), r.w + 0.3, (r.y + r.z) * 0.5)
+	var k := 0
+	for bar in _square_bars():
+		if bar.get_parent() != square_lasers_holder:
+			bar.visible = false
+			continue
+		var j := k >> 1
+		if k % 2 == 0:
+			var r: Vector4 = roofs[j % roofs.size()]
+			bar.global_transform = Transform3D(RAIL_BASIS, Vector3(o * (r.x - ROOF_TRIM_OFFSET), r.w - ROOF_TRIM_DROP, (r.y + r.z) * 0.5))
+		else:
+			var t: Vector4 = towers[j % towers.size()]
+			bar.global_transform = Transform3D(RAIL_BASIS, Vector3(w * (t.x - ROOF_TRIM_OFFSET),
+				CANYON_BILLBOARD_Y[j % CANYON_BILLBOARD_Y.size()], lerpf(t.y, t.z, 0.25 + 0.15 * j)))
+		k += 1
+
+## Each stage's key light for the fog's in-scattering (fog_light.gdshaderinc): the way to it from the player (x, y, z)
+## and how strongly the haze brightens toward it (w). Classic: the stage ahead and above; Neon Grid: the sun on the
+## horizon; Night City: the glow at the canyon's far end, a little toward the open side; Pulse Void: the tunnel's
+## bright end; Metal Factory: the gear pit ahead, gently. Halved with the fog (owner, 2026-10-26). Untuned.
+const FOG_KEYS := {
+	"classic": Vector4(0.0, 0.3, -1.0, 0.06),
+	"neon_grid": Vector4(0.0, 0.12, -1.0, 0.1),
+	"night_city": Vector4(0.2, 0.1, -1.0, 0.075),
+	"pulse_void": Vector4(0.0, 0.0, -1.0, 0.1),
+	"metal_factory": Vector4(0.0, 0.05, -1.0, 0.04),
+}
+
+## Pulse Void's beams: their width and brightness, parts of the beams' own (untuned)
+const VOID_BEAM_WIDTH := 0.5
+const VOID_BEAM_BRIGHTNESS := 0.55
+## each beam material's own width and brightness, put back on the other stages
+var _beam_rest := {}
 
 ## The waving lasers' fixtures, left side first.
 func _waving_lasers() -> Array[Node3D]:
@@ -357,13 +458,34 @@ static func _aim(laser: Node3D, from: Vector3, direction: Vector3) -> void:
 	var aim := Basis.looking_at(direction.normalized(), Vector3.UP if absf(direction.normalized().y) < 0.99 else Vector3.FORWARD)
 	laser.global_transform = Transform3D(Basis(aim.x, aim.y, aim.z * length), from)
 
-## Aims a laser fixture at `from` toward `to` and sets its beam to end there.
-static func _span(laser: Node3D, from: Vector3, to: Vector3) -> void:
-	_aim(laser, from, to - from)
-	# the beam runs from the fixture to twice its centre's distance along local -z
-	var reach := -2.0 * (laser.get_child(0) as Node3D).position.z
-	var b := laser.global_transform.basis
-	laser.global_transform.basis = Basis(b.x, b.y, b.z.normalized() * from.distance_to(to) / reach)
+## Neon Grid's arch strips and Pulse Void's dish seams: how far up (in from the rim) they are lit (how far the show has
+## built, all of arch B or the whole dish on the drop) and their light, never dark.
+func _update_strips(material: ShaderMaterial) -> void:
+	material.set_shader_parameter(&"level", MENU_STRIPS if menu_focus else maxf(STRIP_MIN, _built))
+	material.set_shader_parameter(&"drop", 1.0 if not menu_focus and _intensity > STRIP_DROP else 0.0)
+	var color: Color = square_lasers_material.get_shader_parameter(&"light_color")
+	if color.get_luminance() > 0.01:
+		_strip_last = color
+	else:
+		var last := _strip_last if _strip_last.get_luminance() > 0.01 else left_color
+		color = Color(last.r * STRIP_QUIET, last.g * STRIP_QUIET, last.b * STRIP_QUIET)
+	material.set_shader_parameter(&"light_color", color)
+
+## Classic's rib strips, the tunnel's test lights: in the square bars' light, never dark (as Neon Grid's strips); a few
+## far ribs lit through the song, and on the drop they run from far to near (RIB_SWEEP_SECONDS), back on a lull.
+func _update_rib_strips(delta: float) -> void:
+	var material := classic_rig.rib_strip_material
+	var drop := not menu_focus and _intensity > STRIP_DROP
+	var rest := MENU_STRIPS if menu_focus else RIB_QUIET
+	_rib_sweep = move_toward(_rib_sweep, 1.0 if drop else rest, delta / (RIB_SWEEP_SECONDS if drop else RIB_FADE_SECONDS))
+	material.set_shader_parameter(&"level", _rib_sweep)
+	var color: Color = square_lasers_material.get_shader_parameter(&"light_color")
+	if color.get_luminance() > 0.01:
+		_strip_last = color
+	else:
+		var last := _strip_last if _strip_last.get_luminance() > 0.01 else left_color
+		color = Color(last.r * STRIP_QUIET, last.g * STRIP_QUIET, last.b * STRIP_QUIET)
+	material.set_shader_parameter(&"light_color", color)
 
 ## Hangs the lights on the environment's rig (see RIG_FAN_MIN_DEG).
 func _apply_rig(id: String) -> void:
@@ -378,27 +500,83 @@ func _apply_rig(id: String) -> void:
 	var waving := _waving_lasers()
 	@warning_ignore("integer_division")
 	var half := waving.size() / 2
+	# Metal Factory has no beams: the diagonal and waving lasers' light glows in its wall vents. The beam meshes are hidden
+	# rather than their holders, which the light events show and hide.
+	for laser: Node3D in diagonal_lasers + waving:
+		for beam in laser.get_children():
+			if beam is MeshInstance3D:
+				(beam as MeshInstance3D).visible = id != "metal_factory"
+	# the sky sphere (100 m) would hide the canyon's far city and landmark tower (to 800 m out) and Neon Grid's arches:
+	# there it is drawn CANYON_SKY_SCALE or NEON_SKY_SCALE times as far; elsewhere at its size, where it hides the beams'
+	# far ends
+	var sky_scale := 1.0
+	if id == "night_city" and not Settings.classic_night_city:
+		sky_scale = CANYON_SKY_SCALE
+	elif id == "neon_grid" or id == "classic" or id == "pulse_void":
+		# Classic's tunnel runs 600 m ahead (ClassicRig): the sky behind its far end
+		sky_scale = NEON_SKY_SCALE
+	($Level/Sphere as Node3D).scale = Vector3.ONE * sky_scale
+	# the haze lit from the stage's key light (fog_light.gdshaderinc)
+	var key: Vector4 = FOG_KEYS.get(id, Vector4(0.0, 0.0, -1.0, 0.0))
+	var key_dir := Vector3(key.x, key.y, key.z).normalized()
+	RenderingServer.global_shader_parameter_set(&"fog_key", Vector4(key_dir.x, key_dir.y, key_dir.z, key.w))
+	# Pulse Void's beams narrower and dimmer, so the dish's lights lead and the notes stay brightest (Light rule 1; owner,
+	# 2026-10-25: too bright); the rest keep the beams' own width and brightness
+	for material: ShaderMaterial in [diagonal_lasers_material, left_waving_lasers_material, right_waving_lasers_material]:
+		if not _beam_rest.has(material):
+			# a value the material doesn't set is the shader's own default
+			var rest_of := func(param: StringName) -> float:
+				var value: Variant = material.get_shader_parameter(param)
+				if value == null:
+					value = RenderingServer.shader_get_parameter_default(material.shader.get_rid(), param)
+				# the dummy renderer (headless runs) knows no defaults: NeonRibbon.gdshader's, kept in step by hand
+				return value if value != null else {&"width": 0.4, &"brightness": 3.5}[param]
+			_beam_rest[material] = [rest_of.call(&"width"), rest_of.call(&"brightness")]
+		var rest: Array = _beam_rest[material]
+		var void_stage := id == "pulse_void"
+		material.set_shader_parameter(&"width", rest[0] * VOID_BEAM_WIDTH if void_stage else rest[0])
+		material.set_shader_parameter(&"brightness", rest[1] * VOID_BEAM_BRIGHTNESS if void_stage else rest[1])
+	# Classic's waving lasers leave from follow spots, every other laser from a moving head (LaserFixtures)
+	for i in waving.size():
+		_fixtures.set_kind(diagonal_lasers.size() + i, LaserFixtures.FOLLOW_SPOT if id == "classic" else LaserFixtures.MOVING_HEAD)
 	match id:
-		"neon_grid":
-			var per_side := diagonal_lasers.size() >> 1
+		"classic":
+			# the giant test tunnel (ClassicRig): moving heads standing on the hanging scaffolds' decks, follow spots on the wall
+			# catwalks, the square bars under the scaffolds' decks (the vertical ones left out); all keep their Classic aim
 			for i in diagonal_lasers.size():
-				var side := -1.0 if i < per_side else 1.0
-				var a := deg_to_rad(lerpf(RIG_FAN_MIN_DEG, RIG_FAN_MAX_DEG, float(i % per_side) / maxi(per_side - 1, 1)))
-				_aim(diagonal_lasers[i], Vector3(side * NeonGridRig.STAGE_X, NeonGridRig.STAGE_TOP, NeonGridRig.STAGE_CENTRE_Z),
-						Vector3(side * sin(a), cos(a), -0.15))
+				diagonal_lasers[i].global_position = ClassicRig.moving_head_spot(i, diagonal_lasers.size())
 			for i in waving.size():
-				var side := -1.0 if i < half else 1.0
-				waving[i].global_position = Vector3(side * RIG_GRID_EDGE_X, NeonGridRig.POLE_HEIGHT, NeonGridRig.POLE_Z[i % half])
-			var rail := 0
-			var gaps := NeonGridRig.POLE_Z.size() - 1
+				waving[i].global_position = ClassicRig.follow_spot(i, waving.size())
+			var bars: Array[Node3D] = []
 			for bar in _square_bars():
 				if bar.get_parent() != square_lasers_holder:
 					bar.visible = false
-					continue
-				var side := -1.0 if rail < gaps else 1.0
-				var z := (NeonGridRig.POLE_Z[rail % gaps] + NeonGridRig.POLE_Z[rail % gaps + 1]) * 0.5
-				bar.global_transform = Transform3D(RAIL_BASIS, Vector3(side * RIG_GRID_EDGE_X, NeonGridRig.POLE_HEIGHT, z))
-				rail += 1
+				else:
+					bars.append(bar)
+			for i in bars.size():
+				bars[i].global_transform = ClassicRig.scaffold_bar(i, bars.size())
+		"neon_grid":
+			# the diagonal lasers: floodlights at B's footing (left) and C's (right), fanning up and away from the sun
+			var per_side := diagonal_lasers.size() >> 1
+			var bases := NeonGridRig.floodlight_bases()
+			for i in diagonal_lasers.size():
+				var side := -1.0 if i < per_side else 1.0
+				var a := deg_to_rad(lerpf(RIG_FAN_MIN_DEG, RIG_FAN_MAX_DEG, float(i % per_side) / maxi(per_side - 1, 1)))
+				_aim(diagonal_lasers[i], bases[0 if side < 0.0 else 1] + Vector3(0.0, 1.0, 0.0), Vector3(side * sin(a), cos(a), -0.15))
+			# the waving lasers: survey beacons on the masts (left), the crane's work lights (right)
+			var crane := NeonGridRig.crane_lights(waving.size() - half)
+			for i in waving.size():
+				if i < half:
+					var m := NeonGridRig.SURVEY_MASTS[i % NeonGridRig.SURVEY_MASTS.size()]
+					waving[i].global_position = Vector3(m.x, m.z, m.y)
+				else:
+					waving[i].global_position = crane[i - half]
+			# the square bars' light goes to the arches' strips (NeonGridRig, ArchStrip.gdshader); the bars themselves are
+			# left out
+			for bar in _square_bars():
+				bar.visible = false
+		"night_city" when not Settings.classic_night_city:
+			_hang_canyon(waving)
 		"night_city":
 			# diagonal lasers cross from the roofs' inner edges, one every 6 m along each row of buildings
 			for i in diagonal_lasers.size():
@@ -424,20 +602,27 @@ func _apply_rig(id: String) -> void:
 					Vector3(side * (NightCityRig.INNER_FACE_X - ROOF_TRIM_OFFSET), b.z - ROOF_TRIM_DROP, b.x))
 				sign_i += 1
 		"pulse_void":
-			var pairs := diagonal_lasers.size() >> 1
+			# the giant receiving dish (PulseVoid): floodlights on the feed legs, beacons on the rim masts; the dish's seam rows
+			# carry the square bars' light (_update_strips), so the bars are left out
 			for i in diagonal_lasers.size():
-				var j := i % pairs
-				var a := deg_to_rad(lerpf(VOID_LOW_DEG, VOID_HIGH_DEG, float(j) / maxi(pairs - 1, 1)))
-				if i < pairs:
-					# left side: mirrored
-					a = PI - a
-				_span(diagonal_lasers[i], PulseVoid.ring_point(0, a), PulseVoid.ring_point(PulseVoid.RING_COUNT - 1, a))
+				diagonal_lasers[i].global_position = PulseVoid.leg_floodlight(i, diagonal_lasers.size())
 			for i in waving.size():
-				var a := deg_to_rad(VOID_WAVING_DEG)
-				waving[i].global_position = PulseVoid.ring_point(1 + 3 * (i % half), PI - a if i < half else a)
-			# the rings carry the square lasers' light (PulseRing.gdshader), so the bars would only float in the void
+				waving[i].global_position = PulseVoid.rim_beacon(i, waving.size())
 			for bar in _square_bars():
 				bar.visible = false
+		"metal_factory":
+			# no lasers here: their light glows in the wall vents (MetalFactoryRig.set_vent_colors, _process; the beams are
+			# hidden above, the heads in show_scenery_for_mixed_reality and set_background). The horizontal square bars become energy strips flush on the rails' tops; the vertical ones are left out
+			var strip := 0
+			var per_side := FACTORY_STRIP_Z.size()
+			for bar in _square_bars():
+				if bar.get_parent() != square_lasers_holder:
+					bar.visible = false
+					continue
+				var side := -1.0 if strip < per_side else 1.0
+				bar.global_transform = Transform3D(RAIL_BASIS, Vector3(side * MetalFactoryRig.RAIL_X,
+						MetalFactoryRig.RAIL_TOP + FACTORY_STRIP_LIFT, FACTORY_STRIP_Z[strip % per_side]))
+				strip += 1
 
 ## Shows the environment's own scenery (Neon Grid's floor, Pulse Void's rings, the smoke) except in mixed reality,
 ## where opaque scenery would cover the player's room: there only the track, notes and light beams are drawn
@@ -448,12 +633,13 @@ func show_scenery_for_mixed_reality() -> void:
 	classic_rig.visible = environment == "classic" and not Settings.mixed_reality
 	neon_grid_rig.visible = environment == "neon_grid" and not Settings.mixed_reality
 	night_city_rig.visible = environment == "night_city" and not Settings.mixed_reality
+	metal_factory_rig.visible = environment == "metal_factory" and not Settings.mixed_reality
 	stage_smoke.visible = Settings.smoke and not Settings.mixed_reality
 	_dust.visible = not Settings.mixed_reality
-	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple"
+	# Metal Factory has no moving heads: its lights glow in the wall vents
+	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple" and environment != "metal_factory"
 
 func set_background() -> void:
-	var width_scale := 2 * Settings.LANE_DISTANCE_X / 3.
 	var track_lights_width := track_lights_right.get_aabb().size.x
 	track_lights_right.global_transform.origin.x = track_lights_width / 2 + 2 * Settings.LANE_DISTANCE_X - .01
 	track_lights_left.global_transform.origin.x = -track_lights_right.transform.origin.x
@@ -464,12 +650,30 @@ func set_background() -> void:
 	($Level/floor/line3).global_transform.origin.x = 2 * Settings.LANE_DISTANCE_X
 	($Level/floor/line4).global_transform.origin.x = -2 * Settings.LANE_DISTANCE_X
 	($Level/floor).scale.z = 1
-	# the Classic rig spreads its diagonal lasers with the track's width; other rigs place them on their structure
-	if environment == "classic":
-		for laser in diagonal_lasers:
-			laser.transform.origin.x = 4.5 * width_scale * sign(laser.transform.origin.x)
-	
-	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple"
+	# the deck with its curbs (TrackDeck), whose curbs house the edge light strips; or the old see-through sheet, with
+	# its strips at its edges, in mixed reality (the room must show through) and with the Old track setting
+	var old_track := Settings.old_track or Settings.mixed_reality
+	($Level/floor as Node3D).visible = old_track
+	# the old track's far end piece; the deck ends in its own low stop (it rose over the horizon straight ahead)
+	end_path.visible = old_track
+	track_deck.visible = not old_track
+	track_deck.layout(Settings.LANE_DISTANCE_X)
+	# the deck's strips run its whole length, out to where it fades into the haze, and fade with it; the old track's
+	# stop at its end, as they always did
+	var span := track_deck.strip_span()
+	track_lights_material.set_shader_parameter(&"fade_z", Vector2.ZERO if old_track else track_deck.fade_z())
+	for strip: MeshInstance3D in [track_lights_left, track_lights_right]:
+		var rest: Transform3D = _strip_rest[strip]
+		if old_track:
+			strip.global_transform = Transform3D(rest.basis, Vector3(strip.global_position.x, rest.origin.y, rest.origin.z))
+			continue
+		var side := signf(strip.global_position.x)
+		var place := TrackDeck.strip_position(Settings.LANE_DISTANCE_X, side, strip.get_aabb().size)
+		var stretch := (span.x - span.y) / strip.get_aabb().size.z
+		strip.global_transform = Transform3D(Basis.from_scale(Vector3(1.0, 1.0, stretch)),
+			Vector3(place.x, place.y, (span.x + span.y) * 0.5))
+	# Metal Factory has no moving heads: its lights glow in the wall vents
+	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple" and environment != "metal_factory"
 	if Settings.background == "simple":
 		ring_holder.hide()
 		diagonal_lasers_holder.hide()
@@ -536,7 +740,29 @@ func _process(delta: float) -> void:
 	var quiet := not menu_focus and Settings.atmosphere == "Eerie" and _since_event > QUIET_AFTER_SECONDS
 	_quiet = move_toward(_quiet, 1.0 if quiet else 0.0, delta / (QUIET_FADE_SECONDS if quiet else QUIET_RISE_SECONDS))
 	_update_haze()
+	if track_deck.visible:
+		track_deck.deck_material.set_shader_parameter(&"light_color", floor_material.albedo_color)
+	if environment == "metal_factory":
+		metal_factory_rig.set_vent_colors(diagonal_lasers_material.get_shader_parameter(&"light_color"),
+				left_waving_lasers_material.get_shader_parameter(&"light_color"),
+				right_waving_lasers_material.get_shader_parameter(&"light_color"))
 	_update_show(delta)
+	if environment == "night_city" and not Settings.classic_night_city:
+		# the canyon's windows: the rooms the show has built light up (the menu shows a few), dimmer in quiet parts
+		var level := MENU_WINDOWS if menu_focus else _built
+		var glow := MENU_WINDOWS if menu_focus else lerpf(WINDOWS_QUIET, 1.0, _intensity)
+		night_city_rig.set_windows(left_color, right_color, level, glow)
+		# the billboards burn in the square bars' light
+		if night_city_rig.billboard_material:
+			night_city_rig.billboard_material.set_shader_parameter(&"light_color",
+				square_lasers_material.get_shader_parameter(&"light_color"))
+	if environment == "neon_grid" and neon_grid_rig.strip_material:
+		_update_strips(neon_grid_rig.strip_material)
+	if environment == "pulse_void" and pulse_void.seam_material:
+		_update_strips(pulse_void.seam_material)
+		pulse_void.drop_beam.visible = not menu_focus and _intensity > STRIP_DROP
+	if environment == "classic" and classic_rig.rib_strip_material:
+		_update_rib_strips(delta)
 	_follow_frames()
 	# update the level animations
 	#procces ring rotations
@@ -546,6 +772,8 @@ func _process(delta: float) -> void:
 				var rot := ring_rot_speed
 				if ring_rot_inv_dir: rot *= -1
 				(ring as Node3D).rotate_z((rot * delta) * (float(ring.get_index()+1)/5))
+		if environment == "metal_factory":
+			metal_factory_rig.spin_rings(delta, -ring_rot_speed if ring_rot_inv_dir else ring_rot_speed)
 
 ## Tints the shared haze with the light groups that are on, so a flash lights up the air around the track.
 func _update_haze() -> void:
@@ -599,6 +827,7 @@ func combo_pulse() -> void:
 ## A song starts: work out its intensity curve and take the stage down, to be built again as the song builds.
 func start_show(events: Array[EventInfo], bpm: float) -> void:
 	_intensity_curve = intensity_curve(events, bpm)
+	_show_bpm = bpm
 	_intensity = 0.0
 	_built = 0.0
 	show_beat = 0.0
@@ -613,6 +842,10 @@ func _update_show(delta: float) -> void:
 	if _intensity > _built:
 		_built = _intensity
 		classic_rig.set_built(_built)
+	if environment == "metal_factory":
+		metal_factory_rig.slam(show_beat, _show_bpm, _intensity)
+		metal_factory_rig.turn_gears(delta, _intensity)
+		metal_factory_rig.breathe(show_beat, _show_bpm, _intensity)
 
 ## In Classic the square light bars hang on the tunnel's frames: a frame that isn't standing yet has no lights on it
 ## (the crew hangs them once it is up), so its bars are hidden until it stands. Lowered bars used to shine up through
@@ -621,8 +854,11 @@ func _follow_frames() -> void:
 	if environment != "classic" or (classic_rig.standing() and not _bars_lowered):
 		return
 	for bar in _square_bars():
-		var place: Transform3D = _classic_rig[bar]
-		bar.visible = classic_rig.drop_at(place.origin.z) == 0.0
+		if bar.get_parent() == square_lasers_holder:
+			bar.visible = classic_rig.drop_at(bar.global_position.z) == 0.0
+	# the moving heads stand on the scaffolds too
+	for laser: Node3D in diagonal_lasers:
+		laser.visible = classic_rig.drop_at(laser.global_position.z) == 0.0
 	_bars_lowered = not classic_rig.standing()
 
 ## The intensity, 0 to 1, every INTENSITY_STEP beats from the song's start to its last light event (see
@@ -677,8 +913,9 @@ func set_menu_focus(on: bool) -> void:
 		right_laser_anim_player.speed_scale = 1.0
 		return
 	_menu_time = 0.0
-	# between songs the rig stands complete
+	# between songs the rig stands complete and the pistons rest raised
 	classic_rig.set_built(1.0)
+	metal_factory_rig.slam(0.0, 0.0, 0.0)
 	stage_smoke.refill()
 	_combo_target = 0.0
 	ring_rot_speed = 0.0
@@ -716,6 +953,7 @@ func _breathe(delta: float) -> void:
 
 func update_left_color(color: Color) -> void:
 	left_color = color
+	metal_factory_rig.set_spark_colors(left_color, right_color)
 	if menu_focus:
 		_apply_menu_lights()
 		return
@@ -725,6 +963,7 @@ func update_left_color(color: Color) -> void:
 
 func update_right_color(color: Color) -> void:
 	right_color = color
+	metal_factory_rig.set_spark_colors(left_color, right_color)
 	PLATFORM_LIGHTS.set_shader_parameter(&"light_color", color)
 	if menu_focus:
 		_apply_menu_lights()
@@ -944,8 +1183,6 @@ func fade_light(type: int, from: Color, to: Color, turn_off_after_fade: bool, tr
 func _on_Tween_tween_step(value: Color, id: int) -> void:
 	_set_light_param(INTENSITY_PARAMS[id], value.v)
 
-## Sets one of the sky's light parameters, on the sky and on everything that follows it.
+## Sets one of the sky's light parameters.
 func _set_light_param(param: StringName, value: Variant) -> void:
 	sphere_material.set_shader_parameter(param, value)
-	for material in _light_followers:
-		material.set_shader_parameter(param, value)

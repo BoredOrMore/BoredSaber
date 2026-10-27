@@ -25,7 +25,12 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
 - `BeatSaverPanel/`: browse/search/download maps from beatsaver.com (class `BeatSaverPanel`).
   The menu's "Get songs" opens it directly (`BeepSaber_Game._open_beatsaver`), in front of the player in place
   of the song menu, at the same size and place (1536x1046 px at scale 2 = the menu's 1280x872 at 2.4). (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
-- `UI_AudioEngine/`: autoload; `attach_children(node)` wires hover and press sounds to every `Button` below `node`:
+- `IconButton.gd` (class `IconButton`): icon just left of a centred label. `ConfirmButton.gd` (extends it): for
+  what can't be undone; first press asks in the button, a second within `CONFIRM_SECONDS` does it.
+- `StepperSpinBox.gd` (class `StepperSpinBox`): number between big − and + buttons for the pointer; hold repeats.
+- `WarningIcon.gd` (class `WarningIcon`, a `UIRaycastTarget`): red "!" by the song menu while something may hurt
+  the player or headset; pointing at it opens the list of warnings.
+- `UI_AudioEngine/` (`UI_AudioEngine.gd/.tscn`): autoload; `attach_children(node)` wires hover and press sounds to every `Button` below `node`:
   on/off for a toggle in no `ButtonGroup`, back for names in `BACK_BUTTON_NAMES`, click for the rest.
 - In `game/`: `BeepSaberMainMenu.gd/.tscn` (class `MainMenu`: song list, Song/More tabs and a Settings gear above the right column; the Song tab holds
   difficulty and the modifier chips, rarer ones behind "More modifiers"),

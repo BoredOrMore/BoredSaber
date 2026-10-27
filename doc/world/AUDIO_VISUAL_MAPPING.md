@@ -14,6 +14,7 @@ never depends on any of this.
 | Event | Visual response | Duration | Limits | Safety |
 |---|---|---|---|---|
 | Light on / colour | the group's beams, fixture lenses and glows, `env_light` on the scenery | colour changes fade | note colours only | — |
+| Light on / colour (Metal Factory) | no beams or heads: diagonal → upper vent louvers on both walls, left/right waving → lower louvers on that wall (`EnvSolid` layer 6, `MetalFactoryRig.set_vent_colors` each frame); square bars → rail strips; centre/floor unchanged | follows the group's fades and flashes | note colours only | same flash limits |
 | Flash | overshoot of the base colour (`FLASH_BOOST` 1.6) | short | fewer than 3 a second, no large red flashes (Light rule 8) | WCAG 2.3.1 |
 | Light off | beams and glows go dark; fixtures stay | instant | — | fixtures are objects, not light |
 | Good cut | a ring of the saber's colour runs out along the lights (`cut_waves`) | 30 m/s, to 80 m | — | — |
@@ -22,6 +23,11 @@ never depends on any of this.
 | Mistake | scene dips (`MISTAKE_DIP` 0.5) | 0.6 s | — | — |
 | Quiet stretch (Eerie) | lights dim after 1.5 s without events | fade | — | — |
 | Song builds (intensity) | Classic: tunnel frames rise far to near and stay; a frame's light bars appear once it stands | 1.5 s per frame | built = highest smoothed intensity so far | outside the note corridor |
+| Song's beat (BPM) while intensity is high | Metal Factory: the hammers slam onto their anvils on the beat in a fixed ripple, each 0-70 ms after it (`SLAM_LAG_SECONDS`), (every beat, or every 2 when a beat is under 0.5 s); rests 0.06 s, rises easing, falls the last 0.15 s like a weight; stroke grows from intensity 0.6 to full at 0.9 (`MetalFactoryRig.slam`) | one beat cycle | rests raised in menus | beside the track (x ±8), outside the note corridor |
+| Hammer lands with at least half the stroke | Metal Factory: sparks burst out all round that anvil as its hammer lands (24 even directions off the die's top edge) and fall, hot white cooling to that row's note colour (left row left, right row right), brightness with the stroke (`MetalFactoryRig.SPARK_*`) | 0.7 s | once a slam cycle per anvil, at most 2 bursts a second from each; out to ~3.5 m from the die | Light rule 8; stay beyond the energy rails (x ±4) |
+| Song builds (intensity) | Metal Factory: the drive gears turn, still at 0.1, full at 0.9: large 0.35 rad/s (~20°/s), small the other way ×24/18, right pair mirrored (`MetalFactoryRig.turn_gears`) | continuous | moderate speed | far end only; floor and track never move |
+| Song's beat while intensity is high | Metal Factory: the wall panels breathe, pushing up to 0.12 m toward the track and settling back, once every 2/4/8 beats, depth growing from intensity 0.5 to full at 0.9 (`MetalFactoryRig.breathe`) | 1.4-3 s a breath | never near 0.2 Hz | side walls only, a small movement |
+| Ring-spin event | Metal Factory: the gear rings turn at half Classic's ring speed (3 rad/s easing to 0 over 2 s), neighbours in opposite directions (`MetalFactoryRig.spin_rings`) | 2 s | — | counter-turning, so the view round the track never all flows one way |
 | Light off for 2 s | its fixture head rests nose-down; wakes in ~0.1 s when the light returns | — | strobes don't trigger it | beam never shown off its lens for long |
 | Menu | dim house light that slowly breathes (12 s) | — | nothing near 0.2 Hz | comfort |
 
