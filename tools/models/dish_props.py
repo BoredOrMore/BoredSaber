@@ -1,6 +1,7 @@
-# Pulse Void's props (doc/assets/dish_props/spec.md): the dish crew's kit, uneven left and right: a control room on its
-# base on the dish's surface ahead left, a cherry picker on the surface ahead right with its bucket raised to the
-# panels, and a cable tray down the front-right feed leg; built where they stand as one mesh (one draw call).
+# Pulse Void's props (doc/assets/dish_props/spec.md): the dish crew's kit, uneven left and right: a control room on the
+# ground outside the rim ahead left, a panel repair gondola hung over the dish from the front-right mast, the calibration
+# laser station at the bridge's end on the front rim (the drop's beam leaves it), and a cable tray down the front-right
+# feed leg; built where they stand as one mesh (one draw call).
 # Origin at the player's floor; Blender z up, Blender -y is Godot +z, x the same. The dish and leg numbers repeat
 # PulseVoid's (dish_y, the legs' ends).
 # Vertex colours: red is baked ambient occlusion (model_export.py).
@@ -21,30 +22,33 @@ OUT_DIR = sys.argv[sys.argv.index("--") + 1]
 
 # the dish (PulseVoid VERTEX_Y, focal length a quarter of 500 m)
 VERTEX_Y = -125.0
-# where the props stand: out near the rim (215-222 m), 7-9 degrees under the eye, so the cabin's roof and parapet
-# (hiding everything over ~18 degrees down to the sides) don't hide them
-# the control room: Godot x, z of its middle; size (along x, high, along z), the base's extra depth under the dish's
-# lowest point, the window band (its share up the wall, height, frames), roof overhang, the roof unit, the stair
-ROOM_AT = (-125.0, -175.0)
+# the control room, on the ground outside the rim on the left, as real ones stand off the dish (owner, 2026-10-27): Godot
+# x, z of its middle (286 m out); size (along x, high, along z), the ground's height (the rim's) and its foundation's
+# depth, the window band (its share up the wall, height, frames), roof overhang, the roof unit
+ROOM_AT = (-170.0, -230.0)
 ROOM = (14.0, 6.0, 10.0)
-BASE_DEPTH = 0.5
+GROUND = 0.0
+BASE_DEPTH = 1.0
 WINDOWS = (0.55, 1.4, 5)
 FRAME = 0.15
 ROOF = 0.4
 ROOF_UNIT = (3.0, 1.2, 2.0)
-STEPS = 6
-STEP = (2.0, 0.3, 0.5)
-# the cherry picker: Godot x, z; chassis (length along z, width, height), wheels (radius, width), outriggers' reach,
-# the turret, the boom's two sections (direction in Godot x, y, z and length), its thickness, the bucket and its rail
-PICKER_AT = (130.0, -180.0)
-CHASSIS = (6.0, 2.4, 1.2)
-WHEEL = (0.5, 0.4)
-OUTRIGGER = 1.6
-TURRET = (1.6, 1.0)
-BOOM = [((-0.3, 1.0, 0.2), 12.0), ((-0.6, 0.5, 0.3), 9.0)]
-BOOM_THICK = 0.5
-BUCKET = (1.8, 1.0, 1.2)
-BUCKET_RAIL = 1.0
+# the panel repair gondola, hung by a cable from the front-right mast's top (PulseVoid: masts MAST_R out, MAST high, the
+# front ones 20 degrees off ahead) over the dish: Godot x, z, its height over the panels; basket size, rail height
+MAST_R = 258.0
+MAST = 40.0
+MAST_DEG = 20.0
+GONDOLA_AT = (75.0, -185.0)
+GONDOLA_ABOVE = 4.0
+BASKET = (3.0, 1.4, 1.2)
+BASKET_RAIL = 1.0
+# the calibration laser station at the bridge's end on the front rim, beside the track: Godot x, z, its hut (along x,
+# high, along z) on the rim ring's top (PulseVoid RIM_TOP), the laser's turret (radius, height); the drop's beam leaves
+# its top (PulseVoid STATION)
+STATION_AT = (7.0, -254.0)
+RIM_TOP = 0.5
+HUT = (6.0, 3.5, 5.0)
+TURRET = (1.0, 1.2)
 # the cable tray down the front-right leg (PulseVoid leg 0: from the 6 m cabin's underside corner, -7.4 m, to the dish
 # 200 m out at 45 degrees), beside it (the leg's half width and the tray's); the tray's width, its lips, the cable
 # bundle's radius, a bracket to the leg every BRACKET_STEP
@@ -86,11 +90,9 @@ def bar(bm, a, b, thick, sides=4):
 def control_room(bm):
 	x, z = ROOM_AT
 	w, h, d = ROOM
-	corners = [(x + sx * w * 0.5, z + sz * d * 0.5) for sx in (-1, 1) for sz in (-1, 1)]
-	heights = [dish_y(math.hypot(cx, cz)) for cx, cz in corners]
-	floor, low = max(heights), min(heights) - BASE_DEPTH
+	floor, low = GROUND, GROUND - BASE_DEPTH
 	c = godot(x, z)
-	# the base, down into the dish's lowest corner, and the room on it
+	# its foundation and the room on it
 	box(bm, (w, d, floor - low), c + Vector((0.0, 0.0, (floor + low) * 0.5)))
 	box(bm, (w, d, h), c + Vector((0.0, 0.0, floor + h * 0.5)))
 	box(bm, (w + ROOF * 2.0, d + ROOF * 2.0, ROOF), c + Vector((0.0, 0.0, floor + h + ROOF * 0.5)))
@@ -104,44 +106,35 @@ def control_room(bm):
 	for i in range(n - 2):
 		t = (i + 0.5) / (n - 2)
 		box(bm, (w * 0.8 / n, FRAME * 2.0, wh), c + Vector(((t - 0.5) * w * 0.6, d * 0.5 + FRAME * 0.5, wy)))
-	# a stair up the base's side to the door on the track side
-	for i in range(STEPS):
-		box(bm, (STEP[0], STEP[2], STEP[1]), c + Vector((w * 0.5 + STEP[0] * 0.5, -d * 0.3 - i * STEP[2], floor - (i + 0.5) * STEP[1] * 2.0)))
 
 
-def cherry_picker(bm):
-	x, z = PICKER_AT
-	base = godot(x, z, dish_y(math.hypot(x, z)))
-	l, w, h = CHASSIS
-	box(bm, (w, l, h), base + Vector((0.0, 0.0, WHEEL[0] + h * 0.5)))
-	wheel = Matrix.Rotation(math.pi * 0.5, 3, "Y")
-	for sx in (-1, 1):
-		for sy in (-1, 1):
-			cyl = bmesh.ops.create_cone(bm, cap_ends=True, segments=6, radius1=WHEEL[0], radius2=WHEEL[0], depth=WHEEL[1])
-			bmesh.ops.rotate(bm, verts=cyl["verts"], cent=(0.0, 0.0, 0.0), matrix=wheel)
-			bmesh.ops.translate(bm, verts=cyl["verts"], vec=base + Vector((sx * w * 0.5, sy * l * 0.35, WHEEL[0])))
-			# outriggers out to pads on the dish
-			a = base + Vector((sx * w * 0.5, sy * l * 0.45, WHEEL[0] + h * 0.5))
-			p = base + Vector((sx * (w * 0.5 + OUTRIGGER), sy * (l * 0.45 + OUTRIGGER * 0.5), 0.1))
-			bar(bm, a, p, 0.2)
-			box(bm, (0.6, 0.6, 0.1), p)
-	top = base + Vector((0.0, l * 0.2, WHEEL[0] + h))
-	box(bm, (TURRET[0], TURRET[0], TURRET[1]), top + Vector((0.0, 0.0, TURRET[1] * 0.5)))
-	p = top + Vector((0.0, 0.0, TURRET[1]))
-	for direction, length in BOOM:
-		d = godot(*direction[::2], direction[1]).normalized()
-		q = p + d * length
-		bar(bm, p, q, BOOM_THICK)
-		p = q
-	bw, bd, bh = BUCKET
+def gondola(bm):
+	x, z = GONDOLA_AT
+	p = godot(x, z, dish_y(math.hypot(x, z)) + GONDOLA_ABOVE)
+	bw, bd, bh = BASKET
 	box(bm, (bw, bd, bh), p + Vector((0.0, 0.0, bh * 0.5)))
 	for sx in (-1, 1):
 		for sy in (-1, 1):
 			c = p + Vector((sx * bw * 0.5, sy * bd * 0.5, bh))
-			bar(bm, c, c + Vector((0.0, 0.0, BUCKET_RAIL)), 0.06)
-	rim = [p + Vector((sx * bw * 0.5, sy * bd * 0.5, bh + BUCKET_RAIL)) for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+			bar(bm, c, c + Vector((0.0, 0.0, BASKET_RAIL)), 0.06)
+	rim = [p + Vector((sx * bw * 0.5, sy * bd * 0.5, bh + BASKET_RAIL)) for sx, sy in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
 	for i in range(4):
 		bar(bm, rim[i], rim[(i + 1) % 4], 0.06)
+	# the hanger over the basket and the cable up to the mast's top
+	hook = p + Vector((0.0, 0.0, bh + BASKET_RAIL + 2.0))
+	for sx in (-1, 1):
+		bar(bm, p + Vector((sx * bw * 0.5, 0.0, bh + BASKET_RAIL)), hook, 0.08)
+	a = math.radians(MAST_DEG)
+	top = godot(math.sin(a) * MAST_R, -math.cos(a) * MAST_R, MAST)
+	bar(bm, hook, top, 0.12)
+
+
+def station(bm):
+	x, z = STATION_AT
+	c = godot(x, z, RIM_TOP)
+	box(bm, HUT, c + Vector((0.0, 0.0, HUT[1] * 0.5)))
+	t = bmesh.ops.create_cone(bm, cap_ends=True, segments=8, radius1=TURRET[0], radius2=TURRET[0] * 0.7, depth=TURRET[1])
+	bmesh.ops.translate(bm, verts=t["verts"], vec=c + Vector((0.0, 0.0, HUT[1] + TURRET[1] * 0.5)))
 
 
 def cable_tray(bm):
@@ -170,7 +163,8 @@ def cable_tray(bm):
 bpy.ops.wm.read_factory_settings(use_empty=True)
 bm = bmesh.new()
 control_room(bm)
-cherry_picker(bm)
+gondola(bm)
+station(bm)
 cable_tray(bm)
 bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
 mesh = bpy.data.meshes.new("dish_props")

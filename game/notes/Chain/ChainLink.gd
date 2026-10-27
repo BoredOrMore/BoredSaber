@@ -46,6 +46,15 @@ static func construct_chain(chain_info: ChainInfo, current_beat: float, note_inf
 	# direction the head note is pointing, with length equal to half the length
 	# of a straight line from the head to the tail.  the end point of the line
 	# you just drew is the mid point of the curve.
+	var points := curve_points(chain_info)
+	i = 1
+	while i < chain_info.slice_count:
+		var chain_link := GlobalReferences.link_pool.acquire() as ChainLink
+		chain_link.spawn(chain_info, current_beat, points[0], points[1], points[2], i)
+		i += 1
+
+## The chain's curve, apart from the scene so it can be tested (tests/test_cut.gd): head, tail and mid point (x, y).
+static func curve_points(chain_info: ChainInfo) -> Array[Vector2]:
 	var head_pos := Vector2(
 		Settings.LANE_DISTANCE_X * float(chain_info.head_line_index) + Settings.LANE_ZERO_X,
 		Constants.layer_y(float(chain_info.head_line_layer))
@@ -55,11 +64,16 @@ static func construct_chain(chain_info: ChainInfo, current_beat: float, note_inf
 		Constants.layer_y(float(chain_info.tail_line_layer))
 	)
 	var mid_pos := head_pos + Utils.rotation_unit_vector(chain_info.head_cut_angle) * head_pos.distance_to(tail_pos) * 0.5
-	i = 1
-	while i < chain_info.slice_count:
-		var chain_link := GlobalReferences.link_pool.acquire() as ChainLink
-		chain_link.spawn(chain_info, current_beat, head_pos, tail_pos, mid_pos, i)
-		i += 1
+	return [head_pos, tail_pos, mid_pos]
+
+## Link link_index's beat, place (x, y) on the curve and turn (rotation.z): squished toward the head by squish_factor.
+static func link_place(chain_info: ChainInfo, head_pos: Vector2, tail_pos: Vector2, mid_pos: Vector2,
+		link_index: int) -> Array:
+	var lerp_factor := float(link_index) / float(chain_info.slice_count - 1) * chain_info.squish_factor
+	var q0 := head_pos.lerp(mid_pos, lerp_factor)
+	var q1 := mid_pos.lerp(tail_pos, lerp_factor)
+	return [lerpf(chain_info.head_beat, chain_info.tail_beat, lerp_factor), q0.lerp(q1, lerp_factor),
+			q0.angle_to_point(q1) - TAU * 0.25]
 
 func spawn(chain_info: ChainInfo, current_beat: float, head_pos: Vector2, tail_pos: Vector2, mid_pos: Vector2, link_index: int) -> void:
 	# re-enable our process_mode first otherwise it seems like Godot-internals
@@ -70,12 +84,9 @@ func spawn(chain_info: ChainInfo, current_beat: float, head_pos: Vector2, tail_p
 	speed = Map.beat_distance * Map.beats_per_second()
 	which_saber = chain_info.color
 	
-	var lerp_factor := float(link_index) / float(chain_info.slice_count - 1) * chain_info.squish_factor
-	beat = lerpf(chain_info.head_beat, chain_info.tail_beat, lerp_factor)
-	
-	var q0 := head_pos.lerp(mid_pos, lerp_factor)
-	var q1 := mid_pos.lerp(tail_pos, lerp_factor)
-	var bezier_pos := q0.lerp(q1, lerp_factor)
+	var place := link_place(chain_info, head_pos, tail_pos, mid_pos, link_index)
+	beat = place[0]
+	var bezier_pos: Vector2 = place[1]
 	
 	# TODO: USE THIS
 	#scale = Vector3(Settings.block_size,Settings.block_size,Settings.block_size)/100.
@@ -86,7 +97,7 @@ func spawn(chain_info: ChainInfo, current_beat: float, head_pos: Vector2, tail_p
 	
 	add_lane_rotation(chain_info.rotation)
 	
-	rotation.z = q0.angle_to_point(q1) - TAU*0.25
+	rotation.z = place[2]
 	
 	# little bit of forgiveness.  if the chain link is more than a meter away
 	# from the chain head, its hitbox is extended to halfway between the link
@@ -125,7 +136,7 @@ func hide_cube() -> void:
 
 func cut(saber: LightSaber, _cut_speed: Vector3, cut_plane: Plane, _controller: BeepSaberController) -> void:
 	#_cut_speed = _cut_speed.rotated(Vector3(0,1,0),-rotation.x)
-	if saber.type == which_saber or Map.one_saber or Settings.handedness != 0:
+	if BeepCube.right_saber(saber.type, which_saber):
 		Scoreboard.chain_link_cut(transform.origin, lane_rotation)
 	else:
 		Scoreboard.bad_cut(transform.origin, lane_rotation, "wrong saber", Scoreboard.chain_link_best_score())

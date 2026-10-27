@@ -1,0 +1,45 @@
+{
+  "version": "4.0.0",
+  "colorNotes": [
+    {"b": 1, "r": 0, "i": 0},
+    {"b": 2, "r": 0, "i": 1},
+    {"b": 3, "r": 0, "i": 2},
+    {"b": 4, "r": 0, "i": 3}
+  ],
+  "colorNotesData": [
+    {"x": 1, "y": 0, "c": 0, "d": 1, "a": 0},
+    {"x": 2, "y": 0, "c": 1, "d": 3, "a": 0},
+    {"x": 0, "y": 1, "c": 0, "d": 8, "a": 0},
+    {"x": 3, "y": 2, "c": 1, "d": 4, "a": 0},
+    {"x": 0, "y": 1, "c": 0, "d": 0, "a": 0},
+    {"x": 2, "y": 0, "c": 1, "d": 3, "a": 0}
+  ],
+  "bombNotes": [
+    {"b": 2.5, "r": 0, "i": 0}
+  ],
+  "bombNotesData": [
+    {"x": 1, "y": 2}
+  ],
+  "obstacles": [
+    {"b": 5, "r": 0, "i": 0}
+  ],
+  "obstaclesData": [
+    {"d": 2, "x": 0, "y": 0, "w": 1, "h": 5}
+  ],
+  "arcs": [
+    {"hb": 1, "tb": 3, "hr": 0, "tr": 0, "hi": 0, "ti": 4, "ai": 0}
+  ],
+  "arcsData": [
+    {"m": 1, "tm": 1, "a": 0}
+  ],
+  "chains": [
+    {"hb": 2, "tb": 2.5, "hr": 0, "tr": 0, "i": 5, "ci": 0}
+  ],
+  "chainsData": [
+    {"tx": 2, "ty": 1, "c": 4, "s": 0.5}
+  ],
+  "spawnRotations": [],
+  "spawnRotationsData": [],
+  "njsEvents": [],
+  "njsEventData": []
+}

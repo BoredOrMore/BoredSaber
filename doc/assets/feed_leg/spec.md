@@ -19,3 +19,4 @@
 - Budget: about 560 triangles a leg (2.3k for four); +1 draw call.
 - Export: `game/models/feed_leg.glb`; source `tools/models/feed_leg.py`.
 - Review: owner in Blender and Godot, then on the headset.
+- Footings (owner, 2026-10-27): each leg lands on a 5 x 3 x 5 m footing on the dish (PulseVoid LEG_FOOTING).

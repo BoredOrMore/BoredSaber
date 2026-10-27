@@ -18,7 +18,7 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
 - `MixedReality.gd` (autoload) - `set_mixed_reality(mr)`: passthrough on/off plus floor/HUD material tweaks.
 - `PlayCountTable.gd` (autoload `PlayCount`) - play counts, favourite flag, last difficulty per map.
 - `HighscoreTable/HighscoreTable.gd` (autoload `Highscores`) - top-10 records per map + modifier set.
-  `HighscoreTableTest.gd/.tscn` - manual console test scene.
+  Tested by `tests/test_highscores.gd`.
 - `global_references.gd` (autoload `GlobalReferences`) - the five `ScenePool`s and `main_game_scene`.
 - `CollisionLayerConstants.gd` - `*_bit` / `*_mask` physics layer constants.
 - `ScenePool/` - `ScenePool` (`presize`, `acquire`, signal `new_scene_instanced`) and `PooledNode3D` (`release`).
@@ -42,7 +42,7 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
 - `Map.gd` loads difficulty files on threads via `Utils.custom_thread_call` (e.g. `Map.gd:539-551`).
 - `SongUploader` node lives in `BeepSaber_Game.tscn:336`; the menu shows `get_server_url()` (`BeepSaberMainMenu.gd:472-474`).
 - `webxr_initializer.tscn` is instanced only on Web by `OQ_Toolkit/vr_autoload.gd:189-192`.
-- `MixedReality.set_mixed_reality` is called from `OQ_Toolkit/vr_autoload.gd:217` and `game/settings_Panel.gd:205`.
+- `MixedReality.set_mixed_reality` is called from `OQ_Toolkit/vr_autoload.gd:217` and `game/ui/settings_Panel.gd:205`.
 
 ## Invariants and gotchas
 
@@ -64,9 +64,6 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
   speed, flip and handedness into the rank (`HighscoreTable.gd:48-75`), so each modifier set has its own table.
   `get_records` does not fold (`HighscoreTable.gd:130-132`); pass a folded rank (`HighscorePanel.gd:26`).
   A score of 0 is never a highscore (`HighscoreTable.gd:43`).
-- `HighscoreTableTest.gd:5-16,52` passes plain Dictionaries where `HighscoreTable` takes `MapInfo`; it is not in CI.
-- `PlayCount.get_last_difficulty` returns the `favorite` value, not `last_difficulty` (`PlayCountTable.gd:72-79`;
-  caller `BeepSaberMainMenu.gd:347`). Known bug: report, don't fix in an unrelated change.
 - Controller buttons are read in `_physics_process` only while `get_is_active()`; the first active frame is read
   twice to swallow stale `just_pressed` (`BeepSaberController.gd:96-107`). `trigger` = `trigger` or `select_button`
   (`BeepSaberController.gd:60`). Pico 4 profile (`openxr_action_map.tres:1414`): `ax_button` = A/X, `by_button` = B/Y,

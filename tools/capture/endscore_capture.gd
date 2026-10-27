@@ -1,5 +1,5 @@
 extends Node3D
-## Renders the score screen (game/EndScore.tscn) with given text, to check that nothing spills off its board.
+## Renders the score screen (game/ui/EndScore.tscn) with given text, to check that nothing spills off its board.
 ## Run: godot --path . res://tools/capture/endscore_capture.tscn -- --out /tmp/end.png [--song "name"] [--author "x"]
 ##   [--level "Expert+"] [--mapper "y"] [--card "text"] [--percent 0.87] [--record 1] [--fc 1]
 
@@ -9,7 +9,7 @@ func _ready() -> void:
 	for i in range(0, raw.size() - 1, 2):
 		args[raw[i].trim_prefix("--")] = raw[i + 1]
 	DisplayServer.window_set_size(Vector2i(1600, 1000))
-	var end := (load("res://game/EndScore.tscn") as PackedScene).instantiate() as EndScore
+	var end := (load("res://game/ui/EndScore.tscn") as PackedScene).instantiate() as EndScore
 	add_child(end)
 	var camera := Camera3D.new()
 	camera.position = Vector3(0, 0, 1.25)

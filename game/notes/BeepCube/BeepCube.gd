@@ -85,10 +85,13 @@ func spawn(note_info: ColorNoteInfo, current_beat: float) -> void:
 	
 	rotation.z = note_info.cut_angle
 	
-	piece_left.set_color(color, is_dot)
-	piece_right.set_color(color, is_dot)
+	# No Arrows shows every note as a dot, as Beat Saber does and as the menu's slash note already did (owner,
+	# 2026-10-27: the same look in every mode); its hit box stays the note's own
+	var shows_dot := is_dot or not Settings.arrows_enabled
+	piece_left.set_color(color, shows_dot)
+	piece_right.set_color(color, shows_dot)
 	_mat.set_shader_parameter(&"color", color)
-	_mat.set_shader_parameter(&"is_dot", is_dot)
+	_mat.set_shader_parameter(&"is_dot", shows_dot)
 	_mat.set_shader_parameter(&"arrows_enabled", Settings.arrows_enabled)
 	# since cube instances get recycled, we gotta reset cubes that were chain
 	# heads in a past life
@@ -164,24 +167,20 @@ func cut(saber: LightSaber, cut_speed: Vector3, cut_plane: Plane, controller: Be
 	var cut_direction_xy := -Vector3(cut_speed.x, cut_speed.y, 0.0).normalized()
 	var base_cut_angle_accuracy := global_transform.basis.orthonormalized().y.dot(cut_direction_xy)
 	var cut_distance := cut_plane.distance_to(global_transform.origin)
-	var distance_scale := 100./Settings.block_size
 	
-	if saber.type == which_saber or Map.one_saber or Settings.handedness != 0:
-		var cut_angle_accuracy := clampf((base_cut_angle_accuracy-GOOD_CUT_DOT)/(1.0-GOOD_CUT_DOT), 0.0, 1.0)
-		if is_dot or not Settings.arrows_enabled: #ignore angle if is a dot
-			cut_angle_accuracy = 1.0
+	if right_saber(saber.type, which_saber):
+		var cut_angle_accuracy := angle_accuracy(global_transform.basis.orthonormalized().y, cut_speed,
+				is_dot or not Settings.arrows_enabled)
 		if cut_angle_accuracy < 1e-10:
 			# a bad-angle cut, for working out the angle rule (owner, 2026-10-25): how far the swing was off the
 			# arrow, how fast, and which note
 			print("bad_angle off %.0f deg speed %.2f m/s beat %.2f arrow %.0f deg saber %d" % [
 				rad_to_deg(acos(clampf(base_cut_angle_accuracy, -1.0, 1.0))), cut_speed.length(), beat,
 				rad_to_deg(rotation.z), saber.type])
-		var cut_distance_accuracy := clampf((CUT_CENTRE_REACH - absf(cut_distance*distance_scale))
-				/ (CUT_CENTRE_REACH - CUT_CENTRE_FULL), 0.0, 1.0)
+		var cut_distance_accuracy := centre_accuracy(cut_distance, Settings.block_size)
 		var travel_distance_factor := controller.movement_aabb.get_longest_axis_size()
 		travel_distance_factor = clampf((travel_distance_factor-0.5)/0.5, 0.0, 1.0)
-		# allows a bit of save margin where the beat is considered 100% correct
-		var beat_accuracy := clampf((1.0 - absf(global_transform.origin.z - Constants.HIT_PLANE_Z)) / 0.5, 0.0, 1.0)
+		var beat_accuracy := beat_accuracy_at(global_transform.origin.z)
 		Scoreboard.note_cut(saber, transform.origin, lane_rotation, beat_accuracy, cut_angle_accuracy, cut_distance_accuracy, travel_distance_factor, arc_head, arc_tail, chain_head)
 		# replaces the saber's flat contact rumble: cleaner cuts kick harder
 		controller.simple_rumble(lerpf(MIN_CUT_RUMBLE, 1.0, cut_angle_accuracy * cut_distance_accuracy), 0.1)
@@ -204,6 +203,29 @@ func cut(saber: LightSaber, cut_speed: Vector3, cut_plane: Plane, controller: Be
 		# release() will be called by Cuttable class when it sees both pieces die
 	else:
 		release() # release now instead of waiting for cut pieces to die off
+
+## The judgement of a cut, apart from the scene so it can be tested (tests/test_cut.gd).
+## Whether a saber may cut a note of note_saber's colour: its own colour, or any with One Saber or a handedness setting.
+static func right_saber(saber_type: int, note_saber: int) -> bool:
+	return saber_type == note_saber or Map.one_saber or Settings.handedness != 0
+
+## How well a swing (its velocity, in the note's lane frame) follows the arrow (note_up points against the cut): 1
+## straight along it, falling to 0 where the dot of the two reaches GOOD_CUT_DOT; always 1 with any_way (dots, No
+## Arrows).
+static func angle_accuracy(note_up: Vector3, cut_speed: Vector3, any_way: bool) -> float:
+	if any_way:
+		return 1.0
+	var along := note_up.dot(-Vector3(cut_speed.x, cut_speed.y, 0.0).normalized())
+	return clampf((along - GOOD_CUT_DOT) / (1.0 - GOOD_CUT_DOT), 0.0, 1.0)
+
+## Beat Saber's centre share: 1 through the middle, 0 at CUT_CENTRE_REACH (scaled with the block size) or beyond.
+static func centre_accuracy(cut_distance: float, block_size: float) -> float:
+	return clampf((CUT_CENTRE_REACH - absf(cut_distance * 100.0 / block_size)) / (CUT_CENTRE_REACH - CUT_CENTRE_FULL),
+			0.0, 1.0)
+
+## How near the hit plane a note was cut (OpenSaber's scoring): full within half a metre, none a metre off.
+static func beat_accuracy_at(z: float) -> float:
+	return clampf((1.0 - absf(z - Constants.HIT_PLANE_Z)) / 0.5, 0.0, 1.0)
 
 # cut the cube by creating two rigid bodies and using a CSGBox to create
 # the cut plane

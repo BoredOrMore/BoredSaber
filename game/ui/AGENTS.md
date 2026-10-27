@@ -11,7 +11,11 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
 
 ## File map
 
-- `menu_theme.tres`: the one shared `Theme` (Roboto-Medium 28 px, dark surfaces, accent borders, `toggle_on/off.svg`
+- `fonts/`: Roboto's variable font (`Roboto-Variable.ttf`, OFL, `OFL.txt`) as `roboto_semibold.tres` (600) and
+  `roboto_bold.tres` (700) for 2D text only: TextMesh (3D text: HUD, `UIRaycastButton`, end-screen lines) can't draw a
+  variable font's overlapping outlines (letters like "e" come out broken) and keeps `Roboto-Medium.ttf`.
+- `menu_theme.tres`: the one shared `Theme` (Roboto-Medium 28 px for text; buttons, chips, option buttons and tabs
+  SemiBold, `PrimaryButton` and `TitleLabel` (panel titles) Bold (owner, 2026-10-27); dark surfaces, accent borders, `toggle_on/off.svg`
   pills for `CheckButton`). Every panel `.tscn` sets `theme = ExtResource(...)` on its root. The one main
   button of a screen sets `theme_type_variation = &"PrimaryButton"` (accent border, blue fill); 3D
   `UIRaycastButton`s use `set_primary(true)`.
@@ -25,6 +29,13 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
 - `BeatSaverPanel/`: browse/search/download maps from beatsaver.com (class `BeatSaverPanel`).
   The menu's "Get songs" opens it directly (`BeepSaber_Game._open_beatsaver`), in front of the player in place
   of the song menu, at the same size and place (1536x1046 px at scale 2 = the menu's 1280x872 at 2.4). (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
+- `ModifierChips.gd` (class `ModifierChips`, made by the menu's `_ready`): the Song tab's fail and damage rows,
+  on/off and Speed chips, More modifiers, environment picker and reset, in step with `Settings`; `changed()` names
+  the modified ones. Its static `make_row_button`/`set_padding` and `CHIP_PADDING` are shared with the difficulty
+  picker and `settings_Panel.gd`.
+- `SongPreview.gd` (class `SongPreview`, on the menu's `song_prev` node): the song menu's preview player: fades between
+  previews, plays from the preview's start to the song's end and loops, yields to the song itself. The menu's
+  `play_selected_preview`, `play_preview` and `stop_preview` (used by game states and BeatSaver) go through it.
 - `IconButton.gd` (class `IconButton`): icon just left of a centred label. `ConfirmButton.gd` (extends it): for
   what can't be undone; first press asks in the button, a second within `CONFIRM_SECONDS` does it.
 - `StepperSpinBox.gd` (class `StepperSpinBox`): number between big − and + buttons for the pointer; hold repeats.
@@ -32,11 +43,11 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   the player or headset; pointing at it opens the list of warnings.
 - `UI_AudioEngine/` (`UI_AudioEngine.gd/.tscn`): autoload; `attach_children(node)` wires hover and press sounds to every `Button` below `node`:
   on/off for a toggle in no `ButtonGroup`, back for names in `BACK_BUTTON_NAMES`, click for the rest.
-- In `game/`: `BeepSaberMainMenu.gd/.tscn` (class `MainMenu`: song list, Song/More tabs and a Settings gear above the right column; the Song tab holds
+- `BeepSaberMainMenu.gd/.tscn` (class `MainMenu`: song list, Song/More tabs and a Settings gear above the right column; the Song tab holds
   difficulty and the modifier chips, rarer ones behind "More modifiers"),
-  `settings_Panel.gd/.tscn` (class `SettingsPanel`, tabs Gameplay/Visuals/Audio/Advanced), `HighscorePanel`,
-  `Pause_Panel` (signals `continue_button`/`restart_button`/`mainmenu_button`), `EndScore` (3D `MeshInstance3D`, not a
-  canvas), `vr_slider.gd` (thumbstick/drag scrolling), `UI_Panel.gdshader` (rounded 3D panel used by `EndScore.tscn`
+  `settings_Panel.gd/.tscn` (class `SettingsPanel`, tabs Gameplay/Visuals/Audio/Advanced), `HighscorePanel.gd/.tscn`,
+  `Pause_Panel.gd/.tscn` (signals `continue_button`/`restart_button`/`mainmenu_button`), `EndScore.gd/.tscn` (3D `MeshInstance3D`, not a
+  canvas; `RankHalo.gdshader` glows round its result ring), `vr_slider.gd` (thumbstick/drag scrolling), `UI_Panel.gdshader` (rounded 3D panel used by `EndScore.tscn`
   and `game/scripts/UIRaycast/UIRaycastButton.tscn`).
 
 ## Colour palette

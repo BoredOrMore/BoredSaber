@@ -11,7 +11,7 @@ Collision, swing tracking, show/hide timing and cutting live in `game/LightSaber
 - `game/Settings.gd:7-10` `SABER_VISUALS`: list of `[label, scene path]` pairs ("Default saber", "Particle sword").
   `Settings.saber_visual` is the index; `Settings.get_saber_visuals()` (`Settings.gd:663`) forces index 0 while
   `claws` is on.
-- Settings > Visuals fills its OptionButton from that list (`game/settings_Panel.gd:141-143`, writes at `:258`).
+- Settings > Visuals fills its OptionButton from that list (`game/ui/settings_Panel.gd:141-143`, writes at `:258`).
 - `game/LightSaber.tscn` instances `default_saber.tscn` under `saber_holder`; `LightSaber.gd:15` grabs it as
   `saber_visual: DefaultSaber`. `LightSaber._ready` (`:121`) and the `saber_visual`/`claws` settings keys (`:108-111`)
   call `set_saber(path)` (`LightSaber.gd:286`): loads the scene, accepts it only if it `is DefaultSaber`, frees the

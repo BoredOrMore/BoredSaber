@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://cpwxp083qm1jq"]
 
-[ext_resource type="Script" path="res://game/HighscorePanel.gd" id="2"]
+[ext_resource type="Script" path="res://game/ui/HighscorePanel.gd" id="2"]
 [ext_resource type="Texture2D" uid="uid://j1wa4gcqkltx" path="res://game/data/maps/Songs/TheFatRat_Timelapse/cover.jpg" id="4"]
 [ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="menu_theme"]
 
@@ -32,6 +32,7 @@ size_flags_vertical = 3
 
 [node name="Title" type="Label" parent="Margin/VBox"]
 layout_mode = 2
+theme_type_variation = &"TitleLabel"
 text = "Highscores (Hard)"
 autowrap_mode = 3
 

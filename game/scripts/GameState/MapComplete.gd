@@ -16,7 +16,7 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.menu.play_selected_preview(MainMenu.SCORE_SCREEN_PREVIEW_DB)
 	game.event_driver.set_menu_focus(true)
 	game.pause_menu._hide()
-	game.highscore_canvas.transform = game.highscores_score_transform
+	game.highscore_canvas.transform = game.lifted(game.highscores_score_transform)
 	game.highscore_canvas._show()
 	game.left_saber._hide()
 	game.right_saber._hide()

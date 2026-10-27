@@ -32,3 +32,10 @@
 - Budget: 13.9 ms at 72 Hz. The dish fills the lower half of the view in one opaque layer: watch fill. Blockout about
   12k triangles of scenery, +3 draw calls over the old rings.
 - Review: owner in the stage window and Godot, then on the headset; Blender models after the blockout is OK.
+- Placement audit (owner, 2026-10-27, against Arecibo, FAST, Parkes; all applied): the track's bridge runs from the cabin
+  to the front rim, landing on the rim ring (it ended in mid air at 61 m); the masts stand on footings on the ground
+  past the rim (MAST_R 258 m). The masts' cables to the cabin and the bridge's stays were taken out again (owner,
+  2026-10-27: dark spikes beside the track in the near view); the bridge is a deep truss (8 m) that carries itself; the rim is a vertical ring girder; the feed legs have footings on the dish;
+  the panels overlap 4% (the fan-shaped gaps showed the sky), every other segment a little proud; the control room
+  stands on the ground outside the rim; a cable-hung repair gondola replaces the cherry picker (no vehicle stands on a
+  40-degree dish); the drop's beam leaves a calibration laser station at the bridge's end. The seam light rows stay.

@@ -6,7 +6,8 @@ class_name NeonGridRig
 ## the sun: A, 300 m tall, spans the grid behind the player (they have passed under it); B, 350 m, stands far ahead on
 ## the left, its span along the track, leaning out; C, on the right, is unfinished, its half-built curve ending in a
 ## tower crane. Near the player, site clutter at human size (a site cabin, barrier blocks, stacked girders) and the
-## survey masts makes the arches read as enormous. Nothing mirrors across the track.
+## survey masts makes the arches read as enormous. The arches don't mirror across the track (owner's exception); the
+## site gates in the middle ground do (the symmetry rule for new main elements, owner, 2026-10-27).
 ## The lights hang on things that belong to the site (AGENTS.md "Light", rule 5: the carrier belongs to the world):
 ## the diagonal lasers are floodlights at B's and C's footings, fanning up and away from the sun; the left waving
 ## lasers are survey beacons on masts along the grid; the right ones the crane's work lights along its jib; the square
@@ -16,19 +17,28 @@ class_name NeonGridRig
 
 const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
 const ARCH_STRIP := preload("res://game/env/ArchStrip.gdshader")
-## The arches' light strips (ArchStrip.gdshader): a segment on each of an arch's boxes, along its inner face, this wide
-## (part of the arch's depth) and thick, on the side facing PLAYER; one MultiMesh, one draw call. EventDriver sets the material's light and level.
+## The arches' light strips (ArchStrip.gdshader): a segment on each of an arch's boxes, along the underside of its curve
+## (its inner face; owner, 2026-10-27: on the side facing the player they read as beside the arch), this wide (part of
+## the arch's width) and thick; one MultiMesh, one draw call. EventDriver sets the material's light and level.
 const STRIP_WIDTH := 0.3
 const STRIP_THICK := 0.6
-const PLAYER := Vector3(0.0, 1.7, 0.0)
 var strip_material: ShaderMaterial
 ## An arch: [centre of its span on the ground (x, z), radius, the span's direction (degrees from +x toward +z: 0 across
 ## the track, 90 along it), lean (degrees, turned about its span's line), how much of the half circle is built (1 all),
 ## section (width, depth)]. B and C are turned partly toward the player (owner, 2026-10-27: they sat too far out of
-## view), each by its own amount, their sides and strips toward the player's forward view; still clear of the sun.
+## view), each by its own amount, so more of their undersides and strips show; still clear of the sun.
 const ARCH_A := [Vector2(110.0, 160.0), 300.0, 0.0, -6.0, 1.0, Vector2(18.0, 12.0)]
 const ARCH_B := [Vector2(-450.0, -420.0), 350.0, 104.0, 5.0, 1.0, Vector2(26.0, 18.0)]
 const ARCH_C := [Vector2(450.0, -450.0), 260.0, 70.0, -3.0, 0.62, Vector2(16.0, 12.0)]
+## The site gates in the middle ground (owner, 2026-10-27: the middle ground lacked impact): two pairs of unfinished half
+## arches rising from either side of the track toward each other, open in the middle so the sun shows between them, in
+## arch parts like the big ones; a near pair 76 m tall and a far one 62 m, its tips wide of the sun (built shares of their half circles).
+const GATE_NEAR_L := [Vector2(0.0, -150.0), 80.0, 0.0, 0.0, 0.4, Vector2(8.0, 6.0)]
+const GATE_NEAR_R := [Vector2(0.0, -150.0), 80.0, 180.0, 0.0, 0.4, Vector2(8.0, 6.0)]
+const GATE_FAR_L := [Vector2(0.0, -250.0), 70.0, 0.0, 0.0, 0.35, Vector2(7.0, 5.0)]
+const GATE_FAR_R := [Vector2(0.0, -250.0), 70.0, 180.0, 0.0, 0.35, Vector2(7.0, 5.0)]
+## everything built of arch parts, with its footings and strips
+const ARCHES := [ARCH_A, ARCH_B, ARCH_C, GATE_NEAR_L, GATE_NEAR_R, GATE_FAR_L, GATE_FAR_R]
 ## boxes along each arch's half circle
 const ARCH_SEGMENTS := 28
 ## the arch's parts (doc/assets/arch_parts/spec.md); the section model's axes (Blender's x, z up, -y along: in Godot x,
@@ -54,6 +64,9 @@ const SURVEY_MAST_TURNS: Array[float] = [0.4, 2.1, 1.0, 3.6]
 ## The site's props near the player, for scale (doc/assets/site_props/spec.md): a container behind on the left,
 ## barriers and a pile of beams on the right, one mesh built where they stand.
 const SITE_PROPS := preload("res://game/models/site_props.glb")
+## the flat ground kept round each arch footing in the floor's terrain, times the arch's section (the footing model is
+## 2.2 sections across)
+const FOOTING_CLEAR := 1.6
 
 func _ready() -> void:
 	var boxes: Array[Transform3D] = []
@@ -103,7 +116,7 @@ func _ready() -> void:
 func _add_arches(material: ShaderMaterial) -> void:
 	var sections: Array[Transform3D] = []
 	var footings: Array[Transform3D] = []
-	for arch: Array in [ARCH_A, ARCH_B, ARCH_C]:
+	for arch: Array in ARCHES:
 		for box in arch_boxes(arch):
 			sections.append(Transform3D(box.basis * ARCH_SECTION_AXES, box.origin))
 		var section: Vector2 = arch[5]
@@ -136,19 +149,17 @@ func _add_arches(material: ShaderMaterial) -> void:
 func _add_strips() -> void:
 	var spots: Array[Transform3D] = []
 	var data: Array[Color] = []
-	for arch: Array in [ARCH_A, ARCH_B, ARCH_C]:
+	for arch: Array in ARCHES:
 		var radius: float = arch[1]
 		var section: Vector2 = arch[5]
 		var step := PI / ARCH_SEGMENTS
 		for i in int(ceil(ARCH_SEGMENTS * float(arch[4]))):
 			var angle := (i + 0.5) * step
 			var t := arch_point(arch, angle)
-			# on the side facing the player, near the inner edge, so it shows without looking up through the arch
-			var side := signf(t.basis.x.dot(PLAYER - t.origin))
-			var size := Vector3(STRIP_THICK, section.y * STRIP_WIDTH, radius * step * 1.02)
-			var at := t.origin + t.basis.x * side * (section.x * 0.5 + STRIP_THICK * 0.5) + t.basis.y * (section.y * 0.3)
-			spots.append(Transform3D(t.basis * Basis.from_scale(size), at))
-			data.append(Color(sin(angle), 1.0 if arch == ARCH_B else 0.0, 0.0, 0.0))
+			var size := Vector3(section.x * STRIP_WIDTH, STRIP_THICK, radius * step * 1.02)
+			spots.append(Transform3D(t.basis * Basis.from_scale(size), t.origin + t.basis.y * (section.y * 0.5 + STRIP_THICK * 0.5)))
+			# all of B and the gates light on the drop
+			data.append(Color(sin(angle), 0.0 if arch == ARCH_A or arch == ARCH_C else 1.0, 0.0, 0.0))
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	multimesh.use_custom_data = true
@@ -209,6 +220,18 @@ static func crane_lights(count: int) -> Array[Vector3]:
 ## end it is built up from) on the right.
 static func floodlight_bases() -> Array[Vector3]:
 	return [arch_point(ARCH_B, PI).origin, arch_point(ARCH_C, 0.0).origin]
+
+## Where the ground must stay flat (NeonGridFloor.gdshader's flat_spots): each built arch leg's footing, x and z, and a
+## radius FOOTING_CLEAR times its section's larger side.
+static func ground_spots() -> PackedVector3Array:
+	var spots := PackedVector3Array()
+	for arch: Array in ARCHES:
+		var section: Vector2 = arch[5]
+		var legs := [0.0, PI] if float(arch[4]) >= 1.0 else [0.0]
+		for angle: float in legs:
+			var foot := arch_point(arch, angle).origin
+			spots.append(Vector3(foot.x, foot.z, maxf(section.x, section.y) * FOOTING_CLEAR))
+	return spots
 
 ## A unit box scaled to size and placed at centre.
 static func _box(centre: Vector3, size: Vector3) -> Transform3D:

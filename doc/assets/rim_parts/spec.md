@@ -18,3 +18,7 @@
 - Budget: segment 60 triangles (2.9k for 48), mast about 200 (1.2k for six); +2 draw calls.
 - Export: `game/models/rim_segment.glb`, `game/models/rim_mast.glb`; source `tools/models/rim_parts.py`.
 - Review: owner in Blender and Godot, then on the headset.
+- Placement (owner, 2026-10-27): the rim segments now stand as a vertical ring girder (2 m thick, 4 m tall, its top
+  0.5 m over the dish's edge, inner face toward the centre); the masts stand on footings on the ground past the rim
+  (258 m out). Their cables to the cabin and the bridge's stays were taken out again (owner, 2026-10-27: dark spikes
+  beside the track in the near view).

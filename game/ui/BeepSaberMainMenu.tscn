@@ -1,9 +1,10 @@
 [gd_scene format=3 uid="uid://glii0poslcve"]
 
 [ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="1"]
-[ext_resource type="Script" uid="uid://cbe53qn50sjl7" path="res://game/BeepSaberMainMenu.gd" id="3"]
+[ext_resource type="Script" uid="uid://cbe53qn50sjl7" path="res://game/ui/BeepSaberMainMenu.gd" id="3"]
+[ext_resource type="Script" path="res://game/ui/SongPreview.gd" id="song_preview"]
 [ext_resource type="Texture2D" uid="uid://cviyxvrpvyr0g" path="res://u/assets/game/data/beepsaber_logo.png" id="3_wpmn0"]
-[ext_resource type="PackedScene" uid="uid://dtipmx5ep1dkk" path="res://game/vr_slider.tscn" id="6"]
+[ext_resource type="PackedScene" uid="uid://dtipmx5ep1dkk" path="res://game/ui/vr_slider.tscn" id="6"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/arrow-left.svg" id="icon_arrow-left"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/log-out.svg" id="icon_log-out"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/play.svg" id="icon_play"]
@@ -475,6 +476,7 @@ autowrap_mode = 2
 [node name="song_prev" type="AudioStreamPlayer" parent="." unique_id=1250199406]
 volume_db = -60.0
 bus = &"MusicPreview"
+script = ExtResource("song_preview")
 
 [node name="stop_prev" type="Timer" parent="song_prev" unique_id=198072639]
 one_shot = true
@@ -496,7 +498,6 @@ joystick_scroll = false
 [connection signal="item_selected" from="FiltersPanel/Rows/DifficultyRow/ReactionFilter" to="." method="_on_reaction_filter_item_selected"]
 [connection signal="item_selected" from="FiltersPanel/Rows/LengthRow/LengthFilter" to="." method="_on_length_filter_item_selected"]
 [connection signal="pressed" from="MorePanel/LoadPlaylists_Button" to="." method="_on_LoadPlaylists_Button_pressed"]
-[connection signal="timeout" from="song_prev/stop_prev" to="." method="_on_preview_ended"]
 [connection signal="pressed" from="Favorite_Button" to="." method="_on_favorite_button_pressed"]
 [connection signal="toggled" from="FiltersPanel/Rows/FavoritesFilter" to="." method="_on_favorites_filter_toggled"]
 [connection signal="toggled" from="FiltersPanel/Rows/WorkoutFilter" to="." method="_on_workout_filter_toggled"]

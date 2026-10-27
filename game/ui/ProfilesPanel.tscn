@@ -32,6 +32,7 @@ layout_mode = 2
 
 [node name="Title" type="Label" parent="Margin/VBox/Header"]
 layout_mode = 2
+theme_type_variation = &"TitleLabel"
 size_flags_horizontal = 3
 text = "Who's playing?"
 vertical_alignment = 1

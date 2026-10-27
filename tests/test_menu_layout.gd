@@ -38,7 +38,7 @@ func _ready() -> void:
 	var keyboard := (load("res://OQ_Toolkit/OQ_UI2D/OQ_UI2DKeyboard.tscn") as PackedScene).instantiate() as OQ_UI2DKeyboard
 	keyboard.visible = false
 	add_child(keyboard)
-	var menu := (load("res://game/BeepSaberMainMenu.tscn") as PackedScene).instantiate() as MainMenu
+	var menu := (load("res://game/ui/BeepSaberMainMenu.tscn") as PackedScene).instantiate() as MainMenu
 	check(menu != null, "the song menu scene loads (a script that fails to parse leaves it without MainMenu)")
 	if menu == null:
 		get_tree().quit(1)
@@ -54,6 +54,30 @@ func _ready() -> void:
 	if menu.songs_menu.item_count > 0:
 		menu.songs_menu.select(0)
 		menu._select_song(0, false)
+
+		# the selected song's preview (SongPreview) starts, and stop_preview fades it out and stops it
+		var preview := menu.song_preview
+		preview.transition_time = 0.05
+		Settings.audio_music_preview = maxf(Settings.audio_music_preview, 1.0)
+		menu.play_selected_preview(0.0, true)
+		await get_tree().create_timer(0.3).timeout
+		check(preview.playing and preview.stream != null, "the selected song's preview plays")
+		await menu.stop_preview()
+		check(not preview.playing, "stop_preview stops the preview")
+		preview.transition_time = 1.0
+
+		# a rebuilt list (a filter that follows the speed) keeps the selected song where it was in the view
+		if menu.songs_menu.item_count > 12:
+			menu.songs_menu.select(12)
+			menu._select_song(12, false)
+			await _settle()
+			# scrolled by hand so the song sits near the top, not where a glide would put it
+			menu.songs_menu.place_row(12, 100.0)
+			var before: float = menu.songs_menu.row_offset(12)
+			menu._refilter()
+			await _settle()
+			var after: float = menu.songs_menu.row_offset(menu.current_selected)
+			check(absf(after - before) < 1.0, "a rebuilt song list doesn't move the selected song (%.0f -> %.0f px)" % [before, after])
 
 	# every modifier changed, a long player name, and the busiest song details
 	Settings.health_mode = false
@@ -110,7 +134,7 @@ func _ready() -> void:
 	profiles.queue_free()
 
 	# Visuals with the Graphics chips: Low, then one effect changed (Custom)
-	var settings := (load("res://game/settings_Panel.tscn") as PackedScene).instantiate() as SettingsPanel
+	var settings := (load("res://game/ui/settings_Panel.tscn") as PackedScene).instantiate() as SettingsPanel
 	# no controllers here for its sliders' thumbstick scrolling
 	settings.process_mode = Node.PROCESS_MODE_DISABLED
 	_port.add_child(settings)
@@ -237,7 +261,7 @@ func _check_list_drag(menu: MainMenu) -> void:
 
 ## How long a flick keeps going (the song list's vr_slider).
 func vr_slider_momentum() -> float:
-	return preload("res://game/vr_slider.gd").MOMENTUM_SECONDS
+	return preload("res://game/ui/vr_slider.gd").MOMENTUM_SECONDS
 
 ## Sends a pointer press (true), release (false) or move (null) to the menu's viewport, as the VR pointer does.
 var _pointer_held := false

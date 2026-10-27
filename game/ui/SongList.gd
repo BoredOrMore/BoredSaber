@@ -83,7 +83,8 @@ func clear() -> void:
 		(row as Button).visible = false
 	_count = 0
 	_selected = -1
-	# a new list starts with its first row at the top, not after the empty space
+	# a new list starts with its first row at the top, not after the empty space, unless place_row keeps a row in place
+	_reset_scroll = true
 	_show_first_row.call_deferred()
 
 ## Marks a row selected (-1: none); the list doesn't move, so a row picked with the pointer stays under it.
@@ -125,7 +126,44 @@ func center_on(index: int) -> void:
 		scroll_vertical = roundi(value)
 		_redraw(), float(scroll_vertical), target, GLIDE_SECONDS)
 
+## Where row index is from the top of the view, in px (for place_row after a rebuild).
+func row_offset(index: int) -> float:
+	return _row_top(index) - scroll_vertical
+
+## Scrolls so row index sits offset px from the top of the view, as it did before the list was rebuilt (a filter that
+## follows the speed refilled it), so the list doesn't jump.
+func place_row(index: int, offset: float) -> void:
+	_reset_scroll = false
+	if _glide:
+		_glide.kill()
+	_place_generation += 1
+	var generation := _place_generation
+	var scroll := _row_top(index) - offset
+	scroll_vertical = roundi(scroll)
+	# again once the rebuilt rows are laid out (until then the scroll range is the old list's and clamps it); the
+	# canvas meanwhile isn't asked to redraw (OQ_UI2DCanvas.update_only_on_input), so it shows the row only in place
+	_placing = true
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if generation != _place_generation:
+		return
+	_placing = false
+	if is_inside_tree():
+		scroll_vertical = roundi(scroll)
+		_redraw()
+
+## bumped by each place_row, so only the newest one applies after the layout waits
+var _place_generation := 0
+## set while place_row waits for the layout: no redraws meanwhile
+var _placing := false
+
+## set by clear(), cleared by place_row
+var _reset_scroll := false
+
 func _show_first_row() -> void:
+	if not _reset_scroll:
+		return
+	_reset_scroll = false
 	scroll_vertical = roundi(_top.custom_minimum_size.y)
 	_redraw()
 
@@ -166,7 +204,7 @@ func _style_row(index: int) -> void:
 
 ## Redraws the canvas: selection and scrolling change between pointer inputs.
 func _redraw() -> void:
-	if not is_inside_tree():
+	if not is_inside_tree() or _placing:
 		return
 	var canvas := get_viewport().get_parent() as OQ_UI2DCanvas
 	if canvas:

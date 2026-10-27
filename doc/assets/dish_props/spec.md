@@ -18,3 +18,7 @@
 - Budget: about 700 triangles; +1 draw call.
 - Export: `game/models/dish_props.glb`; source `tools/models/dish_props.py`.
 - Review: owner in Blender and Godot, then on the headset.
+- Placement (owner, 2026-10-27): the control room stands on the ground outside the rim (286 m, left), as real ones
+  stand off the dish; the cherry picker is replaced by a repair gondola hung by a cable from the front-right mast over
+  the panels (no vehicle stands on a 40-degree dish); the calibration laser station at the bridge's end on the front
+  rim, right of the track, is the drop's beam's source. About 450 triangles.

@@ -1,11 +1,12 @@
 [gd_scene format=3 uid="uid://i5nhm2p2kqay"]
 
-[ext_resource type="Shader" path="res://game/UI_Panel.gdshader" id="1_cfcnp"]
-[ext_resource type="Shader" path="res://game/RankHalo.gdshader" id="rank_halo"]
-[ext_resource type="Script" path="res://game/EndScore.gd" id="1_jacne"]
+[ext_resource type="Shader" path="res://game/ui/UI_Panel.gdshader" id="1_cfcnp"]
+[ext_resource type="Shader" path="res://game/ui/RankHalo.gdshader" id="rank_halo"]
+[ext_resource type="Script" path="res://game/ui/EndScore.gd" id="1_jacne"]
 [ext_resource type="PackedScene" uid="uid://63fr72w7kh2w" path="res://game/hud/PercentIndicator.tscn" id="2_dpn16"]
 [ext_resource type="PackedScene" uid="uid://bxsfwm7o1kryl" path="res://game/scripts/UIRaycast/UIRaycastButton.tscn" id="4_n4s7s"]
 [ext_resource type="FontFile" uid="uid://cdsnr8tscm8y6" path="res://OQ_Toolkit/OQ_UI2D/theme/Roboto-Medium.ttf" id="7_font"]
+[ext_resource type="FontVariation" path="res://game/ui/fonts/roboto_bold.tres" id="bold_font"]
 [ext_resource type="Script" path="res://game/scripts/UIRaycast/UIRaycastTarget.gd" id="6_25iqa"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_igkn4"]
@@ -115,7 +116,7 @@ material = SubResource("StandardMaterial3D_d4cmo")
 size = Vector2(0.5, 0.094)
 
 [sub_resource type="Theme" id="Theme_553gf"]
-default_font = ExtResource("7_font")
+default_font = ExtResource("bold_font")
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_halo"]
 render_priority = 0

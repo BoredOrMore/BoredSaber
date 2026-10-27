@@ -19,7 +19,7 @@ line `@AGENTS.md`, so Claude Code loads the folder's doc when it opens a file th
 - `game/scripts/`: shared scripts (utils, controllers, highscores, pools, raycasts, song uploader).
 - `game/scripts/GameState/`: the game state machine (menu, playing, paused, fail, score screen).
 - `game/BeatmapInfo/`: beatmap data model and how `game/Map.gd` parses Beat Saber map formats.
-- `game/ui/`: menus, shared theme and UI palette, BeatSaver download panels.
+- `game/ui/`: song menu, settings, end score, highscore and pause panels, shared theme and UI palette, BeatSaver panels.
 - `OQ_Toolkit/`: partially ported VR toolkit (`vr` autoload, 2D-in-VR canvases, keyboard).
 - `tests/`: headless tests.
 - `tools/`: capture scenes, Blender model scripts, asset generators, headset bench, the doc checker;
@@ -49,7 +49,7 @@ line `@AGENTS.md`, so Claude Code loads the folder's doc when it opens a file th
 - Every function gets a `##` doc comment saying what it does or returns, not how.
 - Every number that sets behaviour gets an `UPPER_CASE` `const` at the top of
   its script. Values the player can change go in `game/Settings.gd`
-  (`default_values`, plus a control in `game/settings_Panel.tscn`); engine and
+  (`default_values`, plus a control in `game/ui/settings_Panel.tscn`); engine and
   XR values go in `project.godot` or the scene that owns them.
 - Ask before adding a new dependency (Godot addons, plugin or engine version
   bumps, GitHub Actions).
@@ -62,6 +62,9 @@ line `@AGENTS.md`, so Claude Code loads the folder's doc when it opens a file th
 Everything a player sees (menus, buttons, labels, tooltips, score screen, errors) is for players,
 not developers. Follow "Don't make me think": a player should understand every choice at a glance.
 Each rule below names its source and a bug it would have caught here.
+
+Everything the player looks at or interacts with is placed and sized from their real eye (the headset's position),
+as angles and distances, never from a fixed eye height (owner, 2026-10-27); `.claude/skills/vr-ui-design/` section 2.
 
 Words and choices
 - Speak the player's language, not the code's: no `NJS`, `HJD`, `RT`, `NPS`, `BPM`, `JSON`, `null`,

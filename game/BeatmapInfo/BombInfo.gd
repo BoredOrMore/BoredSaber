@@ -14,7 +14,6 @@ func _init(beat: float, line_index: float, line_layer: float, rotation_degrees: 
 	self.rotation = Utils.adjust_lane_rotation(rotation_degrees * (PI/180.))
 	if abs(Settings.gradual_rotation) > 1e-5:
 		self.rotation += Settings.gradual_rotation * beat
-		self.rotation += Settings.gradual_rotation * beat
 
 static func new_v2(bomb_dict: Dictionary) -> BombInfo:
 	return BombInfo.new(

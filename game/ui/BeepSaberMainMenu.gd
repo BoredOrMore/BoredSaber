@@ -57,8 +57,7 @@ const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 @onready var profile_button := $Profile_Button as Button
 @onready var reset_button := $Modifiers/Header/Reset_Button as Button
 
-@onready var song_preview := $song_prev as AudioStreamPlayer
-var song_preview_transition_time := 1.0
+@onready var song_preview := $song_prev as SongPreview
 var licenses_showing := false
 
 var current_selected := -1
@@ -82,10 +81,7 @@ var all_song_hashes: Array[String]
 # send a signal whenever the all_song_keys array changes
 signal song_list_changed()
 
-# stop the preview player if the main song player is going
 func _physics_process(delta: float) -> void:
-	if main_song_player_ref.playing:
-		song_preview.stop()
 	_step_with_stick(delta)
 
 ## Thumbstick song stepping: pushed past STICK_THRESHOLD up or down, the selection moves one song; held, it
@@ -275,12 +271,17 @@ func _discover_all_songs(seek_path: String) -> void:
 func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 	var current_map : MapInfo
 	current_map = null
+	# where the selected song sits in the view, to keep it there in the rebuilt list
+	var row_offset := 0.0
 	if current_selected >= 0:
 		current_map = _currently_selected_songlist_ref[current_selected]
+		row_offset = songs_menu.row_offset(current_selected)
 	var filter := SongFilter.saved()
 	var shown: Array[MapInfo] = []
 	for map in songs:
-		if filter.passes(map):
+		# the selected song stays even when a filter would hide it now (a filter that follows the speed would pull it
+		# from under the player choosing its speed, and the list would jump)
+		if filter.passes(map) or map == current_map:
 			shown.append(map)
 	_show_filter_counts(filter, songs, shown.size())
 	songs = shown
@@ -305,6 +306,7 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 		for i in range(songs.size()):
 			if songs[i] == current_map:
 				songs_menu.select(i)
+				songs_menu.place_row(i, row_offset)
 				# same song as before: keep whatever preview is playing (maybe a BeatSaver one)
 				_select_song(i, false)
 		if current_selected == -1:
@@ -503,9 +505,6 @@ func _set_list_cover(list_idx: int, img_tex: Texture2D, generation: int, map_pat
 	if generation == _list_generation and list_idx < songs_menu.item_count:
 		songs_menu.set_item_icon(list_idx, img_tex)
 
-## Bumped by every preview request, so only the newest one plays after the fade-out awaits.
-var _preview_generation := 0
-
 ## The score screen plays the song's preview quietly, about 30% loudness, as background (20 * log10(0.3) dB).
 const SCORE_SCREEN_PREVIEW_DB := -10.5
 
@@ -518,49 +517,14 @@ func play_selected_preview(volume_db := 0.0, restart := false) -> void:
 	if not map.have_song:
 		return
 	if song_preview.playing and not restart:
-		song_preview.create_tween().tween_property(song_preview, ^"volume_db", volume_db, song_preview_transition_time)
+		song_preview.fade_to(volume_db)
 		return
 	play_preview(Utils.read_binary_file(map.filepath, map.song_filename), map.preview_start_time, map.preview_duration,
 		'ogg', volume_db)
 
-func play_preview(buffer: PackedByteArray, start_time: float = 0.0, duration: float = -1.0, buffer_data_type_hint: String = 'ogg', volume_db: float = 0.0) -> void:
-	_preview_generation += 1
-	var generation := _preview_generation
-	var stream: AudioStream
-	# take song preview data from buffer as-is. trust passed type hint
-	if buffer_data_type_hint == 'ogg':
-		stream = AudioStreamOggVorbis.load_from_buffer(buffer)
-	elif buffer_data_type_hint == 'mp3':
-		stream = AudioStreamMP3.new()
-		(stream as AudioStreamMP3).data = buffer
-	
-	if not stream: return
-	
-	# play on from the preview's start to the end of the song instead of looping the map's short preview
-	# window, which felt repetitive in the menus (the player's choice); _on_preview_ended starts it again
-	duration = maxf(stream.get_length() - start_time, 1.0)
-	
-	
-	# fade out preview if ones already running
-	if song_preview.playing:
-		await _on_stop_prev_timeout()
-	if generation != _preview_generation:
-		return
-	
-	# start the requested preview, if still on song select
-	if not main_song_player_ref.playing:
-		song_preview.stream = stream
-		var song_prev_Tween := song_preview.create_tween().set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_IN_OUT)
-		@warning_ignore("return_value_discarded")
-		# TODO: is this a good idea with higher speeds?
-		song_prev_Tween.tween_property(song_preview, ^"volume_db", volume_db, song_preview_transition_time)
-		song_prev_Tween.play()
-		song_preview.play(start_time)
-		song_preview.pitch_scale = Settings.music_speed / 100.
-		($song_prev/stop_prev as Timer).start(duration)
-		_loop_start = start_time
-		_loop_duration = duration
-		_loop_volume_db = volume_db
+## Plays a song's audio as the preview (BeatSaver's previews too); duration is unused: it plays to the end and loops.
+func play_preview(buffer: PackedByteArray, start_time: float = 0.0, _duration: float = -1.0, buffer_data_type_hint: String = 'ogg', volume_db: float = 0.0) -> void:
+	song_preview.start(buffer, start_time, buffer_data_type_hint, volume_db)
 
 func _select_song(id: int, with_preview: bool = true) -> void:
 	current_selected = id 
@@ -592,48 +556,18 @@ func _select_song(id: int, with_preview: bool = true) -> void:
 	if with_preview and Settings.audio_music_preview > 0 and map.have_song:
 		play_preview(Utils.read_binary_file(map.filepath, map.song_filename), map.preview_start_time, map.preview_duration)
 	
-	var d := PlayCount.get_last_difficulty(map)
-	_select_difficulty(0 if d < 0 else (d & Constants.DIFFICULTY_MASK))
+	# the difficulty last played (its rank), or the first
+	var rank := PlayCount.get_last_difficulty(map) & Constants.DIFFICULTY_MASK
+	var last := 0
+	for i in map.difficulty_beatmaps.size():
+		if map.difficulty_beatmaps[i].difficulty_rank == rank:
+			last = i
+			break
+	_select_difficulty(last)
 
 ## Fades out the playing preview and drops any preview still waiting to start.
 func stop_preview() -> void:
-	_preview_generation += 1
-	await _on_stop_prev_timeout()
-
-## Seconds of quiet between the end of a preview and its next loop, and how fast Play fades it out.
-const PREVIEW_LOOP_GAP := 0.5
-const PLAY_FADE_SECONDS := 0.3
-## the playing preview's start, length and volume, to loop it
-var _loop_start := 0.0
-var _loop_duration := 0.0
-var _loop_volume_db := 0.0
-
-## The preview reached its end: fade it out, then play it again from its start after a short gap, as long as nothing
-## else took over (another preview, a song), so the song select never falls silent.
-func _on_preview_ended() -> void:
-	var generation := _preview_generation
-	await _on_stop_prev_timeout()
-	await get_tree().create_timer(PREVIEW_LOOP_GAP).timeout
-	if generation != _preview_generation or main_song_player_ref.playing or song_preview.playing or song_preview.stream == null:
-		return
-	song_preview.volume_db = -50
-	song_preview.play(_loop_start)
-	song_preview.create_tween().tween_property(song_preview, ^"volume_db", _loop_volume_db, song_preview_transition_time)
-	($song_prev/stop_prev as Timer).start(_loop_duration)
-
-## Fades out the preview over seconds (the usual transition when below 0) and stops it, unless a newer one started.
-func _on_stop_prev_timeout(seconds := -1.0) -> void:
-	if seconds < 0.0:
-		seconds = song_preview_transition_time
-	var generation := _preview_generation
-	var song_prev_Tween := song_preview.create_tween().set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_IN_OUT)
-	@warning_ignore("return_value_discarded")
-	song_prev_Tween.tween_property(song_preview, "volume_db", -50, seconds)
-	song_prev_Tween.play()
-	await get_tree().create_timer(seconds).timeout
-	# a newer preview has started meanwhile; leave it playing
-	if generation == _preview_generation:
-		song_preview.stop()
+	await song_preview.cancel()
 
 var _map_difficulty := 0
 
@@ -700,30 +634,15 @@ func _drop_down(control: OptionButton, list: Array, value: Variant, defaultIndex
 	control.selected = index
 	
 ## Shows the saved modifiers on every chip, and what changed on Reset and More modifiers.
-func _update_mod_controls() -> void:
-	_sync_difficulty_rows()
-	for chip: Button in toggle_row.get_children():
-		var toggle: Array = TOGGLE_CHIPS[chip.get_index()]
-		chip.set_pressed_no_signal(Settings.get(toggle[1] as StringName) == toggle[2])
-	for row: Array in _option_rows:
-		var chips: Array = row[0]
-		for i in chips.size():
-			(chips[i] as Button).set_pressed_no_signal(Settings.get(row[1] as StringName) == row[2][i])
-	_claws_chip.set_pressed_no_signal(Settings.claws)
-	var changed := _changed_modifiers()
-	reset_button.visible = changed.size() > 0
-	reset_button.text = "%d changed · Reset" % changed.size()
-	var rare := _changed_modifiers(true)
-	more_mods_button.text = MORE_MODS_TEXT + (HighscorePanel.RUN_PARTS_SEPARATOR + ", ".join(rare) if rare.size() > 0 else "")
-
 func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(Constants.APPDATA_PATH+"Backgrounds/")
 	DirAccess.make_dir_recursive_absolute(Constants.APPDATA_PATH+"Songs/")
 
 	Settings.changed.connect(on_settings_changed)
+	song_preview.song_player = main_song_player_ref
 	
-	_build_difficulty_rows()
-	_build_modifier_chips()
+	_mods = ModifierChips.new(self)
+	_mods.build()
 	_build_difficulty_picker()
 	_build_tabs()
 	_show_player_name()
@@ -793,8 +712,7 @@ func play_selected() -> void:
 		return
 	var map := _currently_selected_songlist_ref[current_selected]
 	Settings.last_map = map.filepath
-	_preview_generation += 1
-	_on_stop_prev_timeout(PLAY_FADE_SECONDS)
+	song_preview.cancel(SongPreview.PLAY_FADE_SECONDS)
 	Settings.save()
 	play_status.text = LOADING_TEXT
 	play_details.text = ""
@@ -870,7 +788,7 @@ func _modifier_labels() -> PackedStringArray:
 	for speed: Array in Constants.SPEEDS:
 		if speed[0] == Settings.music_speed and Settings.music_speed != 100:
 			labels.append(str(speed[1]))
-	labels.append_array(_changed_modifiers(true))
+	labels.append_array(_mods.changed(true))
 	return labels
 
 const NO_MAP_COLORS_LABEL := "No map colors"
@@ -894,7 +812,7 @@ const TAB_LABELS := ["Song", "More"]
 func _build_tabs() -> void:
 	var group := ButtonGroup.new()
 	for i in TAB_LABELS.size():
-		$Tabs.add_child(_make_row_button(TAB_LABELS[i], group, _on_tab_pressed.bind(i)))
+		$Tabs.add_child(ModifierChips.make_row_button(TAB_LABELS[i], group, _on_tab_pressed.bind(i)))
 	_show_tab(Tab.SONG)
 
 func _on_tab_pressed(tab: int) -> void:
@@ -1083,25 +1001,6 @@ func update_view() -> void:
 	_update_play_status()
 	_update_mod_controls()
 
-## Fills the fail and damage rows with one toggle button per option, so they're a single press away;
-## the damage row starts with a "Damage" label.
-func _build_difficulty_rows() -> void:
-	var fail_group := ButtonGroup.new()
-	for i in Constants.FAIL_OPTIONS.size():
-		var chip := _make_row_button(Constants.FAIL_OPTIONS[i][2], fail_group, _on_fail_option_pressed.bind(i))
-		fail_row.add_child(chip)
-		_set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-	var damage_label := Label.new()
-	damage_label.text = "Damage"
-	damage_label.custom_minimum_size.x = ROW_LABEL_WIDTH
-	damage_row.add_child(damage_label)
-	var damage_group := ButtonGroup.new()
-	for i in Constants.DAMAGE_SCALES.size():
-		var chip := _make_row_button(Constants.DAMAGE_SCALES[i][1], damage_group, _on_damage_option_pressed.bind(i))
-		damage_row.add_child(chip)
-		_set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-	_sync_difficulty_rows()
-
 ## Difficulty levels in button order: [difficulty name in the map, button label].
 const LEVELS := [["Easy", "Easy"], ["Normal", "Normal"], ["Hard", "Hard"], ["Expert", "Expert"], ["ExpertPlus", "Expert+"]]
 ## Most characteristic tabs a map can show; BeatSaver has 8 characteristics.
@@ -1118,24 +1017,27 @@ const LEVEL_BUTTON_PADDING := 4.0
 func _build_difficulty_picker() -> void:
 	var tab_group := ButtonGroup.new()
 	for i in MAX_CHARACTERISTICS:
-		var tab := _make_row_button("", tab_group, _on_characteristic_pressed.bind(i))
+		var tab := ModifierChips.make_row_button("", tab_group, _on_characteristic_pressed.bind(i))
 		tab.add_theme_font_size_override(&"font_size", 20)
 		tab.clip_text = true
 		characteristic_row.add_child(tab)
 		# narrow padding like the level buttons, so "Standard" and "No Arrows" fit four or five to a row
-		_set_padding(tab, LEVEL_BUTTON_PADDING)
+		ModifierChips.set_padding(tab, LEVEL_BUTTON_PADDING)
 	var level_group := ButtonGroup.new()
 	for i in LEVELS.size():
-		var button := _make_row_button(LEVELS[i][1], level_group, _on_level_pressed.bind(i))
+		var button := ModifierChips.make_row_button(LEVELS[i][1], level_group, _on_level_pressed.bind(i))
 		button.add_theme_font_size_override(&"font_size", 22)
 		var color: Color = Constants.DIFFICULTY_COLORS.get(LEVELS[i][0], Constants.UI_TEXT)
-		for state: StringName in [&"font_color", &"font_hover_color", &"font_pressed_color", &"font_hover_pressed_color", &"font_focus_color"]:
+		for state: StringName in [&"font_color", &"font_hover_color", &"font_focus_color"]:
 			button.add_theme_color_override(state, color)
+		# the picked one's name stays white on the blue (its colour fails contrast there); its border shows the colour
+		for state: StringName in [&"font_pressed_color", &"font_hover_pressed_color"]:
+			button.add_theme_color_override(state, Constants.UI_TEXT)
 		level_row.add_child(button)
 		# five buttons share the column: narrow side padding (read once in the tree, from the menu theme),
 		# and the text never widens the row past the panel
 		button.clip_text = true
-		_set_padding(button, LEVEL_BUTTON_PADDING)
+		ModifierChips.set_padding(button, LEVEL_BUTTON_PADDING)
 	_sync_difficulty_picker()
 
 ## The characteristic a difficulty belongs to; maps without one are Standard.
@@ -1194,7 +1096,7 @@ func _sync_difficulty_picker() -> void:
 		button.text = LEVELS[i][1]
 		button.add_theme_font_size_override(&"font_size", 22)
 		button.remove_theme_color_override(&"font_color")
-		button.remove_theme_color_override(&"font_pressed_color")
+		_set_picked_border(button, Constants.UI_ACCENT)
 		if index >= 0:
 			var level: Array = Constants.DIFFICULTY_LEVELS[levels[i]]
 			button.text = level[0]
@@ -1202,7 +1104,7 @@ func _sync_difficulty_picker() -> void:
 				level_seen[levels[i]] = level_seen.get(levels[i], 0) + 1
 				button.text += " %d" % level_seen[levels[i]]
 			button.add_theme_color_override(&"font_color", level[1])
-			button.add_theme_color_override(&"font_pressed_color", level[1])
+			_set_picked_border(button, level[1])
 		button.visible = index >= 0 or not picked
 		button.disabled = index < 0
 		button.set_pressed_no_signal(picked != null and picked.difficulty == LEVELS[i][0])
@@ -1212,6 +1114,14 @@ func _sync_difficulty_picker() -> void:
 		level_stats.add_theme_color_override(&"font_color", Constants.DIFFICULTY_LEVELS[MapStats.level_of(map, picked, stats)][1])
 	else:
 		level_stats.text = ""
+
+## The picked level button's border in its difficulty's colour (the name on it stays white, for contrast; Game
+## Accessibility Guidelines, doc/research/game-ui.md).
+static func _set_picked_border(button: Button, color: Color) -> void:
+	for style: StringName in [&"pressed", &"hover_pressed"]:
+		var box := button.get_theme_stylebox(style) as StyleBoxFlat
+		if box:
+			box.border_color = color
 
 ## Picks the pressed level within the shown characteristic.
 func _on_level_pressed(level: int) -> void:
@@ -1229,54 +1139,6 @@ func _on_characteristic_pressed(tab: int) -> void:
 			best = level
 	if best >= 0:
 		_select_difficulty(_find_difficulty(map, _characteristics[tab], best))
-
-## One option of a button row.
-func _make_row_button(text: String, group: ButtonGroup, on_pressed: Callable) -> Button:
-	var button := Button.new()
-	button.text = text
-	button.toggle_mode = true
-	button.button_group = group
-	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	button.pressed.connect(on_pressed)
-	return button
-
-## Gives button, already in the tree so it reads the menu theme, narrower padding in every state, so a row
-## of chips fits the column; vertical padding changes only when given.
-static func _set_padding(button: Button, side: float, vertical := -1.0) -> void:
-	for style: StringName in [&"normal", &"hover", &"pressed", &"hover_pressed", &"disabled", &"focus"]:
-		# the menu theme's Button look, also for an OptionButton (whose own focus style is the engine's)
-		var box := button.get_theme_stylebox(style, &"Button").duplicate() as StyleBox
-		box.content_margin_left = side
-		box.content_margin_right = side
-		if vertical >= 0.0:
-			box.content_margin_top = vertical
-			box.content_margin_bottom = vertical
-		button.add_theme_stylebox_override(style, box)
-
-## Shows the saved fail mode and damage scale in the rows; damage only matters for the health bar.
-func _sync_difficulty_rows() -> void:
-	if fail_row.get_child_count() == 0:
-		return
-	for i in Constants.FAIL_OPTIONS.size():
-		var option: Array = Constants.FAIL_OPTIONS[i]
-		(fail_row.get_child(i) as Button).set_pressed_no_signal(option[0] == Settings.health_mode and (not Settings.health_mode or option[1] == Settings.fail_mode))
-	var damage_counts := Settings.health_mode and Settings.fail_mode == Constants.FAIL_MODE_BAR
-	for i in Constants.DAMAGE_SCALES.size():
-		# child 0 is the "Damage" label
-		var button := damage_row.get_child(i + 1) as Button
-		button.set_pressed_no_signal(is_equal_approx(Constants.DAMAGE_SCALES[i][0], Settings.damage_scale))
-		button.disabled = not damage_counts
-
-## Stores the picked fail option: No Fail turns health mode off, the others pick how to fail.
-func _on_fail_option_pressed(index: int) -> void:
-	Settings.health_mode = Constants.FAIL_OPTIONS[index][0]
-	Settings.fail_mode = Constants.FAIL_OPTIONS[index][1]
-	update_view()
-
-## Stores the picked damage scale.
-func _on_damage_option_pressed(index: int) -> void:
-	Settings.damage_scale = Constants.DAMAGE_SCALES[index][0]
-	update_view()
 
 ## Shows whether the selected song is a favourite: a filled yellow star, or an outline to add it.
 func _set_favorite_icon(value: bool) -> void:
@@ -1304,154 +1166,20 @@ func _on_favorite_button_pressed() -> void:
 	_sort_songs()
 	update_view()
 	
+## The Song tab's modifier chips, fail and damage rows and environment picker (ModifierChips.gd).
+var _mods: ModifierChips
+
+## Shows the saved modifiers on their chips.
+func _update_mod_controls() -> void:
+	_mods.sync()
+
 ## Puts every modifier back to its default.
 func _on_reset_button_pressed() -> void:
-	Settings.health_mode = true
-	Settings.fail_mode = Constants.FAIL_MODE_BAR
-	Settings.damage_scale = 1.0
-	Settings.walls_enabled = true
-	Settings.bombs_enabled = true
-	Settings.arrows_enabled = true
-	Settings.disable_map_color = false
-	Settings.claws = false
-	Settings.block_size = 100
-	Settings.width = 100
-	Settings.flip = 0
-	Settings.music_speed = 100
-	Settings.handedness = 0
-	update_view()
+	_mods.reset()
 
-## Chip side padding, and the width of the Damage row's leading label.
-const CHIP_PADDING := 6.0
-## Top and bottom padding of chips, so the theme's 28 px text fits a 48 px row (3.2° at the menu's 2 m).
-const CHIP_VERTICAL_PADDING := 7.0
-const ROW_LABEL_WIDTH := 110.0
-const MORE_MODS_TEXT := "More modifiers"
-## On/off chips on the Song tab: [label, Settings key, value of the key while the chip is on].
-const TOGGLE_CHIPS := [["Walls", &"walls_enabled", true], ["Bombs", &"bombs_enabled", true],
-	["Arrows", &"arrows_enabled", true], ["Map colors", &"disable_map_color", false]]
-## The rarer modifiers in More modifiers: [title, Settings key, option table in Constants, chip labels, columns,
-## default value]. Each option table row starts with the value and its name in the record table.
-const MORE_MOD_ROWS := [
-	["Blocks", &"block_size", Constants.SIZES, ["Small", "Normal", "Big", "Giant"], 4, 100],
-	["Width", &"width", Constants.WIDTHS, ["100%", "125%", "150%", "175%", "200%"], 5, 100],
-	["Mirror", &"flip", Constants.FLIPS, ["Off", "Left-Right", "Up-Down", "Both ways"], 2, 0],
-	["Sabers", &"handedness", Constants.HANDEDNESSES, ["Normal", "Any color", "Left only", "Right only"], 2, 0],
-]
-## Speed chips and each More modifiers row: [chip buttons, Settings key, value of each chip].
-var _option_rows: Array[Array] = []
-var _claws_chip: Button
-
-## Fills the Song tab's on/off and Speed chips and the More modifiers view.
-func _build_modifier_chips() -> void:
-	for toggle: Array in TOGGLE_CHIPS:
-		var chip := _make_row_button(str(toggle[0]), null, func() -> void: pass)
-		chip.toggled.connect(func(on: bool) -> void:
-			Settings.set(toggle[1] as StringName, on == toggle[2])
-			update_view())
-		toggle_row.add_child(chip)
-		_set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-	_add_option_chips(speed_row, &"music_speed", Constants.SPEEDS, Constants.SPEEDS.map(func(o: Array) -> String: return "%d%%" % o[0]))
-	for row: Array in MORE_MOD_ROWS:
-		var title := Label.new()
-		title.text = str(row[0])
-		more_mods_rows.add_child(title)
-		var grid := GridContainer.new()
-		grid.columns = int(row[4])
-		grid.add_theme_constant_override(&"h_separation", 4)
-		grid.add_theme_constant_override(&"v_separation", 6)
-		more_mods_rows.add_child(grid)
-		_add_option_chips(grid, row[1] as StringName, row[2] as Array, row[3] as Array)
-	_claws_chip = _make_row_button(Constants.CLAWS_LABEL, null, func() -> void: pass)
-	_claws_chip.toggled.connect(func(on: bool) -> void:
-		Settings.claws = on
-		update_view())
-	more_mods_rows.add_child(_claws_chip)
-	_set_padding(_claws_chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-	environment_picker = OptionButton.new()
-	environment_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	environment_picker.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	environment_picker.add_theme_constant_override(&"icon_max_width", ENVIRONMENT_THUMB_WIDTH_CLOSED)
-	environment_picker.get_popup().add_theme_constant_override(&"icon_max_width", ENVIRONMENT_THUMB_WIDTH)
-	for environment: Array in Settings.ENVIRONMENTS:
-		environment_picker.add_item(environment[1])
-		environment_picker.set_item_icon(environment_picker.item_count - 1, _environment_thumb(environment[0]))
-	environment_picker.item_selected.connect(func(item: int) -> void: Settings.environment = Settings.ENVIRONMENTS[item][0])
-	environment_row.add_child(environment_picker)
-	_set_padding(environment_picker, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-	_show_environment()
-	_set_padding(reset_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-	_set_padding(more_mods_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-	# the star and its label in a 48 px button: the theme's 12 px padding would make it 60 px, into the picker
-	_set_padding(favorite_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-
-## Adds one chip per option of an option table to parent, picking the option's value for key when pressed.
-func _add_option_chips(parent: Container, key: StringName, options: Array, labels: Array) -> void:
-	var group := ButtonGroup.new()
-	var chips: Array[Button] = []
-	var values := options.map(func(o: Array) -> Variant: return o[0])
-	for i in options.size():
-		var value: Variant = values[i]
-		var chip := _make_row_button(str(labels[i]), group, func() -> void:
-			Settings.set(key, value)
-			update_view())
-		parent.add_child(chip)
-		_set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-		chips.append(chip)
-	_option_rows.append([chips, key, values])
-
-## Names of the modifiers that differ from the default; with rare_only, only those in More modifiers, by their
-## names in the record table.
-func _changed_modifiers(rare_only := false) -> PackedStringArray:
-	var names := PackedStringArray()
-	if not rare_only:
-		if not Settings.health_mode or Settings.fail_mode != Constants.FAIL_MODE_BAR:
-			names.append("Fail")
-		if not is_equal_approx(Settings.damage_scale, 1.0):
-			names.append("Damage")
-		for toggle: Array in TOGGLE_CHIPS:
-			if Settings.get(toggle[1] as StringName) != toggle[2]:
-				names.append(str(toggle[0]))
-		if Settings.music_speed != 100:
-			names.append("Speed")
-	for row: Array in MORE_MOD_ROWS:
-		var value: Variant = Settings.get(row[1] as StringName)
-		if value != row[5]:
-			for option: Array in row[2]:
-				if option[0] == value:
-					names.append(str(option[1]))
-	if Settings.claws:
-		names.append(Constants.CLAWS_LABEL)
-	return names
-
-## A small picture of each environment, by id, shown in the environment dropdown when the file exists.
-const ENVIRONMENT_THUMBS := "res://game/env/thumbs/%s.png"
-## how wide the pictures show in the open list, and on the closed dropdown, which must stay one row high
-const ENVIRONMENT_THUMB_WIDTH := 128
-const ENVIRONMENT_THUMB_WIDTH_CLOSED := 36
-## The environment dropdown on the Song tab, under Damage (Settings.ENVIRONMENTS).
-var environment_picker: OptionButton
-
-## "Follow map" with a song selected names the environment that song will get, short enough for the Song tab.
-const MAP_ENVIRONMENT_TEXT := "Map's: %s"
-
-## Shows the saved pick; "Follow map" also names the environment the selected song will get.
 func _show_environment() -> void:
-	if not environment_picker:
-		return
-	var ids: Array = Settings.ENVIRONMENTS.map(func(e: Array) -> String: return e[0])
-	environment_picker.select(maxi(ids.find(Settings.environment), 0))
-	var follow: String = Settings.ENVIRONMENTS[0][1]
-	var resolved := EventDriver.map_environment(_shown_map)
-	if _shown_map:
-		follow = MAP_ENVIRONMENT_TEXT % Settings.ENVIRONMENTS[ids.find(resolved)][1]
-	environment_picker.set_item_text(0, follow)
-	environment_picker.set_item_icon(0, _environment_thumb(resolved))
-
-## The picture of an environment, or null when there is none.
-static func _environment_thumb(id: String) -> Texture2D:
-	var path := ENVIRONMENT_THUMBS % id
-	return load(path) as Texture2D if ResourceLoader.exists(path) else null
+	if _mods:
+		_mods.show_environment()
 
 ## Opens the song filters over the list, or goes back to it.
 func _show_filters(open: bool) -> void:

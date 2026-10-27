@@ -3,19 +3,26 @@ extends Node3D
 
 ## The HUD in Beat Saber's arrangement (owner, 2026-10-27; checked against .claude/skills/vr-ui-design): on the left
 ## the combo, the score, then the accuracy and the live grade; on the right the multiplier in its filling ring and
-## the time played / the song's length. Each side is one flat panel turned to face HUD_EYE, its lines laid on it
-## (owner: lines each turned their own way didn't sit on one plane). HUD_AHEAD metres ahead of the eye, beside the
-## lanes (HUD_SIDE, or out past the outer lane by HUD_LANE_MARGIN on wide modifiers), centred at HUD_Y: from about
-## 1.64 m down to 0.9 m, at most 12 degrees below the eye (lower than Beat Saber's, which sits by the track).
+## the time played / the song's length. Each side is one flat panel turned to face the eye, its lines laid on it
+## (owner: lines each turned their own way didn't sit on one plane).
+## Placed from the player's real eye (owner, 2026-10-27: everything the player looks at is worked out from their own
+## eye): the headset's place when a song starts (place(eye)). Each panel's centre is HUD_DISTANCE from it, HUD_YAW to
+## the side of straight down the track and HUD_PITCH below level, but always past the outer lane by HUD_LANE_MARGIN
+## (the Wide modifiers turn it further out). 5.8 m (owner: further back, so a look down the track still takes it in;
+## about 19 degrees out, it was 28.5): past vr-ui-design's 3.5 m for text on purpose, the eyes barely refocus between
+## the notes and the HUD. The lines' sizes and places below are metres on a panel HUD_LAID_OUT_DISTANCE from the eye;
+## the panels grow by HUD_DISTANCE / HUD_LAID_OUT_DISTANCE, so every line keeps that size in view.
 ## Sizes rank the lines by how much a glance needs them mid-song (owner: no hierarchy made a glance hard to read):
 ## the combo count and the multiplier biggest, then the grade in its colour, then the score; the accuracy, the time
-## and the "Combo" caption small and muted. Sizes are the letters' height in metres; positions are on the panel.
+## and the "Combo" caption small and muted.
+## where the eye is taken to be before a song has started (a standing player, 1 m behind the track's origin)
 const HUD_EYE := Vector3(0.0, 1.6, 1.0)
-const HUD_AHEAD := -2.5
-const HUD_SIDE := 1.9
+const HUD_DISTANCE := 5.83
+const HUD_YAW := 19.0
+const HUD_PITCH := -3.6
 const HUD_LANE_MARGIN := 0.7
-const HUD_Y := 1.25
-## The smallest lines are 0.11 m (capitals about 1.3 degrees at this distance); the old HUD's text was 0.15 m.
+const HUD_LAID_OUT_DISTANCE := 4.0
+## The smallest lines are 0.11 m at 4 m (capitals about 1.1 degrees); the old HUD's text was 0.15 m.
 const HUD_COMBO_CAPTION := Vector3(0.0, 0.38, 0.11)
 const HUD_COMBO := Vector3(0.0, 0.24, 0.22)
 const HUD_SCORE := Vector3(0.0, 0.05, 0.13)
@@ -71,16 +78,27 @@ func _ready() -> void:
 	_left.visible = false
 	place()
 
-## Puts the two panels in place for the lane width, each turned to face the eye, and the old nodes on them.
-func place() -> void:
-	var side := maxf(HUD_SIDE, 1.5 * Settings.LANE_DISTANCE_X + HUD_LANE_MARGIN)
-	_left.global_transform = _facing_eye(Vector3(-side, HUD_Y, HUD_AHEAD))
-	_right.global_transform = _facing_eye(Vector3(side, HUD_Y, HUD_AHEAD))
+## Puts the two panels in place from the player's eye (the headset's place now), each turned to face it, and the
+## old nodes on them.
+func place(eye := HUD_EYE) -> void:
+	_left.global_transform = _panel(eye, -1.0)
+	_right.global_transform = _panel(eye, 1.0)
 	_point_label.global_transform = _left.global_transform * Transform3D(Basis(), Vector3(HUD_SCORE.x, HUD_SCORE.y, 0.0))
 	_combo.global_transform = _left.global_transform * Transform3D(Basis(), Vector3(HUD_COMBO.x, HUD_COMBO.y, 0.0))
 	_combo.rest_at(_combo.position)
 	_combo.ring.transform = Transform3D(Basis.from_scale(Vector3.ONE * HUD_RING_SIZE),
 			Vector3(HUD_RING.x, HUD_RING.y, 0.0))
+
+## A panel on side (-1 left, 1 right): HUD_DISTANCE from the eye at HUD_YAW and HUD_PITCH, turned further out when
+## that would put it within HUD_LANE_MARGIN of the outer lane; facing the eye and grown for its distance.
+static func _panel(eye: Vector3, side: float) -> Transform3D:
+	var pitch := deg_to_rad(HUD_PITCH)
+	var level := HUD_DISTANCE * cos(pitch)
+	var clear := 1.5 * Settings.LANE_DISTANCE_X + HUD_LANE_MARGIN
+	var yaw := maxf(deg_to_rad(HUD_YAW), asin(clampf((clear - side * eye.x) / level, -1.0, 1.0)))
+	var at := eye + Vector3(side * sin(yaw) * level, HUD_DISTANCE * sin(pitch), -cos(yaw) * level)
+	var grow := HUD_DISTANCE / HUD_LAID_OUT_DISTANCE
+	return Transform3D(Basis.looking_at(eye - at, Vector3.UP, true).scaled(Vector3.ONE * grow), at)
 
 ## The score, the time played of the song's length (whole seconds), the accuracy and its grade.
 func show_points(points: int, played: int, length: int, accuracy: float) -> void:
@@ -130,7 +148,3 @@ static func _set_letters(mesh: TextMesh, height: float) -> void:
 	mesh.pixel_size = height / 100.0
 	mesh.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	mesh.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-
-## A panel at `at`, its face (+z) turned to the eye.
-static func _facing_eye(at: Vector3) -> Transform3D:
-	return Transform3D(Basis.looking_at(HUD_EYE - at, Vector3.UP, true), at)

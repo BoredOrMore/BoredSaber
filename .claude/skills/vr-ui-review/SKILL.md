@@ -36,6 +36,12 @@ Check:
 - [ ] Destructive actions name what is lost and confirm (or can be undone); filters show what is on,
       how many results remain and how to clear them.
 - [ ] Mixed reality on: nothing opaque covers the room beyond what play needs.
+- [ ] Recognition over recall: what is set (modifiers, filters, difficulty, the stage) shows where the player
+      decides, not only on another tab.
+- [ ] Engage-ability, not only usability: the change keeps the player moving toward playing (Hodent); feedback is
+      felt (sound, light, rumble) but moderate (`ComboHud.gd`'s header).
+- [ ] A HUD addition takes its tier by urgency (now: big, steady, high contrast; secondary: smaller, muted; rare:
+      off the HUD), `doc/research/game-ui.md`.
 
 ## 3. Check placement in 3D (numbers, not guesses)
 
@@ -86,7 +92,11 @@ The cloud sessions have no headset and can't reach beatsaver.com, so render the 
    other, two lines of a list item fighting for one row, a dropdown arrow on top of its text, the
    active choice not in `UI_ACCENT`, any developer word, a clickable thing with no hover highlight,
    italics or Light/Thin weights, text under the main menu's size in angle.
-4. Code checks that a render won't show:
+4. Contrast and colour (Game Accessibility Guidelines, WCAG): every text colour against every background it sits on
+   (normal, hover, selected) at least 4.5:1, or 3:1 for text 24 px and up; compute it from the colours, as in the
+   table in `doc/research/game-ui.md`, and recompute that table when a UI colour changes. Nothing told by colour
+   alone: a name, an icon or a mark goes with it.
+5. Code checks that a render won't show:
    - `tests/test_menu_layout.tscn` passes (overlaps, gaps under 4 px, controls spilling out of their box); a
      new panel or state gets added to it with its worst-case content;
    - visuals that change without pointer input (progress, cover loaded, list refreshed) call
@@ -95,7 +105,7 @@ The cloud sessions have no headset and can't reach beatsaver.com, so render the 
      reparents its `Control`;
    - GDScript types are explicit where a ternary or `and`/`or` returns a Variant, or the panel fails
      to parse on load and shows nothing.
-5. Share the PNGs with the user when a layout changed, so they can say what's wrong before the APK
+6. Share the PNGs with the user when a layout changed, so they can say what's wrong before the APK
    reaches the headset.
 
 ## 5. Check on the headset
