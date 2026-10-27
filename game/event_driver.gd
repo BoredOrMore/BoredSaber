@@ -211,9 +211,9 @@ const PLATFORM_LIGHTS := preload("res://game/env/platform_lights.tres")
 func _ready() -> void:
 	classic_sky_material.render_priority = SKY_RENDER_PRIORITY
 	$Level.add_child(_dust)
-	# each laser leaves a moving head on top of its pedestal (ClassicRig), not from inside it
+	# each laser's own transform (its aim), put back before a rig hangs it (Classic's places it on the tunnel's trusses
+	# and catwalks, ClassicRig)
 	for laser: Node3D in diagonal_lasers + _waving_lasers():
-		laser.global_position.y = ClassicRig.FIXTURE_Y
 		_classic_rig[laser] = laser.global_transform
 	var fixture_lasers: Array[Node3D] = []
 	var fixture_materials: Array[ShaderMaterial] = []
@@ -311,7 +311,8 @@ func set_environment(id: String) -> void:
 				sky.set_shader_parameter(param, value)
 	sphere_material = sky
 	($Level/Sphere as MeshInstance3D).material_override = sky
-	rings_enabled = id == "classic"
+	# the old Classic's rotating rings are retired (its new tunnel's ribs took their place, 2026-10-27)
+	rings_enabled = false
 	_apply_stinger_room(id)
 	_apply_rig(id)
 	track_deck.set_stage(id)
@@ -345,6 +346,11 @@ const STRIP_DROP := 0.85
 const STRIP_QUIET := 0.15
 const MENU_STRIPS := 0.5
 var _strip_last := Color.BLACK
+## Classic's rib strips: how far from the far end they are lit, out of the song's drops, and how fast that runs
+const RIB_QUIET := 0.2
+const RIB_SWEEP_SECONDS := 1.2
+const RIB_FADE_SECONDS := 4.0
+var _rib_sweep := 0.0
 ## the sky sphere drawn this many times as far in Neon Grid, behind the arches (950 m, inside the camera's 1024 m far plane)
 const NEON_SKY_SCALE := 9.5
 const RAIL_BASIS := Basis(Vector3(1.0, 0.0, 0.0), Vector3(0.0, 1.0, 0.0), Vector3(0.0, 0.0, 0.3))
@@ -479,6 +485,22 @@ func _update_strips() -> void:
 		color = Color(last.r * STRIP_QUIET, last.g * STRIP_QUIET, last.b * STRIP_QUIET)
 	material.set_shader_parameter(&"light_color", color)
 
+## Classic's rib strips, the tunnel's test lights: in the square bars' light, never dark (as Neon Grid's strips); a few
+## far ribs lit through the song, and on the drop they run from far to near (RIB_SWEEP_SECONDS), back on a lull.
+func _update_rib_strips(delta: float) -> void:
+	var material := classic_rig.rib_strip_material
+	var drop := not menu_focus and _intensity > STRIP_DROP
+	var rest := MENU_STRIPS if menu_focus else RIB_QUIET
+	_rib_sweep = move_toward(_rib_sweep, 1.0 if drop else rest, delta / (RIB_SWEEP_SECONDS if drop else RIB_FADE_SECONDS))
+	material.set_shader_parameter(&"level", _rib_sweep)
+	var color: Color = square_lasers_material.get_shader_parameter(&"light_color")
+	if color.get_luminance() > 0.01:
+		_strip_last = color
+	else:
+		var last := _strip_last if _strip_last.get_luminance() > 0.01 else left_color
+		color = Color(last.r * STRIP_QUIET, last.g * STRIP_QUIET, last.b * STRIP_QUIET)
+	material.set_shader_parameter(&"light_color", color)
+
 ## Hangs the lights on the environment's rig (see RIG_FAN_MIN_DEG).
 func _apply_rig(id: String) -> void:
 	for node: Node3D in _classic_rig:
@@ -504,7 +526,8 @@ func _apply_rig(id: String) -> void:
 	var sky_scale := 1.0
 	if id == "night_city" and not Settings.classic_night_city:
 		sky_scale = CANYON_SKY_SCALE
-	elif id == "neon_grid":
+	elif id == "neon_grid" or id == "classic":
+		# Classic's tunnel runs 600 m ahead (ClassicRig): the sky behind its far end
 		sky_scale = NEON_SKY_SCALE
 	($Level/Sphere as Node3D).scale = Vector3.ONE * sky_scale
 	# the haze lit from the stage's key light (fog_light.gdshaderinc)
@@ -525,6 +548,21 @@ func _apply_rig(id: String) -> void:
 		material.set_shader_parameter(&"width", rest[0] * VOID_BEAM_WIDTH if void_stage else rest[0])
 		material.set_shader_parameter(&"brightness", rest[1] * VOID_BEAM_BRIGHTNESS if void_stage else rest[1])
 	match id:
+		"classic":
+			# the giant test tunnel (ClassicRig): moving heads on the trusses' top chords, follow spots on the wall
+			# catwalks, the square bars under the trusses (the vertical ones left out); all keep their Classic aim
+			for i in diagonal_lasers.size():
+				diagonal_lasers[i].global_position = ClassicRig.moving_head_spot(i, diagonal_lasers.size())
+			for i in waving.size():
+				waving[i].global_position = ClassicRig.follow_spot(i, waving.size())
+			var bars: Array[Node3D] = []
+			for bar in _square_bars():
+				if bar.get_parent() != square_lasers_holder:
+					bar.visible = false
+				else:
+					bars.append(bar)
+			for i in bars.size():
+				bars[i].global_transform = ClassicRig.truss_bar(i, bars.size())
 		"neon_grid":
 			# the diagonal lasers: floodlights at B's footing (left) and C's (right), fanning up and away from the sun
 			var per_side := diagonal_lasers.size() >> 1
@@ -616,7 +654,6 @@ func show_scenery_for_mixed_reality() -> void:
 	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple" and environment != "metal_factory"
 
 func set_background() -> void:
-	var width_scale := 2 * Settings.LANE_DISTANCE_X / 3.
 	var track_lights_width := track_lights_right.get_aabb().size.x
 	track_lights_right.global_transform.origin.x = track_lights_width / 2 + 2 * Settings.LANE_DISTANCE_X - .01
 	track_lights_left.global_transform.origin.x = -track_lights_right.transform.origin.x
@@ -649,11 +686,6 @@ func set_background() -> void:
 		var stretch := (span.x - span.y) / strip.get_aabb().size.z
 		strip.global_transform = Transform3D(Basis.from_scale(Vector3(1.0, 1.0, stretch)),
 			Vector3(place.x, place.y, (span.x + span.y) * 0.5))
-	# the Classic rig spreads its diagonal lasers with the track's width; other rigs place them on their structure
-	if environment == "classic":
-		for laser in diagonal_lasers:
-			laser.transform.origin.x = 4.5 * width_scale * sign(laser.transform.origin.x)
-	
 	# Metal Factory has no moving heads: its lights glow in the wall vents
 	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple" and environment != "metal_factory"
 	if Settings.background == "simple":
@@ -740,6 +772,8 @@ func _process(delta: float) -> void:
 				square_lasers_material.get_shader_parameter(&"light_color"))
 	if environment == "neon_grid" and neon_grid_rig.strip_material:
 		_update_strips()
+	if environment == "classic" and classic_rig.rib_strip_material:
+		_update_rib_strips(delta)
 	_follow_frames()
 	# update the level animations
 	#procces ring rotations
@@ -831,8 +865,11 @@ func _follow_frames() -> void:
 	if environment != "classic" or (classic_rig.standing() and not _bars_lowered):
 		return
 	for bar in _square_bars():
-		var place: Transform3D = _classic_rig[bar]
-		bar.visible = classic_rig.drop_at(place.origin.z) == 0.0
+		if bar.get_parent() == square_lasers_holder:
+			bar.visible = classic_rig.drop_at(bar.global_position.z) == 0.0
+	# the moving heads stand on the trusses too
+	for laser: Node3D in diagonal_lasers:
+		laser.visible = classic_rig.drop_at(laser.global_position.z) == 0.0
 	_bars_lowered = not classic_rig.standing()
 
 ## The intensity, 0 to 1, every INTENSITY_STEP beats from the song's start to its last light event (see
