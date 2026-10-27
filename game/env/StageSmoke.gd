@@ -3,9 +3,10 @@ class_name StageSmoke
 ## Fog on the stage: a thin drifting layer just above the floor and three wide fog sheets standing across the view at
 ## increasing depth (FogSheet.gdshader), dense at the bottom and rolling sideways, so the fog has layers and mass
 ## instead of floating puffs; all lit by the scene lights and faded out close to the player. Drawn before the other
-## see-through things, so lights and walls show on top. During a song it clears and is freed; the menus bring it back
-## (dissipate/refill, from EventDriver.set_menu_focus). The height fog on the scenery (height_fog.gdshaderinc) stays
-## during play. All values untuned.
+## see-through things, so lights and walls show on top. Only with the Eerie atmosphere (Settings.atmosphere): the menus
+## no longer fill the stage with it (owner, 2026-10-27: no fog before a song, least of all the layers at the feet), and
+## during a song it clears and is freed (dissipate/refill, from EventDriver.set_menu_focus). The height fog on the
+## scenery (height_fog.gdshaderinc) stays. All values untuned.
 
 const FLOOR_SMOKE := preload("res://game/env/FloorSmoke.gdshader")
 const FOG_SHEET := preload("res://game/env/FogSheet.gdshader")
@@ -58,7 +59,8 @@ func _ready() -> void:
 	fast_noise.fractal_octaves = 4
 	noise.noise = fast_noise
 	_noise = noise
-	_spawn()
+	if _eerie():
+		_spawn()
 
 ## Clears the smoke over CLEAR_SECONDS and then frees it, as a song starts (with the Eerie atmosphere the floor layer
 ## stays, thinner).
@@ -73,6 +75,8 @@ func dissipate() -> void:
 ## Spawns the smoke again if it was cleared and fades it in over FILL_SECONDS, for the menus.
 func refill() -> void:
 	_playing = false
+	if not _eerie():
+		return
 	if get_child_count() == 0:
 		_spawn()
 		_set_amount(0.0)
@@ -98,7 +102,11 @@ func _set_amount(amount: float) -> void:
 
 ## Puts the smoke in step with Settings.atmosphere (it may change any time).
 func apply_atmosphere() -> void:
-	if _eerie() and get_child_count() == 0:
+	if not _eerie():
+		if get_child_count() > 0:
+			_free_smoke()
+		return
+	if get_child_count() == 0:
 		_spawn()
 		_set_amount(0.0)
 	_set_amount(_amount)

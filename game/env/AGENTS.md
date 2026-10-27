@@ -35,7 +35,7 @@ Read the root `AGENTS.md` first ("Light", "Colour rules", "Pico 4 constraints").
   never-falling `_built`. `_built` drives Classic's scaffolds (`set_built`), Neon Grid/Pulse Void strip `level`,
   canyon windows; `_intensity > STRIP_DROP` is "the drop" (all strips, Pulse Void's `drop_beam`, Classic rib sweep).
 - Menus: `set_menu_focus(true)`: house-tinted breathing lights, `classic_rig.set_built(1.0)`,
-  pistons rest, smoke refills. `false`: smoke dissipates, all groups off until the map turns them on.
+  pistons rest, smoke refills only with the Eerie atmosphere (owner: no fog before a song). `false`: smoke dissipates, all groups off until the map turns them on.
 - Per frame (`EventDriver._process`): decays combo/mistake pulses, writes `cut_waves`,
   `_update_haze()` (sums the four beam materials' `light_color` + floor -> `env_light`, a mostly-grey tint of it ->
   `env_haze`, plus `combo_glow`), track-deck light colour, Metal Factory vents, `_update_show`, canyon windows and
