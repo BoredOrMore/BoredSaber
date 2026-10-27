@@ -36,6 +36,10 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
 - `test_spawn.tscn` / `.gd` - notes, bombs, walls and arcs from their real pools: place on spawn (lane, row, beat),
   movement per second, and a reused one placed as a fresh one would be (arcs once kept their old place). Not covered:
   chains, rotated lanes, the arc's magnet hookup.
+- `test_health.tscn` / `.gd` - `Health` (the rules `BeepSaber_Game.update_health` applies): starting health per fail
+  mode, hits, misses and walls in the bar, Half Damage, 4 Lives, Instant, No Fail's hidden bar, the cap.
+- `test_cut.tscn` / `.gd` - cut judgement (`BeepCube.right_saber`, `angle_accuracy`, `centre_accuracy`,
+  `beat_accuracy_at`) and the chain's curve (`ChainLink.curve_points`, `link_place`).
 - `test_show_intensity.tscn` / `.gd` - checks `EventDriver.intensity_curve` (the build-up of the stage): a calm part
   low and a dense part high, values in 0..1, no curve without light events, finite values for a flat light show.
 

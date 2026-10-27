@@ -44,6 +44,8 @@ constraints apply here unchanged.
 ## File map (root)
 
 - `BeepSaber_Game.gd/.tscn` — main scene: states, pools, health/fail, colours, rumble, recenter; makes the `Hud` (`hud/`).
+- `Health.gd` (class `Health`) — the health rules per fail mode (`start_value`, `next_value`); `BeepSaber_Game` keeps
+  the value, the rails and the fail. Tested by `tests/test_health.gd`.
 - `Map.gd` — beatmap v2/v3/v4 parsing into stacks, note jump (`set_note_jump`), `beats_per_second()`
   (includes `Settings.music_speed`), map/custom colours with handedness overrides.
 - `Constants.gd` — layout, scoring, health, fail modes, modifier bitmasks, UI/danger colours.

@@ -191,12 +191,10 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	hud.place()
 	_display_points()
 	percent_indicator.start_map()
+	# No Fail still keeps a health bar out of sight: running it out halves the score (Scoreboard.spend_no_fail)
+	current_health = Health.start_value(Settings.health_mode, Settings.fail_mode)
 	if Settings.health_mode:
-		current_health = Constants.HEALTH_START if Settings.fail_mode == Constants.FAIL_MODE_BAR else Constants.HEALTH_MAX
 		health_rails.start_map(Settings.fail_mode == Constants.FAIL_MODE_LIVES, current_health / Constants.HEALTH_MAX)
-	else:
-		# No Fail still keeps a health bar out of sight: running it out halves the score (Scoreboard.spend_no_fail)
-		current_health = Constants.HEALTH_START
 	
 	_clear_track()
 	_lowered_resolution = false
@@ -205,23 +203,13 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 ## Changes health by delta in the health bar mode. mistake is a miss, bad cut, bomb or wall
 ## entry, which costs a life in 4 Lives mode and ends the song in Instant Fail mode.
 func update_health(delta: float, mistake: bool = false) -> void:
+	current_health = Health.next_value(current_health, delta, mistake, Settings.health_mode, Settings.fail_mode,
+			Settings.damage_scale)
 	if not Settings.health_mode:
-		current_health = minf(current_health + delta, Constants.HEALTH_MAX)
 		if current_health <= 0.0 and gamestate == gamestate_playing:
 			Scoreboard.spend_no_fail()
 		return
 	if Settings.health_mode:
-		match Settings.fail_mode:
-			Constants.FAIL_MODE_LIVES:
-				if mistake:
-					current_health -= Constants.HEALTH_MAX / Constants.FAIL_LIVES
-			Constants.FAIL_MODE_INSTANT:
-				if mistake:
-					current_health = 0.0
-			_:
-				current_health += delta * Settings.damage_scale if delta < 0.0 else delta
-		if current_health > Constants.HEALTH_MAX:
-			current_health = Constants.HEALTH_MAX
 		health_rails.update_health(current_health / Constants.HEALTH_MAX)
 		if current_health <= 0 and gamestate == gamestate_playing and not failing:
 			_fail_song()
