@@ -52,16 +52,16 @@ class BeatSaverSongInfo extends RefCounted:
 		return 100.0 * (Utils.get_float(parity, "errors", 0.0) + Utils.get_float(parity, "warns", 0.0)
 			+ Utils.get_float(parity, "resets", 0.0)) / notes
 
-	## Median same-hand swing gap over 2 / notes per second (each hand takes about half the notes): 0.84
-	## (quartiles 0.75-0.92, r = 0.96) over the test headset's 77 Standard difficulties, measured with
-	## doc/research/flow_research.py's note reader. Stacks and chains make it a little under 1.
-	const SWING_GAP_PER_NOTE_GAP := 0.84
+	## Median same-hand swing gap over 2 / notes per second (each hand takes about half the notes): 0.84 over the
+	## test headset's 77 Standard difficulties (doc/research/flow_research.py), refit to 0.82 against the measured
+	## levels of 195 (doc/research/download-level-estimate.md). Stacks and chains make it a little under 1.
+	const SWING_GAP_PER_NOTE_GAP := 0.82
 
 	## Difficulty a map difficulty plays at before it is downloaded (an index in Constants.DIFFICULTY_LEVELS): the
 	## harder of its reaction time and its swing pace estimated from notes per second. Downloaded maps use the measured
-	## swing gap and swing flow instead (MapStats.level_of). Against them (doc/research/download-level-estimate.md, 49
-	## difficulties of the Mac's 18 songs) it matched 73%, one off 92%; BeatSaver's parity count no longer adds a level
-	## (it disagreed with the measured flow: 65% with it). The misses read easier: dense bursts the average hides.
+	## swing gap and swing flow instead (MapStats.level_of). Against them (doc/research/download-level-estimate.md, 195
+	## difficulties of the headset's 53 songs and the Mac's 18) it matches 73%, within one level 95%; BeatSaver's
+	## parity count no longer adds a level (67% with it). Most misses read easier: dense bursts the average hides.
 	func level_of(diff: Dictionary) -> int:
 		var level := MapStats.reaction_level(reaction_seconds(diff))
 		var nps := Utils.get_float(diff, "nps", 0.0)
