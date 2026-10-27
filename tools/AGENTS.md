@@ -14,6 +14,10 @@ Run everything from the repo root. Dev Mac: `godot` (4.6.2) and `blender` on PAT
 All four parse `--key value` pairs after `--` (`OS.get_cmdline_user_args()`), so every flag takes a value
 (`--stats 1`, not `--stats`). Renders need a window: no `--headless`, except `peak_objects`, which renders nothing.
 
+- `ui_angles.gd` / `ui_angles.tscn`: loads the game scene headless and measures every menu panel, button and line of
+  text as angles and distances from the eye (`--eye 1.6`, the menus raised as `_place_menus` does) against
+  vr-ui-design's limits; writes a Markdown report (`--out`, default `user://ui_angles.md`): what's outside the limits,
+  then every panel. Renders nothing, so it can run `--headless` and the Mac camera's FOV plays no part.
 - `stage_capture.gd` / `stage_capture.tscn`: a stage as seen from the player's eye with the game's environment
   (`game/event_driver.tscn`), WorldEnvironment, floor and shaders. Writes `--out` (default
   `user://stage_capture.png`), prints `stage_capture OK -> path`, exits 1 on save or `--map` failure. Full option
