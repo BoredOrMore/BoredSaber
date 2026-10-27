@@ -22,6 +22,10 @@ static var _cache_loaded := false
 static var _bus_keys := {}
 ## key -> buses waiting for its measurement
 static var _measuring := {}
+## key -> its measurement's WorkerThreadPool task, waited for once it is done; the game closing stops them and waits
+## (a task still decoding at exit crashed the engine)
+static var _tasks := {}
+static var _stopping := false
 
 ## The cache key of a song's audio: its byte size and length, the same for the song and its preview.
 static func key(byte_size: int, stream: AudioStream) -> String:
@@ -40,9 +44,19 @@ static func apply(bus: StringName, stream: AudioStream, song_key: String) -> voi
 		(_measuring[song_key] as Array).append(bus)
 		return
 	_measuring[song_key] = [bus]
-	WorkerThreadPool.add_task(func() -> void:
+	var root := (Engine.get_main_loop() as SceneTree).root
+	if not root.tree_exiting.is_connected(_stop):
+		root.tree_exiting.connect(_stop)
+	_tasks[song_key] = WorkerThreadPool.add_task(func() -> void:
 		var lufs := measure(stream)
-		_measured.call_deferred(song_key, lufs), false, "Loudness")
+		if not _stopping:
+			_measured.call_deferred(song_key, lufs), false, "Loudness")
+
+static func _stop() -> void:
+	_stopping = true
+	for task: int in _tasks.values():
+		WorkerThreadPool.wait_for_task_completion(task)
+	_tasks.clear()
 
 ## The gain for a song of this loudness.
 static func gain_db(lufs: float) -> float:
@@ -59,6 +73,9 @@ static func _measured(song_key: String, lufs: float) -> void:
 			var tween := (Engine.get_main_loop() as SceneTree).create_tween()
 			tween.tween_property(_amplify(bus), ^"volume_db", gain_db(lufs), FADE_SECONDS)
 	_measuring.erase(song_key)
+	if _tasks.has(song_key):
+		WorkerThreadPool.wait_for_task_completion(_tasks[song_key])
+		_tasks.erase(song_key)
 
 static func _load_cache() -> void:
 	if _cache_loaded:
@@ -94,7 +111,7 @@ static func measure(stream: AudioStream) -> float:
 	# mean square of every 100 ms
 	var tenths := PackedFloat64Array()
 	var left := int(stream.get_length() * fs)
-	while left > 0:
+	while left > 0 and not _stopping:
 		var frames := playback.mix_audio(RATE_SCALE, int(fs * 0.1))
 		if frames.is_empty():
 			break
