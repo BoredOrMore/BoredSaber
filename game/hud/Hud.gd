@@ -8,16 +8,16 @@ extends Node3D
 ## out past the outer lane by HUD_LANE_MARGIN on wide modifiers), centred at HUD_Y. 5.5 m from the eye (owner,
 ## 2026-10-27: further back, so a look straight down the track still takes it in): about 19 degrees to the side (it
 ## was 28.5 at 3.5 m) and from about 3 degrees above the eye to 9 below. Past vr-ui-design's 3.5 m for text on
-## purpose: there the eyes barely refocus between the notes and the HUD; the panels are scaled up (HUD_SCALE) so
-## the text keeps the size in view it had at 3.5 m.
+## purpose: there the eyes barely refocus between the notes and the HUD; the panels are scaled up with the distance
+## (_facing_eye) so the text keeps the size in view it had at 3.5 m.
 ## Sizes rank the lines by how much a glance needs them mid-song (owner: no hierarchy made a glance hard to read):
 ## the combo count and the multiplier biggest, then the grade in its colour, then the score; the accuracy, the time
 ## and the "Combo" caption small and muted. Sizes are the letters' height in metres; positions are on the panel.
 const HUD_EYE := Vector3(0.0, 1.6, 1.0)
 const HUD_AHEAD := -4.5
-## the sizes and places below were laid out for panels 3.5 m from the eye; farther out the panels grow with the
-## distance, keeping their size in view
-const HUD_SCALE := (HUD_EYE.z - HUD_AHEAD) / 3.5
+## the sizes and places below were laid out for panels HUD_LAID_OUT_AHEAD ahead (3.5 m out); farther out a panel grows
+## with its distance from the eye (_facing_eye), so each line keeps the size in view it had there
+const HUD_LAID_OUT_AHEAD := -2.5
 const HUD_SIDE := 1.9
 const HUD_LANE_MARGIN := 0.7
 const HUD_Y := 1.25
@@ -139,4 +139,5 @@ static func _set_letters(mesh: TextMesh, height: float) -> void:
 
 ## A panel at `at`, its face (+z) turned to the eye.
 static func _facing_eye(at: Vector3) -> Transform3D:
-	return Transform3D(Basis.looking_at(HUD_EYE - at, Vector3.UP, true).scaled(Vector3.ONE * HUD_SCALE), at)
+	var grow := (at - HUD_EYE).length() / (Vector3(at.x, at.y, HUD_LAID_OUT_AHEAD) - HUD_EYE).length()
+	return Transform3D(Basis.looking_at(HUD_EYE - at, Vector3.UP, true).scaled(Vector3.ONE * grow), at)
