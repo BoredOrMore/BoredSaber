@@ -10,21 +10,21 @@ Read the root `AGENTS.md` first ("Light", "Colour rules", "Pico 4 constraints").
 - Scene: `game/event_driver.tscn` (`Level/`): the sky `Sphere`, the five light-group holders (`DiagonalLasers`,
   `SquareLasers`, `Left/RightWavingLasers`, `TrackLights`), the old `rings`, `ClassicRig`, `NeonGridRig`, `NightCityRig`,
   `MetalFactoryRig`, `PulseVoid`, `NeonGrid` floor, `TrackDeck`, `StageSmoke`. Every rig is built at load (tool
-  scripts, `_ready`) and stays in memory; only visibility changes (`event_driver.gd:628-639`).
+  scripts, `_ready`) and stays in memory; only visibility changes.
 - Stage choice: `Settings.ENVIRONMENTS` (`Settings.gd:35`, ids `classic`, `neon_grid`, `pulse_void`, `night_city`,
-  `metal_factory`, plus `auto`). `EventDriver.pick_environment(map)` -> `map_environment` (`event_driver.gd:276-296`):
+  `metal_factory`, plus `auto`). `EventDriver.pick_environment(map)` -> `map_environment`:
   `Constants.MAP_ENVIRONMENTS` (map's Beat Saber env name), then `TAG_ENVIRONMENTS` (genre), then a folder-name hash
   into `AUTO_ENVIRONMENTS` (Metal Factory is never auto-picked). Called from `BeepSaber_Game.gd:173` (song start)
   and `:758` (menu).
 - "Canyon" is not its own stage: it is Night City's default layout; `Settings.classic_night_city` swaps in the old
-  row-of-buildings layout (`NightCityRig.build`, rebuilt on that setting's `changed`, `event_driver.gd:227-232`).
-- `set_environment(id)` (`event_driver.gd:298`): lazily builds the stage's sky `ShaderMaterial` (`SKY_SHADERS`,
+  row-of-buildings layout (`NightCityRig.build`, rebuilt on that setting's `changed`).
+- `set_environment(id)`: lazily builds the stage's sky `ShaderMaterial` (`SKY_SHADERS`,
   `SKY_TEXTURES`; Classic keeps the scene's sky), copies the `bg_<type>_tint/intensity` params over, sets the
-  Stinger bus reverb, `_apply_rig(id)`, `track_deck.set_stage(id)`, visibility, `set_background()`.
-- `_apply_rig(id)` (`event_driver.gd:492-626`): resets every laser/bar to its Classic transform (`_classic_rig`),
+  Stinger bus reverb, `_rig.apply(id)` (`LightRig.gd`), `track_deck.set_stage(id)`, visibility, `set_background()`.
+- `LightRig.apply(id)` (`LightRig.gd`, made by EventDriver as `_rig`): resets every laser/bar to its Classic transform (`classic_places`),
   then re-places them on the stage's carriers via the rig's static helpers (`ClassicRig.moving_head_spot/follow_spot/
   scaffold_bar`, `NeonGridRig.floodlight_bases/crane_lights/SURVEY_MASTS`, `NightCityRig.buildings/roof_at`,
-  `_hang_canyon`, `PulseVoid.leg_floodlight/rim_beacon`, `MetalFactoryRig.RAIL_X/RAIL_TOP`). Also sets sky scale
+  `LightRig._hang_canyon`, `PulseVoid.leg_floodlight/rim_beacon`, `MetalFactoryRig.RAIL_X/RAIL_TOP`). Also sets sky scale
   (`NEON_SKY_SCALE`/`CANYON_SKY_SCALE`), `fog_key` (`FOG_KEYS`), Pulse Void's narrower beams, fixture kind per laser.
 - Light events: `Playing.gd:73-75` sets `show_beat` and calls `process_event(EventInfo)` (no look-ahead). Types 0-4
   -> `turn_light_on/off`, `flash_*`, `fade_*` set each group's `light_color` on its beam material and the sky's
@@ -34,9 +34,9 @@ Read the root `AGENTS.md` first ("Light", "Colour rules", "Pico 4 constraints").
   4 s window, normalised to the song's own 20th-90th percentile); `_update_show` smooths it into `_intensity` and the
   never-falling `_built`. `_built` drives Classic's scaffolds (`set_built`), Neon Grid/Pulse Void strip `level`,
   canyon windows; `_intensity > STRIP_DROP` is "the drop" (all strips, Pulse Void's `drop_beam`, Classic rib sweep).
-- Menus: `set_menu_focus(true)` (`event_driver.gd:899`): house-tinted breathing lights, `classic_rig.set_built(1.0)`,
+- Menus: `set_menu_focus(true)`: house-tinted breathing lights, `classic_rig.set_built(1.0)`,
   pistons rest, smoke refills. `false`: smoke dissipates, all groups off until the map turns them on.
-- Per frame (`EventDriver._process`, `event_driver.gd:724`): decays combo/mistake pulses, writes `cut_waves`,
+- Per frame (`EventDriver._process`): decays combo/mistake pulses, writes `cut_waves`,
   `_update_haze()` (sums the four beam materials' `light_color` + floor -> `env_light`, a mostly-grey tint of it ->
   `env_haze`, plus `combo_glow`), track-deck light colour, Metal Factory vents, `_update_show`, canyon windows and
   billboards, `_update_strips` / `_update_rib_strips`, `_follow_frames`, ring spin. Then `LaserFixtures._process`
@@ -97,6 +97,9 @@ Shared scenery
 Light carriers
 - `NeonRibbon.gdshader`: the beam/bar ribbon (1 x 32 PlaneMesh) that turns to face the eye, `min_pixels` floor;
   material of every laser group in `event_driver.tscn`.
+- `LightRig.gd` (class `LightRig`, `EventDriver._rig`): where each stage hangs the five light groups (`apply(id)`: fixture
+  places, square bars, sky scale, `FOG_KEYS`, Pulse Void's beam width), the lasers' Classic places (`classic_places`), and
+  `waving_lasers()`/`square_bars()`/`aim()` the driver uses too. Moved out of `event_driver.gd` (2026-10-27).
 - `LaserBatch.gd` (`LaserBatch`): `make(holder, parent)` strips each bar's mesh and redraws the group as one
   MultiMesh, copying bar transforms each frame (hidden bar = no instance). Bars stay the nodes you animate.
 - `LaserFixtures.gd` (`LaserFixtures`): a fixture at every laser pivot, MultiMesh per part and kind (`MOVING_HEAD`,
@@ -129,7 +132,7 @@ Air
 - Note corridor (lanes +-1.2 m, wider with Wide; y 0 to 2.5; player to far spawn): no scenery, particles or bright
   light. Mixed reality: only track, notes, sabers, beams (`show_scenery_for_mixed_reality`).
 - Rigs are deterministic: every size/position is a named `const` (blockout values, mostly "untuned"); the only RNG is
-  `Dust.gd`'s fixed seed. Static helpers on rigs are shared with `_apply_rig`; change positions there, not in
+  `Dust.gd`'s fixed seed. Static helpers on rigs are shared with `LightRig.apply`; change positions there, not in
   EventDriver.
 - One MultiMesh per mesh/material (boxes, each glb model, strips, fixtures, bars); a new repeated piece joins one
   instead of adding nodes. Tool scripts build children without owner: never saved into `event_driver.tscn`.
@@ -144,20 +147,20 @@ Air
 - EnvSolid layer 6 vents use vertex colour, not MultiMesh custom data (enabling custom data lost vertex colours in
   Compatibility). AO lives in vertex colour red; meshes without colours read white.
 - Canyon fog is per vertex: `NightCityRig` cuts boxes at `FOG_CUTS` heights so faces have vertices where fog changes.
-- `_apply_rig` hides beam meshes (not holders) on Metal Factory: holders' visibility belongs to the light events.
+- `LightRig.apply` hides beam meshes (not holders) on Metal Factory: holders' visibility belongs to the light events.
 - Sky sphere scale: 9.5x on Classic/Neon Grid/Pulse Void/canyon so far structure isn't clipped (camera far 1024 m).
 - GPU budget 13.9 ms at 72 Hz (`.github/AGENTS.md`); compare `FrmGpu` before/after any scenery or shader change.
 
 ## Where to change X
 
 - New stage: id in `Settings.ENVIRONMENTS` (and `Constants.MAP_/TAG_/AUTO_ENVIRONMENTS` if auto-picked), a rig node
-  under `Level` in `event_driver.tscn`, sky in `SKY_SHADERS` (+`SKY_TEXTURES`), `STINGER_ROOMS`, `FOG_KEYS`, a
-  `match` arm in `_apply_rig`, visibility in `show_scenery_for_mixed_reality`, optional `TrackDeck.SKINS`/
+  under `Level` in `event_driver.tscn`, sky in `SKY_SHADERS` (+`SKY_TEXTURES`), `STINGER_ROOMS`, `LightRig.FOG_KEYS`, a
+  `match` arm in `LightRig.apply`, visibility in `show_scenery_for_mixed_reality`, optional `TrackDeck.SKINS`/
   `FAR_Z_BY_STAGE`, a thumb `thumbs/<id>.png`, `stage_capture.gd --env`. Write `doc/world/` entries first.
-- New light carrier: place lights from a static helper on the rig, hang them in `_apply_rig`; prefer the cheapest
+- New light carrier: place lights from a static helper on the rig, hang them in `LightRig.apply`; prefer the cheapest
   option in `doc/world/VISUAL_STYLE.md` "Light carriers" (vertex-mask vent < `LightStrip` < fixture < beam).
-- Haze amount/tint: `HAZE_BASE`, `HAZE_LIGHT_WEIGHT`, `HAZE_NEUTRAL`, `MENU_HAZE_BOOST` (`event_driver.gd:9-42`);
-  height fog in `height_fog.gdshaderinc`; key-light scattering `FOG_KEYS`; smoke in `StageSmoke.gd` consts.
+- Haze amount/tint: `HAZE_BASE`, `HAZE_LIGHT_WEIGHT`, `HAZE_NEUTRAL`, `MENU_HAZE_BOOST`;
+  height fog in `height_fog.gdshaderinc`; key-light scattering `LightRig.FOG_KEYS`; smoke in `StageSmoke.gd` consts.
 - A rig's layout: the `const` block at the top of its rig script (e.g. `ClassicRig.FRAME_Z`, `NeonGridRig.ARCH_B`,
   `NightCityRig.LEFT/RIGHT`, `PulseVoid` dish consts); then update `doc/world/SPATIAL_LAYOUT.md`.
 - Show build-up timing: `INTENSITY_*`, `STRIP_*`, `RIB_*` in `event_driver.gd`; `FIRST/LAST_FRAME_AT` in `ClassicRig.gd`.
