@@ -50,7 +50,6 @@ constraints apply here unchanged.
 - `Settings.gd` — persisted `config.ini` options; every setter calls `set_and_emit()` -> `changed(name)`.
 - `Scoreboard.gd` — points, combo/multiplier, accuracy, wall/miss/bomb penalties; signals
   `score_changed`, `points_awarded`.
-- `Cuttable.gd` — base for `BeepCube`, `ChainLink`, `Bomb`: lane movement, rotation, miss, piece release.
 - `LightSaber.gd/.tscn/.gdshader` — saber collision, show/hide anims, swing history for swing
   scoring, floor burn raycast, `left_saber`/`right_saber` shader globals.
 - `settings_Panel.gd/.tscn` — settings UI (`SettingsPanel`, `apply` signal saves config).
@@ -80,19 +79,7 @@ constraints apply here unchanged.
 
 ## Entity folders
 
-- `BeepCube/` — `BeepCube.gd` (note; `cutted` signal, scoring, rumble), `BeepCube_CutPiece.gd`
-  (`CutPiece` RigidBody halves, `MAX_LIFETIME` 0.3 s), `BeepCube_SliceParticles.gd/.tscn` (GPU particles freed
-  on Android/Web), `BeepCube.gdshader` (`color`, `is_dot`, `arrows_enabled`, `is_chain_head`, cut uniforms),
-  `note_gloss.gdshaderinc` (the default glossy note look, shared with `ChainLink.gdshader`).
-  `BeepCubeTest.tscn` is a standalone test scene.
-- `Chain/` — `ChainLink.gd` (bezier link placement, lenient hitbox, link scoring), shader, mesh.
-- `Arc/` — `Arc.gd` (mesh from `ArcInfo.mesh_arrays`, magnet material on head cut), `Arc.gdshader`
-  (reads `left_saber`/`right_saber`). Static `left_material`/`right_material(_magnet)` are shared.
-- `Bomb/` — `Bomb.gd`, `BombGlow.gdshader` + `bomb_glow.tres` (`danger_color`); `BombMerged.gdshader` draws body and
-  glow hull in one call (`Bomb.merged_mesh`, the default); `BombMesh.tscn` + `BombBody.gdshader` are the two-mesh
-  bomb `Bomb.classic` brings back to compare.
-- `Wall/` — `Wall.gd` (resizes box mesh/shape per wall), `FramedWall.gdshader` (default wall: box plus edge bars, one
-  draw call), `DangerWall.gdshader` + `danger_wall.tres` (classic wall, `Settings.classic_walls`).
+- `notes/` — notes, chain links, arcs, bombs, walls and their `Cuttable` base; see `notes/AGENTS.md`.
 - `sabers/` — saber visuals listed in `Settings.SABER_VISUALS`: `default/` (`DefaultSaber`,
   `SaberTail`), `particles/` (`particles_saber.gd` extends `DefaultSaber`, clash sounds).
 - `data/` — static assets: `background/` panoramas and backdrop meshes, `maps/` bundled `Songs/` and
@@ -168,6 +155,7 @@ constraints apply here unchanged.
 
 ## Subfolders with their own docs
 
+- `notes/` — the things that fly at the player; see `notes/AGENTS.md`.
 - `hud/` — in-song HUD (score, combo, accuracy, time, health, cut numbers); see `hud/AGENTS.md`.
 - `scripts/` — game states, scene pools, controller, UI raycast, highscores, utils; see `scripts/AGENTS.md`.
 - `ui/` — map download/BeatSaver/name-selector panels, UI audio, menu theme; see `ui/AGENTS.md`.

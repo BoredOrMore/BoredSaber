@@ -38,7 +38,7 @@ All four parse `--key value` pairs after `--` (`OS.get_cmdline_user_args()`), so
 ## File map: `models/` (Blender, headless)
 
 Run: `blender -b -P tools/models/<script>.py -- game/models` (`OUT_DIR` = first arg after `--`). Exception:
-`note_round.py -- game/BeepCube`. Each header names its spec `doc/assets/<name>/spec.md`; follow
+`note_round.py -- game/notes/BeepCube`. Each header names its spec `doc/assets/<name>/spec.md`; follow
 `.claude/skills/game-model-creator/SKILL.md` and `tools/asset_pipeline/`.
 
 - `model_export.py`: shared `bake_and_export(obj, out_dir, name)`: AO baked to vertex red, face attr `glow` 1/2 to
@@ -49,7 +49,7 @@ Run: `blender -b -P tools/models/<script>.py -- game/models` (`OUT_DIR` = first 
   `follow_spot` (+`follow_spot_stand`), `rim_parts` (rim_segment, rim_mast), `tunnel_parts` (tunnel_rib, tunnel_lining), `wall_kit` (wall_column/panel/
   pipes/machine/machine_low).
 - Own exporter (older, inline copy): `anvil_base`, `gears` (gear_ring, drive_gear_large/small), `laser_fixture`
-  (+`laser_fixture_yoke`), `piston_hammer` (+`piston_housing`), `note_round` (`game/BeepCube/note_round.glb`).
+  (+`laser_fixture_yoke`), `piston_hammer` (+`piston_housing`), `note_round` (`game/notes/BeepCube/note_round.glb`).
 
 ## File map: Python generators (write tracked game assets)
 

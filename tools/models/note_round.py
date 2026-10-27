@@ -1,5 +1,5 @@
 # The note's rounder body (doc/assets/note_round/spec.md): the glossy default look's cube (BeepCube.gdshader,
-# note_gloss.gdshaderinc), with wider rounded edges than the classic mesh (game/BeepCube/BeepCubeMesh.glb, which stays
+# note_gloss.gdshaderinc), with wider rounded edges than the classic mesh (game/notes/BeepCube/BeepCubeMesh.glb, which stays
 # for Classic notes), so its highlight rolls over the edges as on Beat Saber's notes (owner, 2026-10-25).
 # A cube 0.5 wide in the mesh's own units (the note scales it by 0.8 in BeepCube.tscn, so 0.4 m), its edges and corners
 # rounded with RADIUS. Normals are smooth and exact: each vertex's points from the nearest point of the inner box the
@@ -8,7 +8,7 @@
 # Blender -y) and the back are projected flat, the front from the texture's top-left quarter and the back from its
 # top-right, at MARK_SCALE (smaller than the classic's 1, so the arrow stays on the smaller flat face); every other
 # face reads a black spot of the texture.
-# Run headless: blender -b -P tools/models/note_round.py -- game/BeepCube
+# Run headless: blender -b -P tools/models/note_round.py -- game/notes/BeepCube
 # Made from scratch.
 import os
 import sys

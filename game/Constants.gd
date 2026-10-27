@@ -259,6 +259,7 @@ const TAG_ENVIRONMENTS := {
 }
 # Environments a map with neither a known environment nor a genre tag is spread over, the same one for a song
 # every time.
+# Metal Factory stays out: only its genre tags pick it (owner, 2026-10-27).
 const AUTO_ENVIRONMENTS := ["classic", "neon_grid", "night_city", "pulse_void"]
 
 # Difficulty colours as players know them from Beat Saber, keyed by the map's difficulty name.

@@ -66,7 +66,7 @@ var current_health := Constants.HEALTH_START
 @onready var online_search_keyboard := $Keyboard_online_search as OQ_UI2DKeyboard
 @onready var beatsaver_canvas := $MapSourceDialogs/BeatSaver_Canvas as OQ_UI2DCanvas
 
-@onready var cube_template := preload("res://game/BeepCube/BeepCube.tscn").instantiate() as BeepCube
+@onready var cube_template := preload("res://game/notes/BeepCube/BeepCube.tscn").instantiate() as BeepCube
 
 @onready var track := $Track as Node3D
 @onready var standing_ground := $StandingGround as Floor
@@ -106,7 +106,7 @@ const FAIL_SECONDS := 1.5
 var _new_record := {}
 ## The song menu showed the record table when the BeatSaver page opened over it.
 var _menu_highscores_shown := false
-const DANGER_WALL_MATERIAL := preload("res://game/Wall/danger_wall.tres")
+const DANGER_WALL_MATERIAL := preload("res://game/notes/Wall/danger_wall.tres")
 ## Mistake sounds (tools/make_hit_sounds.py): a dull buzz for a bad cut or the wrong saber, a boom for a bomb.
 ## A miss gets a soft swipe (tools/make_feedback_sounds.py), quieter than a bad cut.
 const BAD_CUT_SOUND := preload("res://game/data/bad_cut.wav")
@@ -122,7 +122,7 @@ const LOW_HEALTH_SOUND := preload("res://game/data/low_health.wav")
 const LOW_HEALTH_FRACTION := 0.25
 var _song_end_player: AudioStreamPlayer
 var _low_health_player: AudioStreamPlayer
-const BOMB_GLOW_MATERIAL := preload("res://game/Bomb/bomb_glow.tres")
+const BOMB_GLOW_MATERIAL := preload("res://game/notes/Bomb/bomb_glow.tres")
 # how long a rumble that was on when the song failed takes to fade out
 const FAIL_RUMBLE_FADE_SECONDS := 0.6
 # a combo milestone buzzes both controllers once, after the cut's own rumble has passed (untuned)

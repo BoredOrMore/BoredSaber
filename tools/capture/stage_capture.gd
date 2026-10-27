@@ -48,19 +48,19 @@ var _bpm := 0.0
 ## --notes: the notes' pools (BeepSaber_Game.tscn's) and the track they fly along
 const POOL_SCENE := preload("res://game/scripts/ScenePool/ScenePool.tscn")
 const NOTE_SCENES := {
-	&"cube_pool": preload("res://game/BeepCube/BeepCube.tscn"),
-	&"link_pool": preload("res://game/Chain/ChainLink.tscn"),
-	&"bomb_pool": preload("res://game/Bomb/Bomb.tscn"),
-	&"wall_pool": preload("res://game/Wall/Wall.tscn"),
-	&"arc_pool": preload("res://game/Arc/Arc.tscn"),
+	&"cube_pool": preload("res://game/notes/BeepCube/BeepCube.tscn"),
+	&"link_pool": preload("res://game/notes/Chain/ChainLink.tscn"),
+	&"bomb_pool": preload("res://game/notes/Bomb/Bomb.tscn"),
+	&"wall_pool": preload("res://game/notes/Wall/Wall.tscn"),
+	&"arc_pool": preload("res://game/notes/Arc/Arc.tscn"),
 }
 var _notes := false
-const NOTE_SCENE := preload("res://game/BeepCube/BeepCube.tscn")
-const BOMB_SCENE := preload("res://game/Bomb/Bomb.tscn")
+const NOTE_SCENE := preload("res://game/notes/BeepCube/BeepCube.tscn")
+const BOMB_SCENE := preload("res://game/notes/Bomb/Bomb.tscn")
 const SABER_SCENE := preload("res://game/sabers/default/default_saber.tscn")
 ## --wall: the held wall's size (metres)
 const WALL_SIZE := Vector3(1.2, 1.6, 3.0)
-const WALL_SCENE := preload("res://game/Wall/Wall.tscn")
+const WALL_SCENE := preload("res://game/notes/Wall/Wall.tscn")
 ## --note: how far in front of the eye the note is held, metres
 const NOTE_AHEAD := 0.9
 
@@ -113,7 +113,7 @@ func _ready() -> void:
 		_hold_wall(camera, args)
 	Bomb.classic = args.get("bomb", "") == "classic"
 	(Bomb.MERGED_MATERIAL as ShaderMaterial).set_shader_parameter(&"danger_color", Color(args.get("danger", "ff3030") as String))
-	(load("res://game/Bomb/bomb_glow.tres") as ShaderMaterial).set_shader_parameter(&"danger_color", Color(args.get("danger", "ff3030") as String))
+	(load("res://game/notes/Bomb/bomb_glow.tres") as ShaderMaterial).set_shader_parameter(&"danger_color", Color(args.get("danger", "ff3030") as String))
 	if args.has("bomb") and not args.has("map"):
 		for z: float in [float(args.get("bomb-dist", "0.8")), 6.0]:
 			var bomb := BOMB_SCENE.instantiate() as Bomb

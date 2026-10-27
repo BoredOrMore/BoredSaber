@@ -83,13 +83,13 @@ func _peak(info: MapInfo, d: DifficultyInfo) -> Dictionary:
 
 ## Triangles of every MeshInstance3D in the objects' scenes.
 func _meshes() -> void:
-	for path in ["res://game/BeepCube/BeepCube.tscn", "res://game/Bomb/Bomb.tscn", "res://game/Wall/Wall.tscn", "res://game/Chain/ChainLink.tscn", "res://game/Arc/Arc.tscn", "res://game/LightSaber.tscn"]:
+	for path in ["res://game/notes/BeepCube/BeepCube.tscn", "res://game/notes/Bomb/Bomb.tscn", "res://game/notes/Wall/Wall.tscn", "res://game/notes/Chain/ChainLink.tscn", "res://game/notes/Arc/Arc.tscn", "res://game/LightSaber.tscn"]:
 		var node := (load(path) as PackedScene).instantiate()
 		for mi: MeshInstance3D in node.find_children("*", "MeshInstance3D", true, false):
 			if mi.mesh:
 				print("MESH %s %s %d tris" % [path.get_file(), mi.name, _tris(mi.mesh)])
 		node.free()
-	print("MESH note_round.glb %d tris" % _tris(LaserFixtures._model_mesh(load("res://game/BeepCube/note_round.glb"))))
+	print("MESH note_round.glb %d tris" % _tris(LaserFixtures._model_mesh(load("res://game/notes/BeepCube/note_round.glb"))))
 
 static func _tris(mesh: Mesh) -> int:
 	var n := 0

@@ -11,7 +11,8 @@ and fails when a `.gd`, `.tscn`, `.gdshader` or `.gdshaderinc` under `game/`, `t
 the nearest `AGENTS.md` above it, or when an `AGENTS.md` has no `CLAUDE.md` beside it. That `CLAUDE.md` is the one
 line `@AGENTS.md`, so Claude Code loads the folder's doc when it opens a file there. Write agent docs in English.
 
-- `game/`: main scene, autoloads, note/bomb/chain/arc/wall entities, assets in `game/data/`.
+- `game/`: main scene, autoloads, assets in `game/data/`.
+- `game/notes/`: notes, chain links, arcs, bombs, walls and their `Cuttable` base.
 - `game/hud/`: the in-song HUD (score, combo, accuracy, time, health, cut numbers).
 - `game/env/`: stage environments (rigs, scenery shaders, laser fixtures, haze).
 - `game/sabers/`: saber visuals.
@@ -179,7 +180,7 @@ channel), so brightness comes from contrast and the size of bright areas, not fr
 2. Hot core, coloured falloff: a bright emitter burns toward white at its centre and shows its colour in
    the glow around it (overexposure desaturates). Brighten by mixing toward white or widening the
    bright part, never by multiplying a saturated colour past 1 (it clips to a flat, fully saturated
-   colour). Walls already do this (`game/Wall/DangerWall.gdshader`: white-hot frame, red halo).
+   colour). Walls already do this (`game/notes/Wall/DangerWall.gdshader`: white-hot frame, red halo).
 3. Saturation lives in small areas: full note colour only on fixtures, beams and their halos; large
    surfaces (floor, sky, haze, walls' glass) stay dark and low in saturation.
 4. Limited palette: the two note colours, the danger colour, and neutrals (cool or warm grey, white).

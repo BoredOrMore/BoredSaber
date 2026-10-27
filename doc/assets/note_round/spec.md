@@ -15,9 +15,9 @@
   on the smaller flat face).
 - Collision or hitbox requirements: none of its own; the note's hitboxes (BeepCube.tscn) are unchanged.
 - Geometry / texture / material budgets: 300 triangles (4 segments per bevel); no new texture.
-- Export format / destination: `game/BeepCube/note_round.glb`; source `tools/models/note_round.py`.
-- Existing Godot resources affected: `game/BeepCube/BeepCube.gd` (uses it unless Classic notes is on; the cut halves
-  too), `game/BeepCube/BeepCube.gdshader` (ROUND_BEVEL_START/FULL).
+- Export format / destination: `game/notes/BeepCube/note_round.glb`; source `tools/models/note_round.py`.
+- Existing Godot resources affected: `game/notes/BeepCube/BeepCube.gd` (uses it unless Classic notes is on; the cut halves
+  too), `game/notes/BeepCube/BeepCube.gdshader` (ROUND_BEVEL_START/FULL).
 - Required previews and automated checks: the owner looks in Blender and Godot (BeepCubeTest.tscn, and
   `stage_capture --note`); CI import and tests.
 - Human acceptance criteria: reads as glossy plastic, not a tin can; arrow and dot sit on the front face; cuts look
