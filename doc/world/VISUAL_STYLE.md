@@ -13,9 +13,10 @@ Classic Style Frame": target look, look spec, materials).
 - Scale: beyond immersion, the player should feel tiny, a small part of something enormous. Each stage needs at least
   one form far larger than the player (a megastructure, a wall or tower rising out of view, depth that runs on past
   the haze), with the track and platform small against it.
-- Symmetry: not everything mirrored left and right. Break it on purpose where it helps: different landmarks, heights
-  or distances on each side, one-sided features. Keep symmetry only where it serves (the track, the note lanes, a
-  centred focal point).
+- Symmetry (owner, 2026-10-27, replacing "not everything mirrored"): block the main elements symmetrically (the large
+  structures that frame the track); the asymmetry lives in the props (clutter, small structures, details placed
+  unevenly). A stage may propose an asymmetric main layout when its idea is the flow of its elements (a sweep, a
+  path, a movement through the scene): say so and why in its concept.
 - A stage concept, spec or blockout says how it does both.
 
 ## Colour system
@@ -65,5 +66,5 @@ doesn't read at play distance, large saturated or pure-white areas.
 - [ ] No shimmer on thin lines when the head moves.
 - [ ] Blacks stay black (no big bright area greying the LCD).
 - [ ] The player reads as small against at least one huge form.
-- [ ] Left and right are not a plain mirror (unless the stage's idea needs it).
+- [ ] Main elements blocked symmetrically, props asymmetric (or an asymmetric main layout justified by the flow).
 - [ ] GPU within budget.
