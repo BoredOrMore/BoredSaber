@@ -1,5 +1,5 @@
 extends Control
-## Renders the song menu's highscore list (game/HighscorePanel.tscn) at its in-game size, to check nothing spills off
+## Renders the song menu's highscore list (game/ui/HighscorePanel.tscn) at its in-game size, to check nothing spills off
 ## its board. Records come from a highscores.json (e.g. pulled from the headset) or are made up.
 ## Run: godot --path . res://tools/capture/highscore_capture.tscn -- --out /tmp/hs.png [--table highscores.json
 ##   --key "[artist,song,,mapper]" --rank 1793] [--names long] [--rows 10] [--mods 1]
@@ -9,7 +9,7 @@ func _ready() -> void:
 	var raw := OS.get_cmdline_user_args()
 	for i in range(0, raw.size() - 1, 2):
 		args[raw[i].trim_prefix("--")] = raw[i + 1]
-	var panel := (load("res://game/HighscorePanel.tscn") as PackedScene).instantiate() as HighscorePanel
+	var panel := (load("res://game/ui/HighscorePanel.tscn") as PackedScene).instantiate() as HighscorePanel
 	# as in BeepSaber_Game.tscn's song menu
 	panel.offset_right = 600.0
 	panel.show_song_info = false

@@ -42,7 +42,7 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
 - `Map.gd` loads difficulty files on threads via `Utils.custom_thread_call` (e.g. `Map.gd:539-551`).
 - `SongUploader` node lives in `BeepSaber_Game.tscn:336`; the menu shows `get_server_url()` (`BeepSaberMainMenu.gd:472-474`).
 - `webxr_initializer.tscn` is instanced only on Web by `OQ_Toolkit/vr_autoload.gd:189-192`.
-- `MixedReality.set_mixed_reality` is called from `OQ_Toolkit/vr_autoload.gd:217` and `game/settings_Panel.gd:205`.
+- `MixedReality.set_mixed_reality` is called from `OQ_Toolkit/vr_autoload.gd:217` and `game/ui/settings_Panel.gd:205`.
 
 ## Invariants and gotchas
 

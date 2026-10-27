@@ -32,11 +32,11 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   the player or headset; pointing at it opens the list of warnings.
 - `UI_AudioEngine/` (`UI_AudioEngine.gd/.tscn`): autoload; `attach_children(node)` wires hover and press sounds to every `Button` below `node`:
   on/off for a toggle in no `ButtonGroup`, back for names in `BACK_BUTTON_NAMES`, click for the rest.
-- In `game/`: `BeepSaberMainMenu.gd/.tscn` (class `MainMenu`: song list, Song/More tabs and a Settings gear above the right column; the Song tab holds
+- `BeepSaberMainMenu.gd/.tscn` (class `MainMenu`: song list, Song/More tabs and a Settings gear above the right column; the Song tab holds
   difficulty and the modifier chips, rarer ones behind "More modifiers"),
-  `settings_Panel.gd/.tscn` (class `SettingsPanel`, tabs Gameplay/Visuals/Audio/Advanced), `HighscorePanel`,
-  `Pause_Panel` (signals `continue_button`/`restart_button`/`mainmenu_button`), `EndScore` (3D `MeshInstance3D`, not a
-  canvas), `vr_slider.gd` (thumbstick/drag scrolling), `UI_Panel.gdshader` (rounded 3D panel used by `EndScore.tscn`
+  `settings_Panel.gd/.tscn` (class `SettingsPanel`, tabs Gameplay/Visuals/Audio/Advanced), `HighscorePanel.gd/.tscn`,
+  `Pause_Panel.gd/.tscn` (signals `continue_button`/`restart_button`/`mainmenu_button`), `EndScore.gd/.tscn` (3D `MeshInstance3D`, not a
+  canvas; `RankHalo.gdshader` glows round its result ring), `vr_slider.gd` (thumbstick/drag scrolling), `UI_Panel.gdshader` (rounded 3D panel used by `EndScore.tscn`
   and `game/scripts/UIRaycast/UIRaycastButton.tscn`).
 
 ## Colour palette

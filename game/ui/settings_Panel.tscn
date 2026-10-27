@@ -1,9 +1,9 @@
 [gd_scene format=3 uid="uid://biylg2wsontn3"]
 
 [ext_resource type="FontFile" uid="uid://01k27lk2a4bw" path="res://OQ_Toolkit/OQ_UI2D/theme/RobotoMono-Medium.ttf" id="1"]
-[ext_resource type="Script" uid="uid://cpwy2bk3ecxqb" path="res://game/settings_Panel.gd" id="2"]
+[ext_resource type="Script" uid="uid://cpwy2bk3ecxqb" path="res://game/ui/settings_Panel.gd" id="2"]
 [ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="theme"]
-[ext_resource type="PackedScene" uid="uid://dtipmx5ep1dkk" path="res://game/vr_slider.tscn" id="4"]
+[ext_resource type="PackedScene" uid="uid://dtipmx5ep1dkk" path="res://game/ui/vr_slider.tscn" id="4"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/check.svg" id="icon_check"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/locate-fixed.svg" id="icon_locate-fixed"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/undo-2.svg" id="icon_undo-2"]

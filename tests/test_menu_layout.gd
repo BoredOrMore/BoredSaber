@@ -38,7 +38,7 @@ func _ready() -> void:
 	var keyboard := (load("res://OQ_Toolkit/OQ_UI2D/OQ_UI2DKeyboard.tscn") as PackedScene).instantiate() as OQ_UI2DKeyboard
 	keyboard.visible = false
 	add_child(keyboard)
-	var menu := (load("res://game/BeepSaberMainMenu.tscn") as PackedScene).instantiate() as MainMenu
+	var menu := (load("res://game/ui/BeepSaberMainMenu.tscn") as PackedScene).instantiate() as MainMenu
 	check(menu != null, "the song menu scene loads (a script that fails to parse leaves it without MainMenu)")
 	if menu == null:
 		get_tree().quit(1)
@@ -110,7 +110,7 @@ func _ready() -> void:
 	profiles.queue_free()
 
 	# Visuals with the Graphics chips: Low, then one effect changed (Custom)
-	var settings := (load("res://game/settings_Panel.tscn") as PackedScene).instantiate() as SettingsPanel
+	var settings := (load("res://game/ui/settings_Panel.tscn") as PackedScene).instantiate() as SettingsPanel
 	# no controllers here for its sliders' thumbstick scrolling
 	settings.process_mode = Node.PROCESS_MODE_DISABLED
 	_port.add_child(settings)
@@ -237,7 +237,7 @@ func _check_list_drag(menu: MainMenu) -> void:
 
 ## How long a flick keeps going (the song list's vr_slider).
 func vr_slider_momentum() -> float:
-	return preload("res://game/vr_slider.gd").MOMENTUM_SECONDS
+	return preload("res://game/ui/vr_slider.gd").MOMENTUM_SECONDS
 
 ## Sends a pointer press (true), release (false) or move (null) to the menu's viewport, as the VR pointer does.
 var _pointer_held := false

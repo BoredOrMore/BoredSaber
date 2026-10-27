@@ -52,8 +52,6 @@ constraints apply here unchanged.
   `score_changed`, `points_awarded`.
 - `LightSaber.gd/.tscn/.gdshader` — saber collision, show/hide anims, swing history for swing
   scoring, floor burn raycast, `left_saber`/`right_saber` shader globals.
-- `settings_Panel.gd/.tscn` — settings UI (`SettingsPanel`, `apply` signal saves config).
-- `BeepSaberMainMenu.gd/.tscn` — song list, playlists, filters, modifiers; emits `start_map`.
 - `SlashBlock.gd` — a note (the game's cube model, in the selected song's colours per the Map colors chip, with a
   small note of the other colour on a top corner) 75 degrees to the dominant hand's side, where no saber reaches
   while using the song menu: cutting it down with that hand's saber (tip >= 2 m/s, untuned) or pointer + trigger
@@ -66,16 +64,15 @@ constraints apply here unchanged.
   last two columns, `guard` the left and right fist-to-eye distance in `time_ms`/`peak_speed`, `low_stance` the eye
   drop in the eye-drop column; charged rows put the hold in `interval_ms` and ok / no_stance / broke_at_<ms> / missed
   in the last `outcome` column). Thresholds are untuned starting values.
-- `EndScore.gd/.tscn`, `HighscorePanel.gd/.tscn`, `Pause_Panel.gd/.tscn` — end, highscore and pause panels;
-  `RankHalo.gdshader` — soft glow round the end screen's result ring (`EndScore.tscn`).
 - `CutFlash.gd` (class `CutFlash`) + `SparkStreak.gdshader` — sparks along the cut line, trails drawn by the shader.
 - `LowResGlow.gd` (class `LowResGlow`) — glow without Godot's glow pass (that pass costs ~5 ms on the Pico 4).
 - `Benchmark.gd` (class `Benchmark`) — hands-off GPU benchmark (Settings > Advanced, or `tools/bench.sh`).
 - `DebugView.gd` (class `DebugView`) — Settings > Advanced switches that leave parts of the scene out to measure
   their GPU cost; bits of the `debug_view` shader global, never saved.
 - `event_driver.gd/.tscn` — lighting events and background; `floor.gd/.tscn` — floor and burn marks.
-- `SpectatorWindow.gd/.tscn` — desktop spectator camera/HUD; `vr_slider.gd/.tscn` — joystick scrolling for UI lists.
-- `UI_Panel.gdshader`, `vr_goggles.gdshader` + `.glb` (the headset model in `BeepSaber_Game.tscn`), `GodotSplash.tscn`, `BlackWhiteThem.tres`, `background*.tres` — visuals.
+- `SpectatorWindow.gd/.tscn` — desktop spectator camera/HUD.
+- Menus and panels (song menu, settings, end score, highscores, pause, `vr_slider`) live in `ui/`.
+- `vr_goggles.gdshader` + `.glb` (the headset model in `BeepSaber_Game.tscn`), `GodotSplash.tscn`, `BlackWhiteThem.tres`, `background*.tres` — visuals.
 
 ## Entity folders
 
@@ -139,7 +136,7 @@ constraints apply here unchanged.
 ## Where to change X
 
 - Add a setting: property with setter calling `set_and_emit()` and a `default_values` entry in
-  `Settings.gd`, control + handler in `settings_Panel.gd/.tscn`, react in an
+  `Settings.gd`, control + handler in `ui/settings_Panel.gd/.tscn`, react in an
   `on_settings_changed(key)` (`BeepSaber_Game.gd:365` or `LightSaber.gd:79`).
 - Add a note type: info class in `game/BeatmapInfo/`, parser + stack in `Map.gd` (`load_beatmap`),
   scene extending `Cuttable` with `spawn/cut/on_miss/clear_from_track/hide_*`, a `ScenePool` node in

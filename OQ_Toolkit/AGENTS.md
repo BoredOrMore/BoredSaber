@@ -25,7 +25,7 @@ in `game/` point into it, and the canvas behaviour below is tuned for Pico 4 per
   applies `MixedReality` (`vr_autoload.gd:180-221`).
 - Signal `pose_recentered` (re-emitted from OpenXR, `:177-178`), connected at `BeepSaber_Game.gd:296`.
 - `vr.xr_interface` for `session_visible`/`session_stopping` pause hooks (`BeepSaber_Game.gd:298-300`).
-- `vr.inVR`, `vr.leftController`/`vr.rightController` (typed `BeepSaberController`, read by `game/vr_slider.gd`).
+- `vr.inVR`, `vr.leftController`/`vr.rightController` (typed `BeepSaberController`, read by `game/ui/vr_slider.gd`).
 - Logging: `vr.log_info/log_warning/log_error/log_file_error` (dozens of call sites). Each writes to a 1024-entry
   ring buffer that collapses repeats, then prints.
 - `vr.UI_PIXELS_TO_METER` (1/1024): canvas and label sizing.
