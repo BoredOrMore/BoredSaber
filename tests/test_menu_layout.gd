@@ -55,6 +55,17 @@ func _ready() -> void:
 		menu.songs_menu.select(0)
 		menu._select_song(0, false)
 
+		# the selected song's preview (SongPreview) starts, and stop_preview fades it out and stops it
+		var preview := menu.song_preview
+		preview.transition_time = 0.05
+		Settings.audio_music_preview = maxf(Settings.audio_music_preview, 1.0)
+		menu.play_selected_preview(0.0, true)
+		await get_tree().create_timer(0.3).timeout
+		check(preview.playing and preview.stream != null, "the selected song's preview plays")
+		await menu.stop_preview()
+		check(not preview.playing, "stop_preview stops the preview")
+		preview.transition_time = 1.0
+
 	# every modifier changed, a long player name, and the busiest song details
 	Settings.health_mode = false
 	Settings.walls_enabled = false
