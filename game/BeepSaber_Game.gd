@@ -112,7 +112,8 @@ const DANGER_WALL_MATERIAL := preload("res://game/notes/Wall/danger_wall.tres")
 const BAD_CUT_SOUND := preload("res://game/data/bad_cut.wav")
 const BOMB_HIT_SOUND := preload("res://game/data/bomb_hit.wav")
 const MISS_SOUND := preload("res://game/data/miss.wav")
-var _mistake_player: AudioStreamPlayer
+## Mistake sounds come from where the note was, so a miss on the left sounds on the left; at full volume wherever.
+var _mistake_player: AudioStreamPlayer3D
 ## Song-end and danger sounds: the saber ignition reversed into a low thump for a fail (tools/make_fail_sound.py),
 ## a rising chord for a cleared song and a heartbeat that loops while health is low (tools/make_feedback_sounds.py).
 const FAIL_SOUND := preload("res://game/data/fail.wav")
@@ -383,7 +384,8 @@ func _ready() -> void:
 	_make_sparks()
 	_countdown_player.bus = &"SFX"
 	add_child(_countdown_player)
-	_mistake_player = AudioStreamPlayer.new()
+	_mistake_player = AudioStreamPlayer3D.new()
+	_mistake_player.attenuation_model = AudioStreamPlayer3D.ATTENUATION_DISABLED
 	_mistake_player.bus = &"SFX"
 	_mistake_player.max_polyphony = 2
 	add_child(_mistake_player)
@@ -726,13 +728,15 @@ func set_colors_from_settings() -> void:
 	update_right_color(Settings.color_right)
 	event_driver.set_background()
 
-## Plays the sound for a bad cut or wrong saber, or for a bomb hit.
-func play_mistake_sound(bomb: bool) -> void:
+## Plays the sound for a bad cut or wrong saber, or for a bomb hit, from where it happened.
+func play_mistake_sound(bomb: bool, at: Vector3) -> void:
+	_mistake_player.position = at
 	_mistake_player.stream = BOMB_HIT_SOUND if bomb else BAD_CUT_SOUND
 	_mistake_player.play()
 
-## Plays the soft sound for a note that flew past uncut.
-func play_miss_sound() -> void:
+## Plays the soft sound for a note that flew past uncut, from where it was.
+func play_miss_sound(at: Vector3) -> void:
+	_mistake_player.position = at
 	_mistake_player.stream = MISS_SOUND
 	_mistake_player.play()
 
