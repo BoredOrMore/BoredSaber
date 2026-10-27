@@ -35,7 +35,7 @@ corner_detail = 6
 
 [node name="BeepSaberMainMenu" type="Panel" unique_id=1329467298]
 offset_right = 1753.0
-offset_bottom = 496.0
+offset_bottom = 776.0
 theme = ExtResource("1")
 theme_override_styles/panel = SubResource("1")
 script = ExtResource("3")
@@ -45,7 +45,7 @@ layout_mode = 0
 offset_left = 0.0
 offset_top = 0.0
 offset_right = 480.0
-offset_bottom = 496.0
+offset_bottom = 776.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("region")
 
@@ -54,7 +54,7 @@ layout_mode = 0
 offset_left = 504.0
 offset_top = 0.0
 offset_right = 1249.0
-offset_bottom = 496.0
+offset_bottom = 776.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("region")
 
@@ -63,7 +63,7 @@ layout_mode = 0
 offset_left = 1273.0
 offset_top = 0.0
 offset_right = 1753.0
-offset_bottom = 496.0
+offset_bottom = 776.0
 mouse_filter = 2
 theme_override_styles/panel = SubResource("region")
 
@@ -110,7 +110,7 @@ layout_mode = 0
 offset_left = 520.0
 offset_top = 74.0
 offset_right = 1233.0
-offset_bottom = 496.0
+offset_bottom = 768.0
 script = ExtResource("song_list")
 
 [node name="EmptyList" type="Label" parent="."]
@@ -119,7 +119,7 @@ layout_mode = 0
 offset_left = 520.0
 offset_top = 74.0
 offset_right = 1233.0
-offset_bottom = 496.0
+offset_bottom = 768.0
 theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -131,7 +131,7 @@ layout_mode = 0
 offset_left = 520.0
 offset_top = 74.0
 offset_right = 1233.0
-offset_bottom = 496.0
+offset_bottom = 768.0
 
 [node name="Rows" type="VBoxContainer" parent="FiltersPanel"]
 layout_mode = 1
@@ -211,18 +211,18 @@ script = ExtResource("icon_button")
 layout_mode = 0
 offset_left = 16.0
 offset_top = 16.0
-offset_right = 80.0
-offset_bottom = 80.0
+offset_right = 120.0
+offset_bottom = 120.0
 texture = ExtResource("3_wpmn0")
 expand_mode = 1
 stretch_mode = 5
 
 [node name="SongInfo_Label" type="Label" parent="." unique_id=347010549]
 layout_mode = 0
-offset_left = 92.0
+offset_left = 132.0
 offset_top = 16.0
 offset_right = 464.0
-offset_bottom = 80.0
+offset_bottom = 120.0
 theme_override_font_sizes/font_size = 24
 autowrap_mode = 3
 clip_text = true
@@ -231,9 +231,9 @@ text_overrun_behavior = 3
 [node name="Favorite_Button" type="Button" parent="." unique_id=1448413959]
 layout_mode = 0
 offset_left = 16.0
-offset_top = 88.0
+offset_top = 128.0
 offset_right = 236.0
-offset_bottom = 148.0
+offset_bottom = 188.0
 theme_override_font_sizes/font_size = 22
 toggle_mode = true
 text = "Add to favorites"
@@ -243,9 +243,9 @@ script = ExtResource("icon_button")
 [node name="DifficultyPicker" type="VBoxContainer" parent="." unique_id=1422990200]
 layout_mode = 0
 offset_left = 16.0
-offset_top = 152.0
+offset_top = 196.0
 offset_right = 464.0
-offset_bottom = 318.0
+offset_bottom = 362.0
 theme_override_constants/separation = 4
 mouse_filter = 2
 
@@ -271,9 +271,9 @@ autowrap_mode = 3
 [node name="PlayStatus" type="HBoxContainer" parent="."]
 layout_mode = 0
 offset_left = 16.0
-offset_top = 322.0
+offset_top = 370.0
 offset_right = 464.0
-offset_bottom = 380.0
+offset_bottom = 428.0
 theme_override_constants/separation = 12
 
 [node name="Icon" type="TextureRect" parent="PlayStatus"]
@@ -302,9 +302,9 @@ text_overrun_behavior = 3
 [node name="Ranks" parent="." instance=ExtResource("highscores")]
 layout_mode = 0
 offset_left = 16.0
-offset_top = 388.0
+offset_top = 436.0
 offset_right = 464.0
-offset_bottom = 480.0
+offset_bottom = 760.0
 show_song_info = false
 compact = true
 
@@ -319,9 +319,9 @@ theme_override_constants/separation = 4
 [node name="Profile_Button" type="Button" parent="."]
 layout_mode = 0
 offset_left = 244.0
-offset_top = 88.0
+offset_top = 128.0
 offset_right = 464.0
-offset_bottom = 148.0
+offset_bottom = 188.0
 clip_text = true
 text_overrun_behavior = 3
 icon = ExtResource("icon_user")
@@ -341,7 +341,7 @@ layout_mode = 0
 offset_left = 1289.0
 offset_top = 76.0
 offset_right = 1737.0
-offset_bottom = 480.0
+offset_bottom = 760.0
 theme_override_constants/separation = 3
 
 [node name="Header" type="HBoxContainer" parent="Modifiers"]
@@ -402,9 +402,9 @@ layout_mode = 0
 offset_left = 1289.0
 offset_top = 76.0
 offset_right = 1737.0
-offset_bottom = 480.0
+offset_bottom = 760.0
 
-[node name="Scroll" type="ScrollContainer" parent="MoreModsPanel"]
+[node name="Rows" type="VBoxContainer" parent="MoreModsPanel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -413,14 +413,9 @@ offset_left = 16.0
 offset_top = 16.0
 offset_right = -16.0
 offset_bottom = -16.0
-horizontal_scroll_mode = 0
-
-[node name="Rows" type="VBoxContainer" parent="MoreModsPanel/Scroll"]
-layout_mode = 2
-size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
-[node name="Back_Button" type="Button" parent="MoreModsPanel/Scroll/Rows"]
+[node name="Back_Button" type="Button" parent="MoreModsPanel/Rows"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Back"
@@ -433,7 +428,7 @@ layout_mode = 0
 offset_left = 1289.0
 offset_top = 76.0
 offset_right = 1737.0
-offset_bottom = 480.0
+offset_bottom = 760.0
 
 [node name="LoadPlaylists_Button" type="Button" parent="MorePanel" unique_id=793107135]
 layout_mode = 0
@@ -506,13 +501,13 @@ horizontal_alignment = 2
 [node name="LicensePopup" type="PopupPanel" parent="." unique_id=1997437673]
 title = "Licenses"
 position = Vector2i(1289, 16)
-size = Vector2i(448, 464)
+size = Vector2i(448, 744)
 
 [node name="ScrollContainer" type="ScrollContainer" parent="LicensePopup" unique_id=1670075562]
 offset_left = 20.0
 offset_top = 12.0
 offset_right = 428.0
-offset_bottom = 452.0
+offset_bottom = 732.0
 horizontal_scroll_mode = 0
 
 [node name="Label" type="Label" parent="LicensePopup/ScrollContainer" unique_id=1044749430]
@@ -552,7 +547,7 @@ joystick_scroll = false
 [connection signal="toggled" from="FiltersPanel/Rows/WorkoutFilter" to="." method="_on_workout_filter_toggled"]
 [connection signal="pressed" from="Modifiers/Header/Reset_Button" to="." method="_on_reset_button_pressed"]
 [connection signal="pressed" from="Modifiers/MoreMods_Button" to="." method="_show_more_modifiers" binds= [true]]
-[connection signal="pressed" from="MoreModsPanel/Scroll/Rows/Back_Button" to="." method="_show_more_modifiers" binds= [false]]
+[connection signal="pressed" from="MoreModsPanel/Rows/Back_Button" to="." method="_show_more_modifiers" binds= [false]]
 [connection signal="pressed" from="GetSongs_Button" to="." method="_on_get_songs_pressed"]
 [connection signal="pressed" from="Filters_Button" to="." method="_show_filters" binds= [true]]
 [connection signal="pressed" from="FiltersPanel/Rows/Back_Button" to="." method="_show_filters" binds= [false]]

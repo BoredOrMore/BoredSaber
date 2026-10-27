@@ -11,6 +11,7 @@ const BACKGROUNDS := ["LeftPanel", "CentrePanel", "RightPanel"]
 ## Rows the song list must show at once at its original 76 px row size (owner, 2026-10-28: the curved menu in the
 ## 32 degree comfort zone, about 5 rows).
 const MIN_VISIBLE_ROWS := 5
+const TEST_HIGHSCORES := "user://test_menu_highscores.json"
 const LONG_NAME := "Wolfgang Amadeus Mozart and the Very Long Band Name"
 
 var failures := 0
@@ -96,6 +97,8 @@ func _ready() -> void:
 	Settings.player_name = LONG_NAME
 	menu.update_view()
 	_fill_worst_details(menu)
+	var saved_highscores := Highscores.HIGHSCORES_FILEPATH
+	await _fill_ranks(menu)
 	await _settle()
 	_check_layout(menu, "song tab")
 
@@ -111,6 +114,10 @@ func _ready() -> void:
 	menu._show_tab(MainMenu.Tab.MORE)
 	await _settle()
 	_check_layout(menu, "more tab")
+	Highscores.HIGHSCORES_FILEPATH = TEST_HIGHSCORES
+	Highscores.clear_table()
+	Highscores.HIGHSCORES_FILEPATH = saved_highscores
+	Highscores.load_hs_table()
 	var beatsaver := (load("res://game/ui/BeatSaverPanel/BeatSaverPanel.tscn") as PackedScene).instantiate() as BeatSaverPanel
 	beatsaver.main_menu_ref = menu
 	beatsaver.keyboard = keyboard
@@ -233,7 +240,8 @@ func _ready() -> void:
 	check(limiter is AudioEffectHardLimiter and is_equal_approx(limiter.ceiling_db, -1.0),
 			"the Master bus ends in a limiter at -1 dB, so music and effects together don't clip")
 
-	# a curved panel (OQ_UI2DCanvas.curve_radius): a point on its arc maps back to the panel's pixel, edges included
+	# a curved panel (OQ_UI2DCanvas.curve_radius): a pixel's point on the sphere maps back to that pixel (centre,
+	# edges and corners), and its width and height are kept as arcs
 	var curved := (load("res://OQ_Toolkit/OQ_UI2D/OQ_UI2DCanvas.tscn") as PackedScene).instantiate() as OQ_UI2DCanvas
 	curved.curve_radius = 2.0
 	curved.scale = Vector3(2.4, 2.4, 1.0)
@@ -242,16 +250,20 @@ func _ready() -> void:
 	curved.add_child(page)
 	add_child(curved)
 	await get_tree().process_frame
-	var span := curved.curve_size().x / curved.curve_radius
 	var arc_worst := 0.0
-	for t: float in [0.02, 0.25, 0.5, 0.75, 0.98]:
-		var angle := (t - 0.5) * span
-		var on_arc := curved.ui_area.to_global(Vector3(2.0 * sin(angle), 0.1, 2.0 * (1.0 - cos(angle))))
-		var pixel := curved.curve_pixel(curved.ui_area.to_local(on_arc))
-		var want := Vector2(t * 1000.0, (0.5 - 0.1 / curved.curve_size().y) * 500.0)
-		arc_worst = maxf(arc_worst, pixel.distance_to(want))
-	check(arc_worst < 0.5 and is_equal_approx(rad_to_deg(span), rad_to_deg(1000.0 * 2.4 / 1024.0 / 2.0)),
-			"a curved panel maps points on its arc to its pixels (worst %.2f px), its width kept as arc" % arc_worst)
+	var on_sphere := 0.0
+	for u: float in [0.0, 0.02, 0.5, 0.98, 1.0]:
+		for v: float in [0.0, 0.03, 0.5, 0.97, 1.0]:
+			var want := Vector2(u * 1000.0, v * 500.0)
+			var point := curved.curve_point(want)
+			on_sphere = maxf(on_sphere, absf((point - Vector3(0.0, 0.0, 2.0)).length() - 2.0))
+			# through the world and back, as a pointer hit is
+			var hit := curved.ui_area.to_local(curved.ui_area.to_global(point))
+			arc_worst = maxf(arc_worst, curved.curve_pixel(hit).distance_to(want))
+	var span := curved.curve_size() / curved.curve_radius
+	check(arc_worst < 0.01 and on_sphere < 1e-5 and is_equal_approx(span.x, 1000.0 * 2.4 / 1024.0 / 2.0)
+			and is_equal_approx(span.y, 500.0 * 2.4 / 1024.0 / 2.0),
+			"a curved panel maps its points back to its pixels, corners included (worst %.3f px), width and height kept as arcs" % arc_worst)
 	curved.queue_free()
 
 	print("%d failure(s)" % failures)
@@ -350,6 +362,39 @@ func _check_layout(root: Control, state: String) -> void:
 	var problems := PackedStringArray()
 	_check_children(root, root.get_global_rect(), problems)
 	check(problems.is_empty(), "%s: nothing overlaps or spills out%s" % [state, "" if problems.is_empty() else "\n  " + "\n  ".join(problems)])
+	if root is MainMenu:
+		_check_no_scroll(root, state)
+
+## Nothing on the song page but the song list scrolls (owner, 2026-10-28): every other shown scroll container's
+## content fits it.
+func _check_no_scroll(menu: MainMenu, state: String) -> void:
+	var scrolling := PackedStringArray()
+	for scroll: ScrollContainer in menu.find_children("*", "ScrollContainer", true, false):
+		if scroll == menu.songs_menu or not scroll.is_visible_in_tree():
+			continue
+		for content: Control in scroll.get_children().filter(func(c: Node) -> bool: return c is Control and not c is ScrollBar):
+			if content.get_combined_minimum_size().y > scroll.size.y + 0.5 or content.get_combined_minimum_size().x > scroll.size.x + 0.5:
+				scrolling.append("%s (content %s in %s)" % [menu.get_path_to(scroll), content.get_combined_minimum_size(), scroll.size])
+	check(scrolling.is_empty(), "%s: only the song list scrolls%s" % [state, "" if scrolling.is_empty() else ": " + ", ".join(scrolling)])
+
+## Ten records on the selected difficulty, the current player's best ninth (in a table of the test's own): the ranks
+## under the song show the best ones and, last, the player's best with its place.
+func _fill_ranks(menu: MainMenu) -> void:
+	Highscores.HIGHSCORES_FILEPATH = TEST_HIGHSCORES
+	Highscores.clear_table()
+	var info := MapInfo.new("2.0.0", "Ranks", "", "Artist", "Mapper", 120.0, 0.0, 10.0, "song.ogg", "cover.jpg", "",
+		0.0, {}, "user://no_such_song/", [] as Array[DifficultyInfo])
+	for i in 10:
+		Highscores.add_highscore(info, 1, Settings.player_name if i == 8 else "Rival %d" % i, 900000 - i * 1000, 0.95)
+	var ranks := menu.get_node(^"Ranks") as HighscorePanel
+	ranks.show()
+	ranks.load_highscores(info, 1)
+	await _settle()
+	var rows := ranks._highscore_list.get_children().filter(func(row: Node) -> bool: return not row.is_queued_for_deletion())
+	check(rows.size() == HighscorePanel.COMPACT_ROWS and ((rows[-1] as Node).get_child(1) as Label).text == "#9 " + Settings.player_name
+			and ranks._title.text == "10 scores",
+			"ten ranks under the song: %d rows, the last \"%s\", titled \"%s\"" % [rows.size(),
+			((rows[-1] as Node).get_child(1) as Label).text if rows.size() > 0 else "", ranks._title.text])
 
 func _check_children(parent: Control, bounds: Rect2, problems: PackedStringArray) -> void:
 	var placed: Array[Control] = []

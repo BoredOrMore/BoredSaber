@@ -7,9 +7,9 @@ class_name WarningIcon
 ## headset; 30 minutes of songs this session; Full resolution lowered to Sharp after stuttering. It only warns: it
 ## never changes anything. Checked every CHECK_SECONDS while the song menu shows.
 
-## In the song menu centre panel's top right corner, at the end of its top bar (23 degrees right, 2 cm in front of
+## In the song menu centre panel's top right corner, at the end of its top bar (22 degrees right, 22 up, 2 cm in front of
 ## the curved panel), facing the player.
-const ICON_POSITION := Vector3(0.786, 2.237, -0.817)
+const ICON_POSITION := Vector3(0.689, 2.358, -0.695)
 ## 0.14 m at about 2.07 m: about 4 degrees, above the 3 degree minimum target (vr-ui-design).
 const ICON_SIZE := 0.14
 const CARD_WIDTH := 0.95

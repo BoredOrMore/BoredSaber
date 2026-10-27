@@ -192,7 +192,7 @@ controller = NodePath("../..")
 [node name="event_driver" parent="." unique_id=593257630 instance=ExtResource("13")]
 
 [node name="MainMenu_OQ_UI2DCanvas" parent="." unique_id=2127950165 instance=ExtResource("3")]
-transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 1, 0, 1.745, -1)
+transform = Transform3D(2.4, 0, 0, 0, 2.39963, -0.04189, 0, 0.017452, 0.99985, 0, 1.5651, -0.9997)
 curve_radius = 2.0
 round_corners = true
 

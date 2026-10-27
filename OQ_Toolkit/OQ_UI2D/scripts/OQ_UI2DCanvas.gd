@@ -15,12 +15,14 @@ var ui_collisionshape: CollisionShape3D
 # set to true to prevent UIRayCast marker from colliding with canvas
 @export var disable_collision := false
 @export var update_only_on_input := false
-## Metres from the panel's centre to the axis it curves around, the player's eye (owner, 2026-10-27: a curved
-## horseshoe menu, text the same size across a panel); 0 keeps it flat. A curved panel bends toward the viewer on +z,
-## keeps its width as arc length, and its pointer hits are mapped back along the arc (helper_UIArea).
+## Metres from the panel's centre to the point it curves around, the player's eye (owner, 2026-10-27: a curved
+## horseshoe menu, text the same size across a panel, up and down too); 0 keeps it flat. A curved panel is a slice of
+## a sphere bending toward the viewer on +z, keeps its width and height as arc lengths, and its pointer hits are
+## mapped back along the arcs (helper_UIArea).
 @export var curve_radius := 0.0
-## Columns of quads along a curved panel's arc.
+## Columns and rows of quads across a curved panel.
 const CURVE_COLUMNS := 32
+const CURVE_ROWS := 16
 ## Cut the panel's see-through pixels (its rounded corners, drawn by the root control's style) instead of blending
 ## them: alpha scissor, smoothed by MSAA's alpha to coverage, so nothing is drawn twice. Only for a panel whose
 ## pixels are opaque but its corners (a translucent pixel would be cut).
@@ -67,27 +69,23 @@ func curve_size() -> Vector2:
 	return Vector2(ui_size.x * vr.UI_PIXELS_TO_METER * scale.x, ui_size.y * vr.UI_PIXELS_TO_METER * scale.y)
 
 ## A curved panel: the area works in metres (it undoes the canvas's scale), its mesh and collision a slice of a
-## cylinder of curve_radius whose axis is curve_radius in front of the panel's centre.
+## sphere of curve_radius centred curve_radius in front of the panel's centre (the eye).
 func _build_curve() -> void:
 	var scale := global_transform.basis.get_scale()
 	ui_area.transform = Transform3D(Basis.from_scale(Vector3.ONE / scale), Vector3.ZERO)
-	var size := curve_size()
-	var span := size.x / curve_radius
 	var vertices := PackedVector3Array()
 	var uvs := PackedVector2Array()
-	for i in CURVE_COLUMNS + 1:
-		var t := float(i) / CURVE_COLUMNS
-		var angle := (t - 0.5) * span
-		var x := curve_radius * sin(angle)
-		var z := curve_radius * (1.0 - cos(angle))
-		vertices.append(Vector3(x, size.y / 2.0, z))
-		vertices.append(Vector3(x, -size.y / 2.0, z))
-		uvs.append(Vector2(t, 0.0))
-		uvs.append(Vector2(t, 1.0))
+	for row in CURVE_ROWS + 1:
+		for column in CURVE_COLUMNS + 1:
+			var uv := Vector2(float(column) / CURVE_COLUMNS, float(row) / CURVE_ROWS)
+			vertices.append(curve_point(uv * Vector2(ui_size)))
+			uvs.append(uv)
 	var indices := PackedInt32Array()
-	for i in CURVE_COLUMNS:
-		var a := i * 2
-		indices.append_array([a, a + 2, a + 1, a + 1, a + 2, a + 3])
+	for row in CURVE_ROWS:
+		for column in CURVE_COLUMNS:
+			var a := row * (CURVE_COLUMNS + 1) + column
+			var b := a + CURVE_COLUMNS + 1
+			indices.append_array([a, a + 1, b, b, a + 1, b + 1])
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = vertices
@@ -105,11 +103,21 @@ func _build_curve() -> void:
 	shape.set_faces(faces)
 	($UIArea/UICollisionShape as CollisionShape3D).shape = shape
 
-## A point on the curved panel (in the area's metres) as a pixel of the panel.
+## A pixel of the curved panel as a point on it (in the area's metres): its x and y as arcs (yaw and pitch from
+## the sphere's centre) so every pixel covers the same angle up and down.
+func curve_point(pixel: Vector2) -> Vector3:
+	var size := curve_size()
+	var yaw := (pixel.x / ui_size.x - 0.5) * size.x / curve_radius
+	var pitch := (0.5 - pixel.y / ui_size.y) * size.y / curve_radius
+	return Vector3(0.0, 0.0, curve_radius) + curve_radius * Vector3(cos(pitch) * sin(yaw), sin(pitch), -cos(pitch) * cos(yaw))
+
+## A point on the curved panel (in the area's metres) as a pixel of the panel (curve_point's inverse).
 func curve_pixel(local: Vector3) -> Vector2:
 	var size := curve_size()
-	var angle := atan2(local.x, curve_radius - local.z)
-	return Vector2((angle * curve_radius / size.x + 0.5) * ui_size.x, (0.5 - local.y / size.y) * ui_size.y)
+	var from_centre := local - Vector3(0.0, 0.0, curve_radius)
+	var yaw := atan2(from_centre.x, -from_centre.z)
+	var pitch := atan2(from_centre.y, Vector2(from_centre.x, from_centre.z).length())
+	return Vector2((yaw * curve_radius / size.x + 0.5) * ui_size.x, (0.5 - pitch * curve_radius / size.y) * ui_size.y)
 
 func _hide() -> void:
 	viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
