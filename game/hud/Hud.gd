@@ -52,6 +52,13 @@ const GRADE_RUMBLES := {"SS": [0.02, 4.0, 0.3], "S": [0.012, 2.5, 0.15], "A": [0
 const GRADE_RUMBLE_HZ := 25.0
 const GRADE_RUMBLE_BOOST := 2.0
 const GRADE_RUMBLE_BOOST_SECONDS := 0.6
+## A high grade glows in its own colour (owner, 2026-10-27): a soft additive patch behind the letter that shakes and
+## grows with it, GRADE_GLOWS its opacity (stronger the better, brighter by the rumble's boost just after going up),
+## GRADE_GLOW_HEIGHT and GRADE_GLOW_WIDTH per letter in the letter's metres. Drawn by itself, so it shows with the Glow
+## setting off too. Untuned.
+const GRADE_GLOWS := {"SS": 0.6, "S": 0.4, "A": 0.2}
+const GRADE_GLOW_HEIGHT := 0.34
+const GRADE_GLOW_WIDTH := 0.26
 ## the multiplier ring's scale (its quad is 0.5 m) and centre, the multiplier's height, and the time line
 const HUD_RING_SIZE := 1.5
 const HUD_RING := Vector2(0.0, 0.15)
@@ -69,6 +76,8 @@ var _grade_label: MeshInstance3D
 ## The grade shown, "" before a song's first note, to pop the label when it goes up.
 var _grade := ""
 var _grade_tween: Tween
+var _grade_glow := MeshInstance3D.new()
+var _grade_glow_material := StandardMaterial3D.new()
 var _grade_size := 1.0
 ## seconds to the rumble's next offset, and how much of the grade-up boost is left (1 just after, 0 settled)
 var _rumble_wait := 0.0
@@ -97,6 +106,7 @@ func _ready() -> void:
 	_accuracy_label = _label(_left, HUD_ACCURACY, muted)
 	# its own material, for the grade's colour
 	_grade_label = _label(_left, HUD_GRADE, (_point_label.material_override as BaseMaterial3D).duplicate())
+	_add_grade_glow()
 	_time_label = _label(_right, HUD_TIME, muted)
 	_set_letters(_combo.mesh as TextMesh, HUD_COMBO.z)
 	_set_letters(_point_label.mesh as TextMesh, HUD_SCORE.z)
@@ -174,6 +184,7 @@ func _process(delta: float) -> void:
 	if not _left.visible:
 		return
 	var home := Vector3(HUD_GRADE.x, HUD_GRADE.y, 0.0)
+	_grade_glow.visible = GRADE_GLOWS.has(_grade)
 	if not GRADE_RUMBLES.has(_grade):
 		_grade_label.position = home
 		_grade_label.rotation = Vector3.ZERO
@@ -181,6 +192,8 @@ func _process(delta: float) -> void:
 	var rumble: Array = GRADE_RUMBLES[_grade]
 	_rumble_boost = maxf(_rumble_boost - delta / GRADE_RUMBLE_BOOST_SECONDS, 0.0)
 	var strength := 1.0 + (GRADE_RUMBLE_BOOST - 1.0) * _rumble_boost
+	(_grade_glow.mesh as QuadMesh).size = Vector2(GRADE_GLOW_WIDTH * (_grade.length() + 0.5), GRADE_GLOW_HEIGHT)
+	_grade_glow_material.albedo_color = Color(Constants.RANK_COLORS[_grade], minf(GRADE_GLOWS.get(_grade, 0.0) * strength, 1.0))
 	_rumble_wait -= delta
 	if _rumble_wait <= 0.0:
 		_rumble_wait = 1.0 / GRADE_RUMBLE_HZ
@@ -189,6 +202,29 @@ func _process(delta: float) -> void:
 	if not (_grade_tween and _grade_tween.is_running()):
 		(_grade_label.material_override as BaseMaterial3D).albedo_color = \
 				(Constants.RANK_COLORS[_grade] as Color).lerp(Color.WHITE, rumble[2])
+
+## The glow behind the grade letter: a radial gradient on a quad just behind it, additive and unshaded, moving with it.
+func _add_grade_glow() -> void:
+	var gradient := Gradient.new()
+	gradient.offsets = PackedFloat32Array([0.0, 0.45, 1.0])
+	gradient.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0.45), Color(1, 1, 1, 0)])
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(0.5, 0.5)
+	texture.fill_to = Vector2(1.0, 0.5)
+	_grade_glow_material.albedo_texture = texture
+	_grade_glow_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_grade_glow_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	_grade_glow_material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	_grade_glow_material.render_priority = -1
+	_grade_glow.mesh = QuadMesh.new()
+	_grade_glow.material_override = _grade_glow_material
+	_grade_glow.layers = _point_label.layers
+	_grade_glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_grade_glow.position.z = -0.01
+	_grade_glow.visible = false
+	_grade_label.add_child(_grade_glow)
 
 ## The grade the HUD shows after notes notes at this accuracy: the accuracy's grade, but no higher than a step up from
 ## F every GRADE_RAMP_NOTES notes.
