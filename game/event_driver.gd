@@ -23,7 +23,8 @@ const COMBO_PULSE_LASER := 0.3
 const COMBO_RISE_SECONDS := 1.0
 const COMBO_FALL_SECONDS := 0.3
 ## In the menus the stage waits like a concert before the show: dim lights in a cool house tone that slowly
-## "breathe" between MENU_BREATH_LOW and MENU_BREATH_HIGH of their colour, thicker haze so beams show, and the
+## "breathe" between MENU_BREATH_LOW and MENU_BREATH_HIGH of their colour (the haze as in play: owner, 2026-10-27, the
+## menus as clear as can be), and the
 ## waving lasers sweeping slowly through it at MENU_LASER_LEVEL from their fixtures at the sides. Slow and dim on
 ## purpose so the menu still holds the eye: no bright or busy motion in the periphery, and nothing oscillating
 ## near 0.2 Hz (Apple visionOS HIG, Spatial layout, Motion). All values untuned.
@@ -39,7 +40,6 @@ const EERIE_HAZE_DIM := 0.7
 const EERIE_HAZE_NEUTRAL := 0.8
 const MENU_LASER_LEVEL := 0.2
 const MENU_LASER_SWEEP_SECONDS := 30.0
-const MENU_HAZE_BOOST := 1.5
 ## The house light colour the menu lights lean toward, and how far (0 = note colours only): a near-neutral
 ## cool grey, like Beat Saber's menu, so the stage doesn't look tinted (saturation about 0.09). Untuned.
 const HOUSE_COLOR := Color(0.62, 0.64, 0.68)
@@ -553,8 +553,6 @@ func _update_haze() -> void:
 			* (1.0 - QUIET_DIM * _quiet)
 	haze *= level
 	light *= level
-	if menu_focus:
-		haze *= MENU_HAZE_BOOST
 	var eerie := Settings.atmosphere == "Eerie"
 	if eerie:
 		haze *= EERIE_HAZE_DIM

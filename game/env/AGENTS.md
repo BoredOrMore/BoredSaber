@@ -35,7 +35,7 @@ Read the root `AGENTS.md` first ("Light", "Colour rules", "Pico 4 constraints").
   never-falling `_built`. `_built` drives Classic's scaffolds (`set_built`), Neon Grid/Pulse Void strip `level`,
   canyon windows; `_intensity > STRIP_DROP` is "the drop" (all strips, Pulse Void's `drop_beam`, Classic rib sweep).
 - Menus: `set_menu_focus(true)`: house-tinted breathing lights, `classic_rig.set_built(1.0)`,
-  pistons rest, smoke refills only with the Eerie atmosphere (owner: no fog before a song). `false`: smoke dissipates, all groups off until the map turns them on.
+  pistons rest, no smoke and no extra haze (owner: the menus as clear as can be). `false`: smoke dissipates, all groups off until the map turns them on.
 - Per frame (`EventDriver._process`): decays combo/mistake pulses, writes `cut_waves`,
   `_update_haze()` (sums the four beam materials' `light_color` + floor -> `env_light`, a mostly-grey tint of it ->
   `env_haze`, plus `combo_glow`), track-deck light colour, Metal Factory vents, `_update_show`, canyon windows and
@@ -160,7 +160,7 @@ Air
   the stage's look changes, the picker shows it), `stage_capture.gd --env`. Write `doc/world/` entries first.
 - New light carrier: place lights from a static helper on the rig, hang them in `LightRig.apply`; prefer the cheapest
   option in `doc/world/VISUAL_STYLE.md` "Light carriers" (vertex-mask vent < `LightStrip` < fixture < beam).
-- Haze amount/tint: `HAZE_BASE`, `HAZE_LIGHT_WEIGHT`, `HAZE_NEUTRAL`, `MENU_HAZE_BOOST`;
+- Haze amount/tint: `HAZE_BASE`, `HAZE_LIGHT_WEIGHT`, `HAZE_NEUTRAL`;
   height fog in `height_fog.gdshaderinc`; key-light scattering `LightRig.FOG_KEYS`; smoke in `StageSmoke.gd` consts.
 - A rig's layout: the `const` block at the top of its rig script (e.g. `ClassicRig.FRAME_Z`, `NeonGridRig.ARCH_B`,
   `NightCityRig.LEFT/RIGHT`, `PulseVoid` dish consts); then update `doc/world/SPATIAL_LAYOUT.md`.
