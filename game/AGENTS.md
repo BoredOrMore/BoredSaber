@@ -43,7 +43,7 @@ constraints apply here unchanged.
 
 ## File map (root)
 
-- `BeepSaber_Game.gd/.tscn` — main scene: states, pools, health/fail, colours, HUD text, rumble, recenter.
+- `BeepSaber_Game.gd/.tscn` — main scene: states, pools, health/fail, colours, rumble, recenter; makes the `Hud` (`hud/`).
 - `Map.gd` — beatmap v2/v3/v4 parsing into stacks, note jump (`set_note_jump`), `beats_per_second()`
   (includes `Settings.music_speed`), map/custom colours with handedness overrides.
 - `Constants.gd` — layout, scoring, health, fail modes, modifier bitmasks, UI/danger colours.
@@ -68,8 +68,6 @@ constraints apply here unchanged.
   drop in the eye-drop column; charged rows put the hold in `interval_ms` and ok / no_stance / broke_at_<ms> / missed
   in the last `outcome` column). Thresholds are untuned starting values.
 - `EndScore`, `HighscorePanel`, `Pause_Panel` — end, highscore and pause panels.
-- `PercentIndicator` — accuracy ring; `HealthRails` — health strips on the floor along the track edges (bar or 4 life pips); `Points_label_driver` + `points_label` — pool of 8
-  floating score/miss labels (miss "X" uses `MissMark.gdshader`).
 - `event_driver.gd/.tscn` — lighting events and background; `floor.gd/.tscn` — floor and burn marks.
 - `SpectatorWindow` — desktop spectator camera/HUD; `vr_slider` — joystick scrolling for UI lists.
 - `UI_Panel.gdshader`, `vr_goggles.*`, `GodotSplash.tscn`, `BlackWhiteThem.tres`, `background*.tres` — visuals.
@@ -154,14 +152,13 @@ constraints apply here unchanged.
   `Scoreboard.gd`, cut accuracy in `BeepCube.cut`, swing angles in `LightSaber.gd`.
 - Note colours/presets: `Settings.COLOR_PRESETS`/`color_left/right`; map overrides in
   `Map.set_colors_from_custom_data()`; propagation in `update_left/right_color()`.
-- HUD element: node in `BeepSaber_Game.tscn`, `@onready` in `BeepSaber_Game.gd`, update from
-  `Scoreboard.score_changed` (see `_display_points`), toggle visibility in every
-  `scripts/GameState/*.gd` `_ready`; mirror in `SpectatorWindow` if it should show there.
+- HUD element: see `hud/AGENTS.md`; mirror in `SpectatorWindow` if it should show there.
 - Test: `godot --headless --path . res://tests/test_map_info.tscn` for parsing changes; anything
   touching spawning, cutting, rendering, rumble or XR needs a headset run with `adb logcat`.
 
 ## Subfolders with their own docs
 
+- `hud/` — in-song HUD (score, combo, accuracy, time, health, cut numbers); see `hud/AGENTS.md`.
 - `scripts/` — game states, scene pools, controller, UI raycast, highscores, utils; see `scripts/AGENTS.md`.
 - `ui/` — map download/BeatSaver/name-selector panels, UI audio, menu theme; see `ui/AGENTS.md`.
 - `BeatmapInfo/` — parsed map/difficulty/note info classes; see `BeatmapInfo/AGENTS.md`.

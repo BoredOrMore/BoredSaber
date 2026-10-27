@@ -3,7 +3,7 @@
 [ext_resource type="Shader" path="res://game/UI_Panel.gdshader" id="1_cfcnp"]
 [ext_resource type="Shader" path="res://game/RankHalo.gdshader" id="rank_halo"]
 [ext_resource type="Script" path="res://game/EndScore.gd" id="1_jacne"]
-[ext_resource type="PackedScene" uid="uid://63fr72w7kh2w" path="res://game/PercentIndicator.tscn" id="2_dpn16"]
+[ext_resource type="PackedScene" uid="uid://63fr72w7kh2w" path="res://game/hud/PercentIndicator.tscn" id="2_dpn16"]
 [ext_resource type="PackedScene" uid="uid://bxsfwm7o1kryl" path="res://game/scripts/UIRaycast/UIRaycastButton.tscn" id="4_n4s7s"]
 [ext_resource type="FontFile" uid="uid://cdsnr8tscm8y6" path="res://OQ_Toolkit/OQ_UI2D/theme/Roboto-Medium.ttf" id="7_font"]
 [ext_resource type="Script" path="res://game/scripts/UIRaycast/UIRaycastTarget.gd" id="6_25iqa"]

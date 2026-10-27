@@ -35,7 +35,7 @@ var _how_full_display := 1.0
 var _lives := false
 var _bars: Array[MeshInstance3D] = []
 var _pips: Array[MeshInstance3D] = []
-const RAIL_SHADER := preload("res://game/HealthRail.gdshader")
+const RAIL_SHADER := preload("res://game/hud/HealthRail.gdshader")
 
 var _danger := Color.RED
 var _icon := Sprite3D.new()

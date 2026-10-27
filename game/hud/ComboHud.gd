@@ -74,7 +74,7 @@ func _ready() -> void:
 	quad.size = Vector2(RING_SIZE, RING_SIZE)
 	ring.mesh = quad
 	_ring_material = ShaderMaterial.new()
-	_ring_material.shader = preload("res://game/MultiplierRing.gdshader")
+	_ring_material.shader = preload("res://game/hud/MultiplierRing.gdshader")
 	_ring_material.set_shader_parameter(&"fill_color", Constants.COMBO_RING_COLOR)
 	_ring_material.set_shader_parameter(&"empty_color", Constants.COMBO_RING_EMPTY_COLOR)
 	# tweens need every parameter they animate to be set first

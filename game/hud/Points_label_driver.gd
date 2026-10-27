@@ -9,7 +9,7 @@ var current_point_label :int = 0
 
 
 func _ready():
-	var points_label_ref := preload("res://game/points_label.tscn")
+	var points_label_ref := preload("res://game/hud/points_label.tscn")
 	for i in range(LABEL_COUNT):
 		var instance := points_label_ref.instantiate()
 		points_label.append(instance)

@@ -1,7 +1,7 @@
 [gd_scene load_steps=9 format=3 uid="uid://deoh1pl5kvqei"]
 
-[ext_resource type="Script" path="res://game/points_label.gd" id="2"]
-[ext_resource type="Shader" path="res://game/MissMark.gdshader" id="3"]
+[ext_resource type="Script" path="res://game/hud/points_label.gd" id="2"]
+[ext_resource type="Shader" path="res://game/hud/MissMark.gdshader" id="3"]
 
 [sub_resource type="Animation" id="6"]
 resource_name = "hit"
