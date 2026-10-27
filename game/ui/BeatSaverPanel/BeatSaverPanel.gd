@@ -610,7 +610,7 @@ func _short_details_text(song: BeatSaverSongInfo) -> String:
 ## Icons in the details' pills, the size of their 22 px text.
 const PILL_ICON_SIZE := 24
 
-## Each Standard difficulty as [level, seconds to get ready, notes per second, flow level]: measured from the map
+## Each Standard difficulty as [level, seconds to get ready, notes per second, flow percent]: measured from the map
 ## file once it is in the library (MapStats), else from BeatSaver's data.
 func _difficulty_rows(song: BeatSaverSongInfo) -> Array:
 	var rows := []
@@ -620,7 +620,7 @@ func _difficulty_rows(song: BeatSaverSongInfo) -> Array:
 			if difficulty.characteristic == "" or difficulty.characteristic == "Standard":
 				var stats := MapStats.get_stats(info, difficulty)
 				rows.append([MapStats.level_of(info, difficulty, stats), MapStats.reaction_seconds(info, difficulty),
-					float(stats.get("nps", 0.0)) * MapStats._speed(), MapStats.flow_level(float(stats.get("flow", 0.0)))])
+					float(stats.get("nps", 0.0)) * MapStats._speed(), float(stats.get("flow", 0.0))])
 		return rows
 	if song.versions.is_empty():
 		return rows
@@ -628,7 +628,7 @@ func _difficulty_rows(song: BeatSaverSongInfo) -> Array:
 		var d := diff as Dictionary
 		if Utils.get_str(d, "characteristic", "Standard") == "Standard":
 			rows.append([song.level_of(d), song.reaction_seconds(d), Utils.get_float(d, "nps", 0.0) * MapStats._speed(),
-				MapStats.flow_level(BeatSaverSongInfo.parity_percent(d))])
+				BeatSaverSongInfo.parity_percent(d)])
 	return rows
 
 ## What "≈" means, under the level bars of a map not yet downloaded.

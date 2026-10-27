@@ -1121,7 +1121,7 @@ const STAT_ICON_SIZE := 24
 static func stat_pills(map: MapInfo, difficulty: DifficultyInfo, stats: Dictionary) -> String:
 	var pills := PackedStringArray([StatPills.length(float(stats.get("seconds", 0.0)), STAT_ICON_SIZE),
 		StatPills.difficulty(MapStats.reaction_seconds(map, difficulty), float(stats.get("nps", 0.0)) * MapStats._speed(),
-			MapStats.flow_level(float(stats.get("flow", 0.0))), STAT_ICON_SIZE)])
+			float(stats.get("flow", 0.0)), STAT_ICON_SIZE)])
 	if MapStats.workout_level(stats) > 0:
 		pills.append(StatPills.workout(int(stats.get("sets", 0)), STAT_ICON_SIZE))
 	return "[center]%s[/center]" % StatPills.GAP.join(pills)
