@@ -17,9 +17,10 @@ extends Node3D
 ## and the "Combo" caption small and muted. The grade grows with how good it is (owner, 2026-10-27: start at the
 ## normal size, bigger and livelier as it gets better): GRADE_SIZES of its normal 0.2 m (2.9 degrees at the eye; 4 at
 ## SS), shown at normal size until the song's first note. A song starts at the lowest grade
-## and only climbs (owner, 2026-10-27: starting at SS and dropping felt like being marked down): the live grade is the
-## points so far over the most the whole song can give (Beat Saber's live rank is over the notes so far, from SS), so it
-## reaches the song's grade at its last note and never drops; the score screen's grade is unchanged. A grade going up pops from GRADE_POPS times its size, and S
+## and climbs (owner, 2026-10-27: starting at SS and dropping felt like being marked down; Beat Saber's live rank starts
+## at SS): the grade shown is the lower of the accuracy's and one unlocked a step up from F every GRADE_RAMP_NOTES
+## notes, so good play reaches SS after 30 notes; after that it follows the accuracy. The score screen's grade is
+## unchanged. Untuned. A grade going up pops from GRADE_POPS times its size, and S
 ## and SS flash toward white (GRADE_FLASHES), settling over GRADE_POP_SECONDS with a little overshoot, like the end
 ## screen's grade; a grade going down shrinks back over GRADE_SHRINK_SECONDS without a pop. While it stays at A, S or
 ## SS it rumbles (owner: a rumble, not a gentle pulse), harder the better it is: GRADE_RUMBLES [shake in metres on the
@@ -44,6 +45,9 @@ const GRADE_POPS := {"SS": 1.45, "S": 1.35, "A": 1.25, "B": 1.15}
 const GRADE_FLASHES := {"SS": 0.7, "S": 0.4}
 const GRADE_POP_SECONDS := 0.3
 const GRADE_SHRINK_SECONDS := 0.3
+## grades from lowest to highest, and notes per step of the opening climb
+const GRADE_LADDER := ["F", "D", "C", "B", "A", "S", "SS"]
+const GRADE_RAMP_NOTES := 5
 const GRADE_RUMBLES := {"SS": [0.02, 4.0, 0.3], "S": [0.012, 2.5, 0.15], "A": [0.006, 1.2, 0.0]}
 const GRADE_RUMBLE_HZ := 25.0
 const GRADE_RUMBLE_BOOST := 2.0
@@ -65,9 +69,6 @@ var _grade_label: MeshInstance3D
 ## The grade shown, "" before a song's first note, to pop the label when it goes up.
 var _grade := ""
 var _grade_tween: Tween
-## notes in the song being played (MapStats, bombs left out), for the most the whole song can give; chain links aren't
-## in it, so on a map with chains the climb ends a little early and the grade then follows the accuracy
-var _song_notes := 0
 var _grade_size := 1.0
 ## seconds to the rumble's next offset, and how much of the grade-up boost is left (1 just after, 0 settled)
 var _rumble_wait := 0.0
@@ -112,8 +113,6 @@ func _ready() -> void:
 ## old nodes on them.
 func place(eye := HUD_EYE) -> void:
 	_grade = ""
-	_song_notes = int(MapStats.get_stats(Map.current_info, Map.current_difficulty).get("notes", 0)) \
-			if Map.current_info and Map.current_difficulty else 0
 	_grade_size = 1.0
 	_rumble_boost = 0.0
 	_grade_label.scale = Vector3.ONE
@@ -143,9 +142,7 @@ func show_points(points: int, played: int, length: int, accuracy: float) -> void
 	_set_text(_point_label, _grouped(points))
 	_set_text(_time_label, "%s / %s" % [_clock(clampi(played, 0, length)), _clock(length)])
 	_set_text(_accuracy_label, "%.1f%%" % (accuracy * 100.0))
-	var left := maxi(_song_notes - Scoreboard._notes_scored, 0)
-	var grade := song_grade(Scoreboard.points, Scoreboard.max_points,
-			left * Scoreboard.note_best_score() * 8 * Scoreboard._modifier_scale())
+	var grade := shown_grade(accuracy, Scoreboard._notes_scored)
 	_set_text(_grade_label, grade)
 	var material := _grade_label.material_override as BaseMaterial3D
 	# before the first note the accuracy reads 100%: the normal size, no pop
@@ -193,11 +190,12 @@ func _process(delta: float) -> void:
 		(_grade_label.material_override as BaseMaterial3D).albedo_color = \
 				(Constants.RANK_COLORS[_grade] as Color).lerp(Color.WHITE, rumble[2])
 
-## The live grade: points over the most the whole song can give, the notes so far (max_points) plus the best the notes
-## left could add (left_best, at the full x8 multiplier). Missing a note leaves it where it is; it never drops.
-static func song_grade(points: int, max_points: int, left_best: float) -> String:
-	var whole := max_points + left_best
-	return EndScore.grade(points / whole) if whole > 0.0 else "F"
+## The grade the HUD shows after notes notes at this accuracy: the accuracy's grade, but no higher than a step up from
+## F every GRADE_RAMP_NOTES notes.
+static func shown_grade(accuracy: float, notes: int) -> String:
+	var earned := GRADE_LADDER.find(EndScore.grade(accuracy))
+	@warning_ignore("integer_division")
+	return GRADE_LADDER[mini(earned, mini(notes / GRADE_RAMP_NOTES, GRADE_LADDER.size() - 1))]
 
 ## Whether the grade went up from before to after (not the first one of a song).
 static func grade_rises(before: String, after: String) -> bool:
