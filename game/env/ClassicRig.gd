@@ -4,11 +4,12 @@ class_name ClassicRig
 ## The Classic environment (doc/assets/classic_tunnel/spec.md; owner, 2026-10-27: the giant test tunnel, blockout): a
 ## lighting crew rehearses inside a test tunnel built for something far bigger than people, a round bore 120 m
 ## across (BORE_RADIUS), its ribs running on past RIB_FAR ahead; the track is the maintenance walkway along its
-## bottom. The crew hoists six truss bridges up as the song builds (the old frames' build-up, far ones first); on the
+## bottom. The crew flies six hanging scaffolds in from the ceiling as the song builds (the old frames' build-up, far
+## ones first; owner, 2026-10-27: suspended scaffolds instead of wall-to-wall trusses); on the
 ## drop the tunnel's own test lights run along its ribs from far to near (rib strips, EventDriver).
-## Lights on things that belong there (AGENTS.md "Light", rule 5): the square bars under the trusses and the rib
-## strips, the moving heads on the trusses' top chords, the waving lasers' follow spots on the wall catwalks.
-## Main elements (bore, trusses, catwalks) symmetric; the props near the track are not.
+## Lights on things that belong there (AGENTS.md "Light", rule 5): the square bars under the scaffolds' decks and the
+## rib strips, the moving heads standing on the decks, the waving lasers' follow spots on the wall catwalks.
+## Main elements (bore, scaffolds, catwalks) symmetric; the props near the track and the scaffolds' tool boxes are not.
 ## Dark boxes in one MultiMesh with the scenery's shader; the rib strips in their own (ArchStrip.gdshader). A tool
 ## script, so the tunnel shows in the editor too (built, not saved: no owner). Sizes in metres, blockout, untuned.
 
@@ -28,10 +29,18 @@ const RIB_NEAR := 25.0
 const RIB_FAR := -600.0
 const RIB_SEGMENTS := 24
 const RIB := Vector2(2.4, 3.0)
-## The truss bridges at the old frames' places, TRUSS_Y up when hoisted: two chords and a web panel between, wall to wall.
+## The hanging scaffolds at the old frames' places, their decks' tops SCAFFOLD_Y up when in place: a deck (across,
+## thick, deep), scaffold tubes standing every SCAFFOLD_BAY across at its front and back edges with a top and a middle
+## rail, and a cable from each corner up through the ceiling (thin but seen); a tool box on each deck, not in the same
+## place twice.
 const FRAME_Z: Array[float] = [-10.0, -20.0, -30.0, -40.0, -50.0, -60.0]
-const TRUSS_Y := 20.0
-const TRUSS := Vector2(2.0, 0.6)
+const SCAFFOLD_Y := 20.0
+const SCAFFOLD := Vector3(40.0, 0.3, 3.0)
+const SCAFFOLD_BAY := 10.0
+const SCAFFOLD_RAIL := 1.1
+const SCAFFOLD_TUBE := 0.08
+const CABLE_X := 16.0
+const CABLE := 0.2
 ## the catwalks along the walls: height, width, from z, to z
 const CATWALK := Vector4(8.0, 3.0, -8.0, -64.0)
 const CATWALK_RAIL := 1.1
@@ -50,13 +59,13 @@ const PROPS := [
 const SCISSOR := [Vector3(9.0, 3.2, -16.0), 6.6, 0.95]
 ## a ladder against the right catwalk: its foot and top x, z
 const LADDER := Vector3(26.0, 28.6, -30.0)
-## the moving heads' tilt axis this far above the truss's top chord (laser_fixture.py: yoke foot 0.54 under it)
+## the moving heads' tilt axis this far above the scaffold's deck (laser_fixture.py: yoke foot 0.54 under it)
 const FIXTURE_ABOVE := 0.84
 ## the rib strips: a segment on each rib box in the upper part of the ring (RIB_STRIP_FROM..1-RIB_STRIP_FROM of the
 ## circle from the floor), this wide and thick on the rib's inner face
 const RIB_STRIP_FROM := 0.15
 const RIB_STRIP := Vector2(0.5, 0.4)
-## Building the trusses during a song: each truss is flown in on its own share of the show's build-up (EventDriver),
+## Building the scaffolds during a song: each scaffold is flown in on its own share of the show's build-up (EventDriver),
 ## the far ones first, from FIRST_FRAME_AT to LAST_FRAME_AT; when its share is reached it comes down FLY metres from
 ## near the ceiling over RISE_SECONDS, and stays (owner, 2026-10-27: from above, so it never crosses the player's view;
 ## from the floor it stood across the track at eye height). Flown out at a song's start and put back in place for the
@@ -65,23 +74,22 @@ const FLY := 75.0
 const RISE_SECONDS := 1.5
 const FIRST_FRAME_AT := 0.1
 const LAST_FRAME_AT := 0.8
-const BOXES_PER_TRUSS := 3
+## deck, tool box, posts (two per bay edge), rails (two per side), cables (four)
+const BOXES_PER_SCAFFOLD := 2 + 2 * (int(40.0 / 10.0) + 1) + 4 + 4
 
 var rib_strip_material: ShaderMaterial
 var _multimesh: MultiMesh
 var _boxes: Array[Transform3D] = []
-## per truss (FRAME_Z order): how far up it is (0 down, 1 hoisted) and where it is heading
+## per scaffold (FRAME_Z order): how far up it is (0 down, 1 hoisted) and where it is heading
 var _lift := PackedFloat32Array()
 var _target := PackedFloat32Array()
 
 func _ready() -> void:
 	var boxes: Array[Transform3D] = []
-	# the trusses' boxes come first, BOXES_PER_TRUSS each in FRAME_Z order (_process moves them)
-	var half := truss_half_span()
-	for z in FRAME_Z:
-		for dy in [TRUSS.x * 0.5, -TRUSS.x * 0.5]:
-			boxes.append(_box(Vector3(0.0, TRUSS_Y + dy, z), Vector3(half * 2.0, TRUSS.y, TRUSS.y)))
-		boxes.append(_box(Vector3(0.0, TRUSS_Y, z), Vector3(half * 2.0, TRUSS.x, 0.12)))
+	# the scaffolds' boxes come first, BOXES_PER_SCAFFOLD each in FRAME_Z order (_process moves them)
+	for i in FRAME_Z.size():
+		boxes.append_array(_scaffold(i))
+	assert(boxes.size() == FRAME_Z.size() * BOXES_PER_SCAFFOLD)
 	boxes.append_array(_ribs())
 	boxes.append_array(_floor_and_lining())
 	boxes.append_array(_catwalks())
@@ -111,9 +119,30 @@ func _ready() -> void:
 	add_child(instance)
 	_add_rib_strips()
 
-## Half the bore's width at the trusses' height: they span wall to wall.
-static func truss_half_span() -> float:
-	return sqrt(BORE_RADIUS * BORE_RADIUS - pow(BORE_CENTRE_Y - TRUSS_Y, 2.0)) - RIB.x
+## Hanging scaffold i (FRAME_Z order) in its place.
+static func _scaffold(i: int) -> Array[Transform3D]:
+	var boxes: Array[Transform3D] = []
+	var z: float = FRAME_Z[i]
+	var w := SCAFFOLD.x
+	var top := SCAFFOLD_Y
+	boxes.append(_box(Vector3(0.0, top - SCAFFOLD.y * 0.5, z), SCAFFOLD))
+	# the tool box: a different spot along the deck on each scaffold
+	boxes.append(_box(Vector3(w * (fmod(i * 0.37, 0.8) - 0.4), top + 0.3, z - SCAFFOLD.z * 0.25), Vector3(1.0, 0.6, 0.5)))
+	for edge in [-0.5, 0.5]:
+		var ez: float = z + edge * (SCAFFOLD.z - SCAFFOLD_TUBE)
+		var x := -w * 0.5
+		while x <= w * 0.5 + 0.01:
+			boxes.append(_box(Vector3(x, top + SCAFFOLD_RAIL * 0.5, ez), Vector3(SCAFFOLD_TUBE, SCAFFOLD_RAIL, SCAFFOLD_TUBE)))
+			x += SCAFFOLD_BAY
+		for h in [SCAFFOLD_RAIL, SCAFFOLD_RAIL * 0.5]:
+			boxes.append(_box(Vector3(0.0, top + h, ez), Vector3(w, SCAFFOLD_TUBE, SCAFFOLD_TUBE)))
+	# the cables, up past the ceiling from the deck's corners
+	for cx in [-CABLE_X, CABLE_X]:
+		var ceiling := BORE_CENTRE_Y + sqrt(BORE_RADIUS * BORE_RADIUS - cx * cx)
+		for edge in [-0.5, 0.5]:
+			var cz: float = z + edge * SCAFFOLD.z
+			boxes.append(_box(Vector3(cx, (top + ceiling) * 0.5, cz), Vector3(CABLE, ceiling - top, CABLE)))
+	return boxes
 
 ## Half the bore's width at a height.
 static func bore_half_width(y: float) -> float:
@@ -229,14 +258,14 @@ func _add_rib_strips() -> void:
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
 
-## Where moving head i of `count` stands: on the top chord of a truss, pairs either side of the track.
+## Where moving head i of `count` stands: on a scaffold's deck, pairs either side of the track.
 static func moving_head_spot(i: int, count: int) -> Vector3:
 	@warning_ignore("integer_division")
 	var per_side := count / 2
 	var side := -1.0 if i < per_side else 1.0
 	var j := i % per_side
-	var truss := FRAME_Z.size() - 1 - (j % (FRAME_Z.size() - 1))
-	return Vector3(side * (5.0 + 3.0 * (j % 2)), TRUSS_Y + TRUSS.x * 0.5 + TRUSS.y * 0.5 + FIXTURE_ABOVE, FRAME_Z[truss])
+	var scaffold := FRAME_Z.size() - 1 - (j % (FRAME_Z.size() - 1))
+	return Vector3(side * (5.0 + 3.0 * (j % 2)), SCAFFOLD_Y + FIXTURE_ABOVE, FRAME_Z[scaffold])
 
 ## Where follow spot i of `count` stands: on a wall catwalk, the first half on the left.
 static func follow_spot(i: int, count: int) -> Vector3:
@@ -247,21 +276,21 @@ static func follow_spot(i: int, count: int) -> Vector3:
 	var x := side * (bore_half_width(CATWALK.x) - CATWALK.y * 0.5)
 	return Vector3(x, CATWALK.x + 0.6, lerpf(CATWALK.z - 6.0, CATWALK.w + 10.0, float(j) / maxf(per_side - 1, 1)))
 
-## Where square bar i of `count` hangs: under a truss's bottom chord, along it, beside the track.
-static func truss_bar(i: int, count: int) -> Transform3D:
-	var truss := i % FRAME_Z.size()
+## Where square bar i of `count` hangs: under a scaffold's deck, along it, beside the track.
+static func scaffold_bar(i: int, count: int) -> Transform3D:
+	var scaffold := i % FRAME_Z.size()
 	@warning_ignore("integer_division")
 	var side := -1.0 if (i / FRAME_Z.size()) % 2 == 0 else 1.0
-	# a bar is 32 m along its z; laid along the truss (x), 0.4 of it
+	# a bar is 32 m along its z; laid along the deck (x), 0.4 of it
 	var basis := Basis(Vector3(0.0, 1.0, 0.0), PI * 0.5) * Basis.from_scale(Vector3(1.0, 1.0, 0.4))
 	var x := side * 14.0 if count > FRAME_Z.size() else 0.0
-	return Transform3D(basis, Vector3(x, TRUSS_Y - TRUSS.x * 0.5 - TRUSS.y, FRAME_Z[truss]))
+	return Transform3D(basis, Vector3(x, SCAFFOLD_Y - SCAFFOLD.y - 0.3, FRAME_Z[scaffold]))
 
-## How much of the show has been built, 0 to 1: trusses whose share is reached go up, the rest down.
+## How much of the show has been built, 0 to 1: scaffolds whose share is reached go up, the rest down.
 func set_built(built: float) -> void:
 	var count := FRAME_Z.size()
 	for i in count:
-		# FRAME_Z runs near to far; the far trusses go up first
+		# FRAME_Z runs near to far; the far scaffolds go up first
 		var share := lerpf(FIRST_FRAME_AT, LAST_FRAME_AT, float(count - 1 - i) / maxf(count - 1, 1))
 		_target[i] = 1.0 if built >= share else 0.0
 
@@ -271,19 +300,19 @@ func _process(delta: float) -> void:
 			continue
 		_lift[i] = move_toward(_lift[i], _target[i], delta / RISE_SECONDS)
 		var up := FLY * (1.0 - smoothstep(0.0, 1.0, _lift[i]))
-		for b in BOXES_PER_TRUSS:
-			var box := _boxes[i * BOXES_PER_TRUSS + b]
-			_multimesh.set_instance_transform(i * BOXES_PER_TRUSS + b, Transform3D(box.basis, box.origin + Vector3.UP * up))
+		for b in BOXES_PER_SCAFFOLD:
+			var box := _boxes[i * BOXES_PER_SCAFFOLD + b]
+			_multimesh.set_instance_transform(i * BOXES_PER_SCAFFOLD + b, Transform3D(box.basis, box.origin + Vector3.UP * up))
 
-## How far above its place the truss at this z is now (0 when in place or when no truss is there): EventDriver hides
-## the lights on a truss until it is in place.
+## How far above its place the scaffold at this z is now (0 when in place or when no scaffold is there): EventDriver hides
+## the lights on a scaffold until it is in place.
 func drop_at(z: float) -> float:
 	for i in FRAME_Z.size():
 		if absf(FRAME_Z[i] - z) < 1.0:
 			return FLY * (1.0 - smoothstep(0.0, 1.0, _lift[i]))
 	return 0.0
 
-## True while every truss is hoisted.
+## True while every scaffold is hoisted.
 func standing() -> bool:
 	return _lift.count(1.0) == _lift.size()
 

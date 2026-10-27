@@ -211,7 +211,7 @@ const PLATFORM_LIGHTS := preload("res://game/env/platform_lights.tres")
 func _ready() -> void:
 	classic_sky_material.render_priority = SKY_RENDER_PRIORITY
 	$Level.add_child(_dust)
-	# each laser's own transform (its aim), put back before a rig hangs it (Classic's places it on the tunnel's trusses
+	# each laser's own transform (its aim), put back before a rig hangs it (Classic's places it on the tunnel's hanging scaffolds
 	# and catwalks, ClassicRig)
 	for laser: Node3D in diagonal_lasers + _waving_lasers():
 		_classic_rig[laser] = laser.global_transform
@@ -549,8 +549,8 @@ func _apply_rig(id: String) -> void:
 		material.set_shader_parameter(&"brightness", rest[1] * VOID_BEAM_BRIGHTNESS if void_stage else rest[1])
 	match id:
 		"classic":
-			# the giant test tunnel (ClassicRig): moving heads on the trusses' top chords, follow spots on the wall
-			# catwalks, the square bars under the trusses (the vertical ones left out); all keep their Classic aim
+			# the giant test tunnel (ClassicRig): moving heads standing on the hanging scaffolds' decks, follow spots on the wall
+			# catwalks, the square bars under the scaffolds' decks (the vertical ones left out); all keep their Classic aim
 			for i in diagonal_lasers.size():
 				diagonal_lasers[i].global_position = ClassicRig.moving_head_spot(i, diagonal_lasers.size())
 			for i in waving.size():
@@ -562,7 +562,7 @@ func _apply_rig(id: String) -> void:
 				else:
 					bars.append(bar)
 			for i in bars.size():
-				bars[i].global_transform = ClassicRig.truss_bar(i, bars.size())
+				bars[i].global_transform = ClassicRig.scaffold_bar(i, bars.size())
 		"neon_grid":
 			# the diagonal lasers: floodlights at B's footing (left) and C's (right), fanning up and away from the sun
 			var per_side := diagonal_lasers.size() >> 1
@@ -867,7 +867,7 @@ func _follow_frames() -> void:
 	for bar in _square_bars():
 		if bar.get_parent() == square_lasers_holder:
 			bar.visible = classic_rig.drop_at(bar.global_position.z) == 0.0
-	# the moving heads stand on the trusses too
+	# the moving heads stand on the scaffolds too
 	for laser: Node3D in diagonal_lasers:
 		laser.visible = classic_rig.drop_at(laser.global_position.z) == 0.0
 	_bars_lowered = not classic_rig.standing()
