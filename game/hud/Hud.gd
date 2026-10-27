@@ -19,8 +19,10 @@ extends Node3D
 ## SS), shown at normal size until the song's first note. A grade going up pops from GRADE_POPS times its size, and S
 ## and SS flash toward white (GRADE_FLASHES), settling over GRADE_POP_SECONDS with a little overshoot, like the end
 ## screen's grade; a grade going down shrinks back over GRADE_SHRINK_SECONDS without a pop. While it stays at A, S or
-## SS it keeps pulsing (owner), more the better it is: GRADE_PULSES [size swing, flash toward white] at GRADE_PULSE_HZ,
-## slow, well under flicker rates.
+## SS it rumbles (owner: a rumble, not a gentle pulse), harder the better it is: GRADE_RUMBLES [shake in metres on the
+## panel, tilt in degrees, steady brightening toward white], a new random offset GRADE_RUMBLE_HZ times a second; a
+## grade going up rumbles GRADE_RUMBLE_BOOST times as hard, easing back over GRADE_RUMBLE_BOOST_SECONDS. The colour
+## doesn't flicker with the shake (no flashing at 3-30 Hz).
 ## where the eye is taken to be before a song has started (a standing player, 1 m behind the track's origin)
 const HUD_EYE := Vector3(0.0, 1.6, 1.0)
 const HUD_DISTANCE := 5.83
@@ -39,8 +41,10 @@ const GRADE_POPS := {"SS": 1.45, "S": 1.35, "A": 1.25, "B": 1.15}
 const GRADE_FLASHES := {"SS": 0.7, "S": 0.4}
 const GRADE_POP_SECONDS := 0.3
 const GRADE_SHRINK_SECONDS := 0.3
-const GRADE_PULSES := {"SS": [0.08, 0.35], "S": [0.05, 0.15], "A": [0.03, 0.0]}
-const GRADE_PULSE_HZ := 1.2
+const GRADE_RUMBLES := {"SS": [0.02, 4.0, 0.3], "S": [0.012, 2.5, 0.15], "A": [0.006, 1.2, 0.0]}
+const GRADE_RUMBLE_HZ := 25.0
+const GRADE_RUMBLE_BOOST := 2.0
+const GRADE_RUMBLE_BOOST_SECONDS := 0.6
 ## the multiplier ring's scale (its quad is 0.5 m) and centre, the multiplier's height, and the time line
 const HUD_RING_SIZE := 1.5
 const HUD_RING := Vector2(0.0, 0.15)
@@ -59,7 +63,9 @@ var _grade_label: MeshInstance3D
 var _grade := ""
 var _grade_tween: Tween
 var _grade_size := 1.0
-var _pulse_time := 0.0
+## seconds to the rumble's next offset, and how much of the grade-up boost is left (1 just after, 0 settled)
+var _rumble_wait := 0.0
+var _rumble_boost := 0.0
 var _time_label: MeshInstance3D
 
 func _init(point_label: MeshInstance3D, combo: ComboHud, percent_indicator: PercentIndicator) -> void:
@@ -101,7 +107,10 @@ func _ready() -> void:
 func place(eye := HUD_EYE) -> void:
 	_grade = ""
 	_grade_size = 1.0
+	_rumble_boost = 0.0
 	_grade_label.scale = Vector3.ONE
+	_grade_label.position = Vector3(HUD_GRADE.x, HUD_GRADE.y, 0.0)
+	_grade_label.rotation = Vector3.ZERO
 	_left.global_transform = _panel(eye, -1.0)
 	_right.global_transform = _panel(eye, 1.0)
 	_point_label.global_transform = _left.global_transform * Transform3D(Basis(), Vector3(HUD_SCORE.x, HUD_SCORE.y, 0.0))
@@ -136,7 +145,8 @@ func show_points(points: int, played: int, length: int, accuracy: float) -> void
 	if grade == _grade:
 		return
 	_grade_size = float(GRADE_SIZES.get(grade, 1.0))
-	_pulse_time = 0.0
+	if grade_rises(_grade, grade):
+		_rumble_boost = 1.0
 	var size := Vector3.ONE * _grade_size
 	if _grade_tween:
 		_grade_tween.kill()
@@ -152,16 +162,26 @@ func show_points(points: int, played: int, length: int, accuracy: float) -> void
 	_grade = grade
 	_percent_indicator.update_percent(accuracy)
 
-## The pulse at A, S and SS, once a pop or shrink has settled.
+## The rumble at A, S and SS: the letter shakes and tilts around its spot (alongside a pop's growing), brighter.
 func _process(delta: float) -> void:
-	if not _left.visible or not GRADE_PULSES.has(_grade) or (_grade_tween and _grade_tween.is_running()):
+	if not _left.visible:
 		return
-	_pulse_time += delta
-	var pulse: Array = GRADE_PULSES[_grade]
-	var wave := sin(TAU * GRADE_PULSE_HZ * _pulse_time)
-	_grade_label.scale = Vector3.ONE * _grade_size * (1.0 + pulse[0] * wave)
-	(_grade_label.material_override as BaseMaterial3D).albedo_color = \
-			(Constants.RANK_COLORS[_grade] as Color).lerp(Color.WHITE, pulse[1] * (0.5 + 0.5 * wave))
+	var home := Vector3(HUD_GRADE.x, HUD_GRADE.y, 0.0)
+	if not GRADE_RUMBLES.has(_grade):
+		_grade_label.position = home
+		_grade_label.rotation = Vector3.ZERO
+		return
+	var rumble: Array = GRADE_RUMBLES[_grade]
+	_rumble_boost = maxf(_rumble_boost - delta / GRADE_RUMBLE_BOOST_SECONDS, 0.0)
+	var strength := 1.0 + (GRADE_RUMBLE_BOOST - 1.0) * _rumble_boost
+	_rumble_wait -= delta
+	if _rumble_wait <= 0.0:
+		_rumble_wait = 1.0 / GRADE_RUMBLE_HZ
+		_grade_label.position = home + Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), 0.0) * rumble[0] * strength
+		_grade_label.rotation.z = deg_to_rad(randf_range(-1.0, 1.0) * rumble[1] * strength)
+	if not (_grade_tween and _grade_tween.is_running()):
+		(_grade_label.material_override as BaseMaterial3D).albedo_color = \
+				(Constants.RANK_COLORS[_grade] as Color).lerp(Color.WHITE, rumble[2])
 
 ## Whether the grade went up from before to after (not the first one of a song).
 static func grade_rises(before: String, after: String) -> bool:
