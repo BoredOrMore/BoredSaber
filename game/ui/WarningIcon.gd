@@ -37,6 +37,8 @@ var _icon_material := StandardMaterial3D.new()
 var _card := Node3D.new()
 var _card_back := MeshInstance3D.new()
 var _card_text := Label3D.new()
+## A double tick from the icon's place when it appears, so it's noticed without looking for it.
+var _sound := AudioStreamPlayer3D.new()
 var _messages := PackedStringArray()
 var _since_check := CHECK_SECONDS
 ## Logged once each: what the device didn't let the game read.
@@ -89,6 +91,10 @@ func _ready() -> void:
 	_card.position = Vector3(-ICON_SIZE / 2.0, ICON_SIZE / 2.0 + 0.02, 0.01)
 	_card.visible = false
 	add_child(_card)
+	_sound.stream = preload("res://game/data/warning.wav")
+	_sound.attenuation_model = AudioStreamPlayer3D.ATTENUATION_DISABLED
+	_sound.bus = &"UI"
+	add_child(_sound)
 	visible = false
 	vr.pose_recentered.connect(func() -> void: _play_area_read = false)
 
@@ -109,7 +115,10 @@ func _process(delta: float) -> void:
 		return
 	_since_check = 0.0
 	_messages = messages()
+	var was_visible := visible
 	visible = not _messages.is_empty() and game.main_menu.visible and game.gamestate == game.gamestate_mapselection
+	if visible and not was_visible:
+		_sound.play()
 	collision_layer = CollisionLayerConstants.Ui_mask if visible else 0
 	if not visible:
 		_card.visible = false

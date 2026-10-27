@@ -27,6 +27,7 @@ func _ready(game: BeepSaber_Game) -> void:
 	
 	game.pause_position = game.song_player.get_playback_position()
 	game.song_player.stop()
+	game.play_pause_sound()
 	(game.pause_menu.ui_control as PausePanel).set_pause_text(
 		"%s By %s\nMap author: %s" % [
 		Map.current_info.song_name,

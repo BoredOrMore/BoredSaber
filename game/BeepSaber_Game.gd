@@ -381,6 +381,13 @@ const COUNTDOWN_TICK := preload("res://game/data/countdown_tick.wav")
 const COUNTDOWN_GO := preload("res://game/data/countdown_go.wav")
 var _countdown_player := AudioStreamPlayer.new()
 
+const PAUSE_SOUND := preload("res://game/data/pause.wav")
+
+## Plays the falling notes for the song pausing (resuming has the countdown).
+func play_pause_sound() -> void:
+	_countdown_player.stream = PAUSE_SOUND
+	_countdown_player.play()
+
 ## Plays the countdown sound for seconds left (0: go).
 func play_countdown(seconds: int) -> void:
 	_countdown_player.stream = COUNTDOWN_TICK if seconds > 0 else COUNTDOWN_GO
