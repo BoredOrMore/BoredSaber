@@ -13,6 +13,8 @@ extends Node3D
 
 const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
 const ARCH_STRIP := preload("res://game/env/ArchStrip.gdshader")
+## a dish panel (doc/assets/dish_panel/spec.md): a unit piece, its face's top at +0.5, scaled to each ring's panel
+const DISH_PANEL := preload("res://game/models/dish_panel.glb")
 ## the dish: its radius, its vertex's height (the focus, a quarter of the diameter above it, is at the track; so is the
 ## rim), panel rings from DISH_INNER to the rim, segments round, the panels' thickness; the rim truss's section
 const DISH_RADIUS := 250.0
@@ -78,6 +80,18 @@ func _ready() -> void:
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
+	var panels := MultiMesh.new()
+	panels.transform_format = MultiMesh.TRANSFORM_3D
+	panels.mesh = LaserFixtures._model_mesh(DISH_PANEL)
+	var places := _panels()
+	panels.instance_count = places.size()
+	for i in places.size():
+		panels.set_instance_transform(i, places[i])
+	var dish := MultiMeshInstance3D.new()
+	dish.multimesh = panels
+	dish.material_override = material
+	dish.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(dish)
 	_add_seams()
 
 ## The dish's height at a distance from its axis.
@@ -101,17 +115,24 @@ static func _panel(r0: float, r1: float, a: float, span: float, thick: float) ->
 	var normal := across.cross(down).normalized()
 	if normal.y < 0.0:
 		normal = -normal
-	return Transform3D(Basis(across, normal * thick, down), (p0 + p1) * 0.5 - normal * thick * 0.5)
+	# right-handed (z up the slope), so the panel model isn't mirrored and its faces aren't culled
+	return Transform3D(Basis(across, normal * thick, -down), (p0 + p1) * 0.5 - normal * thick * 0.5)
 
-## The dish's panels, a hub plate in the middle and the rim truss.
-static func _dish() -> Array[Transform3D]:
-	var boxes: Array[Transform3D] = []
+## The dish's panels' places (the model's, scaled), edge to edge.
+static func _panels() -> Array[Transform3D]:
+	var places: Array[Transform3D] = []
 	var span := TAU / DISH_SEGMENTS
 	for ring in DISH_RINGS:
 		var r0 := lerpf(DISH_INNER, DISH_RADIUS, float(ring) / DISH_RINGS)
 		var r1 := lerpf(DISH_INNER, DISH_RADIUS, float(ring + 1) / DISH_RINGS)
 		for s in DISH_SEGMENTS:
-			boxes.append(_panel(r0, r1, span * (s + 0.5), span * 1.02, PANEL))
+			places.append(_panel(r0, r1, span * (s + 0.5), span, PANEL))
+	return places
+
+## The dish's hub plate in the middle and the rim truss.
+static func _dish() -> Array[Transform3D]:
+	var boxes: Array[Transform3D] = []
+	var span := TAU / DISH_SEGMENTS
 	boxes.append(_box(Vector3(0.0, dish_y(0.0) - PANEL * 0.5, 0.0), Vector3(DISH_INNER * 2.0, PANEL, DISH_INNER * 2.0)))
 	for s in DISH_SEGMENTS:
 		var a := span * (s + 0.5)
