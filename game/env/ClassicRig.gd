@@ -24,6 +24,10 @@ const TUNNEL_LINING := preload("res://game/models/tunnel_lining.glb")
 ## an 8 m span of a wall catwalk (doc/assets/wall_catwalk/spec.md): origin at the deck's top centre, +x toward the wall
 const WALL_CATWALK := preload("res://game/models/wall_catwalk.glb")
 const CATWALK_SPAN := 8.0
+## the crew's kit where it stands, uneven left and right (doc/assets/classic_props/spec.md: flight cases, a cable reel,
+## a scissor lift, the ladder up to the right catwalk), one mesh at the origin; and the tool box on each scaffold
+const CLASSIC_PROPS := preload("res://game/models/classic_props.glb")
+const TOOL_BOX := preload("res://game/models/tool_box.glb")
 ## the bore: radius, its centre's height, the ribs' spacing, nearest and farthest z, boxes round each rib and the rib's
 ## section (across the ring, along the bore). The track runs along the circle's bottom (owner, 2026-10-27: keep the
 ## 59 m centre, its size). A lining closes the bore between the ribs (LINING thick, behind them), so the curve rises
@@ -48,21 +52,6 @@ const CABLE_X := 16.0
 const CABLE := 0.2
 ## the catwalks along the walls, their wall edge against the lining: height, width, from z, to z
 const CATWALK := Vector4(8.0, 3.0, -8.0, -64.0)
-## Props near the track, uneven: [centre, size].
-const PROPS := [
-	# flight cases stacked on the left
-	[Vector3(-6.5, 0.4, -3.0), Vector3(1.2, 0.8, 0.8)], [Vector3(-6.4, 1.2, -3.1), Vector3(1.0, 0.8, 0.7)],
-	[Vector3(-7.8, 0.4, -4.2), Vector3(1.2, 0.8, 0.8)],
-	# a cable reel further on the left
-	[Vector3(-8.0, 0.6, -12.0), Vector3(1.2, 1.2, 0.6)],
-	# a scissor lift on the right: base, platform raised to 6 m, its rails
-	[Vector3(9.0, 0.4, -16.0), Vector3(2.4, 0.8, 1.2)], [Vector3(9.0, 6.0, -16.0), Vector3(2.6, 0.2, 1.3)],
-	[Vector3(9.0, 6.6, -16.6), Vector3(2.6, 1.0, 0.06)],
-]
-## the scissor lift's crossed arms, between its base and platform (centre, length, tilt)
-const SCISSOR := [Vector3(9.0, 3.2, -16.0), 6.6, 0.95]
-## a ladder against the right catwalk: its foot and top x, z
-const LADDER := Vector3(28.4, 30.8, -30.0)
 ## the moving heads' tilt axis this far above the scaffold's deck (laser_fixture.py: yoke foot 0.54 under it)
 const FIXTURE_ABOVE := 0.84
 ## the rib strips: a segment on each rib box in the upper part of the ring (RIB_STRIP_FROM..1-RIB_STRIP_FROM of the
@@ -78,12 +67,13 @@ const FLY := 75.0
 const RISE_SECONDS := 1.5
 const FIRST_FRAME_AT := 0.1
 const LAST_FRAME_AT := 0.8
-## tool box, cables (four)
-const BOXES_PER_SCAFFOLD := 5
+## cables (four)
+const BOXES_PER_SCAFFOLD := 4
 
 var rib_strip_material: ShaderMaterial
 var _multimesh: MultiMesh
 var _scaffolds: MultiMesh
+var _tool_boxes: MultiMesh
 var _boxes: Array[Transform3D] = []
 ## per scaffold (FRAME_Z order): how far up it is (0 down, 1 hoisted) and where it is heading
 var _lift := PackedFloat32Array()
@@ -96,12 +86,6 @@ func _ready() -> void:
 		boxes.append_array(_scaffold(i))
 	assert(boxes.size() == FRAME_Z.size() * BOXES_PER_SCAFFOLD)
 	boxes.append_array(_floor())
-	for p: Array in PROPS:
-		boxes.append(_box(p[0], p[1]))
-	for side in [-1.0, 1.0]:
-		var c: Vector3 = SCISSOR[0]
-		boxes.append(Transform3D(Basis(Vector3(0.0, 0.0, 1.0), side * float(SCISSOR[2])) * Basis.from_scale(Vector3(0.12, SCISSOR[1], 0.12)), c))
-	boxes.append_array(_ladder())
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	multimesh.mesh = BoxMesh.new()
@@ -121,9 +105,13 @@ func _ready() -> void:
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
 	var places: Array[Transform3D] = []
+	var tools: Array[Transform3D] = []
 	for i in FRAME_Z.size():
 		places.append(_scaffold_place(i, 0.0))
+		tools.append(_tool_box_place(i, 0.0))
 	_scaffolds = _add_model(HANGING_SCAFFOLD, places, material)
+	_tool_boxes = _add_model(TOOL_BOX, tools, material)
+	_add_model(CLASSIC_PROPS, [Transform3D.IDENTITY], material)
 	_add_model(TUNNEL_RIB, _ribs(), material)
 	_add_model(TUNNEL_LINING, _lining(), material)
 	_add_model(WALL_CATWALK, _catwalks(), material)
@@ -144,14 +132,11 @@ func _add_model(model: PackedScene, places: Array[Transform3D], material: Materi
 	add_child(instance)
 	return multimesh
 
-## Hanging scaffold i's boxes (FRAME_Z order) in its place: its tool box and cables (the model is drawn apart).
+## Hanging scaffold i's boxes (FRAME_Z order) in its place: its cables (the model and tool box are drawn apart).
 static func _scaffold(i: int) -> Array[Transform3D]:
 	var boxes: Array[Transform3D] = []
 	var z: float = FRAME_Z[i]
-	var w := SCAFFOLD.x
 	var top := SCAFFOLD_Y
-	# the tool box: a different spot along the deck on each scaffold
-	boxes.append(_box(Vector3(w * (fmod(i * 0.37, 0.8) - 0.4), top + 0.3, z - SCAFFOLD.z * 0.25), Vector3(1.0, 0.6, 0.5)))
 	# the cables, up past the ceiling from the deck's lugs
 	for cx in [-CABLE_X, CABLE_X]:
 		var ceiling := BORE_CENTRE_Y + sqrt(BORE_RADIUS * BORE_RADIUS - cx * cx)
@@ -230,21 +215,6 @@ static func _catwalks() -> Array[Transform3D]:
 ## How far from the track the right catwalk's middle is: its wall edge on the lining's face.
 static func catwalk_x() -> float:
 	return sqrt(pow(BORE_RADIUS + RIB.x * 0.5, 2.0) - pow(BORE_CENTRE_Y - CATWALK.x, 2.0)) - CATWALK.y * 0.5
-
-## The ladder up to the right catwalk: two rails and a rung every 0.6 m.
-static func _ladder() -> Array[Transform3D]:
-	var boxes: Array[Transform3D] = []
-	# its foot on the lining's inner face
-	var foot := Vector3(LADDER.x, BORE_CENTRE_Y - sqrt(pow(BORE_RADIUS + RIB.x * 0.5, 2.0) - LADDER.x * LADDER.x), LADDER.z)
-	var top := Vector3(LADDER.y, CATWALK.x, LADDER.z)
-	var d := top - foot
-	var basis := Basis(Vector3(0.0, 0.0, 1.0), -atan2(d.x, d.y))
-	for dz in [-0.25, 0.25]:
-		boxes.append(Transform3D(basis * Basis.from_scale(Vector3(0.06, d.length(), 0.06)), (foot + top) * 0.5 + Vector3(0.0, 0.0, dz)))
-	var rungs := int(d.length() / 0.6)
-	for i in range(1, rungs):
-		boxes.append(Transform3D(basis * Basis.from_scale(Vector3(0.05, 0.05, 0.5)), foot + d * float(i) / rungs))
-	return boxes
 
 ## The rib strips' MultiMesh: a segment on each rib box's inner face in the upper part of the ring, custom data x its
 ## order far to near (0 the farthest rib), so the tunnel's test lights run from far to near as `level` rises.
@@ -330,6 +300,11 @@ func _process(delta: float) -> void:
 			var box := _boxes[i * BOXES_PER_SCAFFOLD + b]
 			_multimesh.set_instance_transform(i * BOXES_PER_SCAFFOLD + b, Transform3D(box.basis, box.origin + Vector3.UP * up))
 		_scaffolds.set_instance_transform(i, _scaffold_place(i, up))
+		_tool_boxes.set_instance_transform(i, _tool_box_place(i, up))
+
+## Where scaffold i's tool box stands, `up` metres above its place: a different spot along the deck on each.
+static func _tool_box_place(i: int, up: float) -> Transform3D:
+	return Transform3D(Basis.IDENTITY, Vector3(SCAFFOLD.x * (fmod(i * 0.37, 0.8) - 0.4), SCAFFOLD_Y + up, FRAME_Z[i] - SCAFFOLD.z * 0.25))
 
 ## Where scaffold model i stands, `up` metres above its place.
 static func _scaffold_place(i: int, up: float) -> Transform3D:
