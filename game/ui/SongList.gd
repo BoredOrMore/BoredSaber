@@ -136,8 +136,26 @@ func place_row(index: int, offset: float) -> void:
 	_reset_scroll = false
 	if _glide:
 		_glide.kill()
-	scroll_vertical = roundi(_row_top(index) - offset)
-	_redraw()
+	_place_generation += 1
+	var generation := _place_generation
+	var scroll := _row_top(index) - offset
+	scroll_vertical = roundi(scroll)
+	# again once the rebuilt rows are laid out (until then the scroll range is the old list's and clamps it); the
+	# canvas meanwhile isn't asked to redraw (OQ_UI2DCanvas.update_only_on_input), so it shows the row only in place
+	_placing = true
+	await get_tree().process_frame
+	await get_tree().process_frame
+	if generation != _place_generation:
+		return
+	_placing = false
+	if is_inside_tree():
+		scroll_vertical = roundi(scroll)
+		_redraw()
+
+## bumped by each place_row, so only the newest one applies after the layout waits
+var _place_generation := 0
+## set while place_row waits for the layout: no redraws meanwhile
+var _placing := false
 
 ## set by clear(), cleared by place_row
 var _reset_scroll := false
@@ -186,7 +204,7 @@ func _style_row(index: int) -> void:
 
 ## Redraws the canvas: selection and scrolling change between pointer inputs.
 func _redraw() -> void:
-	if not is_inside_tree():
+	if not is_inside_tree() or _placing:
 		return
 	var canvas := get_viewport().get_parent() as OQ_UI2DCanvas
 	if canvas:

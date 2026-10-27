@@ -279,7 +279,9 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 	var filter := SongFilter.saved()
 	var shown: Array[MapInfo] = []
 	for map in songs:
-		if filter.passes(map):
+		# the selected song stays even when a filter would hide it now (a filter that follows the speed would pull it
+		# from under the player choosing its speed, and the list would jump)
+		if filter.passes(map) or map == current_map:
 			shown.append(map)
 	_show_filter_counts(filter, songs, shown.size())
 	songs = shown
