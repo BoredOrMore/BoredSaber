@@ -17,6 +17,10 @@ const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
 const ARCH_STRIP := preload("res://game/env/ArchStrip.gdshader")
 ## the hanging scaffold (doc/assets/hanging_scaffold/spec.md): deck, tubes and rails; origin at the deck's top centre
 const HANGING_SCAFFOLD := preload("res://game/models/hanging_scaffold.glb")
+## a rib segment and a lining panel (doc/assets/tunnel_parts/spec.md), each at its box's centre and in metres, placed
+## with the boxes' transforms unscaled
+const TUNNEL_RIB := preload("res://game/models/tunnel_rib.glb")
+const TUNNEL_LINING := preload("res://game/models/tunnel_lining.glb")
 ## the bore: radius, its centre's height, the ribs' spacing, nearest and farthest z, boxes round each rib and the rib's
 ## section (across the ring, along the bore). The track runs along the circle's bottom (owner, 2026-10-27: keep the
 ## 59 m centre, its size). A lining closes the bore between the ribs (LINING thick, behind them), so the curve rises
@@ -89,8 +93,7 @@ func _ready() -> void:
 	for i in FRAME_Z.size():
 		boxes.append_array(_scaffold(i))
 	assert(boxes.size() == FRAME_Z.size() * BOXES_PER_SCAFFOLD)
-	boxes.append_array(_ribs())
-	boxes.append_array(_floor_and_lining())
+	boxes.append_array(_floor())
 	boxes.append_array(_catwalks())
 	for p: Array in PROPS:
 		boxes.append(_box(p[0], p[1]))
@@ -116,18 +119,28 @@ func _ready() -> void:
 	instance.material_override = material
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
-	_scaffolds = MultiMesh.new()
-	_scaffolds.transform_format = MultiMesh.TRANSFORM_3D
-	_scaffolds.mesh = LaserFixtures._model_mesh(HANGING_SCAFFOLD)
-	_scaffolds.instance_count = FRAME_Z.size()
+	var places: Array[Transform3D] = []
 	for i in FRAME_Z.size():
-		_scaffolds.set_instance_transform(i, _scaffold_place(i, 0.0))
-	var scaffolds := MultiMeshInstance3D.new()
-	scaffolds.multimesh = _scaffolds
-	scaffolds.material_override = material
-	scaffolds.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(scaffolds)
+		places.append(_scaffold_place(i, 0.0))
+	_scaffolds = _add_model(HANGING_SCAFFOLD, places, material)
+	_add_model(TUNNEL_RIB, _ribs(), material)
+	_add_model(TUNNEL_LINING, _lining(), material)
 	_add_rib_strips()
+
+## One MultiMesh of a model at these places, with the scenery's material.
+func _add_model(model: PackedScene, places: Array[Transform3D], material: Material) -> MultiMesh:
+	var multimesh := MultiMesh.new()
+	multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	multimesh.mesh = LaserFixtures._model_mesh(model)
+	multimesh.instance_count = places.size()
+	for i in places.size():
+		multimesh.set_instance_transform(i, places[i])
+	var instance := MultiMeshInstance3D.new()
+	instance.multimesh = multimesh
+	instance.material_override = material
+	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(instance)
+	return multimesh
 
 ## Hanging scaffold i's boxes (FRAME_Z order) in its place: its tool box and cables (the model is drawn apart).
 static func _scaffold(i: int) -> Array[Transform3D]:
@@ -156,7 +169,7 @@ static func _rib_box(z: float, angle: float, length: float, size: Vector2) -> Tr
 	var basis := Basis(tangent * length, -dir * size.x, Vector3(0.0, 0.0, size.y))
 	return Transform3D(basis, Vector3(0.0, BORE_CENTRE_Y, z) + dir * BORE_RADIUS)
 
-## The ribs: a ring of boxes every RIB_STEP from RIB_NEAR to RIB_FAR.
+## The ribs: a ring of segments every RIB_STEP from RIB_NEAR to RIB_FAR (the model's places, unscaled).
 static func _ribs() -> Array[Transform3D]:
 	var boxes: Array[Transform3D] = []
 	var length := TAU * BORE_RADIUS / RIB_SEGMENTS * 1.06
@@ -164,7 +177,7 @@ static func _ribs() -> Array[Transform3D]:
 	while z >= RIB_FAR:
 		for i in RIB_SEGMENTS:
 			if _above_floor(TAU * (i + 0.5) / RIB_SEGMENTS):
-				boxes.append(_rib_box(z, TAU * (i + 0.5) / RIB_SEGMENTS, length, RIB))
+				boxes.append(_rib_box(z, TAU * (i + 0.5) / RIB_SEGMENTS, length, RIB).orthonormalized())
 		z -= RIB_STEP
 	return boxes
 
@@ -172,25 +185,33 @@ static func _ribs() -> Array[Transform3D]:
 static func _above_floor(angle: float) -> bool:
 	return BORE_CENTRE_Y - BORE_RADIUS * cos(angle) > FLOOR_Y
 
-## The floor and the lining, one slab and one lining panel per segment for each bay between two ribs (cut per bay so
-## the haze, worked out per vertex, changes along them).
-static func _floor_and_lining() -> Array[Transform3D]:
+## The floor plate, one slab for each bay between two ribs (cut per bay so the haze, worked out per vertex, changes
+## along it), reaching the lowest lining panels.
+static func _floor() -> Array[Transform3D]:
 	var boxes: Array[Transform3D] = []
 	var lowest := 0
 	while not _above_floor(TAU * (lowest + 0.5) / RIB_SEGMENTS):
 		lowest += 1
 	var half := (BORE_RADIUS + RIB.x) * sin(TAU * lowest / RIB_SEGMENTS)
+	var z := RIB_NEAR
+	while z > RIB_FAR:
+		boxes.append(_box(Vector3(0.0, FLOOR_Y - 0.5, z - RIB_STEP * 0.5), Vector3(half * 2.0, 1.0, RIB_STEP)))
+		z -= RIB_STEP
+	return boxes
+
+## The lining panels' places (unscaled), one per segment for each bay.
+static func _lining() -> Array[Transform3D]:
+	var boxes: Array[Transform3D] = []
 	var length := TAU * BORE_RADIUS / RIB_SEGMENTS * 1.06
 	var z := RIB_NEAR
 	while z > RIB_FAR:
 		var mid := z - RIB_STEP * 0.5
-		boxes.append(_box(Vector3(0.0, FLOOR_Y - 0.5, mid), Vector3(half * 2.0, 1.0, RIB_STEP)))
 		for i in RIB_SEGMENTS:
 			var angle := TAU * (i + 0.5) / RIB_SEGMENTS
 			if _above_floor(angle):
 				var t := _rib_box(mid, angle, length, Vector2(LINING, RIB_STEP))
 				t.origin -= t.basis.y.normalized() * (RIB.x + LINING) * 0.5
-				boxes.append(t)
+				boxes.append(t.orthonormalized())
 		z -= RIB_STEP
 	return boxes
 
