@@ -112,6 +112,11 @@ const DANGER_WALL_MATERIAL := preload("res://game/notes/Wall/danger_wall.tres")
 const BAD_CUT_SOUND := preload("res://game/data/bad_cut.wav")
 const BOMB_HIT_SOUND := preload("res://game/data/bomb_hit.wav")
 const MISS_SOUND := preload("res://game/data/miss.wav")
+## Raised against the cuts (loudness notes, 2026-10-23): a miss and the low health loop measured about 9 LU under a
+## cut and sank in the music, a bomb a little under. Starting points to try on the headset.
+const MISS_GAIN_DB := 4.0
+const LOW_HEALTH_GAIN_DB := 4.0
+const BOMB_GAIN_DB := 2.0
 ## Mistake sounds come from where the note was, so a miss on the left sounds on the left; at full volume wherever.
 var _mistake_player: AudioStreamPlayer3D
 ## Song-end and danger sounds: the saber ignition reversed into a low thump for a fail (tools/make_fail_sound.py),
@@ -163,19 +168,19 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	vr.log_info("loading: " + filename)
 	if FileAccess.file_exists(filename):
 		song_player.stream = AudioStreamOggVorbis.load_from_file(filename)
+		Loudness.apply(song_player.bus, song_player.stream, Loudness.key(FileAccess.open(filename, FileAccess.READ).get_length(),
+				song_player.stream))
 	else:
 		var audio_data : PackedByteArray
 		audio_data = Utils.read_binary_file(info.filepath, info.song_filename)
 		if len(audio_data) > 0:
 			song_player.stream = AudioStreamOggVorbis.load_from_buffer(audio_data)
-		Loudness.apply(song_player.bus, song_player.stream, Loudness.key(FileAccess.open(filename, FileAccess.READ).get_length(),
-				song_player.stream))
+			Loudness.apply(song_player.bus, song_player.stream, Loudness.key(audio_data.size(), song_player.stream))
 		else:
 			vr.log_info("playing silence")
 			var wav := AudioStreamWAV.new()
 			wav.set_stereo(false)
 			wav.set_format(AudioStreamWAV.FORMAT_8_BITS)
-			Loudness.apply(song_player.bus, song_player.stream, Loudness.key(audio_data.size(), song_player.stream))
 			wav.set_mix_rate(11025)
 			var length := ceili((Map.current_info.get_length_seconds() + 2) * wav.mix_rate)
 			var data := PackedByteArray()
@@ -399,6 +404,7 @@ func _ready() -> void:
 	_low_health_player = AudioStreamPlayer.new()
 	_low_health_player.bus = &"SFX"
 	_low_health_player.stream = LOW_HEALTH_SOUND
+	_low_health_player.volume_db = LOW_HEALTH_GAIN_DB
 	add_child(_low_health_player)
 	# pre-allocate scenes in our scene pools
 	GlobalReferences.cube_pool = $BeepCubePool
@@ -735,12 +741,14 @@ func set_colors_from_settings() -> void:
 func play_mistake_sound(bomb: bool, at: Vector3) -> void:
 	_mistake_player.position = at
 	_mistake_player.stream = BOMB_HIT_SOUND if bomb else BAD_CUT_SOUND
+	_mistake_player.volume_db = BOMB_GAIN_DB if bomb else 0.0
 	_mistake_player.play()
 
 ## Plays the soft sound for a note that flew past uncut, from where it was.
 func play_miss_sound(at: Vector3) -> void:
 	_mistake_player.position = at
 	_mistake_player.stream = MISS_SOUND
+	_mistake_player.volume_db = MISS_GAIN_DB
 	_mistake_player.play()
 
 ## Colours walls and bombs with the song's danger colour.

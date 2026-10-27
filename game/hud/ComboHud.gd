@@ -116,6 +116,8 @@ func _ready() -> void:
 	_up_sound = _add_sound(preload("res://game/data/combo_up.wav"))
 	_milestone_sound = _add_sound(preload("res://game/data/combo_milestone.wav"))
 	_break_sound = _add_sound(preload("res://game/data/combo_break.wav"))
+	# 3.5 LU under combo_up though it matters more (loudness notes, 2026-10-23)
+	_break_sound.volume_db = 3.0
 
 	Scoreboard.score_changed.connect(refresh)
 	Scoreboard.combo_hit.connect(_on_combo_hit)
