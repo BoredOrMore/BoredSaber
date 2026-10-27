@@ -11,7 +11,11 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
 
 ## File map
 
-- `menu_theme.tres`: the one shared `Theme` (Roboto-Medium 28 px, dark surfaces, accent borders, `toggle_on/off.svg`
+- `fonts/`: Roboto's variable font (`Roboto-Variable.ttf`, OFL, `OFL.txt`) as `roboto_semibold.tres` (600) and
+  `roboto_bold.tres` (700) for 2D text only: TextMesh (3D text: HUD, `UIRaycastButton`, end-screen lines) can't draw a
+  variable font's overlapping outlines (letters like "e" come out broken) and keeps `Roboto-Medium.ttf`.
+- `menu_theme.tres`: the one shared `Theme` (Roboto-Medium 28 px for text; buttons, chips, option buttons and tabs
+  SemiBold, `PrimaryButton` and `TitleLabel` (panel titles) Bold (owner, 2026-10-27); dark surfaces, accent borders, `toggle_on/off.svg`
   pills for `CheckButton`). Every panel `.tscn` sets `theme = ExtResource(...)` on its root. The one main
   button of a screen sets `theme_type_variation = &"PrimaryButton"` (accent border, blue fill); 3D
   `UIRaycastButton`s use `set_primary(true)`.

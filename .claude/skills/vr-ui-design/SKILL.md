@@ -61,7 +61,7 @@ then multiplied by the node `transform` scale.
   [Apple eyes].
 - Never lift text off its background in depth, and keep few depth levels: each refocus tires the
   eyes [Apple spatial layout, Meta comfort]. Bolder weights than on a phone [Apple typography]:
-  Medium or Bold only (the theme's Roboto-Medium), no Light/Thin, no italics, few sizes [Meta
+  Medium for text, SemiBold for buttons and chips, Bold for titles and the main button (the theme's Roboto, `game/ui/fonts/`), no Light/Thin, no italics, few sizes [Meta
   typography]. Meta's text floor is 14 px, 18 px for reading, on panels where 1 dp = 2 mm, about our
   px at canvas scale 2.
 - Rounded buttons and chips with the label centred and padded; flat, no heavy outlines [Apple

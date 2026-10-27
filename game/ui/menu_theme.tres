@@ -1,6 +1,8 @@
 [gd_resource type="Theme" format=3]
 
 [ext_resource type="FontFile" uid="uid://cdsnr8tscm8y6" path="res://OQ_Toolkit/OQ_UI2D/theme/Roboto-Medium.ttf" id="1"]
+[ext_resource type="FontVariation" path="res://game/ui/fonts/roboto_semibold.tres" id="semibold"]
+[ext_resource type="FontVariation" path="res://game/ui/fonts/roboto_bold.tres" id="bold"]
 [ext_resource type="Texture2D" path="res://game/ui/toggle_on.svg" id="toggle_on"]
 [ext_resource type="Texture2D" path="res://game/ui/toggle_off.svg" id="toggle_off"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/chevron-up.svg" id="scroll_up"]
@@ -239,6 +241,7 @@ default_font_size = 28
 BoxContainer/constants/separation = 12
 HBoxContainer/constants/separation = 16
 Button/colors/font_color = Color(0.894, 0.902, 0.922, 1)
+Button/fonts/font = ExtResource("semibold")
 Button/colors/font_disabled_color = Color(0.45, 0.47, 0.5, 1)
 Button/colors/font_hover_color = Color(1, 1, 1, 1)
 Button/colors/font_hover_pressed_color = Color(1, 1, 1, 1)
@@ -250,6 +253,7 @@ Button/styles/hover_pressed = SubResource("surface_pressed")
 Button/styles/normal = SubResource("surface")
 Button/styles/pressed = SubResource("surface_pressed")
 PrimaryButton/base_type = &"Button"
+PrimaryButton/fonts/font = ExtResource("bold")
 PrimaryButton/styles/hover = SubResource("primary_hover")
 PrimaryButton/styles/hover_pressed = SubResource("primary_hover")
 PrimaryButton/styles/normal = SubResource("primary")
@@ -280,6 +284,9 @@ ItemList/styles/panel = SubResource("list")
 ItemList/styles/selected = SubResource("list_selected")
 ItemList/styles/selected_focus = SubResource("list_selected")
 Label/colors/font_color = Color(0.894, 0.902, 0.922, 1)
+TitleLabel/base_type = &"Label"
+TitleLabel/fonts/font = ExtResource("bold")
+OptionButton/fonts/font = ExtResource("semibold")
 OptionButton/colors/font_color = Color(0.894, 0.902, 0.922, 1)
 OptionButton/constants/arrow_margin = 20
 OptionButton/styles/focus = SubResource("empty")
@@ -295,6 +302,7 @@ PopupMenu/styles/panel = SubResource("surface")
 PopupPanel/styles/panel = SubResource("surface")
 SpinBox/colors/font_color = Color(0.894, 0.902, 0.922, 1)
 SpinBox/constants/buttons_width = 40
+TabContainer/fonts/font = ExtResource("semibold")
 TabContainer/colors/font_hovered_color = Color(1, 1, 1, 1)
 TabContainer/colors/font_selected_color = Color(1, 1, 1, 1)
 TabContainer/colors/font_unselected_color = Color(0.6, 0.63, 0.67, 1)

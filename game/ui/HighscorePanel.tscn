@@ -32,6 +32,7 @@ size_flags_vertical = 3
 
 [node name="Title" type="Label" parent="Margin/VBox"]
 layout_mode = 2
+theme_type_variation = &"TitleLabel"
 text = "Highscores (Hard)"
 autowrap_mode = 3
 
