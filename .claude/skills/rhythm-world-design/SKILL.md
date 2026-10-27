@@ -67,6 +67,8 @@ the note corridor authored; vary only chosen properties within stated ranges; re
 3. Busy light sections and quiet ones; menus too (pre-show lighting).
 4. GPU: `tools/bench.sh` before and after; budget 13.9 ms at 72 Hz, the refresh rate for every scene (owner, 2026-10-26).
 5. Anything that moves the playspace follows the playspace rule in `game/AGENTS.md`.
+6. A new environment, or a changed look: its picker pictures rendered again with `tools/capture/env_thumbnails.sh`,
+   framed tight on its main unique element (a `FRAMES` line), told apart from the others at button size.
 
 ## 9. Done means
 It exists and fits the style; the gameplay layer is readable and unobstructed; the pieces are composed, not

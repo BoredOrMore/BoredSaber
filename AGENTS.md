@@ -126,6 +126,9 @@ Process
 - Build UI as templates (owner, 2026-10-28): panel, section and button scenes plus the theme; pages only swap
   content. Don't hand-build a frame, section or button look per page; a button takes one of the theme's button
   kinds (`game/ui/AGENTS.md`, Templates).
+- Whenever an environment is added or its look changes, render its picker pictures again with
+  `tools/capture/env_thumbnails.sh` (owner, 2026-10-28), framed tight on the stage's main unique element so the
+  stages tell apart, each filling its whole button.
 - For any menu, panel, HUD or score-screen work, follow `.claude/skills/vr-ui-design/SKILL.md` before
   building (flow, 3D placement, sizes, feedback) and `.claude/skills/vr-ui-review/SKILL.md` before calling
   it done (every game state that shows the node, overlap and depth checks, headset walk-through).

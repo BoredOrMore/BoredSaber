@@ -18,6 +18,10 @@ All four parse `--key value` pairs after `--` (`OS.get_cmdline_user_args()`), so
   text as angles and distances from the eye (`--eye 1.6`, the menus raised as `_place_menus` does) against
   vr-ui-design's limits; writes a Markdown report (`--out`, default `user://ui_angles.md`): what's outside the limits,
   then every panel. Renders nothing, so it can run `--headless` and the Mac camera's FOV plays no part.
+- `env_thumbnails.sh`: every environment's picker pictures, `game/env/thumbs/<id>.png` (card, 440x400) and
+  `<id>_wide.png` (closed button, 896x240), rendered by `stage_capture` with a per-environment camera (`FRAMES`: yaw,
+  pitch, fov) framed tight on the stage's main unique element. Run it whenever an environment is added or its look
+  changes (root AGENTS.md); a new environment gets a `FRAMES` line.
 - `stage_capture.gd` / `stage_capture.tscn`: a stage as seen from the player's eye with the game's environment
   (`game/event_driver.tscn`), WorldEnvironment, floor and shaders. Writes `--out` (default
   `user://stage_capture.png`), prints `stage_capture OK -> path`, exits 1 on save or `--map` failure. Full option
