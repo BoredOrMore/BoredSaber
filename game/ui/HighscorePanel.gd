@@ -14,7 +14,15 @@ class_name HighscorePanel
 ## modifier titles (they wrap) and long names can't push it off the board (owner on the headset, 2026-10-25).
 const SCORE_WIDTH := 150.0
 
+## The rows read [grade, name, score] (owner, 2026-10-27): the run's grade in the HUD's grade font and its colour, "–"
+## for records from before grades were kept.
+const GRADE_WIDTH := 64.0
+const NO_GRADE := "–"
+
 func _ready() -> void:
+	var grade := _base_row.get_child(0) as Label
+	grade.custom_minimum_size.x = GRADE_WIDTH
+	grade.add_theme_font_override(&"font", Hud.GRADE_FONT)
 	(_base_row.get_child(1) as Label).text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	var score := _base_row.get_child(2) as Label
 	score.custom_minimum_size.x = SCORE_WIDTH
@@ -42,21 +50,23 @@ func load_highscores(map_info: MapInfo, diff_rank: int, latest: Variant = null) 
 	# TODO populate song artwork
 	
 	var records := Highscores.get_records(map_info,diff_rank)
-	var idx = 1
 	for record in records:
 		# build a new row and populate fields from record
 		var new_row = _base_row.duplicate()
-		new_row.get_child(0).text = "%d." % idx
+		var grade_label := new_row.get_child(0) as Label
+		grade_label.text = EndScore.grade(record.accuracy) if record.has("accuracy") else NO_GRADE
+		grade_label.add_theme_color_override(&"font_color",
+				Constants.RANK_COLORS[grade_label.text] if record.has("accuracy") else Constants.UI_TEXT_MUTED)
 		new_row.get_child(1).text = record.player_name
 		new_row.get_child(2).text = "%d" % record.score
 		var mine: bool = record.player_name == Settings.player_name if latest == null else (
 				not (latest as Dictionary).is_empty() and record.epoch_time == latest.epoch_time and record.score == latest.score)
 		if mine:
-			for label: Label in new_row.get_children():
+			# the grade keeps its own colour
+			for label: Label in new_row.get_children().slice(1):
 				label.add_theme_color_override(&"font_color", Constants.UI_ACCENT)
 		
 		_highscore_list.add_child(new_row)
-		idx += 1
 		
 func set_title(title_text):
 	_title.text = title_text

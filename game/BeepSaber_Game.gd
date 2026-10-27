@@ -912,7 +912,8 @@ func _on_song_ended() -> void:
 			Map.current_info,
 			Map.current_difficulty.difficulty_rank,
 			_default_player_name(),
-			Scoreboard.points)
+			Scoreboard.points,
+			Scoreboard.accuracy())
 		_show_name_card()
 		_transition_game_state(gamestate_newhighscore)
 	else:

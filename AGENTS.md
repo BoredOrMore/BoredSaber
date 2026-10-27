@@ -162,7 +162,8 @@ constant with its role, or reuse one.
   selected song, the Play button. Don't use it for plain decoration or for warnings.
 - Neutrals (`UI_PANEL`, `UI_SURFACE*`, `UI_BORDER`, `UI_TEXT`, `UI_TEXT_MUTED`) for everything else.
 - `DIFFICULTY_COLORS` only label difficulties and reaction-time levels.
-- `RANK_COLORS` only colour the rank letter and the result ring on the score screen.
+- `RANK_COLORS` only colour the rank letter (the HUD, the score screen, the ranking rows) and its glow, and the result
+  ring on the score screen.
 - The environment stays dark, its shadows black (no colour toning of the darks: a navy tint was removed on the
   owner's request, 2026-10-26), and takes its light colours from the note colours, so the scene never competes with notes or danger.
 - Never rely on hue alone (colour-blind players): pair a colour with a shape, pattern or word
