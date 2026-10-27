@@ -10,6 +10,8 @@ uniform float segments = 2.0;
 uniform float filled = 0.0;
 // 0..1, brightens and thickens the ring for a moment when the multiplier goes up
 uniform float flash = 0.0;
+// 0..1, the whole ring's opacity (ComboHud's shockwave fades out with it)
+uniform float fade = 1.0;
 // radii as a part of the quad (0.5 is its edge)
 const float INNER = 0.39;
 const float OUTER = 0.46;
@@ -33,5 +35,5 @@ void fragment() {
 	float body = segments > 1.0 ? smoothstep(half_gap, half_gap + seg_aa, in_seg) * (1.0 - smoothstep(1.0 - half_gap - seg_aa, 1.0 - half_gap, in_seg)) : 1.0;
 	float lit = step(in_seg, clamp(filled - floor(seg), 0.0, 1.0));
 	ALBEDO = mix(mix(empty_color, fill_color, lit), vec3(1.0), flash * 0.6);
-	ALPHA = ring * body;
+	ALPHA = ring * body * fade;
 }
