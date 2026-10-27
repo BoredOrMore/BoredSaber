@@ -42,10 +42,11 @@ GONDOLA_AT = (75.0, -185.0)
 GONDOLA_ABOVE = 4.0
 BASKET = (3.0, 1.4, 1.2)
 BASKET_RAIL = 1.0
-# the calibration laser station at the bridge's end on the front rim, beside the track: Godot x, z, its hut (along x,
+# the calibration laser station on the front rim, on the track's centre line past the bridge's end, so the drop's beam
+# rises in the middle of the view: Godot x, z, its hut (along x,
 # high, along z) on the rim ring's top (PulseVoid RIM_TOP), the laser's turret (radius, height); the drop's beam leaves
 # its top (PulseVoid STATION)
-STATION_AT = (7.0, -254.0)
+STATION_AT = (0.0, -256.0)
 RIM_TOP = 0.5
 HUT = (6.0, 3.5, 5.0)
 TURRET = (1.0, 1.2)

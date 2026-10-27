@@ -70,10 +70,11 @@ const FLOOD_AT: Array[float] = [0.25, 0.75, 0.5]
 const FLOOD_DECK := 1.5
 const FLOOD_ABOVE := 0.84
 ## the seam strips: on the dish's face at each panel ring's outer edge, this wide (along the dish) and thick; the drop's
-## beam straight up from the calibration laser station's turret at the bridge's end (dish_props.py STATION_AT, HUT,
+## beam straight up from the calibration laser station's turret on the track's centre line past the bridge's end, so it
+## rises in the middle of the view (owner, 2026-10-27: beside the track it was off centre) (dish_props.py STATION_AT, HUT,
 ## TURRET), its width and height
 const SEAM := Vector2(1.2, 0.3)
-const STATION := Vector3(7.0, 5.2, -254.0)
+const STATION := Vector3(0.0, 5.2, -256.0)
 const DROP_BEAM := Vector2(4.0, 800.0)
 
 var seam_material: ShaderMaterial

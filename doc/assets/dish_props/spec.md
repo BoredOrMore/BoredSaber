@@ -21,4 +21,5 @@
 - Placement (owner, 2026-10-27): the control room stands on the ground outside the rim (286 m, left), as real ones
   stand off the dish; the cherry picker is replaced by a repair gondola hung by a cable from the front-right mast over
   the panels (no vehicle stands on a 40-degree dish); the calibration laser station at the bridge's end on the front
-  rim, right of the track, is the drop's beam's source. About 450 triangles.
+  rim, on the track's centre line past the bridge's end (it stood right of the track and the beam was off centre),
+  is the drop's beam's source. About 450 triangles.
