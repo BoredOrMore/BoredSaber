@@ -29,12 +29,17 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   Picks, adds (max `Settings.MAX_PLAYERS`), renames (records too, `Highscores.rename_player`) and deletes players;
   names are typed on the menu's keyboard (`Keyboard_highscore`), which the menu ignores while its `_keyboard_for` is empty.
 - `BeatSaverPanel/`: browse/search/download maps from beatsaver.com (class `BeatSaverPanel`).
+- Templates (owner, 2026-10-28: build UI as templates, pages only swap content): `menu_panel.tres`, the menus'
+  rounded panel frame (24 px corners, about 1.6 degrees at 2 m), the root style of the song menu's three panels
+  (`MenuPanel.tscn`, a frame that takes no input), Settings, the Download page and "Who's playing?";
+  `MenuSection.tscn` / `MenuSection.gd` (class `MenuSection`), a titled group of rows: rows `ROW_GAP` apart,
+  sections `SECTION_GAP` apart (`section_list`), used by the modifier and More modifiers sections.
 - `StatPills.gd` (class `StatPills`): a difficulty's short stats as icon pills (get ready, notes per second, swing
   flow, length, workout sets) for RichTextLabels; the song menu's stats line and the Download page's details.
   `LevelStrip.gd` draws each card's level strip (Easy..Expert+ slots, the player's level framed, "≈" while estimated)
   into its cover image.
   The menu's "Get songs" opens it directly (`BeepSaber_Game._open_beatsaver`), in front of the player in place
-  of the song menu, at the same size and place (1536x1046 px at scale 2 = the menu's 1280x872 at 2.4). (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
+  of the song menu (1536x1046 px at scale 2, curved on the menus' 2 m cylinder). (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
 - `ModifierChips.gd` (class `ModifierChips`, made by the menu's `_ready`): the Song tab's fail and damage rows,
   on/off and Speed chips, More modifiers, environment picker and reset, in step with `Settings`; `changed()` names
   the modified ones. Its static `make_row_button`/`set_padding` and `CHIP_PADDING` are shared with the difficulty

@@ -1,5 +1,6 @@
 [gd_scene format=3 uid="uid://biylg2wsontn3"]
 
+[ext_resource type="StyleBox" path="res://game/ui/menu_panel.tres" id="menu_panel"]
 [ext_resource type="FontFile" uid="uid://01k27lk2a4bw" path="res://OQ_Toolkit/OQ_UI2D/theme/RobotoMono-Medium.ttf" id="1"]
 [ext_resource type="Script" uid="uid://cpwy2bk3ecxqb" path="res://game/ui/settings_Panel.gd" id="2"]
 [ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="theme"]
@@ -177,15 +178,12 @@ default_font_size = 22
 [sub_resource type="StyleBoxEmpty" id="row_label"]
 content_margin_left = 16.0
 
-[sub_resource type="StyleBoxFlat" id="root"]
-bg_color = Color(0.086, 0.094, 0.114, 1)
-
 [node name="settings_Panel" type="Panel"]
 offset_right = 1280.0
 offset_bottom = 720.0
 mouse_filter = 1
 theme = ExtResource("theme")
-theme_override_styles/panel = SubResource("root")
+theme_override_styles/panel = ExtResource("menu_panel")
 script = ExtResource("2")
 
 [node name="settings" type="Label" parent="."]

@@ -66,6 +66,10 @@ then multiplied by the node `transform` scale.
   layout. Moving it for one screen once covered the song list in another.
 - Never put UI inside the play lane (x ±1 m, in front of the player) while notes can fly.
 
+- **Templates:** build panels, sections and buttons from the shared scenes and theme (`menu_panel.tres`,
+  `MenuPanel.tscn`, `MenuSection.tscn`; owner, 2026-10-28) so sizes, spacing, corners and states live in one
+  place; a page only swaps content. A new kind of panel, section or button becomes a template first.
+
 ## 3. Size and legibility
 
 - Pointer targets: at least 2.5-3° of visual angle [Meta hands UI, Meta eyes]:

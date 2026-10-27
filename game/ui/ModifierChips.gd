@@ -24,7 +24,7 @@ const SPEED_ICON := preload("res://game/ui/icons/gauge.svg")
 const DAMAGE_ICON := preload("res://game/ui/icons/heart-crack.svg")
 
 func _add_heading_icons() -> void:
-	_prefix_icon(_menu.get_node(^"Modifiers/SpeedLabel") as Label, SPEED_ICON)
+	_prefix_icon(_menu.get_node(^"Modifiers/Speed/Title") as Label, SPEED_ICON)
 	_prefix_icon(_menu.damage_row.get_child(0) as Label, DAMAGE_ICON)
 
 ## Puts icon just before label: in its row, the label giving up the icon's room so the columns stay put, or in a
@@ -82,22 +82,20 @@ func _build_chips() -> void:
 		(_menu.environment_row if toggle[1] == &"disable_map_color" else _menu.toggle_row).add_child(chip)
 		set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 	_add_option_chips(_menu.speed_row, &"music_speed", Constants.SPEEDS, Constants.SPEEDS.map(func(o: Array) -> String: return "%d%%" % o[0]))
+	MenuSection.section_list(_menu.more_mods_rows)
 	for row: Array in MORE_MOD_ROWS:
-		_menu.more_mods_rows.add_child(section_gap())
-		var title := Label.new()
-		title.text = str(row[0])
-		_menu.more_mods_rows.add_child(title)
+		var section := MenuSection.make(str(row[0]))
+		_menu.more_mods_rows.add_child(section)
 		var grid := GridContainer.new()
 		grid.columns = int(row[4])
 		grid.add_theme_constant_override(&"h_separation", 4)
 		grid.add_theme_constant_override(&"v_separation", 6)
-		_menu.more_mods_rows.add_child(grid)
+		section.add_child(grid)
 		_add_option_chips(grid, row[1] as StringName, row[2] as Array, row[3] as Array)
 	_claws_chip = make_row_button(Constants.CLAWS_LABEL, null, func() -> void: pass)
 	_claws_chip.toggled.connect(func(on: bool) -> void:
 		Settings.claws = on
 		_menu.update_view())
-	_menu.more_mods_rows.add_child(section_gap())
 	_menu.more_mods_rows.add_child(_claws_chip)
 	set_padding(_claws_chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 	environment_picker = OptionButton.new()
@@ -116,16 +114,6 @@ func _build_chips() -> void:
 	set_padding(_menu.more_mods_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 	# the star and its label in a 48 px button: the theme's 12 px padding would make it 60 px, into the picker
 	set_padding(_menu.favorite_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-
-## Space between the sections of the modifier panels (owner, 2026-10-28: a gap between each section), about 1°
-## at the menu's 2 m, three times the gap between rows of a section.
-const SECTION_GAP := 16.0
-
-static func section_gap() -> Control:
-	var gap := Control.new()
-	gap.custom_minimum_size.y = SECTION_GAP
-	gap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return gap
 
 ## Adds one chip per option of an option table to parent, picking the option's value for key when pressed.
 func _add_option_chips(parent: Container, key: StringName, options: Array, labels: Array) -> void:

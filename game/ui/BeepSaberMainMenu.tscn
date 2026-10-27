@@ -21,17 +21,12 @@
 [ext_resource type="Texture2D" path="res://game/ui/icons/sliders-horizontal.svg" id="icon_sliders-horizontal"]
 [ext_resource type="Script" path="res://game/ui/SongList.gd" id="song_list"]
 [ext_resource type="Script" path="res://game/ui/ConfirmButton.gd" id="confirm_button"]
+[ext_resource type="PackedScene" path="res://game/ui/MenuPanel.tscn" id="menu_panel"]
+[ext_resource type="PackedScene" path="res://game/ui/MenuSection.tscn" id="menu_section"]
 [ext_resource type="PackedScene" uid="uid://cpwxp083qm1jq" path="res://game/ui/HighscorePanel.tscn" id="highscores"]
 
 [sub_resource type="StyleBoxEmpty" id="1"]
 
-[sub_resource type="StyleBoxFlat" id="region"]
-bg_color = Color(0.086, 0.094, 0.114, 1)
-corner_radius_top_left = 24
-corner_radius_top_right = 24
-corner_radius_bottom_right = 24
-corner_radius_bottom_left = 24
-corner_detail = 6
 
 [node name="BeepSaberMainMenu" type="Panel" unique_id=1329467298]
 offset_right = 1753.0
@@ -40,32 +35,26 @@ theme = ExtResource("1")
 theme_override_styles/panel = SubResource("1")
 script = ExtResource("3")
 
-[node name="LeftPanel" type="Panel" parent="."]
+[node name="LeftPanel" parent="." instance=ExtResource("menu_panel")]
 layout_mode = 0
 offset_left = 0.0
 offset_top = 0.0
 offset_right = 480.0
 offset_bottom = 776.0
-mouse_filter = 2
-theme_override_styles/panel = SubResource("region")
 
-[node name="CentrePanel" type="Panel" parent="."]
+[node name="CentrePanel" parent="." instance=ExtResource("menu_panel")]
 layout_mode = 0
 offset_left = 504.0
 offset_top = 0.0
 offset_right = 1249.0
 offset_bottom = 776.0
-mouse_filter = 2
-theme_override_styles/panel = SubResource("region")
 
-[node name="RightPanel" type="Panel" parent="."]
+[node name="RightPanel" parent="." instance=ExtResource("menu_panel")]
 layout_mode = 0
 offset_left = 1273.0
 offset_top = 0.0
 offset_right = 1753.0
 offset_bottom = 776.0
-mouse_filter = 2
-theme_override_styles/panel = SubResource("region")
 
 [node name="Search_Button" type="Button" parent="." unique_id=891455992]
 layout_mode = 0
@@ -342,68 +331,48 @@ offset_left = 1289.0
 offset_top = 76.0
 offset_right = 1737.0
 offset_bottom = 760.0
-theme_override_constants/separation = 6
+theme_override_constants/separation = 16
 
-[node name="NotesLabel" type="Label" parent="Modifiers"]
+[node name="Notes" parent="Modifiers" instance=ExtResource("menu_section")]
 layout_mode = 2
-text = "Notes"
+title = "Notes"
 
-[node name="ToggleRow" type="HBoxContainer" parent="Modifiers"]
+[node name="ToggleRow" type="HBoxContainer" parent="Modifiers/Notes"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Gap1" type="Control" parent="Modifiers"]
-custom_minimum_size = Vector2(0, 16)
+[node name="Speed" parent="Modifiers" instance=ExtResource("menu_section")]
 layout_mode = 2
-mouse_filter = 2
+title = "Speed"
 
-[node name="SpeedLabel" type="Label" parent="Modifiers"]
-layout_mode = 2
-text = "Speed"
-
-[node name="SpeedRow" type="HBoxContainer" parent="Modifiers"]
+[node name="SpeedRow" type="HBoxContainer" parent="Modifiers/Speed"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Gap2" type="Control" parent="Modifiers"]
-custom_minimum_size = Vector2(0, 16)
+[node name="Fail" parent="Modifiers" instance=ExtResource("menu_section")]
 layout_mode = 2
-mouse_filter = 2
+title = "Fail"
 
-[node name="FailLabel" type="Label" parent="Modifiers"]
-layout_mode = 2
-text = "Fail"
-
-[node name="FailRow" type="HBoxContainer" parent="Modifiers" unique_id=1730492217]
+[node name="FailRow" type="HBoxContainer" parent="Modifiers/Fail" unique_id=1730492217]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="DamageRow" type="HBoxContainer" parent="Modifiers" unique_id=1730492218]
+[node name="DamageRow" type="HBoxContainer" parent="Modifiers/Fail" unique_id=1730492218]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="Gap3" type="Control" parent="Modifiers"]
-custom_minimum_size = Vector2(0, 16)
+[node name="Look" parent="Modifiers" instance=ExtResource("menu_section")]
 layout_mode = 2
-mouse_filter = 2
+title = "Look"
 
-[node name="LookLabel" type="Label" parent="Modifiers"]
-layout_mode = 2
-text = "Look"
-
-[node name="EnvironmentRow" type="HBoxContainer" parent="Modifiers"]
+[node name="EnvironmentRow" type="HBoxContainer" parent="Modifiers/Look"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_constants/separation = 4
-
-[node name="Gap4" type="Control" parent="Modifiers"]
-custom_minimum_size = Vector2(0, 16)
-layout_mode = 2
-mouse_filter = 2
 
 [node name="MoreMods_Button" type="Button" parent="Modifiers"]
 custom_minimum_size = Vector2(0, 48)
@@ -441,7 +410,7 @@ offset_left = 16.0
 offset_top = 16.0
 offset_right = -16.0
 offset_bottom = -16.0
-theme_override_constants/separation = 6
+theme_override_constants/separation = 16
 
 [node name="Back_Button" type="Button" parent="MoreModsPanel/Rows"]
 custom_minimum_size = Vector2(0, 48)

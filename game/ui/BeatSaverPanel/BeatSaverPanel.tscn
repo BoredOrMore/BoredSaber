@@ -1,5 +1,6 @@
 [gd_scene format=3 uid="uid://383dbnh6gxd3"]
 
+[ext_resource type="StyleBox" path="res://game/ui/menu_panel.tres" id="menu_panel"]
 [ext_resource type="Script" path="res://game/ui/BeatSaverPanel/BeatSaverPanel.gd" id="2"]
 [ext_resource type="PackedScene" uid="uid://dtipmx5ep1dkk" path="res://game/ui/vr_slider.tscn" id="3"]
 [ext_resource type="Texture2D" uid="uid://cviyxvrpvyr0g" path="res://game/data/beepsaber_logo.png" id="5"]
@@ -9,9 +10,6 @@
 [ext_resource type="Texture2D" path="res://game/ui/icons/search.svg" id="icon_search"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/x.svg" id="icon_x"]
 [ext_resource type="Script" path="res://game/ui/IconButton.gd" id="icon_button"]
-
-[sub_resource type="StyleBoxFlat" id="root"]
-bg_color = Color(0.086, 0.094, 0.114, 1)
 
 [sub_resource type="StyleBoxFlat" id="primary"]
 bg_color = Color(0.2, 0.36, 0.45, 1)
@@ -41,7 +39,7 @@ corner_radius_bottom_left = 14
 offset_right = 1536.0
 offset_bottom = 1046.0
 theme = ExtResource("menu_theme")
-theme_override_styles/panel = SubResource("root")
+theme_override_styles/panel = ExtResource("menu_panel")
 script = ExtResource("2")
 
 [node name="StyleChips" type="HBoxContainer" parent="."]
