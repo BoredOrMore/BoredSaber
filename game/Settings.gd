@@ -437,7 +437,7 @@ func _ready() -> void:
 		player_name = players[0].name
 		_store_current_player()
 	changed.connect(func(key: StringName) -> void:
-		if key == &"player_height_offset" or key == &"left_handed":
+		if key == &"player_height_offset" or key == &"left_handed" or key == &"beatsaver_filter_reaction":
 			_store_current_player())
 
 const platform_default_values = {
@@ -606,13 +606,14 @@ func find_player(new_name: String) -> Dictionary:
 			return player
 	return {}
 
-## Copies the current height and handedness into the current player's entry, and saves the list.
+## Copies the current height, handedness and Download page level into the current player's entry, and saves the list.
 func _store_current_player() -> void:
 	var player := find_player(player_name)
 	if player.is_empty():
 		return
 	player.player_height_offset = player_height_offset
 	player.left_handed = left_handed
+	player.beatsaver_level = beatsaver_filter_reaction
 	players = players
 
 ## Why new_name can't name a player (empty, or taken by another player than old_name), or "" when it can.
@@ -632,6 +633,7 @@ func switch_player(new_name: String) -> void:
 	player_name = player.name
 	player_height_offset = player.player_height_offset
 	left_handed = player.left_handed
+	beatsaver_filter_reaction = int(player.get("beatsaver_level", 0))
 	save()
 
 ## Adds a player with default height and handedness and makes them the current one.

@@ -29,6 +29,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   Picks, adds (max `Settings.MAX_PLAYERS`), renames (records too, `Highscores.rename_player`) and deletes players;
   names are typed on the menu's keyboard (`Keyboard_highscore`), which the menu ignores while its `_keyboard_for` is empty.
 - `BeatSaverPanel/`: browse/search/download maps from beatsaver.com (class `BeatSaverPanel`).
+  `LevelStrip.gd` draws each card's level strip (Easy..Expert+ slots, the player's level framed, "≈" while estimated)
+  into its cover image.
   The menu's "Get songs" opens it directly (`BeepSaber_Game._open_beatsaver`), in front of the player in place
   of the song menu, at the same size and place (1536x1046 px at scale 2 = the menu's 1280x872 at 2.4). (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
 - `ModifierChips.gd` (class `ModifierChips`, made by the menu's `_ready`): the Song tab's fail and damage rows,

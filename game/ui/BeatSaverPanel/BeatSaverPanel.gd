@@ -86,17 +86,21 @@ class BeatSaverSongInfo extends RefCounted:
 				return true
 		return false
 
-	## True if the difficulty filter is off or any difficulty of the newest version plays at the picked level or
-	## easier (level_of).
+	## True if the level filter is off or a Standard difficulty of the newest version plays at the picked level
+	## (level_of).
 	func passes_reaction_filter() -> bool:
-		if MapStats.difficulty_filter(Settings.beatsaver_filter_reaction) == 0:
-			return true
+		var level := BeatSaverPanel.picked_level()
+		return level < 0 or estimated_levels().has(level)
+
+	## The levels (indices in Constants.DIFFICULTY_LEVELS) of the newest version's Standard difficulties.
+	func estimated_levels() -> Array:
+		var levels := []
 		if versions.is_empty():
-			return false
+			return levels
 		for diff: Variant in Utils.get_array(versions[0] as Dictionary, "diffs", []):
-			if diff is Dictionary and MapStats.passes_difficulty_filter(level_of(diff as Dictionary), Settings.beatsaver_filter_reaction):
-				return true
-		return false
+			if diff is Dictionary and Utils.get_str(diff as Dictionary, "characteristic", "Standard") == "Standard":
+				levels.append(level_of(diff as Dictionary))
+		return levels
 
 var song_data: Array[BeatSaverSongInfo] = []
 # reference to the main main node (used for playing downloadable song previews)
@@ -126,6 +130,27 @@ const MAX_CACHED_PREVIEWS := 10
 const LIST_RETRIES := 2
 const LIST_RETRY_SECONDS := 1.0
 var _list_retries_left := LIST_RETRIES
+## The level filter (owner, 2026-10-27): "Any level" or one level, matched exactly (a map shows when one of its
+## difficulties plays at that level), kept per player in Settings.beatsaver_filter_reaction (0 any, 1 + level).
+const ANY_LEVEL_TEXT := "Any level"
+## The details list a map's levels and its words; Details opens the rest (reaction time, flow, walls, description).
+const DETAILS_TEXT := "Details"
+
+## The picked level (an index in Constants.DIFFICULTY_LEVELS), or -1 for any.
+static func picked_level() -> int:
+	var id := Settings.beatsaver_filter_reaction
+	return id - 1 if id > 0 and id <= Constants.DIFFICULTY_LEVELS.size() else -1
+
+## BeatSaver's notes-per-second window for a level, so its pages come back with maps near it (the level is the
+## harder of reaction time and the swing pace from notes per second, so the window is the pace's): [min, max], 0 for
+## no bound.
+static func nps_window(level: int) -> Vector2:
+	var thresholds := Constants.DIFFICULTY_LEVELS.map(func(l: Array) -> float: return float(l[3]))
+	var k := BeatSaverSongInfo.SWING_GAP_PER_NOTE_GAP * 2.0 / MapStats._speed()
+	var low: float = k / thresholds[level - 1] if level > 0 else 0.0
+	var high: float = k / thresholds[level] if thresholds[level] > 0.0 else 0.0
+	return Vector2(low, high)
+
 ## Icons of the big button: download, or play once the song is in the library.
 const DOWNLOAD_ICON := preload("res://game/ui/icons/download.svg")
 const PLAY_ICON := preload("res://game/ui/icons/play.svg")
@@ -175,6 +200,30 @@ func on_song_list_changed() -> void:
 func _in_library(song: BeatSaverSongInfo) -> bool:
 	return main_menu_ref.all_song_hashes.has(song.get_hash())
 
+## The map in the library, or null.
+func _local_map(song: BeatSaverSongInfo) -> MapInfo:
+	var hash := song.get_hash().to_lower()
+	for info: MapInfo in main_menu_ref._all_songs:
+		if info.filepath.trim_suffix("/").get_file().to_lower() == hash:
+			return info
+	return null
+
+## The map's levels: measured once it is in the library, else BeatSaver's estimate; [levels, estimated].
+func _levels(song: BeatSaverSongInfo) -> Array:
+	var info := _local_map(song) if _in_library(song) else null
+	if info == null:
+		return [song.estimated_levels(), true]
+	var levels := []
+	for difficulty in info.difficulty_beatmaps:
+		if difficulty.characteristic == "" or difficulty.characteristic == "Standard":
+			levels.append(MapStats.level_of(info, difficulty, MapStats.get_stats(info, difficulty)))
+	return [levels, false]
+
+## A cover with the map's level strip (LevelStrip).
+func _with_levels(cover: Image, song: BeatSaverSongInfo) -> ImageTexture:
+	var levels := _levels(song)
+	return LevelStrip.compose(cover, levels[0], picked_level(), levels[1])
+
 ## A title cut to fit one line of a card, ending in "…"; the details panel shows it whole.
 func _one_line(title: String) -> String:
 	var font := item_list.get_theme_font("font")
@@ -186,11 +235,11 @@ func _one_line(title: String) -> String:
 		title = title.left(-1)
 	return title.strip_edges() + "…"
 
-## A map's card under its cover: title, how liked it is and its length, then whether staff picked it or it is
-## already downloaded.
+## A map's card under its cover (its levels are on the cover): title and length, then whether staff picked it or it
+## is already downloaded.
 func _card_text(song: BeatSaverSongInfo) -> String:
 	var seconds := int(song.duration)
-	var text := "%s\n%d%% liked · %d:%02d" % [_one_line(song.name), roundi(song.score * 100.0), seconds / 60, seconds % 60]
+	var text := "%s\n%d:%02d" % [_one_line(song.name), seconds / 60, seconds % 60]
 	if _in_library(song):
 		text += "\n✓ In library"
 	elif song.curated:
@@ -246,8 +295,11 @@ func _ready() -> void:
 
 	main_menu_ref.song_list_changed.connect(on_song_list_changed)
 	
-	for filter: Array in MapStats.difficulty_filters():
-		reaction_filter.add_item(filter[1])
+	reaction_filter.add_item(ANY_LEVEL_TEXT)
+	for level: Array in Constants.DIFFICULTY_LEVELS:
+		reaction_filter.add_item(level[0])
+	LevelStrip.prepare(self)
+	_add_details_toggle()
 	for filter: Array in Constants.LENGTH_FILTERS:
 		length_filter.add_item(filter[1])
 	_sync_filter_controls()
@@ -255,7 +307,7 @@ func _ready() -> void:
 
 ## Shows the saved song filters in the dropdowns.
 func _sync_filter_controls() -> void:
-	reaction_filter.select(MapStats.difficulty_filter(Settings.beatsaver_filter_reaction))
+	reaction_filter.select(picked_level() + 1)
 	length_filter.select(MapStats.length_filter(Settings.beatsaver_filter_length)[0])
 
 ## BeatSaver search parameters for the picked style and genre (both must match) and the saved length filter,
@@ -272,6 +324,12 @@ func _filter_query() -> String:
 		query += "&minDuration=%d" % int(length[2])
 	if float(length[3]) > 0.0:
 		query += "&maxDuration=%d" % int(length[3])
+	if picked_level() >= 0:
+		var window := nps_window(picked_level())
+		if window.x > 0.0:
+			query += "&minNps=%.2f" % window.x
+		if window.y > 0.0:
+			query += "&maxNps=%.2f" % window.y
 	return query
 
 ## Follows filter changes and reloads the current list with them.
@@ -395,7 +453,7 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 						if not parsed_song.is_playable() or (prev_request.type != "uploader" and not parsed_song.passes_reaction_filter()):
 							continue
 						var index := item_list.add_item(_card_text(parsed_song))
-						item_list.set_item_icon(index, placeholder_cover)
+						item_list.set_item_icon(index, _with_levels(placeholder_cover.get_image(), parsed_song))
 						item_list.set_item_tooltip_enabled(index, false)
 						song_data.append(parsed_song)
 
@@ -431,7 +489,7 @@ const REACTION_FILL_PAGES := 10
 ## BeatSaver can't filter by reaction time, so it is applied to each page after it arrives and a page
 ## can show few or no songs; fetch the next pages until the list has enough songs to scroll.
 func _fill_reaction_filtered_list() -> void:
-	if MapStats.difficulty_filter(Settings.beatsaver_filter_reaction) == 0 or prev_request == null or prev_request.type == "uploader":
+	if picked_level() < 0 or prev_request == null or prev_request.type == "uploader":
 		return
 	if next_page_available == -1 or item_list.item_count >= REACTION_FILL_ITEMS or prev_request.page >= REACTION_FILL_PAGES:
 		return
@@ -473,6 +531,7 @@ func _on_ItemList_item_selected(index: int) -> void:
 	var selected_data := _get_selected_song()
 	var version: Dictionary = selected_data.versions[0]
 	goto_maps_by.text = "More by %s" % selected_data.level_author_name
+	_details_toggle.visible = true
 	goto_maps_by.visible = selected_data.uploader_id != -1 and prev_request != null and prev_request.type != "uploader"
 	($song_data as RichTextLabel).text = _details_text(selected_data)
 	($TextureRect as TextureRect).texture = item_list.get_item_icon(index)
@@ -491,6 +550,8 @@ func _on_ItemList_item_selected(index: int) -> void:
 ## The picked map in plain words: title, artist and mapper, how liked it is, its tags, each difficulty and
 ## the start of its description.
 func _details_text(song: BeatSaverSongInfo) -> String:
+	if not _details_toggle.button_pressed:
+		return _short_details_text(song)
 	var muted := Constants.UI_TEXT_MUTED.to_html(false)
 	var seconds := int(song.duration)
 	var text := "[b]%s[/b]\n%s\n[color=#%s]Mapped by %s · %d%% liked · %d:%02d[/color]" % [
@@ -525,6 +586,52 @@ func _details_text(song: BeatSaverSongInfo) -> String:
 			shown += " …"
 		text += "\n\n[color=#%s]%s[/color]" % [muted, _escape(shown)]
 	return text
+
+## The picked map in a few words: title and artist, mapper and length, then one bar per level it has, in the level's
+## colour and name ("≈" while estimated). Details shows the rest.
+func _short_details_text(song: BeatSaverSongInfo) -> String:
+	var muted := Constants.UI_TEXT_MUTED.to_html(false)
+	var seconds := int(song.duration)
+	var text := "[b]%s[/b]\n%s\n[color=#%s]Mapped by %s · %d:%02d[/color]\n" % [_escape(song.song_name),
+		_escape(song.song_author_name), muted, _escape(song.level_author_name), seconds / 60, seconds % 60]
+	var levels := _levels(song)
+	var shown := []
+	for level: int in levels[0]:
+		if shown.has(level):
+			continue
+		shown.append(level)
+	shown.sort()
+	for level: int in shown:
+		var entry: Array = Constants.DIFFICULTY_LEVELS[level]
+		text += "\n[font_size=%d][bgcolor=#%s][color=#%s] %s%s [/color][/bgcolor][/font_size]" % [LEVEL_BAR_SIZE,
+			(entry[1] as Color).to_html(false), Constants.UI_PANEL.to_html(false), entry[0], " ≈" if levels[1] else ""]
+	if levels[1]:
+		text += "\n[color=#%s]%s[/color]" % [muted, ESTIMATE_HINT]
+	return text
+
+## What "≈" means, under the level bars of a map not yet downloaded.
+const ESTIMATE_HINT := "≈ about: measured once downloaded"
+
+## The level bars' text size in the short details: at the page's 2 m about 1.85 degrees (vr-ui-design).
+const LEVEL_BAR_SIZE := 34
+var _details_toggle := Button.new()
+
+## Details beside "More by", halving its width: opens and closes the long details.
+func _add_details_toggle() -> void:
+	var half := (goto_maps_by.size.x - 12.0) / 2.0
+	_details_toggle.text = DETAILS_TEXT
+	_details_toggle.toggle_mode = true
+	_details_toggle.position = goto_maps_by.position + Vector2(half + 12.0, 0.0)
+	_details_toggle.size = Vector2(half, goto_maps_by.size.y)
+	_details_toggle.add_theme_font_size_override(&"font_size", 22)
+	_details_toggle.visible = false
+	_details_toggle.toggled.connect(func(_on: bool) -> void:
+		var song := _get_selected_song()
+		if song != null:
+			($song_data as RichTextLabel).text = _details_text(song))
+	add_child(_details_toggle)
+	UI_AudioEngine.attach_button(_details_toggle)
+	goto_maps_by.size.x = half
 
 ## Most description lines the details show.
 const DESCRIPTION_LINES := 3
@@ -709,8 +816,8 @@ func _update_cover(result: int, _response_code: int, _headers: PackedStringArray
 		var img := Image.new()
 		if not img.load_jpg_from_buffer(body) == 0:
 			img.load_png_from_buffer(body)
-		var img_tex := ImageTexture.create_from_image(img)
-		item_list.set_item_icon(_current_cover_to_download,img_tex)
+		if _current_cover_to_download < song_data.size():
+			item_list.set_item_icon(_current_cover_to_download, _with_levels(img, song_data[_current_cover_to_download]))
 	_current_cover_to_download += 1
 	
 	var canvas := get_parent().get_parent()
