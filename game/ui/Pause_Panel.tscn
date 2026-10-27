@@ -1,14 +1,12 @@
 [gd_scene format=3 uid="uid://f53k0dxxtenr"]
 
+[ext_resource type="StyleBox" path="res://game/ui/menu_panel.tres" id="menu_panel"]
 [ext_resource type="Script" path="res://game/ui/Pause_Panel.gd" id="3"]
 [ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="menu_theme"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/house.svg" id="icon_house"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/play.svg" id="icon_play"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/rotate-ccw.svg" id="icon_rotate-ccw"]
 [ext_resource type="Script" path="res://game/ui/IconButton.gd" id="icon_button"]
-
-[sub_resource type="StyleBoxFlat" id="menu_root"]
-bg_color = Color(0.086, 0.094, 0.114, 1)
 
 [node name="Pause_Panel" type="Panel"]
 offset_right = 640.0
@@ -18,7 +16,7 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 theme = ExtResource("menu_theme")
-theme_override_styles/panel = SubResource("menu_root")
+theme_override_styles/panel = ExtResource("menu_panel")
 
 [node name="mainmenu" type="Button" parent="."]
 offset_left = 192.0

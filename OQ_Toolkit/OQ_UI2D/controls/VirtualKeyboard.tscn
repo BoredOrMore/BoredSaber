@@ -1,10 +1,8 @@
 [gd_scene format=3 uid="uid://cjghkpsy3r8tp"]
 
+[ext_resource type="StyleBox" path="res://game/ui/menu_panel.tres" id="menu_panel"]
 [ext_resource type="Script" path="res://OQ_Toolkit/OQ_UI2D/controls/VirtualKeyboard.gd" id="1"]
 [ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="menu_theme"]
-
-[sub_resource type="StyleBoxFlat" id="menu_root"]
-bg_color = Color(0.086, 0.094, 0.114, 1)
 
 [sub_resource type="StyleBoxFlat" id="key"]
 content_margin_left = 4.0
@@ -43,7 +41,7 @@ offset_right = 576.0
 offset_bottom = 240.0
 script = ExtResource("1")
 theme = ExtResource("menu_theme")
-theme_override_styles/panel = SubResource("menu_root")
+theme_override_styles/panel = ExtResource("menu_panel")
 
 [node name="ReferenceButton" type="Button" parent="."]
 layout_mode = 0

@@ -74,7 +74,7 @@ static func compose(cover: Image, levels: Array, mine: int, estimated: bool) -> 
 		var box := Rect2i(COVER - ESTIMATE_BOX, 0, ESTIMATE_BOX, ESTIMATE_BOX)
 		image.fill_rect(box, Constants.UI_PANEL)
 		_blend_glyph(image, ESTIMATE, box.get_center(), Constants.UI_TEXT)
-	return ImageTexture.create_from_image(image)
+	return ImageTexture.create_from_image(ImageUtils.round_corners(image, roundi(COVER * ImageUtils.COVER_CORNER)))
 
 ## Blends a letter's image tinted in color, centred on centre.
 static func _blend_glyph(image: Image, letter: String, centre: Vector2i, color: Color) -> void:

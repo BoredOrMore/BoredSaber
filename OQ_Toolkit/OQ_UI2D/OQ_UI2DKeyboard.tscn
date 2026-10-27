@@ -9,6 +9,7 @@
 script = ExtResource("3")
 
 [node name="OQ_UI2DCanvas_Keyboard" parent="." instance=ExtResource("1")]
+round_corners = true
 
 [node name="VirtualKeyboard" parent="OQ_UI2DCanvas_Keyboard" instance=ExtResource("2")]
 

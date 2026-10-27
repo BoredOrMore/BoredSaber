@@ -68,6 +68,7 @@ func _load_img_threaded(req: ImgLoadRequest) -> void:
 			if req.max_size > 0 and maxi(img.get_width(), img.get_height()) > req.max_size:
 				var scale := float(req.max_size) / maxi(img.get_width(), img.get_height())
 				img.resize(maxi(1, roundi(img.get_width() * scale)), maxi(1, roundi(img.get_height() * scale)), Image.INTERPOLATE_BILINEAR)
+			ImageUtils.round_corners(img, roundi(mini(img.get_width(), img.get_height()) * ImageUtils.COVER_CORNER))
 			tex = ImageTexture.create_from_image(img)
 	
 	# perform callback in the form of my_callback(texture, filepath, ...);

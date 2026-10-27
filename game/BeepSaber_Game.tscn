@@ -244,6 +244,7 @@ layers = 3
 
 [node name="PauseMenu_canvas" parent="." unique_id=733509686 instance=ExtResource("3")]
 transform = Transform3D(1.86849, 0, 0, 0, 1.86849, 0, 0, 0, 1.86849, 0, 1.43532, -0.756856)
+round_corners = true
 visible = false
 
 [node name="Pause_Panel" parent="PauseMenu_canvas" unique_id=1084204812 instance=ExtResource("18")]
@@ -287,6 +288,7 @@ visible = false
 
 [node name="Highscores_Canvas" parent="." unique_id=1636266647 instance=ExtResource("3")]
 transform = Transform3D(1.3486, 0, 1.47691, 0, 2, 0, -1.47691, 0, 1.3486, -1.47691, 1.5, -0.3486)
+round_corners = true
 
 [node name="HighscorePanel" parent="Highscores_Canvas" unique_id=1748596360 instance=ExtResource("23")]
 offset_right = 600.0

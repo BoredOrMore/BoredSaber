@@ -28,7 +28,8 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
 - `webxr/webxr_initializer.*` - "Enter VR" button for the Web export.
 - `BackgroundImgLoader.gd` - threaded cover loader (`load_texture`), max 10 threads by default.
 - `HTTPRequestPool.gd/.tscn` - throttled `HTTPRequest`s, signal `request_complete(..., token, user_data)`.
-- `ImageUtils.gd` - `get_img_from_buffer` by magic bytes (jpg/png/bmp/webp).
+- `ImageUtils.gd` - `get_img_from_buffer` by magic bytes (jpg/png/bmp/webp); `round_corners` cuts cover art's
+  corners round (`COVER_CORNER`), for every cover `BackgroundImgLoader` loads and the Download page's cards.
 - `Loudness.gd` (class `Loudness`, all `static`) - plays songs at -14 LUFS: measures a song's BS.1770 loudness on a
   worker thread, caches it in `user://loudness.json`, and sets the Music/MusicPreview bus's `AudioEffectAmplify`.
 - `MapStats.gd` - cached note count / length / NPS per difficulty, menu filters, `count_all_async`.
