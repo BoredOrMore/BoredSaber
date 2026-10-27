@@ -14,10 +14,15 @@ class_name ClassicRig
 
 const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
 const ARCH_STRIP := preload("res://game/env/ArchStrip.gdshader")
-## the bore: radius, its centre's height (the floor just under the track), the ribs' spacing, nearest and farthest z,
-## boxes round each rib and the rib's section (across the ring, along the bore)
+## the bore: radius, its centre's height, the ribs' spacing, nearest and farthest z, boxes round each rib and the rib's
+## section (across the ring, along the bore). The centre sits half the radius above the track (owner, 2026-10-27: on the
+## circle's very bottom the track read as below the tunnel), so a flat floor fills the circle's lower part at FLOOR_Y,
+## just under the track deck, wall to wall, and the walls rise steeply from its edges; a lining closes the bore
+## between the ribs (LINING thick, behind them).
 const BORE_RADIUS := 60.0
-const BORE_CENTRE_Y := 59.0
+const BORE_CENTRE_Y := 30.0
+const FLOOR_Y := -0.3
+const LINING := 0.3
 const RIB_STEP := 25.0
 const RIB_NEAR := 25.0
 const RIB_FAR := -600.0
@@ -44,7 +49,7 @@ const PROPS := [
 ## the scissor lift's crossed arms, between its base and platform (centre, length, tilt)
 const SCISSOR := [Vector3(9.0, 3.2, -16.0), 6.6, 0.95]
 ## a ladder against the right catwalk: its foot and top x, z
-const LADDER := Vector3(26.0, 28.6, -30.0)
+const LADDER := Vector3(50.8, 52.7, -30.0)
 ## the moving heads' tilt axis this far above the truss's top chord (laser_fixture.py: yoke foot 0.54 under it)
 const FIXTURE_ABOVE := 0.84
 ## the rib strips: a segment on each rib box in the upper part of the ring (RIB_STRIP_FROM..1-RIB_STRIP_FROM of the
@@ -77,6 +82,7 @@ func _ready() -> void:
 			boxes.append(_box(Vector3(0.0, TRUSS_Y + dy, z), Vector3(half * 2.0, TRUSS.y, TRUSS.y)))
 		boxes.append(_box(Vector3(0.0, TRUSS_Y, z), Vector3(half * 2.0, TRUSS.x, 0.12)))
 	boxes.append_array(_ribs())
+	boxes.append_array(_floor_and_lining())
 	boxes.append_array(_catwalks())
 	for p: Array in PROPS:
 		boxes.append(_box(p[0], p[1]))
@@ -126,7 +132,31 @@ static func _ribs() -> Array[Transform3D]:
 	var z := RIB_NEAR
 	while z >= RIB_FAR:
 		for i in RIB_SEGMENTS:
-			boxes.append(_rib_box(z, TAU * (i + 0.5) / RIB_SEGMENTS, length, RIB))
+			if _above_floor(TAU * (i + 0.5) / RIB_SEGMENTS):
+				boxes.append(_rib_box(z, TAU * (i + 0.5) / RIB_SEGMENTS, length, RIB))
+		z -= RIB_STEP
+	return boxes
+
+## Whether the rib box at `angle` round the ring stands above the tunnel's floor (the ones under it are left out).
+static func _above_floor(angle: float) -> bool:
+	return BORE_CENTRE_Y - BORE_RADIUS * cos(angle) > FLOOR_Y
+
+## The floor and the lining, one slab and one lining panel per segment for each bay between two ribs (cut per bay so
+## the haze, worked out per vertex, changes along them).
+static func _floor_and_lining() -> Array[Transform3D]:
+	var boxes: Array[Transform3D] = []
+	var half := bore_half_width(FLOOR_Y)
+	var length := TAU * BORE_RADIUS / RIB_SEGMENTS * 1.06
+	var z := RIB_NEAR
+	while z > RIB_FAR:
+		var mid := z - RIB_STEP * 0.5
+		boxes.append(_box(Vector3(0.0, FLOOR_Y - 0.5, mid), Vector3(half * 2.0, 1.0, RIB_STEP)))
+		for i in RIB_SEGMENTS:
+			var angle := TAU * (i + 0.5) / RIB_SEGMENTS
+			if _above_floor(angle):
+				var t := _rib_box(mid, angle, length, Vector2(LINING, RIB_STEP))
+				t.origin -= t.basis.y.normalized() * (RIB.x + LINING) * 0.5
+				boxes.append(t)
 		z -= RIB_STEP
 	return boxes
 
@@ -169,7 +199,7 @@ func _add_rib_strips() -> void:
 		for i in RIB_SEGMENTS:
 			var angle := TAU * (i + 0.5) / RIB_SEGMENTS
 			var from_floor := minf(angle, TAU - angle) / PI
-			if from_floor < RIB_STRIP_FROM:
+			if from_floor < RIB_STRIP_FROM or not _above_floor(angle):
 				continue
 			var t := _rib_box(z, angle, length, Vector2(1.0, 1.0))
 			var inward := t.basis.y.normalized()
