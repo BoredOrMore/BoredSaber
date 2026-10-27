@@ -229,6 +229,9 @@ func _ready() -> void:
 	check(absf(lufs + 6.0) < 0.5 and is_equal_approx(Loudness.gain_db(lufs), Loudness.TARGET_LUFS - lufs)
 			and Loudness.gain_db(-40.0) == Loudness.MAX_BOOST_DB,
 			"song loudness measures a -6 LUFS tone as %.2f, and quiet songs are raised at most %d dB" % [lufs, Loudness.MAX_BOOST_DB])
+	var limiter: Variant = AudioServer.get_bus_effect(0, 0) if AudioServer.get_bus_effect_count(0) > 0 else null
+	check(limiter is AudioEffectHardLimiter and is_equal_approx(limiter.ceiling_db, -1.0),
+			"the Master bus ends in a limiter at -1 dB, so music and effects together don't clip")
 
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
