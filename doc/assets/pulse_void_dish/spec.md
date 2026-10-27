@@ -9,8 +9,8 @@
   - The dish: a paraboloid 500 m across, its vertex 125 m under the player, its focus at the player and its rim at
     the track's height all round (a deep dish, focal length a quarter of the diameter). Panels in 14 rings of 48
     from 20 m out to the rim; a hub plate in the middle; a rim truss round the edge.
-  - The feed cabin under the player (12 x 7 x 12) and the maintenance beam under the track to 61 m ahead.
-  - Four feed legs from the cabin's corners down to the dish 150 m out, at 45 degrees either side of ahead and
+  - The feed cabin under the player (6 x 7 x 6) and the maintenance beam under the track to 61 m ahead.
+  - Four feed legs from the cabin's corners down to the dish 200 m out (near the rim), at 45 degrees either side of ahead and
     behind: below the horizon all the way, clear of the note lanes.
   - Masts on the rim ahead, either side, carrying the beacons.
   - Main elements symmetric (dish, legs, cabin, masts); props uneven: a control room on the dish's surface left of

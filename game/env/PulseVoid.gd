@@ -34,9 +34,10 @@ const RIM := 3.0
 ## small, so the legs show past its roof's edge (owner, 2026-10-27: 6 x 6 m; at 12 m the roof hid them)
 const CABIN := Vector3(6.0, 7.0, 6.0)
 const CABIN_TOP := -0.4
-## the feed legs: from the cabin's corners down to the dish LEG_REACH out, at 45 degrees either side of ahead and behind;
+## the feed legs: from the cabin's corners down to the dish LEG_REACH out, near the rim as on a real dish (owner,
+## 2026-10-27: at 150 m they dropped too steeply to show past the cabin's roof), at 45 degrees either side of ahead and behind;
 ## their section (the cable trays run beside it)
-const LEG_REACH := 150.0
+const LEG_REACH := 200.0
 const LEG := 2.5
 ## the masts on the rim for the beacons: their height, section, and the angles they stand at either side of ahead
 const MAST := Vector2(40.0, 2.0)

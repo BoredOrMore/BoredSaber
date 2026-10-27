@@ -19,10 +19,10 @@ from model_export import bake_and_export
 
 OUT_DIR = sys.argv[sys.argv.index("--") + 1]
 
-# the leg's ends (PulseVoid: the cabin's underside corner at 45 degrees, the dish 150 m out), so its length and slope
+# the leg's ends (PulseVoid: the cabin's underside corner at 45 degrees, the dish 200 m out, near the rim), so its length and slope
 CABIN_HALF = 3.0
 CABIN_UNDER = -0.4 - 7.0
-REACH = 150.0
+REACH = 200.0
 FOOT_Y = -125.0 + REACH * REACH / 500.0
 TOP_R = CABIN_HALF * math.sqrt(0.5) * math.sqrt(2.0)
 LENGTH = math.hypot(REACH - TOP_R, CABIN_UNDER - FOOT_Y)
