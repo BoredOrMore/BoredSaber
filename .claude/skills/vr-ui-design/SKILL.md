@@ -46,8 +46,9 @@ then multiplied by the node `transform` scale.
   - Bias content below eye level: the normal line of sight is about 15° down (MIL-STD-1472) and
     holding the head up strains the neck sooner than looking down (ISO 11226). Short tasks like
     typing may sit lower if tilted to face the eye.
-  - A panel taller or wider than about 30° curves around the eye (a slice of a sphere,
-    `OQ_UI2DCanvas.curve_radius`) so its text keeps the same angle to the edges.
+  - A panel wider than about 30° curves around the eye, left to right only (a slice of an upright
+    cylinder, `OQ_UI2DCanvas.curve_radius`; owner, 2026-10-28: no curve up and down), so its text
+    keeps the same angle to its left and right edges; its top and bottom rows sit further away.
 - Main panel distance 0.8-2.5 m. Eye strain starts at ~0.5 m and closer (Oculus recommends 0.75 m
   minimum); further shrinks text. Pointer (ray) targets belong 0.8-3 m away, never closer than
   0.8 m [Meta hands UI]; content read for a while at least 1 m away [Apple eyes].

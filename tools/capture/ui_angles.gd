@@ -83,10 +83,9 @@ func _canvas(game: Node, canvas: OQ_UI2DCanvas) -> void:
 	var width: float = (_place(canvas, size, Vector2(size.x, size.y / 2.0)) - _place(canvas, size, Vector2(0, size.y / 2.0))).length()
 	var height: float = (_place(canvas, size, Vector2(size.x / 2.0, 0)) - _place(canvas, size, Vector2(size.x / 2.0, size.y))).length()
 	var curved := canvas.curve_radius > 0.0
-	# a curved panel's width and height are arcs around the eye: its angles are the arcs'
-	var arcs := canvas.curve_size() / canvas.curve_radius if curved else Vector2.ZERO
-	var width_angle := rad_to_deg(arcs.x) if curved else _angle(width, centre)
-	var height_angle := rad_to_deg(arcs.y) if curved else _angle(height, centre)
+	# a curved panel's width is an arc around the eye: its angle is the arc's
+	var width_angle := rad_to_deg(canvas.curve_size().x / canvas.curve_radius) if curved else _angle(width, centre)
+	var height_angle := _angle(height, centre)
 	rows.append("| %s | %.1f° | %.1f° | %.2f m | %.0f° × %.0f° |" % [name_, seen.x, seen.y, seen.z, width_angle, height_angle])
 	var keyboard := name_.containsn("keyboard")
 	for corner: Vector2 in [Vector2.ZERO, Vector2(size.x, 0), Vector2(0, size.y), size]:
@@ -124,7 +123,7 @@ func _canvas(game: Node, canvas: OQ_UI2DCanvas) -> void:
 			if text != "" and text_a < TEXT_BASE - 0.01:
 				problems.append("- %s (\"%s\"): text %.2f° (%d px), under the %.2f° body baseline" % [label, text.left(30), text_a, font_px, TEXT_BASE])
 
-## a pixel of a canvas's control (size px) on its quad, or on its sphere when curved, in the world
+## a pixel of a canvas's control (size px) on its quad, or on its cylinder when curved, in the world
 static func _place(canvas: OQ_UI2DCanvas, size: Vector2, px: Vector2) -> Vector3:
 	var area := canvas.ui_area.global_transform
 	if canvas.curve_radius <= 0.0:
