@@ -30,7 +30,7 @@
 
 [node name="BeepSaberMainMenu" type="Panel" unique_id=1329467298]
 offset_right = 1753.0
-offset_bottom = 776.0
+offset_bottom = 745.0
 theme = ExtResource("1")
 theme_override_styles/panel = SubResource("1")
 script = ExtResource("3")
@@ -40,21 +40,21 @@ layout_mode = 0
 offset_left = 0.0
 offset_top = 0.0
 offset_right = 480.0
-offset_bottom = 776.0
+offset_bottom = 745.0
 
 [node name="CentrePanel" parent="." instance=ExtResource("menu_panel")]
 layout_mode = 0
 offset_left = 504.0
 offset_top = 0.0
 offset_right = 1249.0
-offset_bottom = 776.0
+offset_bottom = 745.0
 
 [node name="RightPanel" parent="." instance=ExtResource("menu_panel")]
 layout_mode = 0
 offset_left = 1273.0
 offset_top = 0.0
 offset_right = 1753.0
-offset_bottom = 776.0
+offset_bottom = 745.0
 
 [node name="Search_Button" type="Button" parent="." unique_id=891455992]
 layout_mode = 0
@@ -99,7 +99,7 @@ layout_mode = 0
 offset_left = 520.0
 offset_top = 74.0
 offset_right = 1233.0
-offset_bottom = 768.0
+offset_bottom = 740.0
 script = ExtResource("song_list")
 
 [node name="EmptyList" type="Label" parent="."]
@@ -108,7 +108,7 @@ layout_mode = 0
 offset_left = 520.0
 offset_top = 74.0
 offset_right = 1233.0
-offset_bottom = 768.0
+offset_bottom = 740.0
 theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -120,7 +120,7 @@ layout_mode = 0
 offset_left = 520.0
 offset_top = 74.0
 offset_right = 1233.0
-offset_bottom = 768.0
+offset_bottom = 740.0
 
 [node name="Rows" type="VBoxContainer" parent="FiltersPanel"]
 layout_mode = 1
@@ -134,6 +134,7 @@ offset_bottom = -16.0
 theme_override_constants/separation = 12
 
 [node name="Back_Button" type="Button" parent="FiltersPanel/Rows"]
+theme_type_variation = &"BackButton"
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 text = "Back"
@@ -218,6 +219,7 @@ clip_text = true
 text_overrun_behavior = 3
 
 [node name="Favorite_Button" type="Button" parent="." unique_id=1448413959]
+theme_type_variation = &"ChipButton"
 layout_mode = 0
 offset_left = 16.0
 offset_top = 128.0
@@ -257,43 +259,12 @@ fit_content = true
 scroll_active = false
 autowrap_mode = 3
 
-[node name="PlayStatus" type="HBoxContainer" parent="."]
+[node name="Ranks" parent="." instance=ExtResource("highscores")]
 layout_mode = 0
 offset_left = 16.0
 offset_top = 370.0
 offset_right = 464.0
-offset_bottom = 428.0
-theme_override_constants/separation = 12
-
-[node name="Icon" type="TextureRect" parent="PlayStatus"]
-modulate = Color(0.37, 0.78, 0.94, 1)
-layout_mode = 2
-texture = ExtResource("icon_play")
-stretch_mode = 5
-
-[node name="Lines" type="VBoxContainer" parent="PlayStatus"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 0
-alignment = 1
-
-[node name="Label" type="Label" parent="PlayStatus/Lines"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text_overrun_behavior = 3
-
-[node name="Details" type="Label" parent="PlayStatus/Lines"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
-theme_override_font_sizes/font_size = 24
-text_overrun_behavior = 3
-
-[node name="Ranks" parent="." instance=ExtResource("highscores")]
-layout_mode = 0
-offset_left = 16.0
-offset_top = 436.0
-offset_right = 464.0
-offset_bottom = 760.0
+offset_bottom = 729.0
 show_song_info = false
 compact = true
 
@@ -330,7 +301,7 @@ layout_mode = 0
 offset_left = 1289.0
 offset_top = 76.0
 offset_right = 1737.0
-offset_bottom = 760.0
+offset_bottom = 729.0
 theme_override_constants/separation = 16
 
 [node name="Notes" parent="Modifiers" instance=ExtResource("menu_section")]
@@ -369,12 +340,18 @@ theme_override_constants/separation = 4
 layout_mode = 2
 title = "Look"
 
-[node name="EnvironmentRow" type="HBoxContainer" parent="Modifiers/Look"]
+[node name="MapColorsRow" type="HBoxContainer" parent="Modifiers/Look"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_constants/separation = 4
 
+[node name="EnvironmentRow" type="HBoxContainer" parent="Modifiers/Look"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+theme_override_constants/separation = 4
+
 [node name="MoreMods_Button" type="Button" parent="Modifiers"]
+theme_type_variation = &"ChipButton"
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 theme_override_constants/icon_max_width = 28
@@ -388,6 +365,7 @@ custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 
 [node name="Reset_Button" type="Button" parent="Modifiers/Header" unique_id=1815398217]
+theme_type_variation = &"ChipButton"
 layout_mode = 2
 size_flags_horizontal = 10
 icon = ExtResource("icon_undo-2")
@@ -399,7 +377,7 @@ layout_mode = 0
 offset_left = 1289.0
 offset_top = 8.0
 offset_right = 1737.0
-offset_bottom = 768.0
+offset_bottom = 737.0
 
 [node name="Rows" type="VBoxContainer" parent="MoreModsPanel"]
 layout_mode = 1
@@ -413,6 +391,7 @@ offset_bottom = -16.0
 theme_override_constants/separation = 16
 
 [node name="Back_Button" type="Button" parent="MoreModsPanel/Rows"]
+theme_type_variation = &"BackButton"
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 text = "Back"
@@ -425,7 +404,7 @@ layout_mode = 0
 offset_left = 1289.0
 offset_top = 76.0
 offset_right = 1737.0
-offset_bottom = 760.0
+offset_bottom = 729.0
 
 [node name="LoadPlaylists_Button" type="Button" parent="MorePanel" unique_id=793107135]
 layout_mode = 0
@@ -498,16 +477,17 @@ horizontal_alignment = 2
 [node name="LicensePopup" type="PopupPanel" parent="." unique_id=1997437673]
 title = "Licenses"
 position = Vector2i(1289, 16)
-size = Vector2i(448, 744)
+size = Vector2i(448, 713)
 
 [node name="Rows" type="VBoxContainer" parent="LicensePopup"]
 offset_left = 20.0
 offset_top = 12.0
 offset_right = 428.0
-offset_bottom = 732.0
+offset_bottom = 701.0
 theme_override_constants/separation = 8
 
 [node name="Back_Button" type="Button" parent="LicensePopup/Rows"]
+theme_type_variation = &"BackButton"
 custom_minimum_size = Vector2(0, 60)
 layout_mode = 2
 text = "Back"
