@@ -53,6 +53,13 @@ const REFLECTION := "reflection"
 ## full-swing cuts fired by the benchmark CUTS_PER_SECOND at the hit plane, left and right in turn (nobody swings during
 ## a run), twice each.
 const CUTS := "cuts"
+## The flag file's mode for switching stages (tools/bench.sh --only stages): in the song menu, every stage in turn for
+## STAGE_SECONDS, twice (the first pass meets each stage for the first time since launch, the second again), each frame
+## longer than HITCH_SECONDS logged as "BENCH hitch <ms> <phase>". Run it right after launching the game.
+const STAGES := "stages"
+const STAGE_SECONDS := 6.0
+const HITCH_SECONDS := 0.025
+var _hitch_phase := ""
 const CUTS_PER_SECOND := 4.0
 const CUTS_SWING := Vector3(0.0, -6.0, 0.0)
 var _cuts_fired := 0
@@ -136,6 +143,11 @@ func _stage_parts(off: String) -> void:
 	var views := {"scenery": DebugView.RINGS, "shading": DebugView.FLAT_SCENERY}
 	RenderingServer.global_shader_parameter_set(&"debug_view", views.get(off, 0))
 
+## Shows stage `id` in the song menu and logs the phase's long frames under `phase_name` (the stages mode).
+func _show_stage(id: String, phase_name: String) -> void:
+	_hitch_phase = phase_name
+	Settings.environment = id
+
 ## Fires full-swing cuts at the hit plane CUTS_PER_SECOND, left and right in turn, up to `t` seconds into the phase.
 func _fire_cuts(t: float) -> void:
 	var due := int(t * CUTS_PER_SECOND)
@@ -209,6 +221,13 @@ func _phases(mode: String) -> Array:
 			var bits: int = step[1]
 			phases.append(["classic_%s_song" % step[0], func(_t: float) -> void: _set_debug_bits(bits), classic,
 				FOG_SONG_SECONDS, true])
+		return phases
+	if mode == STAGES:
+		var phases := []
+		for pass_name: String in ["first", "again"]:
+			for id: String in ["classic", "neon_grid", "night_city", "pulse_void", "metal_factory"]:
+				var name := "stage_%s_%s" % [id, pass_name]
+				phases.append([name, Callable(), _show_stage.bind(id, name), STAGE_SECONDS, false])
 		return phases
 	if mode == CUTS:
 		var classic := func() -> void:
@@ -314,6 +333,8 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_elapsed += delta
+	if not _hitch_phase.is_empty() and delta > HITCH_SECONDS:
+		print("BENCH hitch %.1f %s" % [delta * 1000.0, _hitch_phase])
 	if _tick.is_valid():
 		_tick.call(_elapsed)
 
@@ -438,6 +459,7 @@ func _show_status(phase_name: String) -> void:
 ## Puts every setting the benchmark touches back.
 func _restore() -> void:
 	LowResGlow.height = _glow_height
+	_hitch_phase = ""
 	_set_debug_bits(0)
 	for key: StringName in _saved:
 		if Settings.get(key) != _saved[key]:
