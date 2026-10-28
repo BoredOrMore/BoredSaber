@@ -44,6 +44,12 @@ const DECK_DEPTH := 0.4
 const STRIP_OUT := 0.15
 const CURB_RISE := 0.08
 const STRIP_PROUD := 0.004
+## The edge strips are thin, white-hot lines like Beat Saber's lane edges (owner, 2026-10-28; its PC version's lines
+## measure about 4 px about 5 m out in a 1920 px recording, roughly 1.5-2 cm wide), never under STRIP_MIN_PIXELS on
+## screen, their tops STRIP_TOP_WHITE toward white with the colour in their sides. They were 10 cm, mostly flat colour.
+const STRIP_WIDTH := 0.02
+const STRIP_MIN_PIXELS := 1.5
+const STRIP_TOP_WHITE := 0.7
 ## how far out from the deck's edge the curb's top reaches (the edge model's outer bevel); walls standing over it start
 ## above the strip (Wall.gd)
 const CURB_OUT := 0.3

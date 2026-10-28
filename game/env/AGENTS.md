@@ -89,7 +89,7 @@ Shared scenery
 - `height_fog.gdshaderinc`: analytic exponential height fog per vertex, coloured by `env_haze`.
 - `fog_light.gdshaderinc`: haze in-scattering toward the stage key light (`fog_key`) plus 8-bit dither
   (`fog_dither_on`); included by every scenery, sky and track shader.
-- `TrackDeck.gd` (`TrackDeck`): opaque deck (top y 0), curbs housing edge light strips, platform frame, end stops;
+- `TrackDeck.gd` (`TrackDeck`): opaque deck (top y 0), curbs housing the thin edge light strips (`STRIP_*`), platform frame, end stops;
   runs to `FAR_Z` -150 (`FAR_Z_BY_STAGE`), fades into haze. `layout(lane_width)` for Wide modifiers; `set_stage` skin.
   Hidden for `Settings.old_track` and mixed reality (old see-through sheet instead).
 - `TrackDeck.gdshader`: deck skin per stage (`SKINS`: plates, tread plate, dark glass), lane grooves, `fade_z`.
@@ -106,7 +106,8 @@ Light carriers
   `FOLLOW_SPOT` via `set_kind`); flare quad in front of the lens; heads rest nose-down after 2 s dark.
 - `LaserFixture.gdshader`: fixture body/yoke, lens lit by per-instance custom colour. `LaserFlare.gdshader`: additive
   eye-facing glow at the lens, white-hot core.
-- `LightStrip.gdshader`: flush strip, white-hot facing the eye, colour on turned faces; materials `floor_lights.tres`
+- `LightStrip.gdshader`: flush strip, white-hot facing the eye (`top_white`: its top too), colour on turned faces,
+  `min_pixels` floor for thin far strips; materials `floor_lights.tres`
   (track edges) and `platform_lights.tres` (platform border, always right colour).
 - `ArchStrip.gdshader`: segmented strips lit by `level` against `INSTANCE_CUSTOM.x` (height/ring), `drop` for all;
   shared by Neon Grid arches, Pulse Void seams, Classic ribs.

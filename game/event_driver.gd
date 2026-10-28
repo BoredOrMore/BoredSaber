@@ -425,6 +425,8 @@ func set_background() -> void:
 	# stop at its end, as they always did
 	var span := track_deck.strip_span()
 	track_lights_material.set_shader_parameter(&"fade_z", Vector2.ZERO if old_track else track_deck.fade_z())
+	track_lights_material.set_shader_parameter(&"min_pixels", 0.0 if old_track else TrackDeck.STRIP_MIN_PIXELS)
+	track_lights_material.set_shader_parameter(&"top_white", 0.0 if old_track else TrackDeck.STRIP_TOP_WHITE)
 	for strip: MeshInstance3D in [track_lights_left, track_lights_right]:
 		var rest: Transform3D = _strip_rest[strip]
 		if old_track:
@@ -433,7 +435,8 @@ func set_background() -> void:
 		var side := signf(strip.global_position.x)
 		var place := TrackDeck.strip_position(Settings.LANE_DISTANCE_X, side, strip.get_aabb().size)
 		var stretch := (span.x - span.y) / strip.get_aabb().size.z
-		strip.global_transform = Transform3D(Basis.from_scale(Vector3(1.0, 1.0, stretch)),
+		var thin := TrackDeck.STRIP_WIDTH / strip.get_aabb().size.x
+		strip.global_transform = Transform3D(Basis.from_scale(Vector3(thin, 1.0, stretch)),
 			Vector3(place.x, place.y, (span.x + span.y) * 0.5))
 	# Metal Factory has no moving heads: its lights glow in the wall vents
 	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple" and environment != "metal_factory"
