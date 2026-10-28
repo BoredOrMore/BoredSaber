@@ -32,6 +32,10 @@ arrangement (owner, 2026-10-27).
 - `Points_label_driver.gd/.tscn` (class `PointsLabelDriver`): pools and places `points_label.tscn` instances.
 - `points_label.gd/.tscn` (class `PointsLabel`): one popped cut number or MISS, in the live grade's font
   (`Hud.GRADE_FONT`, Kanit Black Italic; every digit and every letter checked to tessellate cleanly at 100 px).
+- `ResultMoment.gd` (class `ResultMoment`, made in `BeepSaber_Game._ready`): the end of a song. On a fail a big "FAILED"
+  `WORD_DISTANCE` ahead of the real eye in the grade font, white-hot with a danger-colour glow (Label3D outline layers,
+  as the HUD grade's) and a faint mirror image in the deck; on a fail or a clear a `FADE_SECONDS` fade to black (a quad
+  on the XR camera, no post-processing) and back up on the score screen. `stage_capture --failed-word 1`.
 - `HealthRails.gd` (class `HealthRails`) + `HealthRail.gdshader`: health as two strips beside the track (bar mode
   shortens them, 4 Lives splits them into pips); `HealthRails.EDGE_PAD` must match `edge_pad` in the shader. `start_map(lives, how_full, eye)` places them from the
   player's eye: they start `RAIL_NEAR_DEGREES` (22°) below it and widen with that distance.

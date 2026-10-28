@@ -332,7 +332,7 @@ is_name_input = true
 script = ExtResource("33_l0uxg")
 main_menu_ref = NodePath("../MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu")
 
-[connection signal="finished" from="SongPlayer" to="." method="_on_song_ended"]
+[connection signal="finished" from="SongPlayer" to="." method="_on_song_finished"]
 [connection signal="area_entered" from="XROrigin3D/XRCamera3D/PlayerHead" to="." method="_on_PlayerHead_area_entered"]
 [connection signal="area_exited" from="XROrigin3D/XRCamera3D/PlayerHead" to="." method="_on_PlayerHead_area_exited"]
 [connection signal="profile_changed" from="XROrigin3D/LeftController" to="." method="_on_left_controller_profile_changed"]

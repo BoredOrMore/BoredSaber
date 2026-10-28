@@ -31,6 +31,7 @@ extends Node3D
 ##   that close, 1 = now; pair with --lights on)
 ##   --result fail|clear (the result moment's mood, EventDriver.result_mood: the red or warm air, a clear's sparks; it
 ##   fades in over a second, so pair with --seconds 3, or 0.5 to catch the sparks)
+##   --failed-word 1 (the big FAILED of a fail in the play space, ResultMoment; pair with --result fail)
 ##   --stats 1 (print the frame's triangles, draw calls and objects as drawn, RenderingServer's counters, one view)
 ##   --dot 1 (a dot note)  --note-style 2 (0 Solid, 1 Neon: the Classic notes looks; 2 the glossy default)
 
@@ -110,6 +111,10 @@ func _ready() -> void:
 		_fake_build_up(stage, float(args["build-up"]))
 	if args.has("result"):
 		stage.result_mood(args["result"] == "fail")
+	if args.get("failed-word", "0") == "1":
+		var moment := ResultMoment.new(camera)
+		add_child(moment)
+		moment.show_failed(camera.global_position)
 	if args.has("beat"):
 		_beat = float(args["beat"])
 		stage.metal_factory_rig.slam(_beat, CAPTURE_BPM, 1.0)

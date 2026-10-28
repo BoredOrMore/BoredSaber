@@ -97,6 +97,8 @@ var hud: Hud
 var lead_in := 0.0
 
 const FAIL_SECONDS := 1.5
+## the end of a song: "FAILED" in the play space and the fade to black (ResultMoment)
+var _result_moment: ResultMoment
 ## where in the song (seconds) the last fail happened, for the score screen
 var _failed_at := 0.0
 ## A fail closes a low-pass on the song like Beat Saber (measured from a recording of its PC version, 2026-10-28,
@@ -241,7 +243,8 @@ func _update_low_health_sound() -> void:
 	elif not low and _low_health_player.playing:
 		_low_health_player.stop()
 
-## Shows "Failed" while the song winds down and the track freezes, then the score screen.
+## Shows "FAILED" in the play space while the song winds down and the track freezes, fades to black, then the score
+## screen fades up.
 func _fail_song() -> void:
 	failing = true
 	_failed_at = get_current_time()
@@ -252,8 +255,7 @@ func _fail_song() -> void:
 	_song_end_player.play()
 	left_saber.set_swingcast_enabled(false)
 	right_saber.set_swingcast_enabled(false)
-	pause_countdown.set_label_text("Failed")
-	pause_countdown.visible = true
+	_result_moment.show_failed(_eye())
 	var tw := create_tween().set_parallel()
 	# the frozen wall that failed the song would otherwise keep the controllers buzzing
 	_in_wall = false
@@ -268,9 +270,17 @@ func _fail_song() -> void:
 	tw.tween_property(song_player, ^"volume_db", FAIL_SILENT_DB, FAIL_TAIL_SECONDS).set_delay(FAIL_SWEEP_SECONDS)
 	tw.tween_interval(FAIL_SECONDS)
 	await tw.finished
-	pause_countdown.visible = false
+	await _result_moment.fade_out()
+	_result_moment.hide_failed()
 	failing = false
 	_on_song_ended()
+	_result_moment.fade_in()
+
+## The song played to its end: a short fade to black, then the score screen fades up.
+func _on_song_finished() -> void:
+	await _result_moment.fade_out()
+	_on_song_ended()
+	_result_moment.fade_in()
 
 ## Takes the fail's low-pass off the song's bus, if a fail left it there.
 func _remove_fail_filter() -> void:
@@ -513,6 +523,8 @@ func _ready() -> void:
 	hud = Hud.new(point_label, multiplier_label as ComboHud, percent_indicator)
 	add_child(hud)
 	add_child(FloorReflection.new(track, [left_saber, right_saber], event_driver.track_deck))
+	_result_moment = ResultMoment.new($XROrigin3D/XRCamera3D as Node3D)
+	add_child(_result_moment)
 	@warning_ignore("return_value_discarded")
 	Scoreboard.points_awarded.connect(points_label_driver.show_points)
 	
