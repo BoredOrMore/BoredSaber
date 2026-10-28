@@ -21,7 +21,8 @@ arrangement (owner, 2026-10-27).
 
 - `Hud.gd` (class `Hud`): the two flat panels left and right of the lanes, each turned to face `HUD_EYE`; layout
   constants (`HUD_*`: letters' height in metres in `.z`, position on the panel in `.x/.y`); makes the caption,
-  accuracy, grade and time labels as copies of the score's `TextMesh`; `show_points` formats score as "236 336",
+  accuracy, grade and time labels as copies of the score's `TextMesh`; numbers in `NUMBER_FONT` (Kanit SemiBold
+  Italic, owner 2026-10-28); `_grouped` puts commas in every score and count ("236,336"); `show_points` formats score,
   time as played / length, accuracy "%.1f%%", grade via `EndScore.grade` in `Constants.RANK_COLORS`.
 - `ComboHud.gd` (class `ComboHud`, on `Multiplier_Label`): combo count, the multiplier ring (`ring`, reparented onto
   the right panel by `Hud`), raise flash, broken-combo shake and tint, `milestone_reached` (50, then every 100).
@@ -30,8 +31,8 @@ arrangement (owner, 2026-10-27).
 - `PercentIndicator.gd/.tscn` (class `PercentIndicator`) + `PercentIndicator.gdshader`: the old accuracy ring.
   Hidden in play (`Hud` sets it invisible) but still fed; `EndScore.tscn` and `SpectatorWindow.tscn` use it visibly.
 - `Points_label_driver.gd/.tscn` (class `PointsLabelDriver`): pools and places `points_label.tscn` instances.
-- `points_label.gd/.tscn` (class `PointsLabel`): one popped cut number or MISS, in the live grade's font
-  (`Hud.GRADE_FONT`, Kanit Black Italic; every digit and every letter checked to tessellate cleanly at 100 px).
+- `points_label.gd/.tscn` (class `PointsLabel`): one popped cut number (`Hud.NUMBER_FONT`) or MISS (the live grade's
+  font, `Hud.GRADE_FONT`, Kanit Black Italic; every digit and letter checked to tessellate cleanly at 100 px).
 - `ResultMoment.gd` (class `ResultMoment`, made in `BeepSaber_Game._ready`): the end of a song. On a fail a big "FAILED"
   `WORD_DISTANCE` ahead of the real eye in the grade font, white-hot with a danger-colour glow (Label3D outline layers,
   as the HUD grade's) and a faint mirror image in the deck; on a fail or a clear a `FADE_SECONDS` fade to black (a quad

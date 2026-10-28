@@ -38,6 +38,8 @@ func show_points(_position: Vector3, _rotation:float, value: String, color: Colo
 	player.stop()
 	label.visible = true
 	text_mesh.text = value
+	# the cut's points in the numbers' font, MISS in the grade's
+	text_mesh.font = Hud.GRADE_FONT if value == MISS_TEXT else Hud.NUMBER_FONT
 	(text_mesh.material as StandardMaterial3D).albedo_color = color
 	if value == MISS_TEXT:
 		_show_miss()

@@ -14,6 +14,7 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
 - `fonts/`: Roboto's variable font (`Roboto-Variable.ttf`, OFL, `OFL.txt`) as `roboto_semibold.tres` (600) and
   `roboto_bold.tres` (700) for 2D text only: TextMesh (3D text: HUD, `UIRaycastButton`, end-screen lines) can't draw a
   variable font's overlapping outlines (letters like "e" come out broken) and keeps `Roboto-Medium.ttf`.
+  `Kanit-SemiBoldItalic.ttf` (weight 600, same OFL, from google/fonts): every number (`Hud.NUMBER_FONT`).
   `Kanit-BlackItalic.ttf` (OFL, `Kanit-OFL.txt`): the HUD's grade letter only (`game/hud/Hud.gd`), heavy and slanted;
   compared with Roboto Black and three other italics in `doc/research/grade_font_candidates.png`.
 - `menu_theme.tres`: the one shared `Theme` (Roboto-Medium 28 px for text; buttons, chips, option buttons and tabs

@@ -61,6 +61,10 @@ const GRADE_RUMBLE_BOOST_SECONDS := 0.6
 const GRADE_FONT := preload("res://game/ui/fonts/Kanit-BlackItalic.ttf")
 ## its capitals are 0.92 of Roboto's at one font size: grown back to the grade's measured size
 const GRADE_FONT_SCALE := 1.09
+## Numbers (score, combo, multiplier, accuracy, time, cut points, the score screen and records) in Kanit SemiBold
+## Italic, weight 600 (owner, 2026-10-28; OFL), grown like the grade (Kanit's digits stand as tall as its capitals)
+const NUMBER_FONT := preload("res://game/ui/fonts/Kanit-SemiBoldItalic.ttf")
+const NUMBER_FONT_SCALE := GRADE_FONT_SCALE
 const GRADE_GLOWS := {"SS": 0.6, "S": 0.4, "A": 0.2}
 const GRADE_GLOW_LAYERS := [[10, 0.6], [22, 0.3], [38, 0.15]]
 ## the multiplier ring's scale (its quad is 0.5 m) and centre, the multiplier's height, and the time line
@@ -117,6 +121,9 @@ func _ready() -> void:
 	_set_letters(_combo.mesh as TextMesh, HUD_COMBO.z)
 	_set_letters(_point_label.mesh as TextMesh, HUD_SCORE.z)
 	(_point_label.mesh as TextMesh).text = "0"
+	for label: MeshInstance3D in [_point_label, _combo, _accuracy_label, _time_label]:
+		(label.mesh as TextMesh).font = NUMBER_FONT
+		(label.mesh as TextMesh).pixel_size *= NUMBER_FONT_SCALE
 	_combo.ring.reparent(_right)
 	_combo.set_multiplier_height(HUD_MULTIPLIER_HEIGHT / HUD_RING_SIZE)
 	# the ring under the score now shows as the accuracy line and the grade beside it
@@ -252,12 +259,12 @@ static func _set_text(label: MeshInstance3D, text: String) -> void:
 	if mesh.text != text:
 		mesh.text = text
 
-## 236336 as "236 336", as Beat Saber shows its score
+## 236336 as "236,336" (owner, 2026-10-28: commas in every score and count)
 static func _grouped(value: int) -> String:
 	var digits := str(absi(value))
 	var out := ""
 	while digits.length() > 3:
-		out = " " + digits.right(3) + out
+		out = "," + digits.right(3) + out
 		digits = digits.left(digits.length() - 3)
 	return ("-" if value < 0 else "") + digits + out
 

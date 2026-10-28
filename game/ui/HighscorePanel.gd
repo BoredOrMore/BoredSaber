@@ -78,7 +78,8 @@ func load_highscores(map_info: MapInfo, diff_rank: int, latest: Variant = null) 
 		grade_label.add_theme_color_override(&"font_color",
 				Constants.RANK_COLORS[grade_label.text] if record.has("accuracy") else Constants.UI_TEXT_MUTED)
 		new_row.get_child(1).text = record.player_name if not compact or place < COMPACT_ROWS else "#%d %s" % [place + 1, record.player_name]
-		new_row.get_child(2).text = "%d" % record.score
+		new_row.get_child(2).text = Hud._grouped(record.score)
+		(new_row.get_child(2) as Control).add_theme_font_override(&"font", Hud.NUMBER_FONT)
 		var mine: bool = record.player_name == Settings.player_name if latest == null else (
 				not (latest as Dictionary).is_empty() and record.epoch_time == latest.epoch_time and record.score == latest.score)
 		if mine:

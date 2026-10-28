@@ -579,7 +579,7 @@ func _details_text(song: BeatSaverSongInfo) -> String:
 			line += " · %s" % Constants.FLOW_LEVELS[flow][0]
 		var walls := int(Utils.get_float(d, "obstacles", 0))
 		if walls > 0:
-			line += " · %d walls" % walls
+			line += " · %s walls" % Hud._grouped(walls)
 		text += "\n[color=#%s]%s[/color]" % [(level[1] as Color).to_html(false), line]
 	var description := song.description.strip_edges()
 	if not description.is_empty():

@@ -94,9 +94,9 @@ func _ready() -> void:
 
 	var multiplier_label := MeshInstance3D.new()
 	_multiplier_mesh = TextMesh.new()
-	_multiplier_mesh.font = preload("res://OQ_Toolkit/OQ_UI2D/theme/Roboto-Medium.ttf")
+	_multiplier_mesh.font = Hud.NUMBER_FONT
 	_multiplier_mesh.font_size = 100
-	_multiplier_mesh.pixel_size = 0.001
+	_multiplier_mesh.pixel_size = 0.001 * Hud.NUMBER_FONT_SCALE
 	_multiplier_mesh.depth = 0.0
 	multiplier_label.mesh = _multiplier_mesh
 	_multiplier_material = _text_material.duplicate() as BaseMaterial3D
@@ -153,7 +153,7 @@ func _add_sound(stream: AudioStream) -> AudioStreamPlayer:
 ## Shows the current combo and multiplier; the ring moves to them over the next frames.
 func refresh() -> void:
 	# the "Combo" caption is the game's HUD label above this count
-	var text := "%d" % Scoreboard.combo
+	var text := Hud._grouped(Scoreboard.combo)
 	if (mesh as TextMesh).text != text:
 		(mesh as TextMesh).text = text
 	_multiplier_mesh.text = "x%d" % Scoreboard.multiplier
@@ -196,7 +196,7 @@ func _on_combo_hit() -> void:
 		milestone_reached.emit(Scoreboard.combo)
 
 func _show_milestone(combo: int) -> void:
-	_milestone_mesh.text = "%d COMBO" % combo
+	_milestone_mesh.text = "%s COMBO" % Hud._grouped(combo)
 	_milestone_label.visible = true
 	if _milestone_tween:
 		_milestone_tween.kill()

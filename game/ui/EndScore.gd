@@ -133,7 +133,11 @@ func _add_banner() -> void:
 	word.mesh = _banner_text
 	word.position = Vector3(0.0, BANNER_Y, 0.012)
 	add_child(word)
-	_progress_text.font = ($Details as MeshInstance3D).mesh.font
+	# the score and record in the numbers' font (Hud.NUMBER_FONT); the progress line ("Failed at 1:42") with them
+	var details := ($Details as MeshInstance3D).mesh as TextMesh
+	details.font = Hud.NUMBER_FONT
+	details.pixel_size *= Hud.NUMBER_FONT_SCALE
+	_progress_text.font = details.font
 	_progress_text.font_size = LABEL_FONT_SIZE
 	_progress_text.pixel_size = PROGRESS_TEXT_HEIGHT / LABEL_FONT_SIZE
 	_progress_text.depth = 0.0
@@ -228,7 +232,7 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 	for i in lines.size():
 		lines[i] = _fit(($NameLabel as MeshInstance3D).mesh as TextMesh, lines[i], NAME_WIDTHS[mini(i, NAME_WIDTHS.size() - 1)])
 	name_label.text = "\n".join(lines)
-	details_mesh.text = "Score\n%d\n\nRecord\n%d" % [score,record]
+	details_mesh.text = "Score\n%s\n\nRecord\n%s" % [Hud._grouped(score), Hud._grouped(record)]
 	# after a fail, trying again is the likely next step
 	var repeat_button := $Repeat as UIRaycastButton
 	repeat_button.text = "Retry" if percent < 0 else "Repeat"
@@ -264,14 +268,14 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 			if counted != shown_score and now - last_tick >= TICK_MIN_INTERVAL:
 				shown_score = counted
 				last_tick = now
-				details_mesh.text = "Score\n%d\n\nRecord\n%d" % [counted, record]
+				details_mesh.text = "Score\n%s\n\nRecord\n%s" % [Hud._grouped(counted), Hud._grouped(record)]
 				_tick_player.pitch_scale = lerpf(TICK_PITCH_FROM, TICK_PITCH_TO, progress)
 				_tick_player.play()
 			await get_tree().process_frame
 		#_on_Tween_tween_completed()
 		
 		percent_indicator.update_percent(animated_percent)
-		details_mesh.text = "Score\n%d\n\nRecord\n%d" % [score, record]
+		details_mesh.text = "Score\n%s\n\nRecord\n%s" % [Hud._grouped(score), Hud._grouped(record)]
 		var final_rank := grade(percent)
 		if final_rank != shown_rank:
 			_show_rank(grade_label, final_rank)
