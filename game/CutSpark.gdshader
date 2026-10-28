@@ -16,8 +16,8 @@ render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabl
 uniform float now;
 uniform float drag = 7.0;
 uniform float gravity = 1.5;
-uniform float streak_length = 0.072;
-uniform float point_size = 0.013;
+uniform float streak_length = 0.096;
+uniform float point_size = 0.0176;
 const float STREAK_SECONDS = 0.04;
 const float STREAK_MIN = 2.5;
 const float RIM_FROM = 0.45;

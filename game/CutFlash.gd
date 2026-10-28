@@ -20,10 +20,12 @@ const COUNT := 5
 const SPARK_WIDTH := 0.024
 const SPARK_TRAIL := 0.3
 const SPARK_SHADER := preload("res://game/SparkStreak.gdshader")
-## a cut spark: a streak at most STREAK_LENGTH long and POINT_SIZE wide (40% under the first, owner, 2026-10-28)
+## a cut spark: a streak at most STREAK_LENGTH long and POINT_SIZE wide, SPARK_SIZE of the first ones' 0.12 m and
+## 0.022 m (owner, 2026-10-28: 0.6 was too small, 0.8)
 const CUT_SPARK_SHADER := preload("res://game/CutSpark.gdshader")
-const STREAK_LENGTH := 0.072
-const POINT_SIZE := 0.013
+const SPARK_SIZE := 0.8
+const STREAK_LENGTH := 0.12 * SPARK_SIZE
+const POINT_SIZE := 0.022 * SPARK_SIZE
 ## half the length of the cut line the sparks leave from when no note's mesh is given (the slash block, the bench)
 const CUT_LINE_HALF := 0.25
 ## sparks a burst (Beat Saber shows about 50-80)

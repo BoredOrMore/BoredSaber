@@ -159,3 +159,5 @@ tune on the headset.
   shader in closed form (v = g/k + (v0 - g/k) e^(-kt)); the CPU only works out a burst's sparks when a blade passes
   near it. The first cut of a session also froze the Mac for 370 ms building the shader; one dark spark on the first
   frame now builds it at load.
+- **Then 80%:** on the headset 40% smaller was too small; the owner asked for 80% of the first size: 0.0176 m wide,
+  streaks to 0.096 m (`CutFlash.SPARK_SIZE`).
