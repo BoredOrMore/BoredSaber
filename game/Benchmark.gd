@@ -55,7 +55,9 @@ const REFLECTION := "reflection"
 const CUTS := "cuts"
 ## The flag file's mode for switching stages (tools/bench.sh --only stages): in the song menu, every stage in turn for
 ## STAGE_SECONDS, twice (the first pass meets each stage for the first time since launch, the second again), each frame
-## longer than HITCH_SECONDS logged as "BENCH hitch <ms> <phase>". Run it right after launching the game.
+## longer than HITCH_SECONDS logged as "BENCH hitch <ms> <phase> +<s into it> process <ms> render cpu <ms> gpu <ms>"
+## (the scripts' time, the render thread's and the GPU's that frame, to tell a slow script from a shader built on first
+## draw), and the switch's own call as "BENCH switch <ms>". Run it right after launching the game.
 const STAGES := "stages"
 const STAGE_SECONDS := 6.0
 const HITCH_SECONDS := 0.025
@@ -146,7 +148,10 @@ func _stage_parts(off: String) -> void:
 ## Shows stage `id` in the song menu and logs the phase's long frames under `phase_name` (the stages mode).
 func _show_stage(id: String, phase_name: String) -> void:
 	_hitch_phase = phase_name
+	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
+	var started := Time.get_ticks_usec()
 	Settings.environment = id
+	print("BENCH switch %.1f" % ((Time.get_ticks_usec() - started) / 1000.0))
 
 ## Fires full-swing cuts at the hit plane CUTS_PER_SECOND, left and right in turn, up to `t` seconds into the phase.
 func _fire_cuts(t: float) -> void:
@@ -334,7 +339,11 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_elapsed += delta
 	if not _hitch_phase.is_empty() and delta > HITCH_SECONDS:
-		print("BENCH hitch %.1f %s" % [delta * 1000.0, _hitch_phase])
+		var viewport := get_viewport().get_viewport_rid()
+		print("BENCH hitch %.1f %s +%.2f process %.1f render cpu %.1f gpu %.1f" % [delta * 1000.0, _hitch_phase, _elapsed,
+			Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
+			RenderingServer.viewport_get_measured_render_time_cpu(viewport) + RenderingServer.get_frame_setup_time_cpu(),
+			RenderingServer.viewport_get_measured_render_time_gpu(viewport)])
 	if _tick.is_valid():
 		_tick.call(_elapsed)
 
@@ -460,6 +469,7 @@ func _show_status(phase_name: String) -> void:
 func _restore() -> void:
 	LowResGlow.height = _glow_height
 	_hitch_phase = ""
+	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), false)
 	_set_debug_bits(0)
 	for key: StringName in _saved:
 		if Settings.get(key) != _saved[key]:
