@@ -38,6 +38,9 @@ constraints apply here unchanged.
   `bad_cut("miss")`, bombs just release.
 - Walls: `PlayerHead` `area_entered/exited` (group `wall`) -> `_in_wall`, `Scoreboard.enter_wall()`
   / `exit_wall()`; `_check_and_update_saber()` keeps calling `enter_wall()` while walled.
+- Stage switch: a pick in the song menu (`Settings.environment`) goes through `_switch_stage_in_black` (fade down
+  `STAGE_FADE_SECONDS`, `_apply_environment`, hold `STAGE_HOLD_SECONDS`, fade up; the fade is `ResultMoment`'s quad);
+  elsewhere `_apply_environment` at once, and `start_map` sets the song's stage.
 - End: `SongPlayer.finished` -> `_on_song_ended()` -> highscore/playcount -> `EndScore.show_score()`
   -> `gamestate_newhighscore` or `gamestate_mapcomplete`.
 

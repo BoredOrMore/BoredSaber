@@ -134,6 +134,12 @@ const FAIL_TAIL_SECONDS := 0.8
 const FAIL_SILENT_DB := -60.0
 ## added to the song's bus only while a fail plays out
 var _fail_filter := AudioEffectLowPassFilter.new()
+## A stage picked in the song menu changes behind a short black fade (owner, 2026-10-28, option "ข"): down over
+## STAGE_FADE_SECONDS, the switch, STAGE_HOLD_SECONDS black while the new stage's first frames draw (a switch hitched
+## the Pico for about 70 ms at once and 110 ms about 0.57 s later, 2026-10-28 stages bench), then back up. Untuned.
+const STAGE_FADE_SECONDS := 0.15
+const STAGE_HOLD_SECONDS := 0.1
+var _stage_switching := false
 # the high score saved at the end of the last song
 var _new_record := {}
 const DANGER_WALL_MATERIAL := preload("res://game/notes/Wall/danger_wall.tres")
@@ -843,7 +849,10 @@ func on_settings_changed(key: StringName) -> void:
 		&"note_style", &"darker_notes", &"classic_notes":
 			_apply_note_style()
 		&"environment":
-			_apply_environment()
+			if gamestate == gamestate_mapselection and _result_moment:
+				_switch_stage_in_black()
+			else:
+				_apply_environment()
 		&"player_height_offset":
 			if not _height_held:
 				xr_origin.transform.origin.y = Constants.view_shift(Settings.player_height_offset)
@@ -860,6 +869,18 @@ func _apply_note_style() -> void:
 ## Shows the environment the player picked, or on "Auto" the one for the last map played.
 func _apply_environment() -> void:
 	event_driver.set_environment(EventDriver.pick_environment(Map.current_info))
+
+## Changes the stage behind a short black fade (STAGE_*), following the latest pick if it changes meanwhile.
+func _switch_stage_in_black() -> void:
+	if _stage_switching:
+		return
+	_stage_switching = true
+	await _result_moment.fade_out(STAGE_FADE_SECONDS)
+	while event_driver.environment != EventDriver.pick_environment(Map.current_info):
+		_apply_environment()
+		await get_tree().create_timer(STAGE_HOLD_SECONDS).timeout
+	_stage_switching = false
+	_result_moment.fade_in(STAGE_FADE_SECONDS)
 
 func set_colors_from_settings() -> void:
 	# only the menus use the settings' colours: dim the scene so the menu holds the eye

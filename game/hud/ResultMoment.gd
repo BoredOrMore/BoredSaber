@@ -104,12 +104,12 @@ func hide_failed() -> void:
 	_word.visible = false
 	_mirror.visible = false
 
-## Fades the view to black over FADE_SECONDS; await it.
-func fade_out() -> void:
+## Fades the view to black over `seconds` (FADE_SECONDS unless given; also the stage switch's fade); await it.
+func fade_out(seconds := FADE_SECONDS) -> void:
 	_fade.visible = true
-	await create_tween().tween_property(_fade_material, ^"albedo_color:a", 1.0, FADE_SECONDS).finished
+	await create_tween().tween_property(_fade_material, ^"albedo_color:a", 1.0, seconds).finished
 
-## Fades the view back up from black over FADE_SECONDS.
-func fade_in() -> void:
-	await create_tween().tween_property(_fade_material, ^"albedo_color:a", 0.0, FADE_SECONDS).finished
+## Fades the view back up from black over `seconds` (FADE_SECONDS unless given).
+func fade_in(seconds := FADE_SECONDS) -> void:
+	await create_tween().tween_property(_fade_material, ^"albedo_color:a", 0.0, seconds).finished
 	_fade.visible = false
