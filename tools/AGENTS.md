@@ -34,7 +34,8 @@ All four parse `--key value` pairs after `--` (`OS.get_cmdline_user_args()`), so
   With `--map` it runs to song end unless `--seconds` or `--at`. `--saber` holds `default_saber.tscn` (`:222`).
   Example: `godot --path . res://tools/capture/stage_capture.tscn -- --out /tmp/stage.png --env night_city`
 - `endscore_capture.gd` / `endscore_capture.tscn`: renders `game/ui/EndScore.tscn` to check text fits its board.
-  `--out(/tmp/end.png) --song --author --level --mapper --card <name card text> --percent(0.87) --record 1 --fc 1`;
+  `--out(/tmp/end.png) --song --author --level --mapper --card <name card text> --card-change 1 ("Not you?") --percent(0.87)
+  --record 1 --fc 1`;
   undocumented in header: `--before <percent>` (show and close a previous score first) and `--frames(1)` with it.
 - `highscore_capture.gd` / `highscore_capture.tscn`: renders `game/ui/HighscorePanel.tscn` at menu size.
   `--out(/tmp/hs.png) --table highscores.json --key "[artist,song,,mapper]" --rank(1) --names long --rows(10)

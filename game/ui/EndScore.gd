@@ -3,6 +3,8 @@ class_name EndScore
 
 signal mainmenu
 signal repeat
+## "Not you?" on the name card: the player wants this run's record under someone else (owner, 2026-10-28)
+signal change_player
 
 ## Fewest seconds between two ticks while the score counts up (about 18 a second at most).
 const TICK_MIN_INTERVAL := 0.055
@@ -38,8 +40,9 @@ const TOP_RANK_SPARKLE := 0.8
 ## right padding, the second (level and map author) to just before "New Record!" (NRMesh). Longer lines end in "…"
 ## instead of spilling off the board (owner on the headset, 2026-10-25: the score board's content overflowed).
 const NAME_WIDTHS := [1.8, 1.3]
-## the name card's text, one line, at most this wide
+## the name card's text, one line, at most this wide; less CARD_BUTTON_ROOM when "Not you?" sits at its right end
 const CARD_TEXT_WIDTH := 1.5
+const CARD_BUTTON_ROOM := 0.32
 ## The name card under the score (where this run stands on the map's board, and the button to name it) lights its
 ## border once when the count lands, so the eye goes to it after the score (untuned).
 const CARD_GLOW_SECONDS := 0.8
@@ -183,6 +186,7 @@ func _show() -> void:
 	collision.disabled = false
 	($Repeat as UIRaycastButton).collision_layer = CollisionLayerConstants.Ui_mask
 	($MainMenu as UIRaycastButton).collision_layer = CollisionLayerConstants.Ui_mask
+	($ChangePlayer as UIRaycastButton).collision_layer = CollisionLayerConstants.Ui_mask
 	show()
 
 func _hide() -> void:
@@ -190,6 +194,7 @@ func _hide() -> void:
 	collision.disabled = true
 	($Repeat as UIRaycastButton).collision_layer = 0
 	($MainMenu as UIRaycastButton).collision_layer = 0
+	($ChangePlayer as UIRaycastButton).collision_layer = 0
 	_tick_player.stop()
 	_ding_player.stop()
 	_ding_high_player.stop()
@@ -349,22 +354,29 @@ func _show_rank(label: RichTextLabel, rank: String) -> void:
 func set_buttons_disabled(disabled: bool) -> void:
 	($Repeat/Collision as CollisionShape3D).disabled = disabled
 	($MainMenu/Collision as CollisionShape3D).disabled = disabled
+	($ChangePlayer/Collision as CollisionShape3D).disabled = disabled
 
-## Shows a line on the name card.
-func show_name_card(text: String) -> void:
+## Shows a line on the name card, with "Not you?" at its end when `can_change` (a record this run just saved).
+func show_name_card(text: String, can_change := false) -> void:
 	_name_card.visible = true
+	($ChangePlayer as UIRaycastButton).visible = can_change
 	# one line: the card is one line tall
-	_name_label.text = _fit(_name_label, text.replace("\n", "  ·  "), CARD_TEXT_WIDTH)
+	_name_label.text = _fit(_name_label, text.replace("\n", "  ·  "),
+			CARD_TEXT_WIDTH - (CARD_BUTTON_ROOM if can_change else 0.0))
 	($MainMenu as UIRaycastButton).set_primary(_finished)
 
 func hide_name_card() -> void:
 	_name_card.visible = false
+	($ChangePlayer as UIRaycastButton).visible = false
 
 ## Lights the name card's border once.
 func glow_name_card() -> void:
 	if _name_card.visible:
 		create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN) \
 			.tween_property(_card_material, ^"shader_parameter/highlight", 0.0, CARD_GLOW_SECONDS).from(1.0)
+
+func _on_ChangePlayer_button_up() -> void:
+	change_player.emit()
 
 func _on_Repeat_button_up() -> void:
 	repeat.emit()

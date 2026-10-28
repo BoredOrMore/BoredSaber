@@ -516,9 +516,9 @@ func _show_name_card() -> void:
 	var records := Highscores.get_records(Map.current_info,
 		HighscoreTable.get_rank_key(Map.current_difficulty.difficulty_rank))
 	if not _new_record.is_empty():
-		endscore.show_name_card("Saved as %s" % _new_record.player_name)
+		endscore.show_name_card("Saved as %s" % _new_record.player_name, true)
 	elif not records.is_empty():
-		endscore.show_name_card("Best on this map: %d by %s" % [records[0].score, records[0].player_name])
+		endscore.show_name_card("Best on this map: %s by %s" % [Hud._grouped(records[0].score), records[0].player_name])
 	else:
 		endscore.hide_name_card()
 	if _lowered_resolution:
@@ -1235,9 +1235,27 @@ func _open_profiles() -> void:
 	main_menu.disable_collision = true
 	_update_slash_block()
 
-## Closes "Who's playing?" and shows the (maybe new) current player's records in the menu.
+## "Not you?" on the score screen (owner, 2026-10-28): "Who's playing?" opens over it; whoever is picked (or added)
+## when it closes becomes the current player and gets this run's record (_close_profiles). A better record that player
+## already has on the map stays too: the table keeps both rows.
+var _naming_record := false
+
+func _change_record_player() -> void:
+	_naming_record = true
+	endscore.set_buttons_disabled(true)
+	_open_profiles()
+
+## Closes "Who's playing?" and shows the (maybe new) current player's records in the menu, or, opened from the score
+## screen, moves this run's record to them.
 func _close_profiles() -> void:
 	profiles_canvas._hide()
+	if _naming_record:
+		_naming_record = false
+		endscore.set_buttons_disabled(false)
+		if not _new_record.is_empty() and _new_record.player_name != Settings.player_name:
+			Highscores.rename_record(_new_record, Settings.player_name)
+		highscore_panel.load_highscores(Map.current_info, Map.current_difficulty.difficulty_rank, _new_record)
+		_show_name_card()
 	main_menu.disable_collision = false
 	menu.update_view()
 	_update_slash_block()
