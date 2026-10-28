@@ -4,22 +4,19 @@ render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, fog_disabled, 
 // The notes and sabers mirrored under the track's deck (FloorReflection.gd), faked without a second render or a screen
 // read (AGENTS.md "Light", rule 10): each mirrored vertex keeps the place on screen a mirror would show it at, but takes
 // the depth of the deck's surface where the eye's ray meets it, so the opaque deck doesn't hide it and anything above the
-// deck still covers it. It fades as it goes deeper under the deck and stays faint, dark and greyed, its edges softened
-// toward the silhouette: a dark glossy floor, not a mirror (owner, 2026-10-28: the first version was too sharp, and the
-// note texture's dot ring showed under each box, so no texture is used).
+// deck still covers it. It fades as it goes deeper under the deck: a dark glossy floor, not a mirror. No texture: the
+// note texture's dot ring showed under each box (owner, 2026-10-28). A fainter, greyer, soft-edged try read too faint
+// on the headset; the owner kept the first strength.
 global uniform vec4 left_saber_color;
 global uniform vec4 right_saber_color;
 uniform float floor_y = 0.0;
 // how strong the reflection is at the deck's surface, and how deep under it it has faded out (m)
-const float STRENGTH = 0.12;
-const float FADE_DEPTH = 2.0;
-// how far its colour is greyed toward its own brightness, and how sharply its edges fade (higher: softer outline)
-const float GREY = 0.5;
-const float EDGE_SOFTNESS = 1.5;
+const float STRENGTH = 0.3;
+const float FADE_DEPTH = 3.5;
 // the deck's depth is taken this far above it, so the reflection wins the depth test against the deck itself
 const float DEPTH_LIFT = 0.003;
 // how bright the mirrored body is (the notes' own body glows at 0.55 of its colour)
-const float BODY = 0.4;
+const float BODY = 0.55;
 
 varying float below;
 varying vec4 tint;
@@ -39,7 +36,6 @@ void vertex() {
 }
 
 void fragment() {
-	ALBEDO = mix(tint.rgb, vec3(dot(tint.rgb, vec3(0.299, 0.587, 0.114))), GREY);
-	float facing = pow(abs(dot(NORMAL, VIEW)), EDGE_SOFTNESS);
-	ALPHA = STRENGTH * facing * (1.0 - smoothstep(0.0, FADE_DEPTH, below));
+	ALBEDO = tint.rgb;
+	ALPHA = STRENGTH * (1.0 - smoothstep(0.0, FADE_DEPTH, below));
 }
