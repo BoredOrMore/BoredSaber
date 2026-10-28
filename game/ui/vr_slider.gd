@@ -212,4 +212,5 @@ func _mouse_entered() -> void:
 	is_mouse_in = true
 
 func _mouse_exited() -> void:
-	is_mouse_in = false
+	# a list of child buttons (CoverGrid's cards) reports an exit when the pointer moves onto one of them
+	is_mouse_in = scroll_node.get_global_rect().has_point(scroll_node.get_global_mouse_position())
