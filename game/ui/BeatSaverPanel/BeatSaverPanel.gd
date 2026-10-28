@@ -767,8 +767,15 @@ var _decoding := 0
 
 func _process(delta: float) -> void:
 	if delta > SLOW_FRAME_SECONDS and is_visible_in_tree():
-		print("BeatSaver slow frame %.0f ms: %s (%d songs, %d covers decoding, %d waiting)" % [delta * 1000.0,
-				_frame_work if _frame_work else "nothing here", song_data.size(), _decoding, _finished_covers.size()])
+		var page := get_viewport().get_viewport_rid()
+		var view := get_tree().root.get_viewport_rid()
+		RenderingServer.viewport_set_measure_render_time(page, true)
+		RenderingServer.viewport_set_measure_render_time(view, true)
+		print("BeatSaver slow frame %.0f ms: %s (%d songs, %d covers decoding, %d waiting; textures %.0f MB; render cpu page %.1f view %.1f setup %.1f ms)" % [
+				delta * 1000.0, _frame_work if _frame_work else "nothing here", song_data.size(), _decoding,
+				_finished_covers.size(), Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED) / 1048576.0,
+				RenderingServer.viewport_get_measured_render_time_cpu(page),
+				RenderingServer.viewport_get_measured_render_time_cpu(view), RenderingServer.get_frame_setup_time_cpu()])
 	_frame_work = ""
 	var started := Time.get_ticks_usec()
 	_flush_covers(delta)
