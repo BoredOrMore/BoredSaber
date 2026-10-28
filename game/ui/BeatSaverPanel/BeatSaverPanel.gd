@@ -405,6 +405,9 @@ func _search_url(page: int, query: String, sort_order: String) -> String:
 func update_list(req: BeatSaverRequest) -> void:
 	if req.page == 0:
 		# brand new request, clear list to prep for reload
+		# the old covers go a few a frame (_release_covers): hundreds freed at once stalled the headset about a second
+		for i in item_list.item_count:
+			_retired_covers.append(item_list.get_item_icon(i))
 		item_list.clear()
 		label.text = "Loading songs…"
 		if goto_maps_by:
@@ -799,6 +802,7 @@ var _process_began := 0
 var _process_ended := 0
 
 func _process(delta: float) -> void:
+	_retired_covers.resize(maxi(_retired_covers.size() - COVERS_RELEASED_PER_FRAME, 0))
 	var now := Time.get_ticks_usec()
 	if delta > SLOW_FRAME_SECONDS and is_visible_in_tree():
 		print("BeatSaver slow frame split: every _process %.1f ms, the rest (physics, input, drawing, waiting on the headset) %.1f ms" % [
@@ -966,6 +970,10 @@ var _cover_list := 0
 const COVER_FLUSH_SECONDS := 0.25
 var _finished_covers := []
 var _cover_flush_wait := 0.0
+## Covers of a list that was replaced (a filter change, a search), let go COVERS_RELEASED_PER_FRAME a frame (headset,
+## f9cfdf1: changing the filter on a 371-song list froze a second as 30 MB of covers were freed together).
+const COVERS_RELEASED_PER_FRAME := 8
+var _retired_covers: Array[Texture2D] = []
 
 func _update_all_covers() -> void:
 	httpcoverdownload.cancel_request()
