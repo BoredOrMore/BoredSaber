@@ -148,3 +148,14 @@ tune on the headset.
 - To do that the sparks are simulated in GDScript and drawn as one MultiMesh (CPUParticles3D gives no access to a
   particle). CPU cost estimated 0.1-0.2 ms a frame with a few bursts alive; measured on the Pico with
   `tools/bench.sh --only cuts`, which now also swings a blade through them and logs "BENCH sparks cpu".
+- **Then (owner, 2026-10-28, after trying 4f3f006 on the headset):** "40% smaller, white-hot, spreading out from the
+  face of the box mesh". Streaks now 0.013 m wide and at most 0.072 m long; white-hot with a thin rim of the note
+  colour for their whole life (the Light rule's hot core, coloured falloff), fading by brightness only. They're born
+  on the note mesh's outer faces where the cut plane crosses them (a random point on that outline), flying out along
+  the face's normal plus the swing and a random part. `sparks_from_faces.jpg`: Beat Saber, ours, ours with a blade
+  sweep, at the same moments as above.
+- **Cost.** On the Pico (cuts bench, 4 full cuts a second with a blade swinging through, 4f3f006), the per-frame
+  GDScript simulation took 0.50 ms of CPU a frame and the sparks about 0.2-0.3 ms of GPU. So the motion moved into the
+  shader in closed form (v = g/k + (v0 - g/k) e^(-kt)); the CPU only works out a burst's sparks when a blade passes
+  near it. The first cut of a session also froze the Mac for 370 ms building the shader; one dark spark on the first
+  frame now builds it at load.

@@ -70,11 +70,13 @@ constraints apply here unchanged.
   drop in the eye-drop column; charged rows put the hold in `interval_ms` and ok / no_stance / broke_at_<ms> / missed
   in the last `outcome` column). Thresholds are untuned starting values.
 - `CutFlash.gd` (class `CutFlash`) + `CutSpark.gdshader` — a cut's sparks, as Beat Saber's (measured in
-  doc/research/cut-dust-plan.md section 7): white-hot streaks out of the cut line to the sides and along the swing, a
-  strong smooth drag, slight gravity, gone in under a second; the blades (`sabers`, set by `BeepSaber_Game._ready`,
-  plus `test_blade` for the bench) push them while they live, never into the note lanes ahead. Simulated in GDScript
-  and drawn as one MultiMesh (`SPARK_*`, `WAKE_*`, `LANE_*`). `SparkStreak.gdshader` + the static `spark_mesh()`: the
-  trailed sparks other effects use (saber clash, Metal Factory).
+  doc/research/cut-dust-plan.md section 7): small white-hot streaks with a note-coloured rim, born on the note mesh's
+  faces where the cut crosses them (`flash` takes the cut plane's normal and the mesh's transform and box), out from
+  those faces and along the swing, a strong smooth drag, slight gravity, gone in under a second. The shader moves them
+  in closed form from a `now` clock; the blades (`sabers`, set by `BeepSaber_Game._ready`, plus `test_blade` for the
+  bench) push a burst's sparks only when they pass near it, never into the note lanes ahead (`SPARK_*`, `WAKE_*`,
+  `LANE_*`). `SparkStreak.gdshader` + the static `spark_mesh()`: the trailed sparks other effects use (saber clash,
+  Metal Factory).
 - `FloorReflection.gd` (class `FloorReflection`) + `FloorReflection.gdshader` — the notes and blades faintly mirrored in
   the deck: two MultiMeshes refilled each frame, drawn at the deck's depth in a depth-only pass then colour, so a lower
   note's reflection hides an upper one's (no second render, no screen read); fades by depth and distance; off with

@@ -139,7 +139,8 @@ func cut(saber: LightSaber, _cut_speed: Vector3, cut_plane: Plane, _controller: 
 	if Settings.cut_flash:
 		var on_cut := global_transform.origin - cut_plane.normal * cut_plane.distance_to(global_transform.origin)
 		GlobalReferences.main_game_scene.cut_flash.flash(on_cut, _cut_speed,
-				Map.color_right if saber.type == 1 else Map.color_left)
+				Map.color_right if saber.type == 1 else Map.color_left, cut_plane.normal, mi.global_transform,
+				mi.get_aabb())
 	
 	hide_cube()
 	if Settings.cube_cuts_falloff:

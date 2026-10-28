@@ -64,6 +64,7 @@ const HITCH_SECONDS := 0.025
 var _hitch_phase := ""
 const CUTS_PER_SECOND := 4.0
 const CUTS_SWING := Vector3(0.0, -6.0, 0.0)
+const CUTS_NOTE_HALF := 0.2
 ## a blade the benchmark swings side to side through the sparks while it cuts (CutFlash.test_blade), so their cost
 ## includes the blades' push: CUTS_BLADE_HZ sweeps a second, CUTS_BLADE_HALF either side of the middle (m)
 const CUTS_BLADE_HZ := 1.0
@@ -170,7 +171,9 @@ func _fire_cuts(t: float) -> void:
 		_cuts_fired += 1
 		var side := -1.0 if _cuts_fired % 2 == 0 else 1.0
 		var at := Vector3(side * Settings.LANE_DISTANCE_X * 0.5, Constants.layer_y(1.0), Constants.HIT_PLANE_Z)
-		game.cut_flash.flash(at, CUTS_SWING, Map.color_left if side < 0.0 else Map.color_right)
+		# a note's box (CUTS_NOTE_HALF) cut straight down, so the sparks leave its faces
+		game.cut_flash.flash(at, CUTS_SWING, Map.color_left if side < 0.0 else Map.color_right, Vector3.RIGHT,
+			Transform3D(Basis(), at), AABB(-Vector3.ONE * CUTS_NOTE_HALF, Vector3.ONE * CUTS_NOTE_HALF * 2.0))
 
 ## Sets the benchmark-only DebugView bits to `bits` (the reflection mode), leaving the rest of the flags alone.
 func _set_debug_bits(bits: int) -> void:

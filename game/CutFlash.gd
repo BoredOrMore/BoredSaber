@@ -1,32 +1,36 @@
 class_name CutFlash
 extends Node3D
 ## Sparks off a cut, as Beat Saber's (owner, 2026-10-28; measured frame by frame in the PC recording, 128.6-129.6 s,
-## doc/research/cut-dust-plan.md section 7): born white-hot along the whole cut line through the note, they fly out
-## sideways from it and along the swing, harder and wider the harder the swing; a strong smooth drag stops them within
-## about SPARK_DRAG's 0.2 s, a little gravity lets them sag, and they fade out after SPARK_SECONDS. Each is a crisp
-## streak as long as its speed carries it (CutSpark.gdshader), so it shortens as it slows.
-## While they hang there the blades push them (owner, 2026-10-28): a blade passing within WAKE_RADIUS drags a spark along
-## with it, more the nearer it passes, so a swing through the sparks sweeps them away. A pushed spark is never carried
-## into the note lanes ahead of the player (LANE_*): there it can only move out to the side and back.
-## Simulated here (CPUParticles3D lets nobody touch a particle) and drawn as one MultiMesh; at most COUNT bursts' sparks
-## at once, a new burst taking the oldest sparks' slots, so nothing allocates. A streak left hanging on the cut line
-## looked fake (2026-10-22, dd6c828), so the line is only the sparks'. Sizes in metres, untuned until seen on the headset.
+## doc/research/cut-dust-plan.md section 7): born on the note's faces where the cut crosses them (owner: "the face of
+## the box mesh"), they fly out from those faces and along the swing, harder and wider the harder the swing; a strong
+## smooth drag stops them within about SPARK_DRAG's 0.2 s, a little gravity lets them sag, and they fade out after
+## SPARK_SECONDS. Each is a crisp streak as long as its speed carries it, white-hot with a thin rim of the note colour
+## (CutSpark.gdshader).
+## While they hang there the blades push them (owner, 2026-10-28): a blade passing within WAKE_RADIUS drags a spark
+## along with it, more the nearer it passes, so a swing through the sparks sweeps them away. A pushed spark is never
+## carried into the note lanes ahead of the player (LANE_*): there it can only move out to the side and back.
+## One MultiMesh of COUNT blocks of SPARKS slots, a new burst taking the oldest block, so nothing allocates. The shader
+## moves each spark along its drag-and-gravity path from where it was born or last pushed; the CPU works sparks out
+## only when a blade passes near their burst (simulating every spark each frame in GDScript cost 0.46 ms on the Mac,
+## 2026-10-28). A streak left hanging on the cut line looked fake (2026-10-22, dd6c828), so the line is only the
+## sparks'. Sizes in metres, untuned until seen on the headset.
 const COUNT := 5
 ## the trail used by other sparks (spark_mesh: the clash, Metal Factory): its width and length in metres at scale 1
 ## (the player found 4 mm by 12 cm too small and asked for the earlier size back)
 const SPARK_WIDTH := 0.024
 const SPARK_TRAIL := 0.3
 const SPARK_SHADER := preload("res://game/SparkStreak.gdshader")
-## a cut spark: a streak at most STREAK_LENGTH long and POINT_SIZE wide
+## a cut spark: a streak at most STREAK_LENGTH long and POINT_SIZE wide (40% under the first, owner, 2026-10-28)
 const CUT_SPARK_SHADER := preload("res://game/CutSpark.gdshader")
-const STREAK_LENGTH := 0.12
-const POINT_SIZE := 0.022
-## half the length of the cut line the sparks leave from, along the swing through the note
+const STREAK_LENGTH := 0.072
+const POINT_SIZE := 0.013
+## half the length of the cut line the sparks leave from when no note's mesh is given (the slash block, the bench)
 const CUT_LINE_HALF := 0.25
 ## sparks a burst (Beat Saber shows about 50-80)
 const SPARKS := 56
-## a spark's start direction: out of the cut line to either side (SIDE), along the swing (ALONG) and a random part
-## (SCATTER), each a weight before normalising (the side part random in size, so the burst is one cloud, not two); its speed (m/s) at a full swing
+## a spark's start direction: out of the note's face it leaves (weight 1; without a mesh, out to either side of the cut
+## line, SIDE, random in size so the burst is one cloud, not two), along the swing (ALONG) and a random part (SCATTER),
+## each a weight before normalising; its speed (m/s) at a full swing
 const SIDE := 0.8
 const ALONG := 1.0
 const SCATTER := 0.6
@@ -39,9 +43,6 @@ const SPARK_DRAG := 7.0
 const SPARK_GRAVITY := 1.5
 const SPARK_SECONDS_MIN := 0.7
 const SPARK_SECONDS := 1.0
-## the colour it cools to: the note colour leaned this far to a grey-white
-const SPARK_GREY := 0.35
-const SPARK_WHITE := Color(0.86, 0.87, 0.9)
 ## The swing drives the sparks through one exponential curve, as the saber trail's opacity does: the tip's speed as
 ## a share x of SWING_FULL (m/s), eased as (e^(SWING_CURVE x) - 1) / (e^SWING_CURVE - 1), so a soft cut gives a
 ## small, dim, narrow puff and only a real swing a full burst. It scales the sparks' speed from SPEED_SCALE_MIN to 1,
@@ -60,12 +61,11 @@ const WAKE_RADIUS := 0.12
 const WAKE_PULL := 0.5
 const WAKE_MIN_SPEED := 0.5
 ## the note lanes ahead of the player a pushed spark may not be carried into: half their width in lanes from the
-## middle, their rows' height (m), everything farther than the hit plane, and how hard a pushed spark there is moved out
-## to the side and back (m/s²)
+## middle, their rows' height (m), and everything farther than the hit plane. A push there keeps only the parts of the
+## blade's pull that go out to the side and back; drag and gravity never turn a spark round, so it stays out.
 const LANE_HALF_LANES := 2.0
 const LANE_BOTTOM := 0.5
 const LANE_TOP := 2.3
-const LANE_CLEAR_ACCEL := 3.0
 ## floats per spark in the MultiMesh buffer: a 3x4 transform, a colour and the custom data
 const STRIDE := 20
 
@@ -73,54 +73,64 @@ const STRIDE := 20
 var sabers: Array[LightSaber] = []
 ## an extra blade (base, tip) for the benchmark and captures, which have nobody swinging; empty when unused
 var test_blade := PackedVector3Array()
-## the time spent simulating in the last frame (µs; 0 with no sparks), for the benchmark
+## the time spent on the sparks in the last frame (µs; 0 with none alive), for the benchmark
 var sim_usec := 0
 var _multimesh := MultiMesh.new()
+var _material := ShaderMaterial.new()
 var _buffer := PackedFloat32Array()
-var _count := 0
-var _pos := PackedVector3Array()
-var _vel := PackedVector3Array()
-var _age := PackedFloat32Array()
+var _dirty := false
+## the clock the shader moves the sparks by (s)
+var _now := 0.0
+## the burst each block of SPARKS slots last held: its cut, when it was made, how far its sparks can get from the cut
+var _next := 0
+var _burst_at := PackedVector3Array()
+var _burst_time := PackedFloat32Array()
+var _burst_reach := PackedFloat32Array()
+## each spark since it was last born or pushed: where and how fast it went, when, its age then, and its whole life
+var _from := PackedVector3Array()
+var _speed := PackedVector3Array()
+var _since := PackedFloat32Array()
+var _age_then := PackedFloat32Array()
 var _life := PackedFloat32Array()
-var _size := PackedFloat32Array()
-var _bright := PackedFloat32Array()
-var _tint := PackedColorArray()
-var _pushed := PackedByteArray()
 ## each blade's base and tip last frame, by blade (the sabers', then test_blade)
 var _blade_past: Array[PackedVector3Array] = [PackedVector3Array(), PackedVector3Array(), PackedVector3Array()]
 
 func _ready() -> void:
 	var most := COUNT * SPARKS
-	_pos.resize(most)
-	_vel.resize(most)
-	_age.resize(most)
+	_burst_at.resize(COUNT)
+	_burst_time.resize(COUNT)
+	_burst_time.fill(-SPARK_SECONDS)
+	_burst_reach.resize(COUNT)
+	_from.resize(most)
+	_speed.resize(most)
+	_since.resize(most)
+	_age_then.resize(most)
 	_life.resize(most)
-	_size.resize(most)
-	_bright.resize(most)
-	_tint.resize(most)
-	_pushed.resize(most)
 	_buffer.resize(most * STRIDE)
 	var quad := QuadMesh.new()
-	var material := ShaderMaterial.new()
-	material.shader = CUT_SPARK_SHADER
-	material.set_shader_parameter(&"streak_length", STREAK_LENGTH)
-	material.set_shader_parameter(&"point_size", POINT_SIZE)
-	quad.material = material
+	_material.shader = CUT_SPARK_SHADER
+	_material.set_shader_parameter(&"streak_length", STREAK_LENGTH)
+	_material.set_shader_parameter(&"point_size", POINT_SIZE)
+	_material.set_shader_parameter(&"drag", SPARK_DRAG)
+	_material.set_shader_parameter(&"gravity", SPARK_GRAVITY)
+	quad.material = _material
 	_multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	_multimesh.use_colors = true
 	_multimesh.use_custom_data = true
 	_multimesh.mesh = quad
 	_multimesh.instance_count = most
-	_multimesh.visible_instance_count = 0
-	# the quads are sized in the shader, so the instances' own box means nothing; never cull the sparks
+	# the shader moves the sparks and sizes the quads, so the instances' own box means nothing; never cull them
 	_multimesh.custom_aabb = AABB(Vector3(-100.0, -100.0, -100.0), Vector3(200.0, 200.0, 200.0))
+	# one dark spark on the first frame builds the shader at load, not at the first cut (it froze the Mac 370 ms)
+	_write(0, Vector3.ZERO, Vector3.ZERO, 0.0, 0.0, 1.0, 1.0, 0.0, Color.BLACK)
+	_multimesh.buffer = _buffer
 	var instance := MultiMeshInstance3D.new()
 	instance.multimesh = _multimesh
 	instance.top_level = true
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
 
-## A spark with a trail for CPU particles with particle_flag_align_y (the clash, Metal Factory): two crossed strips along +y (the velocity),
+## A spark with a trail for CPU particles with particle_flag_align_y: two crossed strips along +y (the velocity),
 ## the head at the top, so it shows from every side but straight along its path.
 static func spark_mesh() -> ArrayMesh:
 	var vertices := PackedVector3Array()
@@ -146,8 +156,11 @@ func _across_view(sight: Vector3, swing: Vector3) -> Vector3:
 	var across := swing - sight * swing.dot(sight)
 	return across.normalized() if across.length() > 1e-4 else Vector3.DOWN
 
-## Sends sparks off the cut line through `at`: out to both sides of it and along the swing, harder the harder the swing.
-func flash(at: Vector3, swing: Vector3, color: Color) -> void:
+## Sends sparks off a cut through `at` along the swing: with the note's mesh (`box`, its global transform, and `extent`,
+## its box) and the cut plane's `normal`, from where the plane crosses the mesh's faces, out from each face; without,
+## from a cut line along the swing, out to both sides. Harder the harder the swing. They take the oldest burst's block.
+func flash(at: Vector3, swing: Vector3, color: Color, normal := Vector3.ZERO, box := Transform3D.IDENTITY,
+		extent := AABB()) -> void:
 	var camera := get_viewport().get_camera_3d()
 	var sight := (at - camera.global_position).normalized() if camera else Vector3.FORWARD
 	var along := _across_view(sight, swing)
@@ -155,32 +168,58 @@ func flash(at: Vector3, swing: Vector3, color: Color) -> void:
 	var x := clampf(swing.length() / SWING_FULL, 0.0, 1.0)
 	var power := (exp(SWING_CURVE * x) - 1.0) / (exp(SWING_CURVE) - 1.0)
 	var speed_scale := lerpf(SPEED_SCALE_MIN, 1.0, power)
-	var tint := color.lerp(SPARK_WHITE, SPARK_GREY)
 	var bright := lerpf(BRIGHTNESS_MIN, 1.0, power)
-	for n in roundi(SPARKS * lerpf(SPARKS_MIN_SHARE, 1.0, power)):
-		var i := _count
-		if _count < _pos.size():
-			_count += 1
-		else:
-			i = _oldest()
+	var burst := _next
+	_next = (_next + 1) % COUNT
+	_burst_at[burst] = at
+	_burst_time[burst] = _now
+	# the farthest a spark gets: its run against the drag, its sag, and the cut line it starts on
+	_burst_reach[burst] = SPEED_MAX * speed_scale / SPARK_DRAG + SPARK_GRAVITY * SPARK_SECONDS / SPARK_DRAG \
+			+ CUT_LINE_HALF
+	var flying := roundi(SPARKS * lerpf(SPARKS_MIN_SHARE, 1.0, power))
+	for n in SPARKS:
+		var i := burst * SPARKS + n
+		if n >= flying:
+			_life[i] = 0.0
+			_write(i, Vector3.ZERO, Vector3.ZERO, _now, 0.0, 0.0, 1.0, 0.0, Color.BLACK)
+			continue
 		var scatter := Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-1.0, 1.0))
-		var out := side * SIDE * randf_range(-1.0, 1.0) + along * ALONG + scatter * SCATTER
-		_pos[i] = at + along * randf_range(-CUT_LINE_HALF, CUT_LINE_HALF)
-		_vel[i] = out.normalized() * randf_range(SPEED_MIN, SPEED_MAX) * speed_scale
-		_age[i] = 0.0
+		var out := side * SIDE * randf_range(-1.0, 1.0)
+		_from[i] = at + along * randf_range(-CUT_LINE_HALF, CUT_LINE_HALF)
+		if extent.has_volume() and normal != Vector3.ZERO:
+			var face := _on_face(at, normal, box, extent)
+			_from[i] = face[0]
+			out = face[1]
+		out += along * ALONG + scatter * SCATTER
+		_speed[i] = out.normalized() * randf_range(SPEED_MIN, SPEED_MAX) * speed_scale
+		_since[i] = _now
+		_age_then[i] = 0.0
 		_life[i] = randf_range(SPARK_SECONDS_MIN, SPARK_SECONDS)
-		_size[i] = randf_range(SPARK_SCALE_MIN, SPARK_SCALE_MAX)
-		_bright[i] = bright
-		_tint[i] = tint
-		_pushed[i] = 0
+		_write(i, _from[i], _speed[i], _now, 0.0, _life[i], randf_range(SPARK_SCALE_MIN, SPARK_SCALE_MAX), bright, color)
+	_dirty = true
 
-## The slot of the spark nearest its end.
-func _oldest() -> int:
-	var oldest := 0
-	for i in _count:
-		if _age[i] / _life[i] > _age[oldest] / _life[oldest]:
-			oldest = i
-	return oldest
+## A random point where the cut plane (through `at`, facing `normal`) crosses the faces of the box `extent` placed by
+## `box`, and that face's outward normal, both in world space: a random direction along the plane from `at`, to where
+## it leaves the box.
+func _on_face(at: Vector3, normal: Vector3, box: Transform3D, extent: AABB) -> Array[Vector3]:
+	var to_box := box.affine_inverse()
+	var centre := extent.get_center()
+	var half := extent.size * 0.5
+	var start := (to_box * at).clamp(extent.position, extent.end)
+	var plane_normal := (to_box.basis * normal).normalized()
+	var across := plane_normal.cross(Vector3.UP if absf(plane_normal.y) < 0.9 else Vector3.RIGHT).normalized()
+	var way := across.rotated(plane_normal, randf() * TAU)
+	var reach := INF
+	var axis := 0
+	for k in 3:
+		if absf(way[k]) > 1e-5:
+			var t := (centre[k] + signf(way[k]) * half[k] - start[k]) / way[k]
+			if t < reach:
+				reach = t
+				axis = k
+	var face := Vector3.ZERO
+	face[axis] = signf(way[axis])
+	return [box * (start + way * maxf(reach, 0.0)), (box.basis * face).normalized()]
 
 ## The blades this frame as [base, tip, base velocity, tip velocity], only those out and moving.
 func _blades(delta: float) -> Array[PackedVector3Array]:
@@ -201,96 +240,85 @@ func _blades(delta: float) -> Array[PackedVector3Array]:
 			blades.append(PackedVector3Array([now[0], now[1], base_speed, tip_speed]))
 	return blades
 
-## Moves every spark (drag, gravity, the blades' push), drops the spent ones and hands the rest to the MultiMesh.
+## Advances the sparks' clock (the shader moves them: drag and gravity, CutSpark.gdshader) and lets the blades push
+## the sparks of any burst they pass near; only then are those sparks worked out here.
 func _process(delta: float) -> void:
-	if _count == 0:
-		_blades(delta)
-		sim_usec = 0
-		return
-	var started := Time.get_ticks_usec()
+	_now += delta
+	_material.set_shader_parameter(&"now", _now)
 	var blades := _blades(delta)
-	var reach: Array[AABB] = []
-	for blade in blades:
-		reach.append(AABB(blade[0], Vector3.ZERO).expand(blade[1]).grow(WAKE_RADIUS))
-	var keep := exp(-SPARK_DRAG * delta)
-	var fall := Vector3.DOWN * SPARK_GRAVITY * delta
-	var lane_half := LANE_HALF_LANES * Settings.LANE_DISTANCE_X
-	var i := 0
-	while i < _count:
-		var age := _age[i] + delta
-		if age >= _life[i]:
-			_count -= 1
-			_move(_count, i)
+	var started := Time.get_ticks_usec()
+	var alive := false
+	for burst in COUNT:
+		if _now - _burst_time[burst] >= SPARK_SECONDS:
 			continue
-		_age[i] = age
-		var p := _pos[i]
-		var v := _vel[i] * keep + fall
-		for b in blades.size():
-			if not reach[b].has_point(p):
-				continue
-			var blade := blades[b]
-			var on := Geometry3D.get_closest_point_to_segment(p, blade[0], blade[1])
-			var gap := p.distance_to(on)
-			if gap >= WAKE_RADIUS:
-				continue
-			var length := blade[0].distance_to(blade[1])
-			var share := on.distance_to(blade[0]) / length if length > 1e-4 else 1.0
-			v += (blade[2].lerp(blade[3], share) - v) * WAKE_PULL * (1.0 - gap / WAKE_RADIUS)
-			_pushed[i] = 1
-		var moved := p + v * delta
-		if _pushed[i] == 1 and absf(moved.x) < lane_half and moved.y > LANE_BOTTOM and moved.y < LANE_TOP \
-				and moved.z < Constants.HIT_PLANE_Z:
-			# in the lanes ahead a pushed spark only goes out to the side and back
+		alive = true
+		for blade in blades:
+			var reach := AABB(blade[0], Vector3.ZERO).expand(blade[1]).grow(WAKE_RADIUS + _burst_reach[burst])
+			if reach.has_point(_burst_at[burst]):
+				_push(burst, blade)
+	if _dirty:
+		_multimesh.buffer = _buffer
+		_dirty = false
+	sim_usec = Time.get_ticks_usec() - started if alive else 0
+
+## Pulls the sparks of `burst` within WAKE_RADIUS of `blade` toward its speed, more the nearer it passes; in the note
+## lanes ahead only the parts going out to the side and back.
+func _push(burst: int, blade: PackedVector3Array) -> void:
+	var lane_half := LANE_HALF_LANES * Settings.LANE_DISTANCE_X
+	var length := blade[0].distance_to(blade[1])
+	var fall := Vector3.DOWN * SPARK_GRAVITY / SPARK_DRAG
+	for i in range(burst * SPARKS, (burst + 1) * SPARKS):
+		var t := _now - _since[i]
+		if _age_then[i] + t >= _life[i]:
+			continue
+		# where it is now and how fast it goes (the shader's path)
+		var keep := exp(-SPARK_DRAG * t)
+		var p := _from[i] + fall * t + (_speed[i] - fall) * (1.0 - keep) / SPARK_DRAG
+		var on := Geometry3D.get_closest_point_to_segment(p, blade[0], blade[1])
+		var gap := p.distance_to(on)
+		if gap >= WAKE_RADIUS:
+			continue
+		var v := fall + (_speed[i] - fall) * keep
+		var share := on.distance_to(blade[0]) / length if length > 1e-4 else 1.0
+		var pull := (blade[2].lerp(blade[3], share) - v) * WAKE_PULL * (1.0 - gap / WAKE_RADIUS)
+		if absf(p.x) < lane_half and p.y > LANE_BOTTOM and p.y < LANE_TOP and p.z < Constants.HIT_PLANE_Z:
 			var out := 1.0 if p.x >= 0.0 else -1.0
-			if (moved.x - p.x) * out < 0.0:
-				moved.x = p.x
-			moved.z = maxf(moved.z, p.z)
-			v.x = out * (maxf(v.x * out, 0.0) + LANE_CLEAR_ACCEL * delta)
-			v.z = maxf(v.z, 0.0) + LANE_CLEAR_ACCEL * delta
-		_pos[i] = moved
-		_vel[i] = v
-		_write(i, moved, v)
-		i += 1
-	_multimesh.visible_instance_count = _count
-	_multimesh.buffer = _buffer
-	sim_usec = Time.get_ticks_usec() - started
+			if (v.x + pull.x) * out < 0.0:
+				pull.x = -v.x
+			if v.z + pull.z < 0.0:
+				pull.z = -v.z
+		var o := i * STRIDE
+		_from[i] = p
+		_speed[i] = v + pull
+		_age_then[i] += t
+		_since[i] = _now
+		_write(i, p, _speed[i], _now, _age_then[i], _life[i], _buffer[o], _buffer[o + 16],
+				Color(_buffer[o + 12], _buffer[o + 13], _buffer[o + 14]))
+		_dirty = true
 
-## Moves the spark in slot `from` to slot `to` (filling the gap a spent one left).
-func _move(from: int, to: int) -> void:
-	_pos[to] = _pos[from]
-	_vel[to] = _vel[from]
-	_age[to] = _age[from]
-	_life[to] = _life[from]
-	_size[to] = _size[from]
-	_bright[to] = _bright[from]
-	_tint[to] = _tint[from]
-	_pushed[to] = _pushed[from]
-
-## Writes spark `i` into the buffer: its place, its path as its y axis (the streak's direction), its size as the axes'
-## length, its colour, and its brightness, life share and speed as custom data (CutSpark.gdshader).
-func _write(i: int, at: Vector3, v: Vector3) -> void:
-	var size := _size[i]
-	var speed := v.length()
-	var along := v * (size / speed) if speed > 1e-4 else Vector3(0.0, size, 0.0)
-	var tint := _tint[i]
+## Writes spark `i` into the buffer for the shader: where it starts (the transform's origin), its velocity then (the y
+## axis), its size (the x axis' x), when it started, its life and its age then (the z axis; the transform stays full
+## floats where colour and custom data don't), its note colour, and its brightness as custom data.
+func _write(i: int, from: Vector3, speed: Vector3, since: float, age: float, life: float, size: float, bright: float,
+		tint: Color) -> void:
 	var o := i * STRIDE
 	_buffer[o] = size
-	_buffer[o + 1] = along.x
-	_buffer[o + 2] = 0.0
-	_buffer[o + 3] = at.x
+	_buffer[o + 1] = speed.x
+	_buffer[o + 2] = since
+	_buffer[o + 3] = from.x
 	_buffer[o + 4] = 0.0
-	_buffer[o + 5] = along.y
-	_buffer[o + 6] = 0.0
-	_buffer[o + 7] = at.y
+	_buffer[o + 5] = speed.y
+	_buffer[o + 6] = life
+	_buffer[o + 7] = from.y
 	_buffer[o + 8] = 0.0
-	_buffer[o + 9] = along.z
-	_buffer[o + 10] = 0.0
-	_buffer[o + 11] = at.z
+	_buffer[o + 9] = speed.z
+	_buffer[o + 10] = age
+	_buffer[o + 11] = from.z
 	_buffer[o + 12] = tint.r
 	_buffer[o + 13] = tint.g
 	_buffer[o + 14] = tint.b
 	_buffer[o + 15] = 1.0
-	_buffer[o + 16] = _bright[i]
-	_buffer[o + 17] = _age[i] / _life[i]
-	_buffer[o + 18] = speed
+	_buffer[o + 16] = bright
+	_buffer[o + 17] = 0.0
+	_buffer[o + 18] = 0.0
 	_buffer[o + 19] = 0.0
