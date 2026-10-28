@@ -121,7 +121,8 @@ constraints apply here unchanged.
 - Colours: always read `Map.color_left/right` (handedness-aware getters), not `Settings.color_*`, at spawn.
 - Health: all damage goes through `update_health(delta, mistake)` (`BeepSaber_Game.gd:156`);
   `FAIL_MODE_LIVES`/`INSTANT` only react to `mistake`. Fail is `_fail_song()` (sets `failing`, pauses
-  Scoreboard, fades rumble, closes a low-pass on the song and fades it, then `_on_song_ended()`;
+  Scoreboard, fades rumble, closes a low-pass on the song and fades it, empties the track (`_empty_track`: shrinks
+  everything away, then `_clear_track`), shows FAILED after `FAIL_WORD_DELAY`, fades to black, then `_on_song_ended()`;
   `start_map` takes the filter off); guard new logic with `not failing`.
 - Rumble: `_check_and_update_saber()` only sets rumble when `not controller.is_simple_rumbling()`,
   so cut rumble in `BeepCube.cut` wins for its duration.

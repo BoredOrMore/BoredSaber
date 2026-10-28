@@ -96,7 +96,14 @@ var hud: Hud
 # seconds left before the song starts, so the first notes can fly in; counted down by Playing
 var lead_in := 0.0
 
-const FAIL_SECONDS := 1.5
+## The fail, in the owner's order (2026-10-28): the sound goes first (the low-pass sweep below) and the play space
+## empties, every note, chain, bomb, wall and arc shrinking away over FAIL_CLEAR_SECONDS (nothing can be cut or
+## missed after the fail: the track freezes and the sabers stop cutting); then a pause of muffled bass; then at
+## FAIL_WORD_DELAY the big FAILED appears and the red comes into the air; FAIL_WORD_SECONDS later the view fades to
+## black for the score screen. Untuned until seen on the headset.
+const FAIL_CLEAR_SECONDS := 0.3
+const FAIL_WORD_DELAY := 0.75
+const FAIL_WORD_SECONDS := 1.2
 ## the end of a song: "FAILED" in the play space and the fade to black (ResultMoment)
 var _result_moment: ResultMoment
 ## where in the song (seconds) the last fail happened, for the score screen
@@ -105,7 +112,7 @@ var _failed_at := 0.0
 ## recordings/audio/fail.wav): the top of the spectrum falls from about 10 kHz to 600 Hz in 0.2 s, halving about
 ## every 50 ms, then only the bass under 200 Hz is left for about 0.45 s before its fail screen's music. So the
 ## cutoff glides exponentially from FAIL_CUTOFF_FROM_HZ to FAIL_CUTOFF_TO_HZ over FAIL_SWEEP_SECONDS, and the
-## muffled song fades to FAIL_SILENT_DB over FAIL_TAIL_SECONDS; the rest of FAIL_SECONDS stays quiet.
+## muffled song fades to FAIL_SILENT_DB over FAIL_TAIL_SECONDS; it stays quiet until the fade to black.
 const FAIL_CUTOFF_FROM_HZ := 20000.0
 const FAIL_CUTOFF_TO_HZ := 150.0
 const FAIL_SWEEP_SECONDS := 0.2
@@ -148,6 +155,7 @@ const MILESTONE_RUMBLE_DELAY := 0.12
 var failing := false
 
 func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
+	points_label_driver.visible = true
 	var map_data := Utils.binary_to_json(Utils.read_binary_file(info.filepath, map_difficulty.beatmap_filename))
 	
 	if (map_data.is_empty()):
@@ -248,14 +256,14 @@ func _update_low_health_sound() -> void:
 func _fail_song() -> void:
 	failing = true
 	_failed_at = get_current_time()
-	event_driver.result_mood(true)
+	event_driver.set_all_off()
 	Scoreboard.paused = true
 	_update_low_health_sound()
 	_song_end_player.stream = FAIL_SOUND
 	_song_end_player.play()
 	left_saber.set_swingcast_enabled(false)
 	right_saber.set_swingcast_enabled(false)
-	_result_moment.show_failed(_eye())
+	_empty_track()
 	var tw := create_tween().set_parallel()
 	# the frozen wall that failed the song would otherwise keep the controllers buzzing
 	_in_wall = false
@@ -268,7 +276,11 @@ func _fail_song() -> void:
 	tw.tween_method(func(octaves: float) -> void: _fail_filter.cutoff_hz = FAIL_CUTOFF_FROM_HZ * pow(2.0, -octaves),
 			0.0, log(FAIL_CUTOFF_FROM_HZ / FAIL_CUTOFF_TO_HZ) / log(2.0), FAIL_SWEEP_SECONDS)
 	tw.tween_property(song_player, ^"volume_db", FAIL_SILENT_DB, FAIL_TAIL_SECONDS).set_delay(FAIL_SWEEP_SECONDS)
-	tw.tween_interval(FAIL_SECONDS)
+	var show_word := func() -> void:
+		event_driver.result_mood(true)
+		_result_moment.show_failed(_eye())
+	tw.tween_callback(show_word).set_delay(FAIL_WORD_DELAY)
+	tw.tween_interval(FAIL_WORD_DELAY + FAIL_WORD_SECONDS)
 	await tw.finished
 	await _result_moment.fade_out()
 	_result_moment.hide_failed()
@@ -281,6 +293,25 @@ func _on_song_finished() -> void:
 	await _result_moment.fade_out()
 	_on_song_ended()
 	_result_moment.fade_in()
+
+## Shrinks everything on the track away over FAIL_CLEAR_SECONDS and then clears it (releasing the pooled ones with
+## their sizes put back), and hides the cut numbers, so the play space is empty before FAILED.
+func _empty_track() -> void:
+	points_label_driver.visible = false
+	var sizes := {}
+	var tw := create_tween().set_parallel()
+	for c: Node in track.get_children():
+		if c is Node3D and (c as Node3D).visible:
+			sizes[c] = (c as Node3D).scale
+			tw.tween_property(c, ^"scale", Vector3.ZERO, FAIL_CLEAR_SECONDS).set_ease(Tween.EASE_IN)
+	if sizes.is_empty():
+		tw.kill()
+	else:
+		await tw.finished
+	_clear_track()
+	for c: Node3D in sizes:
+		if is_instance_valid(c):
+			c.scale = sizes[c]
 
 ## Takes the fail's low-pass off the song's bus, if a fail left it there.
 func _remove_fail_filter() -> void:
