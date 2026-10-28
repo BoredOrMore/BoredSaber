@@ -135,10 +135,11 @@ const FAIL_SILENT_DB := -60.0
 ## added to the song's bus only while a fail plays out
 var _fail_filter := AudioEffectLowPassFilter.new()
 ## A stage picked in the song menu changes behind a short black fade (owner, 2026-10-28, option "ข"): down over
-## STAGE_FADE_SECONDS, the switch, STAGE_HOLD_SECONDS black while the new stage's first frames draw (a switch hitched
-## the Pico for about 70 ms at once and 110 ms about 0.57 s later, 2026-10-28 stages bench), then back up. Untuned.
+## STAGE_FADE_SECONDS, the switch, STAGE_HOLD_SECONDS black while the new stage's first frames draw (on the Pico a
+## switch stalls about 70 ms at 0.08 s and 110 ms at about 0.2 s, then two to four 28-40 ms frames to about 0.4 s,
+## first pass or not; stages bench on 4f3f006, 2026-10-28), then back up.
 const STAGE_FADE_SECONDS := 0.15
-const STAGE_HOLD_SECONDS := 0.1
+const STAGE_HOLD_SECONDS := 0.35
 var _stage_switching := false
 # the high score saved at the end of the last song
 var _new_record := {}
