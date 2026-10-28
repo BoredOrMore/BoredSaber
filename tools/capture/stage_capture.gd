@@ -27,6 +27,8 @@ extends Node3D
 ##   --audit 1 (with --stats: what is drawn, grouped by where it sits in the tree, each visible mesh, MultiMesh or
 ##   particle system in view counted once, and every viewport that renders)
 ##   --classic-city 1 (Night City's classic layout instead of the building canyon)
+##   --build-up 0..1 (the moving heads' sweep before a drop, EventDriver.BUILD_UP_SECONDS: a made-up show whose drop is
+##   that close, 1 = now; pair with --lights on)
 ##   --stats 1 (print the frame's triangles, draw calls and objects as drawn, RenderingServer's counters, one view)
 ##   --dot 1 (a dot note)  --note-style 2 (0 Solid, 1 Neon: the Classic notes looks; 2 the glossy default)
 
@@ -102,6 +104,8 @@ func _ready() -> void:
 		"menu": stage.set_menu_focus(true)
 		_: stage.set_all_on(left, right)
 	stage.classic_rig.set_built(float(args.get("built", "1")))
+	if args.has("build-up"):
+		_fake_build_up(stage, float(args["build-up"]))
 	if args.has("beat"):
 		_beat = float(args["beat"])
 		stage.metal_factory_rig.slam(_beat, CAPTURE_BPM, 1.0)
@@ -322,6 +326,19 @@ func _add_notes(start_beat: float) -> void:
 		while not stack.is_empty() and stack[-1].head_beat < start_beat:
 			stack.pop_back()
 	_notes = true
+
+## Gives the stage a made-up show (CAPTURE_BPM) whose drop comes `how_close` (0..1) through EventDriver's build-up
+## window, and turns the moving heads that far into their sweep at once.
+func _fake_build_up(stage: EventDriver, how_close: float) -> void:
+	var steps := roundi(EventDriver.BUILD_UP_SECONDS * CAPTURE_BPM / 60.0 / EventDriver.INTENSITY_STEP)
+	var curve := PackedFloat32Array()
+	curve.resize(steps * 2)
+	for i in curve.size():
+		curve[i] = 1.0 if i >= maxi(1, roundi((1.0 - how_close) * steps)) else 0.0
+	stage._intensity_curve = curve
+	stage._show_bpm = CAPTURE_BPM
+	stage.show_beat = 0.0
+	stage._sweep = how_close
 
 ## The folder in the game's Songs folder named `name`, or else of the first song whose name contains it (any case).
 func _find_song(name: String) -> String:

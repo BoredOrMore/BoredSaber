@@ -30,7 +30,7 @@ All four parse `--key value` pairs after `--` (`OS.get_cmdline_user_args()`), so
   --lights on|off|menu --left/--right RRGGBB --danger RRGGBB --eye(1.6) --pitch --yaw --fov(90) --beat --animate
   --map <folder|song name> --difficulty --start --at --notes 1 --note left|right --note-yaw --note-pitch --dot 1
   --note-style 0|1|2(2) --wall 1|classic --wall-z(3) --wall-x --saber left|right --saber-dist(0.35)
-  --bomb 1|classic --bomb-dist(0.8) --stats 1 --audit 1 --classic-city 1`.
+  --bomb 1|classic --bomb-dist(0.8) --stats 1 --audit 1 --classic-city 1 --build-up 0..1`.
   With `--map` it runs to song end unless `--seconds` or `--at`. `--saber` holds `default_saber.tscn` (`:222`).
   Example: `godot --path . res://tools/capture/stage_capture.tscn -- --out /tmp/stage.png --env night_city`
 - `endscore_capture.gd` / `endscore_capture.tscn`: renders `game/ui/EndScore.tscn` to check text fits its board.

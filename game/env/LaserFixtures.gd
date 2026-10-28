@@ -38,6 +38,8 @@ const REST_TILT_DEG := -35.0
 const REST_SPEED := 2.0
 const WAKE_SPEED := 25.0
 
+## how far (the sine of the angle) a beam may leave its yoke's plane before the yoke pans after it
+const YOKE_PAN_SLACK := 0.01
 var _lasers: Array[Node3D] = []
 var _materials: Array[ShaderMaterial] = []
 ## per kind (MOVING_HEAD, FOLLOW_SPOT)
@@ -111,7 +113,9 @@ func _process(delta: float) -> void:
 		var laser := _lasers[i]
 		var at := laser.global_position
 		var beam := -laser.global_basis.z.normalized()
-		if at.distance_squared_to(_yoke_places[i]) > 1e-4:
+		# the yoke pans when the laser moves, or when its beam leaves the yoke's plane by more than YOKE_PAN_SLACK (the
+		# build-up sweep turns the moving heads sideways, EventDriver._update_sweep); a waving laser stays in its plane
+		if at.distance_squared_to(_yoke_places[i]) > 1e-4 or absf(_yoke_bases[i].x.dot(beam)) > YOKE_PAN_SLACK:
 			_yoke_bases[i] = _yoke_basis(laser, beam)
 			_yoke_places[i] = at
 		var yoke := _yoke_bases[i]

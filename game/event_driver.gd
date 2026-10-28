@@ -152,6 +152,11 @@ var show_beat := 0.0
 var _show_bpm := 0.0
 var _intensity_curve := PackedFloat32Array()
 var _intensity := 0.0
+## how far the moving heads have turned to the build-up sweep (0 their own aim), the sweep's phase in sweeps, and the
+## heads' own transforms while they sweep
+var _sweep := 0.0
+var _sweep_phase := 0.0
+var _sweep_rest := {}
 ## the highest the smoothed intensity has been this song: what the crew has built so far (it never comes down)
 var _built := 0.0
 ## whether the square bars were last left lowered with Classic's frames
@@ -323,6 +328,9 @@ func set_environment(id: String) -> void:
 	# the old Classic's rotating rings are retired (its new tunnel's ribs took their place, 2026-10-27)
 	rings_enabled = false
 	_apply_stinger_room(id)
+	# the rig places the heads afresh: no sweep to turn back from
+	_sweep = 0.0
+	_sweep_rest.clear()
 	_rig.apply(id)
 	track_deck.set_stage(id)
 	show_scenery_for_mixed_reality()
@@ -338,6 +346,23 @@ func _apply_stinger_room(id: String) -> void:
 		for property: StringName in room[effect]:
 			target.set(property, room[effect][property])
 
+## Build-up sweep (owner, 2026-10-28, after Beat Saber's beams rushing over the player before a drop, PC version
+## recording): in the BUILD_UP_SECONDS before the show reaches its drop (the intensity curve passing STRIP_DROP), the
+## moving heads turn from their own aim toward a point SWEEP_TARGET over the player's head and pan side to side,
+## SWEEP_HALF_WIDTH either way, faster as the drop nears (SWEEP_PERIOD_START to SWEEP_PERIOD_END seconds a sweep). Each
+## head pans on its own phase (SWEEP_PHASE_STEP), on a sine, so it eases at both ends like a machine; the beams keep
+## their colour and events (no extra flashes). The heads turn back over SWEEP_EASE_SECONDS once the drop hits or the
+## build-up ends. Over the head, not into the note corridor: the heads stand 20 m up (Classic) and the beams come down
+## to SWEEP_TARGET's height. Only on SWEEP_STAGES so far: on Night City the heads on the low roofs stand close, and
+## their beams crossed the view thick and bright (stage_capture --build-up 0.7, 2026-10-28). Untuned.
+const SWEEP_STAGES: Array[String] = ["classic"]
+const BUILD_UP_SECONDS := 8.0
+const SWEEP_TARGET := Vector3(0.0, 4.0, 1.0)
+const SWEEP_HALF_WIDTH := 6.0
+const SWEEP_PERIOD_START := 4.0
+const SWEEP_PERIOD_END := 1.5
+const SWEEP_PHASE_STEP := 0.13
+const SWEEP_EASE_SECONDS := 1.5
 ## The arches' strips climb with the show (owner, 2026-10-26): a strip segment is lit once the show has built up to its
 ## height on the arch (as Night City's windows, _built), at least STRIP_MIN; on the drop (show intensity over STRIP_DROP)
 ## all of arch B lights; when the square bars' light is off they keep STRIP_QUIET of their last colour (dim, never
@@ -513,6 +538,7 @@ func _process(delta: float) -> void:
 				left_waving_lasers_material.get_shader_parameter(&"light_color"),
 				right_waving_lasers_material.get_shader_parameter(&"light_color"))
 	_update_show(delta)
+	_update_sweep(delta)
 	if environment == "night_city" and not Settings.classic_night_city:
 		# the canyon's windows: the rooms the show has built light up (the menu shows a few), dimmer in quiet parts
 		var level := MENU_WINDOWS if menu_focus else _built
@@ -610,6 +636,42 @@ func _update_show(delta: float) -> void:
 		metal_factory_rig.slam(show_beat, _show_bpm, _intensity)
 		metal_factory_rig.turn_gears(delta, _intensity)
 		metal_factory_rig.breathe(show_beat, _show_bpm, _intensity)
+
+## How close the drop after `beat` in `curve` (intensity_curve at `bpm`) is: 0 when none comes within BUILD_UP_SECONDS,
+## rising to 1 as it arrives.
+static func build_up(curve: PackedFloat32Array, beat: float, bpm: float) -> float:
+	if curve.is_empty() or bpm <= 0.0:
+		return 0.0
+	var steps := maxi(1, roundi(BUILD_UP_SECONDS * bpm / 60.0 / INTENSITY_STEP))
+	var now := int(beat / INTENSITY_STEP)
+	for k in range(1, steps + 1):
+		if now + k >= curve.size():
+			break
+		if curve[now + k] > STRIP_DROP:
+			return 1.0 - float(k) / steps
+	return 0.0
+
+## Turns the moving heads toward the build-up sweep and back (see BUILD_UP_SECONDS), on SWEEP_STAGES.
+func _update_sweep(delta: float) -> void:
+	var sweeping := environment in SWEEP_STAGES and not menu_focus and _intensity <= STRIP_DROP
+	var target := build_up(_intensity_curve, show_beat, _show_bpm) if sweeping else 0.0
+	_sweep = move_toward(_sweep, target, delta / SWEEP_EASE_SECONDS)
+	if _sweep == 0.0:
+		for laser: Node3D in _sweep_rest:
+			laser.global_transform = _sweep_rest[laser]
+		_sweep_rest.clear()
+		return
+	if _sweep_rest.is_empty():
+		for laser: Node3D in diagonal_lasers:
+			_sweep_rest[laser] = laser.global_transform
+	_sweep_phase = fmod(_sweep_phase + delta / lerpf(SWEEP_PERIOD_START, SWEEP_PERIOD_END, _sweep), 1.0)
+	var turn := smoothstep(0.0, 1.0, _sweep)
+	for i in diagonal_lasers.size():
+		var laser: Node3D = diagonal_lasers[i]
+		var rest: Transform3D = _sweep_rest[laser]
+		var pan := sin(TAU * (_sweep_phase + i * SWEEP_PHASE_STEP)) * SWEEP_HALF_WIDTH
+		var toward := (SWEEP_TARGET + Vector3(pan, 0.0, 0.0) - rest.origin).normalized()
+		LightRig.aim(laser, rest.origin, (-rest.basis.z.normalized()).slerp(toward, turn))
 
 ## In Classic the square light bars hang on the tunnel's frames: a frame that isn't standing yet has no lights on it
 ## (the crew hangs them once it is up), so its bars are hidden until it stands. Lowered bars used to shine up through

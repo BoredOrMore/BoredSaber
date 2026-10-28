@@ -34,6 +34,8 @@ Read the root `AGENTS.md` first ("Light", "Colour rules", "Pico 4 constraints").
   4 s window, normalised to the song's own 20th-90th percentile); `_update_show` smooths it into `_intensity` and the
   never-falling `_built`. `_built` drives Classic's scaffolds (`set_built`), Neon Grid/Pulse Void strip `level`,
   canyon windows; `_intensity > STRIP_DROP` is "the drop" (all strips, Pulse Void's `drop_beam`, Classic rib sweep).
+  `build_up(curve, beat, bpm)` looks `BUILD_UP_SECONDS` ahead for the next drop; `_update_sweep` turns the moving
+  heads (`diagonal_lasers`) toward `SWEEP_TARGET` over the player and pans them, on `SWEEP_STAGES` (Classic so far).
 - Menus: `set_menu_focus(true)`: house-tinted breathing lights, `classic_rig.set_built(1.0)`,
   pistons rest, no smoke and no extra haze (owner: the menus as clear as can be). `false`: smoke dissipates, all groups off until the map turns them on.
 - Per frame (`EventDriver._process`): decays combo/mistake pulses, writes `cut_waves`,
@@ -140,7 +142,8 @@ Air
 - Shader globals `env_haze`, `env_light`, `combo_glow`, `cut_waves`, `fog_key`, `fog_dither_on`, `debug_view`,
   `atmosphere_eerie`, `left/right_saber(_color)` must be declared in `project.godot [shader_globals]`; a new
   `global uniform` needs an entry there or the shader fails to compile.
-- `LaserFixtures`: yoke basis fixed per place (recomputed only when its laser moves), head tilts on one axis only.
+- `LaserFixtures`: yoke basis fixed per place (recomputed when its laser moves, or when its beam leaves the yoke's
+  plane by `YOKE_PAN_SLACK`, as in the build-up sweep), head tilts on one axis only.
   Turning the yoke per frame flipped it when a waving laser swept through vertical. Unused kinds draw at zero scale.
 - Classic: scaffolds start hoisted (`_lift` 1), `start_show` flies them out (`set_built(0)`) and the show brings them
   down; their square bars and moving heads are hidden while `drop_at(z) != 0` (`_follow_frames`), as lowered bars
@@ -165,7 +168,7 @@ Air
   height fog in `height_fog.gdshaderinc`; key-light scattering `LightRig.FOG_KEYS`; smoke in `StageSmoke.gd` consts.
 - A rig's layout: the `const` block at the top of its rig script (e.g. `ClassicRig.FRAME_Z`, `NeonGridRig.ARCH_B`,
   `NightCityRig.LEFT/RIGHT`, `PulseVoid` dish consts); then update `doc/world/SPATIAL_LAYOUT.md`.
-- Show build-up timing: `INTENSITY_*`, `STRIP_*`, `RIB_*` in `event_driver.gd`; `FIRST/LAST_FRAME_AT` in `ClassicRig.gd`.
+- Show build-up timing: `INTENSITY_*`, `STRIP_*`, `RIB_*`, the sweep's `BUILD_UP_SECONDS`/`SWEEP_*` in `event_driver.gd`; `FIRST/LAST_FRAME_AT` in `ClassicRig.gd`.
 - A scenery shader layer: the layer list and `#ifdef` blocks in `EnvSolid.gdshaderinc`; a stage-only layer gets a
   new `#define` in a thin variant `.gdshader` rather than a runtime branch.
 

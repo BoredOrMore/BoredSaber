@@ -38,6 +38,18 @@ func _ready() -> void:
 	# events that are not lights (ring spins, type 8) don't count
 	var rings_only: Array[EventInfo] = [EventInfo.new(4.0, 8, 0, 1.0), EventInfo.new(8.0, 8, 0, 1.0)]
 	check(EventDriver.intensity_curve(rings_only, 120.0).is_empty(), "a map without light events has no curve")
+
+	# the build-up sweep: nothing far from the drop (where the curve first passes STRIP_DROP), rising as it nears
+	var drop := 0.0
+	for i in curve.size():
+		if curve[i] > EventDriver.STRIP_DROP:
+			drop = i * EventDriver.INTENSITY_STEP
+			break
+	var window := EventDriver.BUILD_UP_SECONDS * 2.0
+	check(EventDriver.build_up(curve, drop - window * 1.5, 120.0) == 0.0, "no build-up far from the drop")
+	var nearing := EventDriver.build_up(curve, drop - window * 0.9, 120.0)
+	var arriving := EventDriver.build_up(curve, drop - window * 0.1, 120.0)
+	check(nearing > 0.0 and arriving > nearing, "the build-up rises toward the drop (%.2f then %.2f)" % [nearing, arriving])
 	var none: Array[EventInfo] = []
 	check(EventDriver.intensity_curve(none, 120.0).is_empty(), "an empty map has no curve")
 
