@@ -508,6 +508,7 @@ func _ready() -> void:
 	(multiplier_label as ComboHud).milestone_reached.connect(_on_combo_milestone)
 	hud = Hud.new(point_label, multiplier_label as ComboHud, percent_indicator)
 	add_child(hud)
+	add_child(FloorReflection.new(track, [left_saber, right_saber], event_driver.track_deck))
 	@warning_ignore("return_value_discarded")
 	Scoreboard.points_awarded.connect(points_label_driver.show_points)
 	

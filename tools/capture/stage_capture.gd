@@ -218,7 +218,7 @@ func _play_map(stage: EventDriver, args: Dictionary) -> bool:
 	_show = stage
 	_bpm = info.beats_per_minute
 	if args.get("notes", "1") != "0":
-		_add_notes(float(args.get("start", "0")) * _bpm / 60.0)
+		_add_notes(stage, float(args.get("start", "0")) * _bpm / 60.0)
 	print("stage_capture: %s (%s), %s, %.0f BPM" % [info.song_name, difficulty.difficulty, stage.environment, _bpm])
 	return true
 
@@ -306,11 +306,13 @@ func _hold_note(camera: Camera3D, color: Color, args: Dictionary) -> void:
 		note._set_mesh(note._classic)
 
 ## Sets up the notes' pools on a track at the hit plane, as BeepSaber_Game does, and drops what comes before
-## `start_beat` (the song starts there; they would all fly in at once).
-func _add_notes(start_beat: float) -> void:
+## `start_beat` (the song starts there; they would all fly in at once). The notes show in the deck as in the game
+## (FloorReflection).
+func _add_notes(stage: EventDriver, start_beat: float) -> void:
 	var track := Node3D.new()
 	track.position.z = Constants.HIT_PLANE_Z
 	add_child(track)
+	add_child(FloorReflection.new(track, [], stage.track_deck))
 	for pool_name: StringName in NOTE_SCENES:
 		var pool := POOL_SCENE.instantiate() as ScenePool
 		pool.scene = NOTE_SCENES[pool_name]
