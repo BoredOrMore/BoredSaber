@@ -67,8 +67,8 @@ constraints apply here unchanged.
   drop in the eye-drop column; charged rows put the hold in `interval_ms` and ok / no_stance / broke_at_<ms> / missed
   in the last `outcome` column). Thresholds are untuned starting values.
 - `CutFlash.gd` (class `CutFlash`) + `CutSpark.gdshader` — a cut's sparks, which behave like dust: born crisp streaks
-  along the cut line the way the saber went, they shrink to crisp points, drag to a stop, swirl in a vortex the swing
-  sets and drift past the player (`SPARK_*`, `STREAK_*`; doc/research/cut-dust-plan.md). `SparkStreak.gdshader` + the
+  along the cut line the way the saber went, they shrink to crisp points, drag hard while streaks then glide, sway, swirl in a
+  vortex the swing sets and drift past the player (`SPARK_*`, `STREAK_*`; doc/research/cut-dust-plan.md). `SparkStreak.gdshader` + the
   static `spark_mesh()`: the trailed sparks other effects use (saber clash, Metal Factory).
 - `FloorReflection.gd` (class `FloorReflection`) + `FloorReflection.gdshader` — the notes and blades faintly mirrored in
   the deck: two MultiMeshes refilled each frame, drawn at the deck's depth in a depth-only pass then colour, so a lower

@@ -36,12 +36,17 @@ const SPRAY_SPARKS := 8
 const SPRAY_SPEED_MIN := 2.0
 const SPRAY_SPEED_MAX := 5.0
 const SPRAY_SPREAD_DEG := 8.0
-## dust's physics: drag (per second), life, the vortex's spin at a full swing (rad/s) and how fast it dies away, the
-## drift toward the player and out to the side (m/s²)
+## dust's physics, light (owner, 2026-10-28: the first felt heavy, stopping dead): hard drag SPARK_DRAG only while it is
+## a streak (the first SPARK_DRAG_SHARE of its life), then SPARK_GLIDE_DRAG so it glides; life; the vortex's spin at a
+## full swing (rad/s) and how slowly it dies away; a slight upward lift (SPARK_LIFT, m/s²); the drift toward the player
+## and out to the side (m/s²). The gentle sway on top is CutSpark.gdshader's.
 const SPARK_DRAG := 4.0
+const SPARK_GLIDE_DRAG := 0.8
+const SPARK_DRAG_SHARE := 0.1
 const SPARK_SECONDS := 1.5
 const SPARK_SPIN := 9.0
-const SPARK_SPIN_DRAG := 1.8
+const SPARK_SPIN_DRAG := 0.7
+const SPARK_LIFT := 0.15
 const SPARK_DRIFT_BACK := 2.2
 const SPARK_DRIFT_SIDE := 1.2
 ## the colour it cools to: the note colour leaned this far to a grey-white
@@ -122,6 +127,13 @@ func _make_sparks(amount: int, speed_min: float, speed_max: float) -> CPUParticl
 	sparks.initial_velocity_max = speed_max
 	sparks.damping_min = SPARK_DRAG
 	sparks.damping_max = SPARK_DRAG * 1.3
+	# hard drag only while it is a streak, then a glide
+	var drag := Curve.new()
+	drag.add_point(Vector2(0.0, 1.0))
+	drag.add_point(Vector2(SPARK_DRAG_SHARE, 1.0))
+	drag.add_point(Vector2(SPARK_DRAG_SHARE * 2.0, SPARK_GLIDE_DRAG / SPARK_DRAG))
+	drag.add_point(Vector2(1.0, SPARK_GLIDE_DRAG / SPARK_DRAG))
+	sparks.damping_curve = drag
 	sparks.scale_amount_min = SPARK_SCALE_MIN
 	sparks.scale_amount_max = SPARK_SCALE_MAX
 	# from anywhere along the cut line (the emitter's local y)
@@ -166,7 +178,7 @@ func flash(at: Vector3, swing: Vector3, color: Color) -> void:
 		material.set_shader_parameter(&"vortex_centre", at)
 		material.set_shader_parameter(&"vortex_axis", axis)
 		material.set_shader_parameter(&"vortex_spin", SPARK_SPIN * power)
-		sparks.gravity = Vector3(signf(at.x) * SPARK_DRIFT_SIDE, 0.0, SPARK_DRIFT_BACK)
+		sparks.gravity = Vector3(signf(at.x) * SPARK_DRIFT_SIDE, SPARK_LIFT, SPARK_DRIFT_BACK)
 		sparks.global_transform = Transform3D(basis, at)
 		sparks.color_ramp.set_color(0, Color(1.0, 1.0, 1.0, lerpf(BRIGHTNESS_MIN, 1.0, power)))
 		sparks.color_ramp.set_color(1, Color(tint, 0.0))

@@ -17,6 +17,11 @@ uniform float lifetime = 1.5;
 uniform float streak_length = 0.12;
 uniform float streak_seconds = 0.12;
 uniform float point_size = 0.022;
+// a gentle sway in the air, slow noise per spark: up to SWAY metres, growing in over SWAY_IN seconds, at about
+// SWAY_HZ (owner, 2026-10-28: lighter, like dust)
+const float SWAY = 0.05;
+const float SWAY_IN = 0.4;
+const float SWAY_HZ = 0.7;
 // the smallest it gets on screen (pixels), and how bright it is against its colour (additive)
 const float MIN_PIXELS = 1.5;
 const float GAIN = 1.8;
@@ -41,6 +46,10 @@ void vertex() {
 	float angle = vortex_spin * (1.0 - exp(-vortex_drag * t)) / vortex_drag;
 	vec3 particle = MODEL_MATRIX[3].xyz;
 	vec3 swirled = vortex_centre + turn(particle - vortex_centre, vortex_axis, angle);
+	float seed = float(INSTANCE_ID) * 1.618;
+	float w = TAU * SWAY_HZ * t;
+	swirled += vec3(sin(w + seed * 3.1), sin(w * 0.83 + seed * 1.7), sin(w * 1.21 + seed * 2.3))
+			* SWAY * smoothstep(0.0, SWAY_IN, t);
 	near_fade = smoothstep(NEAR_GONE, NEAR_FULL, distance(swirled, CAMERA_POSITION_WORLD));
 	float scale = length(MODEL_MATRIX[0].xyz);
 	vec3 to_eye = CAMERA_POSITION_WORLD - swirled;
