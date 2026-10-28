@@ -134,6 +134,9 @@ Above the list one row holds Search (icon), Filters (opens `FiltersPanel` over t
 - Response (`_on_HTTPRequest_request_completed` :214): requires `result == 0`, JSON `Dictionary`, `docs` `Array`, and
   skips non-`Dictionary` docs. Fields go through `Utils.get_str/get_float/get_array/get_dict` with defaults
   (`BeatSaverSongInfo._init` :14-23). `response_code` is not checked.
+- While the page is open the stage goes quiet (`BeepSaber_Game.BEATSAVER_QUIET`: no beams, dust, scenery detail or
+  floor reflection, via `DebugView` bits) and its canvas redraws at most 36 times a second
+  (`max_updates_per_second`): dragging it had run the GPU past the frame (10-14 ms of 13.9).
 - Covers: downloaded one after another (`update_next_cover`), the next starting as each arrives; each is decoded and
   given its level strip on a `WorkerThreadPool` task (`_make_cover`, `LevelStrip.compose_image`); finished covers go
   onto the list together every `COVER_FLUSH_SECONDS` with one page redraw (`_flush_covers`), and only the 200 px

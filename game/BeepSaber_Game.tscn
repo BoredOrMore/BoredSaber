@@ -272,6 +272,7 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -1)
 
 [node name="BeatSaver_Canvas" parent="MapSourceDialogs" unique_id=1832345664 instance=ExtResource("3")]
 transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0.1125, 0)
+max_updates_per_second = 36.0
 curve_radius = 2.0
 round_corners = true
 visible = false

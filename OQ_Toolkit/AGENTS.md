@@ -64,7 +64,8 @@ The Web branch (`vr_autoload.gd:189-193`) loads `res://game/scripts/webxr/webxr_
 - XR start-up, refresh rate, recenter: `vr_autoload.gd` `initialize`. OpenXR settings themselves live in
   `project.godot`; see the Pico constraints in the root `AGENTS.md`.
 - Pointer-to-2D mapping (click/motion events): `OQ_UI2D/scripts/helper_UIArea.gd`.
-- Redraw policy of a menu: the canvas instance's `update_only_on_input` in `game/BeepSaber_Game.tscn`.
+- Redraw policy of a menu: the canvas instance's `update_only_on_input` in `game/BeepSaber_Game.tscn`, and
+  `max_updates_per_second` (one frame at most that often instead of 3 per input; BeatSaver's page: 36).
 - Keyboard layout or keys: `controls/VirtualKeyboard.gd` (`BUTTON_LAYOUT_*`, `B_SIZE`).
 - Panel look: not here; `game/ui/menu_theme.tres` (see `game/ui/AGENTS.md`).
 

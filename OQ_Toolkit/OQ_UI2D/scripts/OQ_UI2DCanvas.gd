@@ -15,6 +15,13 @@ var ui_collisionshape: CollisionShape3D
 # set to true to prevent UIRayCast marker from colliding with canvas
 @export var disable_collision := false
 @export var update_only_on_input := false
+## With update_only_on_input: redraw at most this many times a second, one frame each (0: for 3 frames after every
+## input). For a big page whose redraws took GPU time the headset needed while it was dragged (BeatSaver's, owner
+## 2026-10-28).
+@export var max_updates_per_second := 0.0
+var _update_wanted := false
+var _since_update := 0.0
+var _drawing_one := false
 ## Metres from the panel's centre to the point it curves around, the player's eye (owner, 2026-10-27: a curved
 ## horseshoe menu, text the same size across a panel; 2026-10-28: curved left to right only); 0 keeps it flat. A
 ## curved panel is a slice of an upright cylinder bending toward the viewer on +z, keeps its width as arc length,
@@ -166,8 +173,22 @@ func _editor_update_preview() -> void:
 	
 	viewport.add_child(preview_node)
 
+## Draws one frame when one is wanted and 1 / max_updates_per_second has passed since the last.
+func _draw_capped(delta: float) -> void:
+	_since_update += delta
+	if _drawing_one:
+		_drawing_one = false
+		viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	if _update_wanted and _since_update >= 1.0 / max_updates_per_second and is_visible_in_tree():
+		_update_wanted = false
+		_since_update = 0.0
+		_drawing_one = true
+		viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+
 func _input_update() -> void:
-	if update_only_on_input:
+	if update_only_on_input and max_updates_per_second > 0.0:
+		_update_wanted = true
+	elif update_only_on_input:
 		($update_once as UpdateViewport).update_once(viewport)
 	else:
 		viewport.render_target_update_mode = SubViewport.UPDATE_WHEN_PARENT_VISIBLE
@@ -175,6 +196,8 @@ func _input_update() -> void:
 func _process(_dt: float) -> void:
 	
 	if !Engine.is_editor_hint(): # not in edtior
+		if max_updates_per_second > 0.0 and update_only_on_input:
+			_draw_capped(_dt)
 		if disable_collision:
 			ui_collisionshape.disabled = true
 		else:

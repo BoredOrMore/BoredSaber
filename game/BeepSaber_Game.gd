@@ -497,7 +497,15 @@ func show_MapSourceDialogs(showing: bool = true) -> void:
 			(c as OQ_UI2DCanvas)._hide()
 
 ## Opens the BeatSaver page where the song menu was; closing it brings the menu back.
+## While Get songs is open the stage behind it goes quiet (owner, 2026-10-28, option ก): no beams, dust, scenery detail
+## or floor reflection, through DebugView's bits, so the page's GPU headroom stops running out while it is dragged
+## (GPU 10-14 ms of the 13.9 ms frame there, headset 1073fc0). Only the bits this turned on are turned off again.
+const BEATSAVER_QUIET := DebugView.LASERS | DebugView.DUST | DebugView.FLAT_SCENERY | DebugView.NO_REFLECTION
+var _quieted := 0
+
 func _open_beatsaver() -> void:
+	_quieted = BEATSAVER_QUIET & ~DebugView.flags
+	DebugView.flags |= _quieted
 	main_menu._hide()
 	# the song menu's keyboard sits where the BeatSaver one opens
 	highscore_keyboard._hide()
@@ -505,6 +513,9 @@ func _open_beatsaver() -> void:
 
 ## Brings the song menu back once the BeatSaver page closes in the song menu.
 func _on_beatsaver_visibility_changed() -> void:
+	if not beatsaver_canvas.visible and _quieted:
+		DebugView.flags &= ~_quieted
+		_quieted = 0
 	if not beatsaver_canvas.visible and gamestate == gamestate_mapselection:
 		online_search_keyboard._hide()
 		main_menu._show()
