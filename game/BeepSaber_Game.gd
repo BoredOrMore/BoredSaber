@@ -97,6 +97,18 @@ var hud: Hud
 var lead_in := 0.0
 
 const FAIL_SECONDS := 1.5
+## A fail closes a low-pass on the song like Beat Saber (measured from a recording of its PC version, 2026-10-28,
+## recordings/audio/fail.wav): the top of the spectrum falls from about 10 kHz to 600 Hz in 0.2 s, halving about
+## every 50 ms, then only the bass under 200 Hz is left for about 0.45 s before its fail screen's music. So the
+## cutoff glides exponentially from FAIL_CUTOFF_FROM_HZ to FAIL_CUTOFF_TO_HZ over FAIL_SWEEP_SECONDS, and the
+## muffled song fades to FAIL_SILENT_DB over FAIL_TAIL_SECONDS; the rest of FAIL_SECONDS stays quiet.
+const FAIL_CUTOFF_FROM_HZ := 20000.0
+const FAIL_CUTOFF_TO_HZ := 150.0
+const FAIL_SWEEP_SECONDS := 0.2
+const FAIL_TAIL_SECONDS := 0.45
+const FAIL_SILENT_DB := -60.0
+## added to the song's bus only while a fail plays out
+var _fail_filter := AudioEffectLowPassFilter.new()
 # the high score saved at the end of the last song
 var _new_record := {}
 const DANGER_WALL_MATERIAL := preload("res://game/notes/Wall/danger_wall.tres")
@@ -187,6 +199,7 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	lead_in = maxf(LEAD_IN_MIN_SECONDS, Map.half_jump_beats / Map.beats_per_second())
 	song_player.volume_db = 0.0
 	song_player.pitch_scale = Settings.music_speed / 100.
+	_remove_fail_filter()
 	_in_wall = false
 	Scoreboard.restart()
 	
@@ -244,12 +257,24 @@ func _fail_song() -> void:
 		var from := controller.get_rumble_intensity()
 		if from > 0.0:
 			tw.tween_method(func(amount: float) -> void: controller.simple_rumble(amount, 0.05), from, 0.0, FAIL_RUMBLE_FADE_SECONDS)
-	tw.tween_property(song_player, ^"pitch_scale", 0.3, FAIL_SECONDS)
-	tw.tween_property(song_player, ^"volume_db", -30.0, FAIL_SECONDS)
+	_fail_filter.cutoff_hz = FAIL_CUTOFF_FROM_HZ
+	AudioServer.add_bus_effect(AudioServer.get_bus_index(song_player.bus), _fail_filter)
+	tw.tween_method(func(octaves: float) -> void: _fail_filter.cutoff_hz = FAIL_CUTOFF_FROM_HZ * pow(2.0, -octaves),
+			0.0, log(FAIL_CUTOFF_FROM_HZ / FAIL_CUTOFF_TO_HZ) / log(2.0), FAIL_SWEEP_SECONDS)
+	tw.tween_property(song_player, ^"volume_db", FAIL_SILENT_DB, FAIL_TAIL_SECONDS).set_delay(FAIL_SWEEP_SECONDS)
+	tw.tween_interval(FAIL_SECONDS)
 	await tw.finished
 	pause_countdown.visible = false
 	failing = false
 	_on_song_ended()
+
+## Takes the fail's low-pass off the song's bus, if a fail left it there.
+func _remove_fail_filter() -> void:
+	var bus := AudioServer.get_bus_index(song_player.bus)
+	for i in AudioServer.get_bus_effect_count(bus):
+		if AudioServer.get_bus_effect(bus, i) == _fail_filter:
+			AudioServer.remove_bus_effect(bus, i)
+			return
 			
 # This function will transitioning the game from it's current state into
 # the provided 'next_state'.
