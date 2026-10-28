@@ -298,7 +298,8 @@ func _start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	timing.lap("audio")
 	_audio_synced_after_restart = false
 	song_player.stop()
-	lead_in = maxf(LEAD_IN_MIN_SECONDS, Map.half_jump_beats / Map.beats_per_second())
+	# room for the first notes to fly in and jump (Cuttable.FLY_SECONDS)
+	lead_in = maxf(LEAD_IN_MIN_SECONDS, Map.half_jump_beats / Map.beats_per_second() + Cuttable.FLY_SECONDS)
 	song_player.volume_db = 0.0
 	song_player.pitch_scale = Settings.music_speed / 100.
 	_remove_fail_filter()

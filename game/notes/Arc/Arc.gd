@@ -14,6 +14,9 @@ var activator_cube: BeepCube
 
 var speed: float
 var despawn_z: float
+# how far ahead of the hit plane its head was at spawn, and how far it has moved since (for its fly-in)
+var _head_ahead := 0.0
+var _travelled := 0.0
 
 func spawn(info: ArcInfo, current_beat: float, _activator_cube: BeepCube = null) -> void:
 	arc_info = info
@@ -39,6 +42,8 @@ func spawn(info: ArcInfo, current_beat: float, _activator_cube: BeepCube = null)
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, info.mesh_arrays)
 	visual.mesh = mesh
 	despawn_z = Constants.MISS_Z - info.tail_pos.z - current_beat*Map.beat_distance
+	_head_ahead = (info.head_beat - current_beat) * Map.beat_distance
+	_travelled = 0.0
 	
 	# sets the origin of the tail at the tail point to use in the shader for a fade out effect
 	path.position =  info.tail_pos + Vector3(0,0,current_beat*Map.beat_distance)
@@ -60,6 +65,9 @@ func start_magnet() -> void:
 func _process(delta: float) -> void:
 	if Scoreboard.paused or not is_visible_in_tree() or not Map.current_info: return
 	transform.origin += speed * delta * transform.basis.z
+	_travelled += speed * delta
+	# it flies in with its head note (Cuttable.fly_offset)
+	visual.position = Vector3(0.0, 0.0, -Cuttable.fly_offset(_head_ahead - _travelled))
 	if transform.origin.dot(transform.basis.z) >= despawn_z:
 		hide_pooled()
 		release()

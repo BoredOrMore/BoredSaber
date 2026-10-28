@@ -26,7 +26,7 @@ constraints apply here unchanged.
   `event_stack`, reversed so `pop_back()` is the next item) -> colours, song stream, `lead_in`,
   `Scoreboard.restart()`, `_clear_track()` -> `gamestate_playing`.
 - Spawning: `GameStatePlaying._process_map()` (`scripts/GameState/Playing.gd:60`) pops every item
-  with `beat <= current_beat + Map.half_jump_beats`, `acquire()`s from the pool and calls
+  with `beat <= current_beat + Map.half_jump_beats` (plus `Cuttable.FLY_SECONDS` for all but walls, to fly in), `acquire()`s from the pool and calls
   `spawn(info, current_beat)`. Arcs mark head/tail cubes spawned this tick (`set_arc_head/tail`);
   chains go through `ChainLink.construct_chain()`, which flags the head cube with `make_chain_head()`.
   Events go to `event_driver.process_event()` at `current_beat` (no look-ahead).

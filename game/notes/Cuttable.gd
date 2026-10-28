@@ -18,6 +18,12 @@ var _forward := Vector3(0, 0, 1)
 ## lean beyond plain perspective (doc/research/note-spawn-plan.md), so none. Untuned until seen on the headset.
 const JUMP_TURN_SHARE := 0.3
 const JUMP_FACE_CHARACTERISTICS: Array[String] = ["90Degree", "360Degree"]
+## Before its jump a note flies in, as Beat Saber's (owner, 2026-10-28; ArcViewer's moveZ 300 m and moveTime 0.975 s):
+## it spawns FLY_SECONDS before its jump starts and its visual rushes in from FLY_DISTANCE beyond the jump start,
+## easing out (quadratic), so it arrives before the reaction time begins; its place and hitbox move on as before.
+## Bombs, chain links (start_jump) and arcs (Arc.gd, by their head) fly the same way; walls don't.
+const FLY_SECONDS := 0.975
+const FLY_DISTANCE := 300.0
 var _jump_visual: Node3D
 var _jump_turn := 0.0
 var _jump_face := false
@@ -68,10 +74,21 @@ func start_jump(visual: Node3D, turn: float) -> void:
 	_jump_visual.transform = Transform3D.IDENTITY
 	_apply_jump()
 
-## Puts the visual where its jump is now.
+## How far beyond its real place a visual `ahead` metres from the hit plane shows while it flies in (0 once it's at the
+## jump start): FLY_DISTANCE beyond the jump start at spawn, easing out to it over FLY_SECONDS.
+static func fly_offset(ahead: float) -> float:
+	var beyond := ahead - Map.half_jump_beats * Map.beat_distance
+	var flight := FLY_SECONDS * Map.beat_distance * Map.beats_per_second()
+	if beyond <= 0.0 or flight <= 0.0:
+		return 0.0
+	var q := minf(beyond / flight, 1.0)
+	return FLY_DISTANCE * q * q - beyond
+
+## Puts the visual where its jump is now (and, before it, where it flies in).
 func _apply_jump() -> void:
 	var half := Map.half_jump_beats * Map.beat_distance
-	var p := clampf(1.0 - (-transform.origin.dot(_forward)) / half, 0.0, 1.0) if half > 0.0 else 1.0
+	var ahead := -transform.origin.dot(_forward)
+	var p := clampf(1.0 - ahead / half, 0.0, 1.0) if half > 0.0 else 1.0
 	var turned := sin(clampf(p / JUMP_TURN_SHARE, 0.0, 1.0) * PI * 0.5)
 	var yaw := 0.0
 	if _jump_face:
@@ -81,7 +98,9 @@ func _apply_jump() -> void:
 			yaw = atan2(to_head.x, to_head.z) * p
 	# the root turns by the cut angle (rotation.z) and lane; the visual undoes the part of the turn not done yet
 	var basis := Basis(Vector3.BACK, -_jump_turn) * Basis(Vector3.UP, yaw) * Basis(Vector3.BACK, _jump_turn * turned)
-	_jump_visual.transform = Transform3D(basis, Vector3.ZERO)
+	var fly := fly_offset(ahead)
+	var back := global_transform.basis.inverse() * (-_forward * fly) if fly != 0.0 else Vector3.ZERO
+	_jump_visual.transform = Transform3D(basis, back)
 
 func _physics_process(delta: float) -> void:
 	if Scoreboard.paused or not is_visible_in_tree() or not Map.current_info: return
