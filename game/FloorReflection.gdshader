@@ -15,8 +15,8 @@ global uniform vec4 right_saber_color;
 uniform float floor_y = 0.0;
 // the depth-only pass: writes the reflections' depth and no colour
 uniform bool prepass = false;
-// how strong the reflection is at the deck's surface (owner, 2026-10-28: 0.3 too clear, 0.12 too faint)
-const float STRENGTH = 0.2;
+// how strong the reflection is at the deck's surface (owner, 2026-10-28: 0.3 too clear, 0.12 too faint, picked 0.275)
+const float STRENGTH = 0.275;
 // fade by depth: strongest where a note meets its reflection at the deck, falling off exponentially to about a fifth
 // at FADE_DEPTH metres under it; off: a gentle linear fade to nothing at FADE_DEPTH_LINEAR (the first version's)
 const bool DEPTH_FADE = true;
