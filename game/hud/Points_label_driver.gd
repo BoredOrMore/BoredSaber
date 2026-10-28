@@ -18,7 +18,8 @@ func _ready():
 func show_points(_position: Vector3, _rotation: float, value: String):
 	if value == "0" or value == "x":
 		value = PointsLabel.MISS_TEXT
-	var color := Constants.MISS_COLOR if value == PointsLabel.MISS_TEXT else Color(1,1,1)
+	# MISS in the numbers' white, like Beat Saber's (owner, 2026-10-28): the word says it, no red needed
+	var color := Color(1,1,1)
 	var good := Constants.SWING_GOOD_SCORE if Settings.swing_scoring else Constants.OPENSABER_GOOD_SCORE
 	if value.get_slice(" ", 0).to_int() >= good:
 		# a good cut stands out from an average one
