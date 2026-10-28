@@ -89,6 +89,9 @@ func _physics_process(delta: float) -> void:
 const STICK_THRESHOLD := 0.5
 const STICK_REPEAT_DELAY := 0.4
 const STICK_REPEAT_INTERVAL := 0.12
+## each step the stick makes ticks that hand's controller lightly (owner, 2026-10-28): this strong (0-1), this long (s)
+const STICK_TICK_STRENGTH := 0.15
+const STICK_TICK_SECONDS := 0.02
 ## Seconds the stick has been pushed, -1 while it rests; and when the next step is due.
 var _stick_time := -1.0
 var _stick_next := 0.0
@@ -99,10 +102,12 @@ func _step_with_stick(delta: float) -> void:
 	var takes_input := canvas != null and canvas.is_visible_in_tree() and not canvas.disable_collision \
 			and not keyboard.visible and songs_menu.item_count > 0
 	var y := 0.0
+	var hand := vr.rightController
 	if takes_input:
 		var y_left := vr.leftController.get_vector2("primary").y
 		var y_right := vr.rightController.get_vector2("primary").y
 		y = y_left if absf(y_left) > absf(y_right) else y_right
+		hand = vr.leftController if absf(y_left) > absf(y_right) else vr.rightController
 	if absf(y) < STICK_THRESHOLD:
 		if _stick_time >= 0.0:
 			_stick_time = -1.0
@@ -120,6 +125,7 @@ func _step_with_stick(delta: float) -> void:
 			_select_song(next, false)
 			songs_menu.center_on(next)
 			canvas._input_update()
+			hand.simple_rumble(STICK_TICK_STRENGTH, STICK_TICK_SECONDS)
 		_stick_next += STICK_REPEAT_DELAY if _stick_next == 0.0 else STICK_REPEAT_INTERVAL
 	_stick_time += delta
 

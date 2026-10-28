@@ -118,7 +118,8 @@ never clicks what it started on (a release far away cancels the press), and a fl
 `ItemList` still selects on press, so the BeatSaver list picks the row a drag starts on. Otherwise thumbstick
 (stronger of both hands) with threshold, speed lerp and hold acceleration consts at
 the top. `scroll_without_pointer = true` scrolls even when not hovered. The song list sets `joystick_scroll = false`:
-there the thumbstick moves the selection instead (`MainMenu._step_with_stick`, centred by `SongList.center_on`).
+there the thumbstick moves the selection instead (`MainMenu._step_with_stick`, centred by `SongList.center_on`;
+each step ticks that hand's controller, `STICK_TICK_*`).
 Above the list one row holds Search (icon), Filters (opens `FiltersPanel` over the list), the sort and Get songs. BeatSaver loads the next page past 90% scroll (`BeatSaverPanel.gd:447-465`).
 
 ## BeatSaver HTTP flow
