@@ -177,7 +177,7 @@ constant with its role, or reuse one.
 - The environment stays dark, its shadows black (no colour toning of the darks: a navy tint was removed on the
   owner's request, 2026-10-26), and takes its light colours from the note colours, so the scene never competes with notes or danger.
 - Never rely on hue alone (colour-blind players): pair a colour with a shape, pattern or word
-  (the see-through box with a glowing frame for walls, the ✕ for a miss, text on difficulty buttons).
+  (the see-through box with a glowing frame for walls, the word MISS for a miss, text on difficulty buttons).
 - Comfort: no large areas of saturated or pure-white colour, keep flashes short and moderate, and
   keep body text at a 4.5:1 contrast or better against its panel.
 - A new colour role needs the user's agreement first; propose it with where it is used.

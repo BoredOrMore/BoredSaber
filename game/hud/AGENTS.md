@@ -30,7 +30,8 @@ arrangement (owner, 2026-10-27).
 - `PercentIndicator.gd/.tscn` (class `PercentIndicator`) + `PercentIndicator.gdshader`: the old accuracy ring.
   Hidden in play (`Hud` sets it invisible) but still fed; `EndScore.tscn` and `SpectatorWindow.tscn` use it visibly.
 - `Points_label_driver.gd/.tscn` (class `PointsLabelDriver`): pools and places `points_label.tscn` instances.
-- `points_label.gd/.tscn`: one popped number or miss mark; `MissMark.gdshader` draws the miss X from a distance field.
+- `points_label.gd/.tscn` (class `PointsLabel`): one popped cut number or MISS, in the live grade's font
+  (`Hud.GRADE_FONT`, Kanit Black Italic; every digit and every letter checked to tessellate cleanly at 100 px).
 - `HealthRails.gd` (class `HealthRails`) + `HealthRail.gdshader`: health as two strips beside the track (bar mode
   shortens them, 4 Lives splits them into pips); `HealthRails.EDGE_PAD` must match `edge_pad` in the shader. `start_map(lives, how_full, eye)` places them from the
   player's eye: they start `RAIL_NEAR_DEGREES` (22°) below it and widen with that distance.

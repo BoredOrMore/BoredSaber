@@ -16,9 +16,9 @@ func _ready():
 		add_child(instance)
 
 func show_points(_position: Vector3, _rotation: float, value: String):
-	if value == "0":
-		value = "x"
-	var color := Constants.MISS_COLOR if value == "x" else Color(1,1,1)
+	if value == "0" or value == "x":
+		value = PointsLabel.MISS_TEXT
+	var color := Constants.MISS_COLOR if value == PointsLabel.MISS_TEXT else Color(1,1,1)
 	var good := Constants.SWING_GOOD_SCORE if Settings.swing_scoring else Constants.OPENSABER_GOOD_SCORE
 	if value.get_slice(" ", 0).to_int() >= good:
 		# a good cut stands out from an average one
