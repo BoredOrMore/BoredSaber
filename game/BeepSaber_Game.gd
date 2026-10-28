@@ -181,6 +181,9 @@ var _start_timing: StartTiming
 ## So the picked difficulty's map file and song are read on a worker thread as soon as they're picked (_preload), and
 ## the rest runs behind a short black fade: START_FADE_SECONDS down, the start, START_HOLD_SECONDS while its first
 ## frames draw, back up.
+## The fade waits START_SPARK_SECONDS first, so the play block's cut (its sparks and halves) shows before the black
+## (owner, 2026-10-28).
+const START_SPARK_SECONDS := 0.3
 const START_FADE_SECONDS := 0.15
 const START_HOLD_SECONDS := 0.2
 var _preload_key := ""
@@ -224,6 +227,7 @@ func _take_preload(info: MapInfo, difficulty: DifficultyInfo) -> Dictionary:
 func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	var from_menu := gamestate == gamestate_mapselection and _result_moment != null
 	if from_menu:
+		await get_tree().create_timer(START_SPARK_SECONDS).timeout
 		await _result_moment.fade_out(START_FADE_SECONDS)
 	_start_map(info, map_difficulty)
 	if from_menu:
