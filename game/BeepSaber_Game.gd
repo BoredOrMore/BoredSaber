@@ -215,22 +215,25 @@ func _finish_preload() -> void:
 		WorkerThreadPool.wait_for_task_completion(_preload_task)
 		_preload_task = -1
 
-## What was read for `difficulty` of `info` (waiting for it if it's still being read), once; {} if something else was.
+## What was read for `difficulty` of `info` (waiting for it if it's still being read), {} if something else was. It
+## stays, so a restart of the song finds it in memory.
 func _take_preload(info: MapInfo, difficulty: DifficultyInfo) -> Dictionary:
 	if _preload_key != info.filepath + difficulty.beatmap_filename:
 		return {}
 	_finish_preload()
-	_preload_key = ""
 	return _preloaded
 
-## Starts a song: from the song menu behind a short black fade (START_*), otherwise (restart) at once.
-func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
-	var from_menu := gamestate == gamestate_mapselection and _result_moment != null
-	if from_menu:
-		await get_tree().create_timer(START_SPARK_SECONDS).timeout
+## Starts a song behind a short black fade (START_*): from the song menu after the play block's sparks, on a restart
+## (`restart`, owner, 2026-10-28) at once.
+func start_map(info: MapInfo, map_difficulty: DifficultyInfo, restart := false) -> void:
+	var from_menu := gamestate == gamestate_mapselection
+	var faded := (from_menu or restart) and _result_moment != null
+	if faded:
+		if from_menu:
+			await get_tree().create_timer(START_SPARK_SECONDS).timeout
 		await _result_moment.fade_out(START_FADE_SECONDS)
 	_start_map(info, map_difficulty)
-	if from_menu:
+	if faded:
 		await get_tree().create_timer(START_HOLD_SECONDS).timeout
 		_result_moment.fade_in(START_FADE_SECONDS)
 
@@ -1131,7 +1134,7 @@ static func _default_player_name() -> String:
 	return player_name if not player_name.is_empty() else "Player"
 
 func _restart_button() -> void:
-	start_map(Map.current_info, Map.current_difficulty)
+	start_map(Map.current_info, Map.current_difficulty, true)
 	endscore.visible = false
 	pause_menu.visible = false
 

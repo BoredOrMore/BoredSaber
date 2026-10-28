@@ -20,7 +20,7 @@ constraints apply here unchanged.
   (cubes 100, links 100, bombs 30, walls 15, arcs 15), inits `vr`, then enters `gamestate_mapselection`.
 - Preload: the menu's `difficulty_changed` -> `_preload` reads the picked difficulty's map file and song on a
   `WorkerThreadPool` task (`_read_song`); `_start_map` takes them (`_take_preload`, waiting if still reading).
-- Start: menu signal `start_map` -> `start_map(info, difficulty)` (from the menu behind a black fade, `START_*`) ->
+- Start: menu signal `start_map` -> `start_map(info, difficulty)` (from the menu or a restart behind a black fade, `START_*`) ->
   `_start_map` -> `Map.load_beatmap()` (threaded
   parsers fill `note_stack`, `bomb_stack`, `obstacle_stack`, `arc_stack`, `chain_stack`,
   `event_stack`, reversed so `pop_back()` is the next item) -> colours, song stream, `lead_in`,
