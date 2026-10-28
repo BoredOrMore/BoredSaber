@@ -57,6 +57,21 @@ const SPARKS_MIN_SHARE := 0.4
 ## sparks vary in size only this much, so the burst looks even
 const SPARK_SCALE_MIN := 0.85
 const SPARK_SCALE_MAX := 1.15
+## The same sparks, fewer and slower, where a blade touches something (owner, 2026-10-28: one spark look for
+## everything the saber does): `spray` sends SPRAY_SPARKS from a point along a direction, at most every SPRAY_INTERVAL
+## seconds per source (SPRAY_CLASH where the blades touch, SPRAY_FLOOR + the saber's type where a blade sinks into the
+## floor or platform), into SPRAY_GROUPS blocks of their own so they never take a cut's sparks; SPRAY_SPEED_MIN to
+## SPRAY_SPEED_MAX m/s, scattered SPRAY_SCATTER around the direction, living SPRAY_SECONDS_MIN to SPRAY_SECONDS.
+const SPRAY_SPARKS := 6
+const SPRAY_GROUPS := 10
+const SPRAY_INTERVAL := 0.04
+const SPRAY_SPEED_MIN := 0.6
+const SPRAY_SPEED_MAX := 2.0
+const SPRAY_SCATTER := 0.9
+const SPRAY_SECONDS_MIN := 0.3
+const SPRAY_SECONDS := 0.55
+const SPRAY_CLASH := 0
+const SPRAY_FLOOR := 1
 ## the blades' push: how near a spark must be (m), the share of the gap to the blade's speed a spark takes per frame at
 ## the blade (less toward WAKE_RADIUS), and the slowest blade that pushes anything (m/s)
 const WAKE_RADIUS := 0.12
@@ -83,8 +98,12 @@ var _buffer := PackedFloat32Array()
 var _dirty := false
 ## the clock the shader moves the sparks by (s)
 var _now := 0.0
-## the burst each block of SPARKS slots last held: its cut, when it was made, how far its sparks can get from the cut
+## the burst each block last held (COUNT blocks of SPARKS slots for cuts, then SPRAY_GROUPS of SPRAY_SPARKS for
+## sprays): where it started, when, how far its sparks can get from there
 var _next := 0
+var _next_spray := 0
+## when each spray source last sprayed, by source
+var _sprayed := {}
 var _burst_at := PackedVector3Array()
 var _burst_time := PackedFloat32Array()
 var _burst_reach := PackedFloat32Array()
@@ -98,11 +117,11 @@ var _life := PackedFloat32Array()
 var _blade_past: Array[PackedVector3Array] = [PackedVector3Array(), PackedVector3Array(), PackedVector3Array()]
 
 func _ready() -> void:
-	var most := COUNT * SPARKS
-	_burst_at.resize(COUNT)
-	_burst_time.resize(COUNT)
+	var most := COUNT * SPARKS + SPRAY_GROUPS * SPRAY_SPARKS
+	_burst_at.resize(COUNT + SPRAY_GROUPS)
+	_burst_time.resize(COUNT + SPRAY_GROUPS)
 	_burst_time.fill(-SPARK_SECONDS)
-	_burst_reach.resize(COUNT)
+	_burst_reach.resize(COUNT + SPRAY_GROUPS)
 	_from.resize(most)
 	_speed.resize(most)
 	_since.resize(most)
@@ -223,6 +242,32 @@ func _on_face(at: Vector3, normal: Vector3, box: Transform3D, extent: AABB) -> A
 	face[axis] = signf(way[axis])
 	return [box * (start + way * maxf(reach, 0.0)), (box.basis * face).normalized()]
 
+## Sends a few sparks from `at` along `direction` for `source` (SPRAY_CLASH, SPRAY_FLOOR + saber type), unless that
+## source sprayed less than SPRAY_INTERVAL ago: the cut sparks' look and physics, fewer and slower.
+func spray(source: int, at: Vector3, direction: Vector3, color: Color) -> void:
+	if _now - float(_sprayed.get(source, -SPRAY_INTERVAL)) < SPRAY_INTERVAL:
+		return
+	_sprayed[source] = _now
+	var block := COUNT + _next_spray
+	_next_spray = (_next_spray + 1) % SPRAY_GROUPS
+	_burst_at[block] = at
+	_burst_time[block] = _now
+	_burst_reach[block] = SPRAY_SPEED_MAX / SPARK_DRAG + SPARK_GRAVITY * SPRAY_SECONDS / SPARK_DRAG
+	var first := _first(block)
+	for i in range(first, first + SPRAY_SPARKS):
+		var scatter := Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-1.0, 1.0))
+		_from[i] = at
+		_speed[i] = (direction + scatter * SPRAY_SCATTER).normalized() * randf_range(SPRAY_SPEED_MIN, SPRAY_SPEED_MAX)
+		_since[i] = _now
+		_age_then[i] = 0.0
+		_life[i] = randf_range(SPRAY_SECONDS_MIN, SPRAY_SECONDS)
+		_write(i, at, _speed[i], _now, 0.0, _life[i], randf_range(SPARK_SCALE_MIN, SPARK_SCALE_MAX), 1.0, color)
+	_dirty = true
+
+## The first slot of `block`: cut bursts' blocks first, then the sprays'.
+static func _first(block: int) -> int:
+	return block * SPARKS if block < COUNT else COUNT * SPARKS + (block - COUNT) * SPRAY_SPARKS
+
 ## The blades this frame as [base, tip, base velocity, tip velocity], only those out and moving.
 func _blades(delta: float) -> Array[PackedVector3Array]:
 	var blades: Array[PackedVector3Array] = []
@@ -250,7 +295,7 @@ func _process(delta: float) -> void:
 	var blades := _blades(delta)
 	var started := Time.get_ticks_usec()
 	var alive := false
-	for burst in COUNT:
+	for burst in COUNT + SPRAY_GROUPS:
 		if _now - _burst_time[burst] >= SPARK_SECONDS:
 			continue
 		alive = true
@@ -269,7 +314,8 @@ func _push(burst: int, blade: PackedVector3Array) -> void:
 	var lane_half := LANE_HALF_LANES * Settings.LANE_DISTANCE_X
 	var length := blade[0].distance_to(blade[1])
 	var fall := Vector3.DOWN * SPARK_GRAVITY / SPARK_DRAG
-	for i in range(burst * SPARKS, (burst + 1) * SPARKS):
+	var first := _first(burst)
+	for i in range(first, first + (SPARKS if burst < COUNT else SPRAY_SPARKS)):
 		var t := _now - _since[i]
 		if _age_then[i] + t >= _life[i]:
 			continue

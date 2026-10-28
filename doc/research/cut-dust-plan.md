@@ -161,3 +161,8 @@ tune on the headset.
   frame now builds it at load.
 - **Then 80%:** on the headset 40% smaller was too small; the owner asked for 80% of the first size: 0.0176 m wide,
   streaks to 0.096 m (`CutFlash.SPARK_SIZE`).
+- **One look for every saber spark (owner, 2026-10-28).** The blades touching (CPU particles with trailed streaks,
+  cooling to orange) and a blade sinking into the floor or platform (no sparks before) now use `CutFlash.spray`: the
+  cut sparks' look and physics, 6 sparks at a time, 0.6-2 m/s, living 0.3-0.55 s, at most every 0.04 s per source.
+  Not saber sparks, so left as they were: the song-clear burst, Metal Factory's sparks, the particle saber style.
+  `one_spark_look.jpg`: the cut before (60% size), now (80%), and the floor and clash sprays.

@@ -278,8 +278,11 @@ func _physics_process(delta: float) -> void:
 			var floor_body := raycoli as Floor
 			var colipoint := _ray_cast.get_collision_point()
 			floor_body.burn_mark(colipoint,type)
-			# the blade scraping the floor buzzes the hand
+			# the blade scraping the floor buzzes the hand and throws the cut sparks up (CutFlash.spray)
 			controller.simple_rumble(FLOOR_RUMBLE, 0.05)
+			if Settings.cut_flash:
+				GlobalReferences.main_game_scene.cut_flash.spray(CutFlash.SPRAY_FLOOR + type, colipoint, Vector3.UP,
+						saber_visual.get_color())
 	# a blade that is off lights nothing (PlayerLight.gdshader)
 	RenderingServer.global_shader_parameter_set(&"left_saber" if type == 0 else &"right_saber", saber_end if is_extended() else Vector3.DOWN * 100.0)
 

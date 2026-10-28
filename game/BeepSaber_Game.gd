@@ -599,7 +599,6 @@ func _ready() -> void:
 	track.position.z = Constants.HIT_PLANE_Z
 	cut_flash.sabers = [left_saber, right_saber]
 	add_child(cut_flash)
-	_make_sparks()
 	_countdown_player.bus = &"SFX"
 	add_child(_countdown_player)
 	_mistake_player = AudioStreamPlayer3D.new()
@@ -817,29 +816,8 @@ var _lowered_resolution := false
 ## Seconds of songs played this session (WarningIcon suggests a break after 30 minutes).
 var played_seconds := 0.0
 
-## Buzzes both controllers while the two blades touch.
-## Sparks fly from where the blades touch: short glowing streaks on CPU particles, hot white cooling to orange
-## as they fall. Untuned.
-var _sparks := CPUParticles3D.new()
-const SPARKS_AMOUNT := 24
-
-func _make_sparks() -> void:
-	_sparks.mesh = CutFlash.spark_mesh()
-	_sparks.particle_flag_align_y = true
-	_sparks.amount = SPARKS_AMOUNT
-	_sparks.lifetime = 0.35
-	_sparks.local_coords = false
-	_sparks.emitting = false
-	_sparks.direction = Vector3.UP
-	_sparks.spread = 180.0
-	_sparks.initial_velocity_min = 0.6
-	_sparks.initial_velocity_max = 1.6
-	_sparks.gravity = Vector3(0.0, -4.0, 0.0)
-	var ramp := Gradient.new()
-	ramp.set_color(0, Color(1.0, 0.95, 0.85))
-	ramp.set_color(1, Color(1.0, 0.45, 0.1, 0.0))
-	_sparks.color_ramp = ramp
-	add_child(_sparks)
+# whether the blades touched last frame (logged when it changes, for matching GPU timings on the headset)
+var _clashing := false
 
 ## Sparks and a buzz in both controllers while the two blades touch.
 func _rumble_on_clash() -> void:
@@ -852,10 +830,12 @@ func _rumble_on_clash() -> void:
 	if touching:
 		left_controller.simple_rumble(CLASH_RUMBLE, 0.05)
 		right_controller.simple_rumble(CLASH_RUMBLE, 0.05)
-		_sparks.global_position = (closest[0] + closest[1]) * 0.5
-	if touching != _sparks.emitting:
-		_sparks.emitting = touching
-		# for matching GPU timings on the headset
+		# the cut sparks (CutFlash.spray), in either blade's colour in turn
+		var saber := left_saber if randi() % 2 == 0 else right_saber
+		cut_flash.spray(CutFlash.SPRAY_CLASH, (closest[0] + closest[1]) * 0.5, Vector3.UP,
+				saber.saber_visual.get_color())
+	if touching != _clashing:
+		_clashing = touching
 		print("saber_clash ", touching)
 
 func _process(delta: float) -> void:

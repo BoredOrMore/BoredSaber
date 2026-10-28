@@ -78,8 +78,10 @@ constraints apply here unchanged.
   those faces and along the swing, a strong smooth drag, slight gravity, gone in under a second. The shader moves them
   in closed form from a `now` clock; the blades (`sabers`, set by `BeepSaber_Game._ready`, plus `test_blade` for the
   bench) push a burst's sparks only when they pass near it, never into the note lanes ahead (`SPARK_*`, `WAKE_*`,
-  `LANE_*`). `SparkStreak.gdshader` + the static `spark_mesh()`: the trailed sparks other effects use (saber clash,
-  Metal Factory).
+  `LANE_*`). The same sparks for everything a saber does (owner, 2026-10-28): `spray` sends a few, rate-capped per
+  source, where the blades touch (`BeepSaber_Game._rumble_on_clash`) and where a blade sinks into the floor or
+  platform (`LightSaber`, with the burn mark). `SparkStreak.gdshader` + the static `spark_mesh()`: Metal Factory's
+  trailed sparks.
 - `FloorReflection.gd` (class `FloorReflection`) + `FloorReflection.gdshader` — the notes and blades faintly mirrored in
   the deck: two MultiMeshes refilled each frame, drawn at the deck's depth in a depth-only pass then colour, so a lower
   note's reflection hides an upper one's (no second render, no screen read); fades by depth and distance; off with
