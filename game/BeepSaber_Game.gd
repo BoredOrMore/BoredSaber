@@ -173,22 +173,30 @@ const MILESTONE_RUMBLE_SECONDS := 0.12
 const MILESTONE_RUMBLE_DELAY := 0.12
 # true while the "Failed" moment plays, before the score screen
 var failing := false
+# the last song start's timing, kept while it watches the frames after the start
+var _start_timing: StartTiming
 
 func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	points_label_driver.visible = true
+	var timing := StartTiming.new()
+	_start_timing = timing
 	var map_data := Utils.binary_to_json(Utils.read_binary_file(info.filepath, map_difficulty.beatmap_filename))
 	
 	if (map_data.is_empty()):
 		vr.log_error("Could not read map data from " + info.filepath + "/" + map_difficulty.beatmap_filename)
+	timing.lap("read")
 	if not Map.load_beatmap(info, map_difficulty, map_data):
 		menu.show_play_error()
 		return
+	timing.lap("parse")
 		
 	event_driver.set_environment(EventDriver.pick_environment(info))
+	timing.lap("stage")
 	# for reading GPU timings on the headset by environment
 	print("Song starts in environment %s, smoke %s, debug_view %d" % [event_driver.environment, Settings.smoke, DebugView.flags])
 	print("song_info %s | %s | speed %d" % [info.song_name, MapStats.level_name(info, map_difficulty), Settings.music_speed])
 	event_driver.set_background_texture()
+	timing.lap("sky")
 	
 	event_driver.set_menu_focus(false)
 	update_left_color(Map.color_left)
@@ -200,6 +208,7 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	# stays dark (the owner's choice, doc/world/GAME_BIBLE.md): the notes, sabers and platform light themselves
 	event_driver.set_all_off()
 	event_driver.start_show(Map.event_stack, info.beats_per_minute)
+	timing.lap("colours_show")
 	
 	var filename := info.filepath + info.song_filename
 	vr.log_info("loading: " + filename)
@@ -226,6 +235,7 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 			wav.set_data(data)
 			song_player.stream = wav
 	
+	timing.lap("audio")
 	_audio_synced_after_restart = false
 	song_player.stop()
 	lead_in = maxf(LEAD_IN_MIN_SECONDS, Map.half_jump_beats / Map.beats_per_second())
@@ -246,6 +256,8 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	_clear_track()
 	_lowered_resolution = false
 	_transition_game_state(gamestate_playing)
+	timing.lap("rest")
+	timing.report()
 
 ## Changes health by delta in the health bar mode. mistake is a miss, bad cut, bomb or wall
 ## entry, which costs a life in 4 Lives mode and ends the song in Instant Fail mode.
@@ -1315,3 +1327,31 @@ func _on_left_controller_profile_changed(role: String) -> void:
 		_set_hand(false, true)
 	else:
 		_set_hand(false, false)
+
+## How long each step of starting a song took, logged once as "START <step> <ms> ... total <ms>" to find what
+## freezes the view when a song starts (owner, 2026-10-28), and the frames after it as "START frame <ms>" while
+## they run over START_SLOW_FRAME seconds, for START_WATCH_FRAMES frames.
+class StartTiming:
+	const START_SLOW_FRAME := 0.025
+	const START_WATCH_FRAMES := 90
+	var _started := Time.get_ticks_usec()
+	var _last := _started
+	var _line := "START"
+
+	## Notes the time since the last step under `step`.
+	func lap(step: String) -> void:
+		var now := Time.get_ticks_usec()
+		_line += " %s %.1f" % [step, (now - _last) / 1000.0]
+		_last = now
+
+	## Prints the steps, then watches the next frames for slow ones.
+	func report() -> void:
+		print(_line + " total %.1f" % ((_last - _started) / 1000.0))
+		var tree := Engine.get_main_loop() as SceneTree
+		var before := Time.get_ticks_usec()
+		for frame in START_WATCH_FRAMES:
+			await tree.process_frame
+			var now := Time.get_ticks_usec()
+			if now - before > START_SLOW_FRAME * 1e6:
+				print("START frame %d %.1f" % [frame, (now - before) / 1000.0])
+			before = now
