@@ -440,7 +440,23 @@ func _get_selected_song() -> BeatSaverSongInfo:
 		return song_data[item_selected]
 	return null
 
+## The logo with a song's level strip, until its cover comes: made once per strip (levels, the player's level, estimate)
+## and reused; built per card from the logo read back from the GPU, a page of cards froze dragging the list (owner,
+## 2026-10-28; headset: one second at 20 of 72 frames while scrolling Get songs).
+var _placeholder_cards := {}
+var _placeholder_image: Image
+
+func _placeholder_card(song: BeatSaverSongInfo) -> ImageTexture:
+	var levels := _levels(song)
+	var key := "%s|%d|%s" % [levels[0], picked_level(), levels[1]]
+	if not _placeholder_cards.has(key):
+		if _placeholder_image == null:
+			_placeholder_image = placeholder_cover.get_image()
+		_placeholder_cards[key] = LevelStrip.compose(_placeholder_image, levels[0], picked_level(), levels[1])
+	return _placeholder_cards[key]
+
 func _on_HTTPRequest_request_completed(result: int, _response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	var started := Time.get_ticks_usec()
 	if result == 0:
 		var json_data: Variant = JSON.parse_string(body.get_string_from_utf8())
 		if json_data is Dictionary:
@@ -459,7 +475,7 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 						if not parsed_song.is_playable() or (prev_request.type != "uploader" and not parsed_song.passes_reaction_filter()):
 							continue
 						var index := item_list.add_item(_card_text(parsed_song))
-						item_list.set_item_icon(index, _with_levels(placeholder_cover.get_image(), parsed_song))
+						item_list.set_item_icon(index, _placeholder_card(parsed_song))
 						item_list.set_item_tooltip_enabled(index, false)
 						song_data.append(parsed_song)
 
@@ -481,6 +497,7 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 	
 	_update_all_covers()
 	_fill_reaction_filtered_list()
+	print("BeatSaver page: %d songs in %.1f ms" % [song_data.size(), (Time.get_ticks_usec() - started) / 1000.0])
 	if result == 0:
 		if item_list.item_count > 0:
 			label.text = ""
