@@ -2,6 +2,7 @@ extends Node3D
 ## Renders the score screen (game/ui/EndScore.tscn) with given text, to check that nothing spills off its board.
 ## Run: godot --path . res://tools/capture/endscore_capture.tscn -- --out /tmp/end.png [--song "name"] [--author "x"]
 ##   [--level "Expert+"] [--mapper "y"] [--card "text"] [--percent 0.87] [--record 1] [--fc 1]
+##   [--failed-at 102 --length 190] (with --percent -1: a fail at that second of a song that long)
 
 func _ready() -> void:
 	var args := {}
@@ -31,14 +32,16 @@ func _ready() -> void:
 		await get_tree().create_timer(4.0).timeout
 		end._hide()
 		await get_tree().create_timer(0.5).timeout
-		end.show_score(123456, 234567, float(args.get("percent", "0.87")), song, args.get("fc", "0") == "1", args.get("record", "0") == "1")
+		end.show_score(123456, 234567, float(args.get("percent", "0.87")), song, args.get("fc", "0") == "1", args.get("record", "0") == "1",
+			float(args.get("failed-at", "102")), float(args.get("length", "190")))
 		end._show()
 		for frame in int(args.get("frames", "1")):
 			await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png(args.get("out", "/tmp/end.png"))
 		get_tree().quit()
 		return
-	end.show_score(123456, 234567, float(args.get("percent", "0.87")), song, args.get("fc", "0") == "1", args.get("record", "0") == "1")
+	end.show_score(123456, 234567, float(args.get("percent", "0.87")), song, args.get("fc", "0") == "1", args.get("record", "0") == "1",
+			float(args.get("failed-at", "102")), float(args.get("length", "190")))
 	if args.has("card"):
 		end.show_name_card(args["card"])
 	await get_tree().create_timer(4.0).timeout

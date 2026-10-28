@@ -97,6 +97,8 @@ var hud: Hud
 var lead_in := 0.0
 
 const FAIL_SECONDS := 1.5
+## where in the song (seconds) the last fail happened, for the score screen
+var _failed_at := 0.0
 ## A fail closes a low-pass on the song like Beat Saber (measured from a recording of its PC version, 2026-10-28,
 ## recordings/audio/fail.wav): the top of the spectrum falls from about 10 kHz to 600 Hz in 0.2 s, halving about
 ## every 50 ms, then only the bass under 200 Hz is left for about 0.45 s before its fail screen's music. So the
@@ -242,6 +244,7 @@ func _update_low_health_sound() -> void:
 ## Shows "Failed" while the song winds down and the track freezes, then the score screen.
 func _fail_song() -> void:
 	failing = true
+	_failed_at = get_current_time()
 	Scoreboard.paused = true
 	_update_low_health_sound()
 	_song_end_player.stream = FAIL_SOUND
@@ -918,7 +921,9 @@ func _on_song_ended() -> void:
 			MapStats.level_name(Map.current_info, Map.current_difficulty),
 			Map.current_info.level_author_name],
 		Scoreboard.full_combo,
-		new_record
+		new_record,
+		_failed_at,
+		song_player.stream.get_length() if song_player.stream else 0.0
 	)
 	
 	if not failed and Highscores.is_new_highscore(Map.current_info,Map.current_difficulty.difficulty_rank,Scoreboard.points):

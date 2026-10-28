@@ -72,7 +72,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   difficulty and the modifier chips, rarer ones behind "More modifiers"),
   `settings_Panel.gd/.tscn` (class `SettingsPanel`, tabs Gameplay/Visuals/Audio/Advanced), `HighscorePanel.gd/.tscn`,
   `Pause_Panel.gd/.tscn` (signals `continue_button`/`restart_button`/`mainmenu_button`), `EndScore.gd/.tscn` (3D `MeshInstance3D`, not a
-  canvas; `RankHalo.gdshader` glows round its result ring), `vr_slider.gd` (thumbstick/drag scrolling), `UI_Panel.gdshader` (rounded 3D panel used by `EndScore.tscn`
+  canvas; `RankHalo.gdshader` glows round its result ring; a FAILED / SONG CLEARED banner under the song's name, and after a
+  fail "Failed at M:SS of M:SS" in place of the ring; `doc/research/score-screen-plan.md`), `vr_slider.gd` (thumbstick/drag scrolling), `UI_Panel.gdshader` (rounded 3D panel used by `EndScore.tscn`
   and `game/scripts/UIRaycast/UIRaycastButton.tscn`).
 
 ## Colour palette

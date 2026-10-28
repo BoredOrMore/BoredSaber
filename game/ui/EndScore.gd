@@ -44,7 +44,27 @@ const CARD_TEXT_WIDTH := 1.5
 ## border once when the count lands, so the eye goes to it after the score (untuned).
 const CARD_GLOW_SECONDS := 0.8
 
+## The headline across the board under the song's name (owner, 2026-10-28, after Beat Saber's results): "FAILED" in
+## white on a bar of the danger colour, or "SONG CLEARED" in the panel's dark on a bar of the rank's colour, in the
+## grade's font. The board grew BANNER_ROOM upward for it (EndScore.tscn); the song's name moved up with it.
+const BANNER_SIZE := Vector2(1.8, 0.08)
+const BANNER_Y := 0.43
+const BANNER_TEXT_HEIGHT := 0.062
+const BANNER_CORNER := 0.02
+const FAILED_TEXT := "FAILED"
+const CLEARED_TEXT := "SONG CLEARED"
+## After a fail the empty ring and its 0% give way to how far the song got ("Failed at 1:42\nof 3:10"), at the ring's
+## place, PROGRESS_TEXT_HEIGHT letters.
+const PROGRESS_TEXT_HEIGHT := 0.07
+const PROGRESS_Y := 0.06
+## TextMesh sizes go through pixel_size from a 100 px font (font_size is capped at 127)
+const LABEL_FONT_SIZE := 100
 var animated_percent: float = 0.0
+var _banner_material := ShaderMaterial.new()
+var _banner_text := TextMesh.new()
+var _banner_text_material := StandardMaterial3D.new()
+var _progress_text := TextMesh.new()
+var _progress := MeshInstance3D.new()
 var _tick_player := AudioStreamPlayer.new()
 var _ding_player := AudioStreamPlayer.new()
 var _ding_high_player := AudioStreamPlayer.new()
@@ -74,6 +94,7 @@ func _ready() -> void:
 	_card_material.set_shader_parameter(&"hover_color", Constants.UI_SURFACE)
 	_card_material.set_shader_parameter(&"hover_border_color", Constants.UI_ACCENT)
 	(($NameCard/Label as MeshInstance3D).material_override as StandardMaterial3D).albedo_color = Constants.UI_TEXT
+	_add_banner()
 	set_buttons_disabled(true)
 	_tick_player.stream = preload("res://game/data/click_002.ogg")
 	_tick_player.bus = &"UI"
@@ -88,6 +109,54 @@ func _ready() -> void:
 	_rank_up_player.stream = _make_ding(RANK_UP_HZ)
 	_rank_up_player.bus = &"UI"
 	add_child(_rank_up_player)
+
+## Builds the headline bar and its word, and the line that says how far a failed song got.
+func _add_banner() -> void:
+	var bar := QuadMesh.new()
+	bar.size = BANNER_SIZE
+	_banner_material.shader = (mesh as QuadMesh).material.shader
+	_banner_material.set_shader_parameter(&"size", BANNER_SIZE)
+	_banner_material.set_shader_parameter(&"corner_radius", BANNER_CORNER)
+	_banner_material.set_shader_parameter(&"border_width", 0.0)
+	bar.material = _banner_material
+	var banner := MeshInstance3D.new()
+	banner.mesh = bar
+	banner.position = Vector3(0.0, BANNER_Y, 0.008)
+	add_child(banner)
+	_banner_text.font = Hud.GRADE_FONT
+	_banner_text.font_size = LABEL_FONT_SIZE
+	_banner_text.pixel_size = BANNER_TEXT_HEIGHT * Hud.GRADE_FONT_SCALE / LABEL_FONT_SIZE
+	_banner_text.depth = 0.0
+	_banner_text_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_banner_text.material = _banner_text_material
+	var word := MeshInstance3D.new()
+	word.mesh = _banner_text
+	word.position = Vector3(0.0, BANNER_Y, 0.012)
+	add_child(word)
+	_progress_text.font = ($Details as MeshInstance3D).mesh.font
+	_progress_text.font_size = LABEL_FONT_SIZE
+	_progress_text.pixel_size = PROGRESS_TEXT_HEIGHT / LABEL_FONT_SIZE
+	_progress_text.depth = 0.0
+	var progress_material := StandardMaterial3D.new()
+	progress_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	progress_material.albedo_color = Constants.UI_TEXT
+	_progress_text.material = progress_material
+	_progress.mesh = _progress_text
+	_progress.position = Vector3(0.0, PROGRESS_Y, 0.012)
+	add_child(_progress)
+
+## Sets the headline for a fail or a clear at `percent` accuracy, and after a fail how far the song got.
+func _show_result(percent: float, failed_at: float, song_length: float) -> void:
+	var failed := percent < 0
+	var bar_color: Color = Constants.DANGER_COLOR if failed else Constants.RANK_COLORS.get(grade(percent), Constants.UI_TEXT)
+	_banner_material.set_shader_parameter(&"fill_color", bar_color)
+	_banner_material.set_shader_parameter(&"border_color", bar_color)
+	_banner_text.text = FAILED_TEXT if failed else CLEARED_TEXT
+	_banner_text_material.albedo_color = Color.WHITE if failed else Constants.UI_PANEL
+	($PercentIndicator as Node3D).visible = not failed
+	($RankHalo as Node3D).visible = not failed
+	_progress.visible = failed
+	_progress_text.text = "Failed at %s\nof %s" % [Hud._clock(int(failed_at)), Hud._clock(int(song_length))]
 
 ## A short synthesized ding, so the count's end needs no sound file.
 static func _make_ding(hz: float) -> AudioStreamWAV:
@@ -122,7 +191,9 @@ func _hide() -> void:
 	_rank_up_player.stop()
 	hide()
 
-func show_score(score: int, record: int, percent: float, song_string: String, is_full_combo: bool, is_new_record: bool) -> void:
+func show_score(score: int, record: int, percent: float, song_string: String, is_full_combo: bool, is_new_record: bool,
+		failed_at := 0.0, song_length := 0.0) -> void:
+	_show_result(percent, failed_at, song_length)
 	var details_mesh := ($Details as MeshInstance3D).mesh as TextMesh
 	var details_material := ($Details as MeshInstance3D).material_override as StandardMaterial3D
 	var percent_indicator := $PercentIndicator as PercentIndicator

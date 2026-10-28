@@ -181,6 +181,13 @@ constant with its role, or reuse one.
 - Comfort: no large areas of saturated or pure-white colour, keep flashes short and moderate, and
   keep body text at a 4.5:1 contrast or better against its panel.
 - A new colour role needs the user's agreement first; propose it with where it is used.
+- The result moment is the one exception (owner, 2026-10-28; `doc/research/score-screen-plan.md`): from a song's fail
+  or clear until the score screen closes, the stage may take the result's mood like Beat Saber. On a fail, the danger
+  colour in the haze, deeper the farther away (near things keep their own colour), with the red banner "FAILED" and
+  the word "FAILED" where the notes were; on a clear, a warm house light, the banner in the achieved rank's colour and
+  one short spark burst. The red never flashes: it fades in over at least 1 s, peaks at moderate brightness and eases
+  back to the house light, and it always pairs with the word, so it never relies on hue (WCAG 2.3.1; never a sudden
+  full-field red). Everywhere else the rules above stand.
 
 ## Light
 
@@ -218,6 +225,7 @@ channel), so brightness comes from contrast and the size of bright areas, not fr
    peaks (`EventDriver.FLASH_BOOST`) (WCAG 2.3.1 Three Flashes; Harding flash test).
 9. Dynamics tell the story: dim and slow before the show (menus), the map's light show during it,
    a blackout between; contrast between moments beats constant brightness.
+   The result moment (a fail or a clear) may take its own mood; see the exception in "Colour rules".
 10. Fake it cheaply: no post-processing or screen reads on the Pico (a screen read copies the frame per
     eye); glow, distortion and shadows are drawn in the object's own shader.
 
