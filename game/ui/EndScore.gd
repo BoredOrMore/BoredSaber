@@ -135,8 +135,9 @@ func _add_banner() -> void:
 	add_child(word)
 	# the score and record in the numbers' font (Hud.NUMBER_FONT); the progress line ("Failed at 1:42") with them
 	var details := ($Details as MeshInstance3D).mesh as TextMesh
+	# Kanit's lines run taller than Roboto's: kept at the old size and line height ("Record" ran under the name card)
+	details.line_spacing = int(details.font.get_height(details.font_size) - Hud.NUMBER_FONT.get_height(details.font_size))
 	details.font = Hud.NUMBER_FONT
-	details.pixel_size *= Hud.NUMBER_FONT_SCALE
 	_progress_text.font = details.font
 	_progress_text.font_size = LABEL_FONT_SIZE
 	_progress_text.pixel_size = PROGRESS_TEXT_HEIGHT / LABEL_FONT_SIZE
