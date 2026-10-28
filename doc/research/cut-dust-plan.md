@@ -121,3 +121,30 @@ tune on the headset.
 3. How long should it linger: about 1 s, 1.5 s or 2 s?
 4. How much swirl: a gentle drift, clear curls, or a strong vortex that turns round the cut?
 5. Should the dust drift back past you (keeping the lanes clear, recommended), or hang where the cut was?
+
+## 7. What was built (owner, 2026-10-28)
+
+- First the dust (sparks that became lingering points, swirling in a vortex, b9e723b), then a lighter version
+  (3547b5f). The owner found both wrong: "too light, and the vortex swirl looks very silly". They asked for Beat Saber's
+  sparks instead, which also answer to the saber while they hang there, not only at birth.
+- **Beat Saber, measured** frame by frame (PC recording, Default stage, a full down cut at about 128.64 s, 24 fps,
+  `beat_saber_sparks_vs_ours.jpg` top row at 0.04, 0.125, 0.25, 0.42, 0.58, 0.75 and 0.9 s after the cut):
+  - Born white-hot along the whole cut line, about two notes long, as a column of short streaks.
+  - They fly out to both sides of the line and along the swing. Most of the spread happens in the first 0.2 s (about
+    0.3-0.5 m), then they nearly stop: a strong, smooth drag.
+  - The lower ones sag a little: slight gravity, no fountain arc.
+  - They stay short streaks to the end, never round dots.
+  - Full brightness to about 0.45 s, fading after, the last gone by about 0.85-0.9 s.
+  - Roughly 50-80 sparks for a full swing.
+- **Ours now** (`game/CutFlash.gd`, `game/CutSpark.gdshader`; middle row): up to 56 sparks along a 0.5 m cut line,
+  flying out to the sides (weight 0.8, random in size so it reads as one cloud), along the swing (1.0) and scattered
+  (0.6), 1.5-5 m/s at a full swing; drag e^(-7t), gravity 1.5 m/s², each living 0.7-1.0 s; white cooling to the note
+  colour in the first quarter of its life, fading from 55%. A streak's length follows its speed (0.04 s of travel, at
+  least 2.5 point widths).
+- **The blades push them** (bottom row: a blade swept left to right through the sparks at 0.28-0.4 s): a blade within
+  0.12 m gives a spark up to half the gap to the blade's own speed each frame, less the farther it passes, so a swing
+  sweeps them along and they stretch into streaks again. A pushed spark can't be carried into the note lanes ahead of
+  the player; there it only moves out to the side and back. No vortex.
+- To do that the sparks are simulated in GDScript and drawn as one MultiMesh (CPUParticles3D gives no access to a
+  particle). CPU cost estimated 0.1-0.2 ms a frame with a few bursts alive; measured on the Pico with
+  `tools/bench.sh --only cuts`, which now also swings a blade through them and logs "BENCH sparks cpu".

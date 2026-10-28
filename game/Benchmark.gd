@@ -64,6 +64,12 @@ const HITCH_SECONDS := 0.025
 var _hitch_phase := ""
 const CUTS_PER_SECOND := 4.0
 const CUTS_SWING := Vector3(0.0, -6.0, 0.0)
+## a blade the benchmark swings side to side through the sparks while it cuts (CutFlash.test_blade), so their cost
+## includes the blades' push: CUTS_BLADE_HZ sweeps a second, CUTS_BLADE_HALF either side of the middle (m)
+const CUTS_BLADE_HZ := 1.0
+const CUTS_BLADE_HALF := 0.8
+var _sim_usec := 0
+var _sim_frames := 0
 var _cuts_fired := 0
 const HZ_SONG_SECONDS := 20.0
 const RENDER_SCALES: Array[float] = [1.0, 1.2, 1.44]
@@ -153,8 +159,12 @@ func _show_stage(id: String, phase_name: String) -> void:
 	Settings.environment = id
 	print("BENCH switch %.1f" % ((Time.get_ticks_usec() - started) / 1000.0))
 
-## Fires full-swing cuts at the hit plane CUTS_PER_SECOND, left and right in turn, up to `t` seconds into the phase.
+## Fires full-swing cuts at the hit plane CUTS_PER_SECOND, left and right in turn, up to `t` seconds into the phase,
+## with a blade swinging through their sparks.
 func _fire_cuts(t: float) -> void:
+	var x := sin(TAU * CUTS_BLADE_HZ * t) * CUTS_BLADE_HALF
+	game.cut_flash.test_blade = PackedVector3Array([Vector3(x, 0.9, Constants.HIT_PLANE_Z + 0.2),
+		Vector3(x, 1.8, Constants.HIT_PLANE_Z - 0.4)])
 	var due := int(t * CUTS_PER_SECOND)
 	while _cuts_fired < due:
 		_cuts_fired += 1
@@ -346,6 +356,9 @@ func _process(delta: float) -> void:
 			RenderingServer.viewport_get_measured_render_time_gpu(viewport)])
 	if _tick.is_valid():
 		_tick.call(_elapsed)
+	if game.cut_flash.sim_usec > 0:
+		_sim_usec += game.cut_flash.sim_usec
+		_sim_frames += 1
 
 ## Runs every phase of the mode ("" for all) in order, then puts everything back.
 func run(mode := "") -> void:
@@ -412,9 +425,13 @@ func _phase(phase_name: String, tick: Callable, setup: Callable, seconds: float,
 		game.menu.play_selected()
 	print("BENCH start ", phase_name, " eye ", XRServer.primary_interface.get_render_target_size() if XRServer.primary_interface else Vector2.ZERO)
 	_elapsed = 0.0
+	_sim_usec = 0
+	_sim_frames = 0
 	_tick = tick
 	await _wait(seconds)
 	_tick = Callable()
+	if _sim_frames > 0:
+		print("BENCH sparks cpu %.3f ms over %d frames" % [_sim_usec / 1000.0 / _sim_frames, _sim_frames])
 	print("BENCH end ", phase_name)
 	_seconds_left -= seconds
 	if song:
@@ -469,6 +486,7 @@ func _show_status(phase_name: String) -> void:
 func _restore() -> void:
 	LowResGlow.height = _glow_height
 	_hitch_phase = ""
+	game.cut_flash.test_blade = PackedVector3Array()
 	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), false)
 	_set_debug_bits(0)
 	for key: StringName in _saved:

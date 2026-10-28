@@ -514,6 +514,7 @@ func play_countdown(seconds: int) -> void:
 
 func _ready() -> void:
 	track.position.z = Constants.HIT_PLANE_Z
+	cut_flash.sabers = [left_saber, right_saber]
 	add_child(cut_flash)
 	_make_sparks()
 	_countdown_player.bus = &"SFX"
