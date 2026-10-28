@@ -1235,14 +1235,16 @@ func _open_profiles() -> void:
 	main_menu.disable_collision = true
 	_update_slash_block()
 
-## "Not you?" on the score screen (owner, 2026-10-28): "Who's playing?" opens over it; whoever is picked (or added)
+## "Not you?" on the score screen (owner, 2026-10-28): "Who's playing?" opens in its place; whoever is picked (or added)
 ## when it closes becomes the current player and gets this run's record (_close_profiles). A better record that player
 ## already has on the map stays too: the table keeps both rows.
 var _naming_record := false
 
 func _change_record_player() -> void:
 	_naming_record = true
-	endscore.set_buttons_disabled(true)
+	# the score screen and its records stood in front of the list (owner, 2026-10-28): out of the way meanwhile
+	endscore._hide()
+	highscore_canvas._hide()
 	_open_profiles()
 
 ## Closes "Who's playing?" and shows the (maybe new) current player's records in the menu, or, opened from the score
@@ -1251,7 +1253,8 @@ func _close_profiles() -> void:
 	profiles_canvas._hide()
 	if _naming_record:
 		_naming_record = false
-		endscore.set_buttons_disabled(false)
+		endscore._show()
+		highscore_canvas._show()
 		if not _new_record.is_empty() and _new_record.player_name != Settings.player_name:
 			Highscores.rename_record(_new_record, Settings.player_name)
 		highscore_panel.load_highscores(Map.current_info, Map.current_difficulty.difficulty_rank, _new_record)

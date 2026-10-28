@@ -151,9 +151,9 @@ size = Vector2(0.5, 0.12)
 text = "Main Menu"
 
 [node name="ChangePlayer" parent="." instance=ExtResource("4_n4s7s")]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.64, -0.36, 0.012)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, -0.36, 0.012)
 visible = false
-size = Vector2(0.28, 0.09)
+size = Vector2(0.38, 0.1)
 text = "Not you?"
 
 [node name="NameCard" type="MeshInstance3D" parent="."]

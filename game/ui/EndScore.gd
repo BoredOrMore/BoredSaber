@@ -42,7 +42,7 @@ const TOP_RANK_SPARKLE := 0.8
 const NAME_WIDTHS := [1.8, 1.3]
 ## the name card's text, one line, at most this wide; less CARD_BUTTON_ROOM when "Not you?" sits at its right end
 const CARD_TEXT_WIDTH := 1.5
-const CARD_BUTTON_ROOM := 0.32
+const CARD_BUTTON_ROOM := 0.42
 ## The name card under the score (where this run stands on the map's board, and the button to name it) lights its
 ## border once when the count lands, so the eye goes to it after the score (untuned).
 const CARD_GLOW_SECONDS := 0.8
@@ -97,6 +97,10 @@ func _ready() -> void:
 	_card_material.set_shader_parameter(&"hover_color", Constants.UI_SURFACE)
 	_card_material.set_shader_parameter(&"hover_border_color", Constants.UI_ACCENT)
 	(($NameCard/Label as MeshInstance3D).material_override as StandardMaterial3D).albedo_color = Constants.UI_TEXT
+	# "Not you?" reads as a button on the card (owner, 2026-10-28): the board's darker fill and a border
+	var change := ($ChangePlayer as UIRaycastButton).back_shader
+	change.set_shader_parameter(&"fill_color", Constants.UI_PANEL)
+	change.set_shader_parameter(&"border_color", Constants.UI_BORDER)
 	_add_banner()
 	set_buttons_disabled(true)
 	_tick_player.stream = preload("res://game/data/click_002.ogg")

@@ -75,7 +75,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   `Pause_Panel.gd/.tscn` (signals `continue_button`/`restart_button`/`mainmenu_button`), `EndScore.gd/.tscn` (3D `MeshInstance3D`, not a
   canvas; `RankHalo.gdshader` glows round its result ring; a FAILED / SONG CLEARED banner under the song's name, and after a
   fail "Failed at M:SS of M:SS" in place of the ring; "Not you?" on the name card after a saved record opens "Who's playing?"
-  and moves the record to whoever is picked, who becomes the current player (`BeepSaber_Game._change_record_player`); `doc/research/score-screen-plan.md`), `vr_slider.gd` (thumbstick/drag scrolling), `UI_Panel.gdshader` (rounded 3D panel used by `EndScore.tscn`
+  in place of the score screen (hidden meanwhile) and moves the record to whoever is picked, who becomes the current
+  player (`BeepSaber_Game._change_record_player`); `doc/research/score-screen-plan.md`), `vr_slider.gd` (thumbstick/drag scrolling), `UI_Panel.gdshader` (rounded 3D panel used by `EndScore.tscn`
   and `game/scripts/UIRaycast/UIRaycastButton.tscn`).
 
 ## Colour palette
