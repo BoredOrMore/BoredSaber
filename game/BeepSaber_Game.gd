@@ -100,10 +100,11 @@ var lead_in := 0.0
 ## empties, every note, chain, bomb, wall and arc shrinking away over FAIL_CLEAR_SECONDS (nothing can be cut or
 ## missed after the fail: the track freezes and the sabers stop cutting); then a pause of muffled bass; then at
 ## FAIL_WORD_DELAY the big FAILED appears and the red comes into the air; FAIL_WORD_SECONDS later the view fades to
-## black for the score screen. Untuned until seen on the headset.
-const FAIL_CLEAR_SECONDS := 0.3
-const FAIL_WORD_DELAY := 0.75
-const FAIL_WORD_SECONDS := 1.2
+## black for the score screen. Owner's timing (2026-10-28): shrink 0-0.5 s, an empty track with muffled bass to 1 s,
+## FAILED and the red air at 1 s, the fade to black at 4 s. Untuned until seen on the headset.
+const FAIL_CLEAR_SECONDS := 0.5
+const FAIL_WORD_DELAY := 1.0
+const FAIL_WORD_SECONDS := 3.0
 ## the end of a song: "FAILED" in the play space and the fade to black (ResultMoment)
 var _result_moment: ResultMoment
 ## where in the song (seconds) the last fail happened, for the score screen
@@ -112,11 +113,12 @@ var _failed_at := 0.0
 ## recordings/audio/fail.wav): the top of the spectrum falls from about 10 kHz to 600 Hz in 0.2 s, halving about
 ## every 50 ms, then only the bass under 200 Hz is left for about 0.45 s before its fail screen's music. So the
 ## cutoff glides exponentially from FAIL_CUTOFF_FROM_HZ to FAIL_CUTOFF_TO_HZ over FAIL_SWEEP_SECONDS, and the
-## muffled song fades to FAIL_SILENT_DB over FAIL_TAIL_SECONDS; it stays quiet until the fade to black.
+## muffled song fades to FAIL_SILENT_DB over FAIL_TAIL_SECONDS (longer than Beat Saber's 0.45 s: the owner wanted the
+## bass to carry on until FAILED at 1 s); it stays quiet until the fade to black.
 const FAIL_CUTOFF_FROM_HZ := 20000.0
 const FAIL_CUTOFF_TO_HZ := 150.0
 const FAIL_SWEEP_SECONDS := 0.2
-const FAIL_TAIL_SECONDS := 0.45
+const FAIL_TAIL_SECONDS := 0.8
 const FAIL_SILENT_DB := -60.0
 ## added to the song's bus only while a fail plays out
 var _fail_filter := AudioEffectLowPassFilter.new()
