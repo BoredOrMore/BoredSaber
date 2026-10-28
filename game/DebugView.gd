@@ -24,6 +24,8 @@ const GLOW_SOFT := 65536
 ## (FloorReflection), and the build-up sweep held fully on through the song (EventDriver._update_sweep).
 const NO_REFLECTION := 131072
 const FORCE_SWEEP := 262144
+## Not read by shaders, benchmark only (tools/bench.sh --only cut_dust): the cuts' dust left out (CutFlash).
+const NO_CUT_DUST := 524288
 const EXTRAS := HIDE_SABERS | HIDE_CUT_FLASH | GLOW_OFF | MSAA_OFF | GLOW_SOFT
 ## Not read by shaders: while on, a song steps through CYCLE_STEPS by itself (cycle_tick), so one run measures
 ## every part; the log line "debug_view N" marks each step for matching with the headset's GPU timings.

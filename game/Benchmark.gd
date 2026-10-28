@@ -49,6 +49,13 @@ const FOG_SONG_SECONDS := 20.0
 ## The flag file's mode for the floor reflection and the build-up sweep (tools/bench.sh --only reflection), in a
 ## song on Classic: all on, the reflection left out, each twice, then the sweep held on and all on again.
 const REFLECTION := "reflection"
+## The flag file's mode for the cuts' dust (tools/bench.sh --only cut_dust): in a song on Classic, full-swing cuts
+## fired by the benchmark CUT_DUST_CUTS_PER_SECOND at the hit plane, left and right in turn (nobody swings during a
+## run), with the dust left out and on, twice each.
+const CUT_DUST := "cut_dust"
+const CUT_DUST_CUTS_PER_SECOND := 4.0
+const CUT_DUST_SWING := Vector3(0.0, -6.0, 0.0)
+var _cuts_fired := 0
 const HZ_SONG_SECONDS := 20.0
 const RENDER_SCALES: Array[float] = [1.0, 1.2, 1.44]
 const RESOLUTION_SONG_SECONDS := 20.0
@@ -129,9 +136,20 @@ func _stage_parts(off: String) -> void:
 	var views := {"scenery": DebugView.RINGS, "shading": DebugView.FLAT_SCENERY}
 	RenderingServer.global_shader_parameter_set(&"debug_view", views.get(off, 0))
 
+## Fires full-swing cuts at the hit plane CUT_DUST_CUTS_PER_SECOND, left and right in turn, `t` seconds into the
+## phase, with the benchmark DebugView bits set to `bits`.
+func _fire_cuts(t: float, bits: int) -> void:
+	_set_debug_bits(bits)
+	var due := int(t * CUT_DUST_CUTS_PER_SECOND)
+	while _cuts_fired < due:
+		_cuts_fired += 1
+		var side := -1.0 if _cuts_fired % 2 == 0 else 1.0
+		var at := Vector3(side * Settings.LANE_DISTANCE_X * 0.5, Constants.layer_y(1.0), Constants.HIT_PLANE_Z)
+		game.cut_flash.flash(at, CUT_DUST_SWING, Map.color_left if side < 0.0 else Map.color_right)
+
 ## Sets the benchmark-only DebugView bits to `bits` (the reflection mode), leaving the rest of the flags alone.
 func _set_debug_bits(bits: int) -> void:
-	var mask := DebugView.NO_REFLECTION | DebugView.FORCE_SWEEP
+	var mask := DebugView.NO_REFLECTION | DebugView.FORCE_SWEEP | DebugView.NO_CUT_DUST
 	if DebugView.flags & mask != bits:
 		DebugView.flags = (DebugView.flags & ~mask) | bits
 
@@ -192,6 +210,17 @@ func _phases(mode: String) -> Array:
 				["no_reflection_again", DebugView.NO_REFLECTION], ["sweep_held", DebugView.FORCE_SWEEP], ["all_on_last", 0]]:
 			var bits: int = step[1]
 			phases.append(["classic_%s_song" % step[0], func(_t: float) -> void: _set_debug_bits(bits), classic,
+				FOG_SONG_SECONDS, true])
+		return phases
+	if mode == CUT_DUST:
+		var classic := func() -> void:
+			Settings.environment = "classic"
+			_cuts_fired = 0
+		var phases := []
+		for step: Array in [["sparks_only", DebugView.NO_CUT_DUST], ["sparks_and_dust", 0],
+				["sparks_only_again", DebugView.NO_CUT_DUST], ["sparks_and_dust_again", 0]]:
+			var bits: int = step[1]
+			phases.append(["classic_%s_song" % step[0], func(t: float) -> void: _fire_cuts(t, bits), classic,
 				FOG_SONG_SECONDS, true])
 		return phases
 	if mode == HZ90:

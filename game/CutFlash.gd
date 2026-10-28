@@ -46,10 +46,32 @@ const FOUNTAIN_SPREAD_MAX_DEG := 9.0
 ## sparks vary in length (and width) only this much, so the burst looks even
 const SPARK_SCALE_MIN := 0.85
 const SPARK_SCALE_MAX := 1.15
+## Dust beside the sparks (owner, 2026-10-28; doc/research/cut-dust-plan.md option 2): DUST_MOTES soft motes puff out
+## of the cut slowly (DUST_SPEED_MIN/MAX at a full swing) with strong drag, swirl round the cut in a vortex the swing
+## sets (CutDust.gdshader: spinning the way the saber went, DUST_SPIN at a full swing, slowing by DUST_SPIN_DRAG), then
+## drift with the track past the player and out to the sides (DUST_DRIFT_BACK, DUST_DRIFT_SIDE, a gentle pull), so they
+## clear the note lanes, fading over DUST_SECONDS. In the note colour leaned DUST_GREY of the way to DUST_WHITE, so it
+## reads as dust in light, not as something to cut. Untuned until seen on the headset.
+const DUST_MOTES := 32
+const DUST_SECONDS := 1.5
+const DUST_SIZE := 0.06
+const DUST_SIZE_GROW := 2.5
+const DUST_SPEED_MIN := 0.2
+const DUST_SPEED_MAX := 1.2
+const DUST_DRAG := 2.5
+const DUST_SPIN := 9.0
+const DUST_SPIN_DRAG := 1.8
+const DUST_DRIFT_BACK := 2.2
+const DUST_DRIFT_SIDE := 1.2
+const DUST_GREY := 0.8
+const DUST_WHITE := Color(0.86, 0.87, 0.9)
+const DUST_ALPHA := 0.55
+const DUST_SHADER := preload("res://game/CutDust.gdshader")
 
 var _next := 0
 var _fountains: Array[CPUParticles3D] = []
 var _sprays: Array[CPUParticles3D] = []
+var _dusts: Array[CPUParticles3D] = []
 
 func _ready() -> void:
 	for i in COUNT:
@@ -62,6 +84,7 @@ func _ready() -> void:
 		spray.spread = SPRAY_SPREAD_DEG
 		spray.direction = Vector3.DOWN
 		_sprays.append(spray)
+		_dusts.append(_make_dust())
 
 ## A spark with a trail for CPU particles with particle_flag_align_y: two crossed strips along +y (the velocity),
 ## the head at the top, so it shows from every side but straight along its path.
@@ -105,6 +128,37 @@ func _make_sparks(amount: int, seconds: float, speed_min: float, speed_max: floa
 	add_child(sparks)
 	return sparks
 
+## One emitter of a cut's dust: soft round motes from the cut line, swirled and faded by CutDust.gdshader.
+func _make_dust() -> CPUParticles3D:
+	var dust := CPUParticles3D.new()
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE * DUST_SIZE
+	var material := ShaderMaterial.new()
+	material.shader = DUST_SHADER
+	material.set_shader_parameter(&"lifetime", DUST_SECONDS)
+	material.set_shader_parameter(&"vortex_drag", DUST_SPIN_DRAG)
+	quad.material = material
+	dust.mesh = quad
+	dust.amount = DUST_MOTES
+	dust.lifetime = DUST_SECONDS
+	dust.one_shot = true
+	dust.explosiveness = 1.0
+	dust.emitting = false
+	dust.local_coords = false
+	dust.direction = Vector3.UP
+	dust.spread = 180.0
+	dust.damping_min = DUST_DRAG
+	dust.damping_max = DUST_DRAG * 1.3
+	dust.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
+	dust.emission_box_extents = Vector3(0.03, CUT_LINE_HALF, 0.03)
+	var grow := Curve.new()
+	grow.add_point(Vector2(0.0, 1.0))
+	grow.add_point(Vector2(1.0, DUST_SIZE_GROW))
+	dust.scale_amount_curve = grow
+	dust.color_ramp = Gradient.new()
+	add_child(dust)
+	return dust
+
 ## The swing as the player sees it: its part across the line of sight to the cut, so the spray flies the way the
 ## saber went (down for a down cut) instead of off toward or away from the player with the wrist's turn.
 func _across_view(sight: Vector3, swing: Vector3) -> Vector3:
@@ -137,3 +191,23 @@ func flash(at: Vector3, swing: Vector3, color: Color) -> void:
 		sparks.color_ramp.set_color(0, Color(1.0, 1.0, 1.0, lerpf(BRIGHTNESS_MIN, 1.0, power)))
 		sparks.color_ramp.set_color(1, Color(color.r, color.g, color.b, 0.0))
 		sparks.restart()
+	if DebugView.flags & DebugView.NO_CUT_DUST == 0:
+		_puff(_dusts[i], at, swing, toward, power, color)
+
+## Puffs a cut's dust at `at`: its vortex turns round the axis across the swing and the line to the player, the way
+## the saber went, as fast as the swing was strong; it drifts toward the player and out to the cut's side.
+func _puff(dust: CPUParticles3D, at: Vector3, swing: Vector3, toward: Vector3, power: float, color: Color) -> void:
+	var axis := swing.cross(toward)
+	axis = axis.normalized() if axis.length() > 1e-4 else Vector3.RIGHT
+	var material := (dust.mesh as QuadMesh).material as ShaderMaterial
+	material.set_shader_parameter(&"vortex_centre", at)
+	material.set_shader_parameter(&"vortex_axis", axis)
+	material.set_shader_parameter(&"vortex_spin", DUST_SPIN * power)
+	dust.global_transform = Transform3D(Basis.IDENTITY, at)
+	dust.initial_velocity_min = DUST_SPEED_MIN * lerpf(SPEED_SCALE_MIN, 1.0, power)
+	dust.initial_velocity_max = DUST_SPEED_MAX * lerpf(SPEED_SCALE_MIN, 1.0, power)
+	dust.gravity = Vector3(signf(at.x) * DUST_DRIFT_SIDE, 0.0, DUST_DRIFT_BACK)
+	var tint := color.lerp(DUST_WHITE, DUST_GREY)
+	dust.color_ramp.set_color(0, Color(tint, DUST_ALPHA * lerpf(BRIGHTNESS_MIN, 1.0, power)))
+	dust.color_ramp.set_color(1, Color(tint, 0.0))
+	dust.restart()
