@@ -404,6 +404,7 @@ func update_list(req: BeatSaverRequest) -> void:
 			goto_maps_by.visible = false
 		song_data = []
 		_cover_list += 1
+		_finished_covers.clear()
 		item_selected = -1
 		if _song_text:
 			_song_text.text = "Pick a song to see what it plays like."
@@ -757,7 +758,8 @@ func _update_download_button() -> void:
 		download_button.text = "Download"
 
 ## Keeps the download progress on the button current.
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	_flush_covers(delta)
 	if downloading.is_empty():
 		return
 	var before := download_button.text
@@ -898,6 +900,12 @@ func _text_input_cancel() -> void:
 var _current_cover_to_download := 0
 ## Counts list rebuilds, so a cover finished for an older list is dropped.
 var _cover_list := 0
+## Finished covers wait here, [index, song, image], and go onto the list together at most every COVER_FLUSH_SECONDS:
+## each one set alone relaid the list and redrew the whole page (headset, 1c474b4: seconds at 19-38 of 72 frames
+## while covers came in).
+const COVER_FLUSH_SECONDS := 0.25
+var _finished_covers := []
+var _cover_flush_wait := 0.0
 
 func _update_all_covers() -> void:
 	httpcoverdownload.cancel_request()
@@ -931,9 +939,21 @@ func _update_cover(result: int, _response_code: int, _headers: PackedStringArray
 	while not WorkerThreadPool.is_task_completed(task):
 		await get_tree().process_frame
 	WorkerThreadPool.wait_for_task_completion(task)
-	if made.is_empty() or list != _cover_list or index >= song_data.size() or song_data[index] != song:
+	if made.is_empty() or list != _cover_list:
 		return
-	item_list.set_item_icon(index, ImageTexture.create_from_image(made[0]))
+	_finished_covers.append([index, song, made[0]])
+
+## Puts the finished covers onto the list together, every COVER_FLUSH_SECONDS, with one redraw of the page.
+func _flush_covers(delta: float) -> void:
+	_cover_flush_wait -= delta
+	if _finished_covers.is_empty() or _cover_flush_wait > 0.0:
+		return
+	_cover_flush_wait = COVER_FLUSH_SECONDS
+	for cover: Array in _finished_covers:
+		var index: int = cover[0]
+		if index < song_data.size() and song_data[index] == cover[1]:
+			item_list.set_item_icon(index, ImageTexture.create_from_image(cover[2]))
+	_finished_covers.clear()
 	var canvas := get_parent().get_parent()
 	if canvas is OQ_UI2DCanvas: (canvas as OQ_UI2DCanvas)._input_update()
 

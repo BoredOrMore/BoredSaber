@@ -134,7 +134,8 @@ Above the list one row holds Search (icon), Filters (opens `FiltersPanel` over t
   skips non-`Dictionary` docs. Fields go through `Utils.get_str/get_float/get_array/get_dict` with defaults
   (`BeatSaverSongInfo._init` :14-23). `response_code` is not checked.
 - Covers: downloaded one after another (`update_next_cover`), the next starting as each arrives; each is decoded and
-  given its level strip on a `WorkerThreadPool` task (`_make_cover`, `LevelStrip.compose_image`), and only the 200 px
+  given its level strip on a `WorkerThreadPool` task (`_make_cover`, `LevelStrip.compose_image`); finished covers go
+  onto the list together every `COVER_FLUSH_SECONDS` with one page redraw (`_flush_covers`), and only the 200 px
   result is uploaded on the main thread; `_cover_list` drops covers finished for an older list.
 - Known gaps (report, don't silently patch in unrelated work): `versions[0]["hash"]` is indexed without checking
   `versions` is non-empty (:234-235, :301).
