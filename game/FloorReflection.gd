@@ -24,6 +24,8 @@ var _material := ShaderMaterial.new()
 ## the depth-only pass drawn first (FloorReflection.gdshader), with _material as its next pass
 var _prepass := ShaderMaterial.new()
 var _note_mesh: Mesh
+## off while a fail drops the notes through the deck (BeepSaber_Game._empty_track), where a mirror would show them rise
+var enabled := true
 
 ## Mirrors the notes under `track` and the blades of `sabers` in the deck's top (`deck`'s y).
 func _init(track: Node3D, sabers: Array[LightSaber], deck: Node3D) -> void:
@@ -49,7 +51,7 @@ func _init(track: Node3D, sabers: Array[LightSaber], deck: Node3D) -> void:
 	_blades.instance_count = _sabers.size()
 
 func _process(_delta: float) -> void:
-	visible = _deck.is_visible_in_tree() and DebugView.flags & DebugView.NO_REFLECTION == 0
+	visible = enabled and _deck.is_visible_in_tree() and DebugView.flags & DebugView.NO_REFLECTION == 0
 	if not visible:
 		return
 	var floor_y := _deck.global_position.y

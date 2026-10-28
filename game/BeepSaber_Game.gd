@@ -97,14 +97,26 @@ var hud: Hud
 var lead_in := 0.0
 
 ## The fail, in the owner's order (2026-10-28): the sound goes first (the low-pass sweep below) and the play space
-## empties, every note, chain, bomb, wall and arc shrinking away over FAIL_CLEAR_SECONDS (nothing can be cut or
+## empties, every note, chain, bomb, wall and arc falling away over FAIL_CLEAR_SECONDS (nothing can be cut or
 ## missed after the fail: the track freezes and the sabers stop cutting); then a pause of muffled bass; then at
 ## FAIL_WORD_DELAY the big FAILED appears and the red comes into the air; FAIL_WORD_SECONDS later the view fades to
 ## black for the score screen. Owner's timing (2026-10-28): shrink 0-0.5 s, an empty track with muffled bass to 1 s,
-## FAILED and the red air at 1 s, the fade to black at 4 s. Untuned until seen on the headset.
-const FAIL_CLEAR_SECONDS := 0.5
+## FAILED and the red air at 1 s, the fade to black at 4 s; then (2026-10-28) the track's things fall for the whole
+## second before FAILED instead of shrinking in half of it. Untuned until seen on the headset.
+const FAIL_CLEAR_SECONDS := 1.0
+const FAIL_FALL_GRAVITY := 9.8
+const FAIL_TUMBLE := 3.0
+const FAIL_REST_HEIGHT := 0.22
+const FAIL_BOUNCE := 0.3
+const FAIL_LAND_SPIN := 0.6
+const FAIL_FADE_FROM := 0.65
+## how far notes' dissolve plane travels (their own size, local), and how deep walls and arcs sink into the deck (m)
+const FAIL_DISSOLVE_SPAN := 0.5
+const FAIL_SINK_DEPTH := 6.0
 const FAIL_WORD_DELAY := 1.0
 const FAIL_WORD_SECONDS := 3.0
+## the notes and blades mirrored in the deck, switched off while a fail drops everything through it
+var _floor_reflection: FloorReflection
 ## the end of a song: "FAILED" in the play space and the fade to black (ResultMoment)
 var _result_moment: ResultMoment
 ## where in the song (seconds) the last fail happened, for the score screen
@@ -296,24 +308,70 @@ func _on_song_finished() -> void:
 	_on_song_ended()
 	_result_moment.fade_in()
 
-## Shrinks everything on the track away over FAIL_CLEAR_SECONDS and then clears it (releasing the pooled ones with
-## their sizes put back), and hides the cut numbers, so the play space is empty before FAILED.
+## The track empties over FAIL_CLEAR_SECONDS (owner, 2026-10-28: things should fall, land and fade, not shrink). Notes,
+## chain links and bombs fall under FAIL_FALL_GRAVITY with a little tumble (up to FAIL_TUMBLE rad/s round a random
+## axis), land on the floor (y 0, FAIL_REST_HEIGHT their half height), bounce with FAIL_BOUNCE of their speed and lose
+## FAIL_LAND_SPIN of their tumble on each landing, then from FAIL_FADE_FROM of the window notes and links dissolve from
+## the top down (their cut shader's vanish) and bombs shrink away. Walls and arcs, long and fixed to the track, sink into
+## the deck instead. Cheap per-object maths, no physics bodies. The cut numbers go at once; the floor reflection goes
+## when the fading starts (it mirrors the landed notes until then). Then the track is cleared, the pooled ones released
+## with their transforms and shader state put back, so the play space is empty before FAILED.
 func _empty_track() -> void:
 	points_label_driver.visible = false
-	var sizes := {}
-	var tw := create_tween().set_parallel()
+	var rests := {}
+	var falling := []
 	for c: Node in track.get_children():
-		if c is Node3D and (c as Node3D).visible:
-			sizes[c] = (c as Node3D).scale
-			tw.tween_property(c, ^"scale", Vector3.ZERO, FAIL_CLEAR_SECONDS).set_ease(Tween.EASE_IN)
-	if sizes.is_empty():
-		tw.kill()
-	else:
-		await tw.finished
+		if not (c is Node3D and (c as Node3D).visible):
+			continue
+		var node := c as Node3D
+		rests[node] = node.transform
+		if node is Wall or node is Arc:
+			falling.append({node = node, sink = true})
+		else:
+			falling.append({node = node, sink = false, velocity = 0.0, angle = 0.0,
+				axis = Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)).normalized(),
+				spin = randf_range(-FAIL_TUMBLE, FAIL_TUMBLE)})
+	var t := 0.0
+	while t < FAIL_CLEAR_SECONDS and not falling.is_empty():
+		await get_tree().process_frame
+		var dt := get_process_delta_time()
+		t += dt
+		var fade := clampf((t / FAIL_CLEAR_SECONDS - FAIL_FADE_FROM) / (1.0 - FAIL_FADE_FROM), 0.0, 1.0)
+		if fade > 0.0:
+			_floor_reflection.enabled = false
+		for body: Dictionary in falling:
+			var node: Node3D = body.node
+			var rest: Transform3D = rests[node]
+			if not is_instance_valid(node):
+				continue
+			if body.sink:
+				node.position.y = rest.origin.y - FAIL_SINK_DEPTH * ease(t / FAIL_CLEAR_SECONDS, 2.0)
+				continue
+			body.velocity -= FAIL_FALL_GRAVITY * dt
+			var y: float = node.position.y + body.velocity * dt
+			if y < FAIL_REST_HEIGHT and body.velocity < 0.0:
+				y = FAIL_REST_HEIGHT
+				body.velocity = -body.velocity * FAIL_BOUNCE
+				body.spin *= 1.0 - FAIL_LAND_SPIN
+			body.angle += body.spin * dt
+			node.transform = Transform3D(rest.basis.rotated(body.axis, body.angle), Vector3(node.position.x, y, node.position.z))
+			if node is BeepCube or node is ChainLink:
+				var material: ShaderMaterial = node._mat
+				material.set_shader_parameter(&"cutted", fade > 0.0)
+				material.set_shader_parameter(&"cut_plane_normal", Vector3.DOWN)
+				material.set_shader_parameter(&"cut_plane_dist", -FAIL_DISSOLVE_SPAN)
+				material.set_shader_parameter(&"cut_vanish", fade * 2.0 * FAIL_DISSOLVE_SPAN)
+			elif fade > 0.0:
+				node.scale = rest.basis.get_scale() * (1.0 - fade)
 	_clear_track()
-	for c: Node3D in sizes:
+	_floor_reflection.enabled = true
+	for c: Node3D in rests:
 		if is_instance_valid(c):
-			c.scale = sizes[c]
+			c.transform = rests[c]
+			if c is BeepCube or c is ChainLink:
+				var material: ShaderMaterial = c._mat
+				material.set_shader_parameter(&"cutted", false)
+				material.set_shader_parameter(&"cut_vanish", 0.0)
 
 ## Takes the fail's low-pass off the song's bus, if a fail left it there.
 func _remove_fail_filter() -> void:
@@ -555,7 +613,8 @@ func _ready() -> void:
 	(multiplier_label as ComboHud).milestone_reached.connect(_on_combo_milestone)
 	hud = Hud.new(point_label, multiplier_label as ComboHud, percent_indicator)
 	add_child(hud)
-	add_child(FloorReflection.new(track, [left_saber, right_saber], event_driver.track_deck))
+	_floor_reflection = FloorReflection.new(track, [left_saber, right_saber], event_driver.track_deck)
+	add_child(_floor_reflection)
 	_result_moment = ResultMoment.new($XROrigin3D/XRCamera3D as Node3D)
 	add_child(_result_moment)
 	@warning_ignore("return_value_discarded")
