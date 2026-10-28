@@ -34,7 +34,8 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
 - `test_highscores.tscn` / `.gd` - `HighscoreTable` on a file of its own: order, the 10-record limit, ties, a table per
   map, difficulty and modifier set, player names, saving.
 - `test_spawn.tscn` / `.gd` - notes, bombs, walls and arcs from their real pools: place on spawn (lane, row, beat),
-  movement per second, and a reused one placed as a fresh one would be (arcs once kept their old place). Not covered:
+  movement per second, and a reused one placed as a fresh one would be (arcs once kept their old place); the note jump
+  (at the hit plane a note's visual is at its row, full size, turned; where it appears it starts below its row, unturned). Not covered:
   chains, rotated lanes, the arc's magnet hookup.
 - `test_health.tscn` / `.gd` - `Health` (the rules `BeepSaber_Game.update_health` applies): starting health per fail
   mode, hits, misses and walls in the bar, Half Damage, 4 Lives, Instant, No Fail's hidden bar, the cap.

@@ -7,6 +7,8 @@ var line_layer: float
 var color: int # 0=left, 1=right
 var cut_angle: float
 var rotation: float
+## how many notes and bombs on this beat sit below it in its lane (Map.set_start_rows)
+var start_row := 0
 
 @warning_ignore("shadowed_variable")
 func _init(beat: float, line_index: float, line_layer: float, color: int, cut_angle: float, rotation_degrees: float) -> void:

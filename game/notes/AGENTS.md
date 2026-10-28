@@ -16,7 +16,10 @@ spawn, cut and miss flow, pooling rules and "Add a note type".
 ## File map
 
 - `Cuttable.gd` (class `Cuttable`): base for `BeepCube`, `ChainLink`, `Bomb`: lane movement, rotation, miss,
-  piece release.
+  piece release, and Beat Saber's note jump (`start_jump`/`_apply_jump`): the visual (mesh) rises on an arc from its
+  start row (`Map.set_start_rows`) to its row and turns to its cut direction in the first 30% of the jump, by jump
+  progress; faces the head only on 90/360 maps. Full size throughout; the place and hitbox stay on the track. Chain
+  links rise with their head's row. Arcs don't jump yet.
 - `BeepCube/` — `BeepCube.gd` (note; `cutted` signal, scoring, rumble), `BeepCube_CutPiece.gd`
   (`CutPiece` RigidBody halves, `MAX_LIFETIME` 0.3 s), `BeepCube_SliceParticles.gd/.tscn` (GPU particles freed
   on Android/Web), `BeepCube.gdshader` (`color`, `is_dot`, `arrows_enabled`, `is_chain_head`, cut uniforms),

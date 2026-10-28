@@ -4,7 +4,6 @@ class_name ChainLink
 var which_saber: int
 var _mesh: Mesh
 var _mat: ShaderMaterial
-@export var min_speed := 0.5
 
 @onready var mi := $Mesh as MeshInstance3D
 
@@ -113,10 +112,8 @@ func spawn(chain_info: ChainInfo, current_beat: float, head_pos: Vector2, tail_p
 	piece_right.set_color(color, false)
 	_mat.set_shader_parameter(&"color", color)
 	
-	var anim := $AnimationPlayer as AnimationPlayer
-	var anim_speed := Map.current_difficulty.note_jump_movement_speed / 9.0
-	anim.speed_scale = maxf(min_speed,anim_speed)
-	anim.play(&"Spawn")
+	# the links rise with their head note (its row, nothing stacked under it), so the chain keeps its shape
+	start_jump(mi, jump_drop(chain_info.head_line_layer, 0), 0.0)
 	
 	mi.visible = true
 

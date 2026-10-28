@@ -92,6 +92,17 @@ func test_notes(speed: float) -> void:
 	check(near(Vector3(cube.position.x, cube.position.y, 0), Vector3(note_place(1, 0, 0, 0).x, note_place(1, 0, 0, 0).y, 0)),
 		"note keeps its lane and row while moving")
 
+	# the jump (Cuttable.start_jump): at the hit plane the note is at its row, full size, in its final direction
+	cube.spawn(ColorNoteInfo.new(5.0, 2, 2, 1, PI * 0.5, 0.0), 5.0)
+	check(near_t(cube.mi.transform, Transform3D.IDENTITY),
+		"a note at the hit plane has jumped to its row, full size, turned (visual %s)" % cube.mi.transform)
+	# where it appears it starts below its row, not yet turned
+	cube.spawn(ColorNoteInfo.new(2.0 + Map.half_jump_beats, 2, 1, 1, PI * 0.5, 0.0), 2.0)
+	var start_drop := (cube.mi.global_position - cube.global_position).y
+	check(start_drop < -0.1, "a note where it appears starts below its row (%.2f m)" % start_drop)
+	check(absf(cube.mi.global_basis.x.normalized().dot(Vector3.RIGHT) - 1.0) < 0.01,
+		"a note where it appears hasn't turned yet (visual x %s)" % cube.mi.global_basis.x)
+
 	# reuse: a note spawned on a rotated lane with a cut angle, flown, released, spawned again
 	cube.spawn(ColorNoteInfo.new(10.0, 3, 2, 1, PI * 0.5, 45.0), 4.0)
 	cube._physics_process(0.3)

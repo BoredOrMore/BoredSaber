@@ -548,6 +548,18 @@ static func get_rotations_v3(events: Array) -> Array:
 	r.sort_custom(compare_times)
 	return r
 
+## Sets each note's and bomb's start_row: how many of the notes and bombs on its beat sit below it in its lane, as
+## Beat Saber starts a stacked note's jump that many rows up (ArcViewer NoteManager.GetStartY). For the note jump
+## (Cuttable.start_jump).
+static func set_start_rows() -> void:
+	var lanes := {}
+	for stack: Array in [note_stack, bomb_stack]:
+		for item: Variant in stack:
+			lanes.get_or_add(Vector2(item.beat, item.line_index), []).append(item)
+	for stack: Array in lanes.values():
+		for item: Variant in stack:
+			item.start_row = stack.filter(func(other: Variant) -> bool: return other.line_layer < item.line_layer).size()
+
 static func load_beatmap(info: MapInfo, difficulty: DifficultyInfo, map_data: Dictionary) -> bool:
 	set_note_jump(info, difficulty)
 	
@@ -574,6 +586,7 @@ static func load_beatmap(info: MapInfo, difficulty: DifficultyInfo, map_data: Di
 		Utils.custom_thread_wait_to_finish(event_thread_0)
 		Utils.custom_thread_wait_to_finish(arc_thread_0)
 		get_last_beat()
+		set_start_rows()
 		return true
 	elif map_data.has("version"):
 		var version := Utils.get_str(map_data, "version", "")
@@ -636,6 +649,7 @@ static func load_beatmap(info: MapInfo, difficulty: DifficultyInfo, map_data: Di
 			Utils.custom_thread_wait_to_finish(chain_thread_0)
 			Utils.custom_thread_wait_to_finish(event_thread_0)
 			get_last_beat()
+			set_start_rows()
 			return true
 	vr.log_warning("selected map is an unsupported version")
 	return false

@@ -1,7 +1,6 @@
 extends Cuttable
 class_name Bomb
 
-@export var min_speed := 0.5
 @onready var collision_shape := $Area3D/CollisionShape3D as CollisionShape3D
 ## The bomb is drawn in one draw call: its body and glow hull merged into one mesh (merged_mesh) with
 ## BombMerged.gdshader, instead of BombMesh.tscn's two (body and hull), which classic brings back to compare
@@ -69,7 +68,6 @@ func on_miss() -> void:
 func hide_pooled() -> void:
 	visible = false
 	set_collision_disabled(true)
-	($AnimationPlayer as AnimationPlayer).stop()
 	process_mode = Node.PROCESS_MODE_DISABLED
 
 # call this when clearing the track
@@ -92,7 +90,4 @@ func spawn(info: BombInfo, current_beat: float) -> void:
 	
 	add_lane_rotation(info.rotation)
 	
-	var anim := $AnimationPlayer as AnimationPlayer
-	var anim_speed := Map.current_difficulty.note_jump_movement_speed / 9.0
-	anim.speed_scale = maxf(min_speed, anim_speed)
-	anim.play(&"Spawn")
+	start_jump($BombAnimation as Node3D, jump_drop(info.line_layer, info.start_row), 0.0)

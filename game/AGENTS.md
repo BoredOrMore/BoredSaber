@@ -108,7 +108,7 @@ constraints apply here unchanged.
   repeats). Cube/link with `cube_cuts_falloff` release only after both `CutPiece`s die
   (`Cuttable._on_cut_piece_died`). `clear_from_track()` must hide and release if not yet released;
   `_clear_track()` calls it on every `track` child. Hidden entities set `PROCESS_MODE_DISABLED`;
-  cubes/links re-enable in `spawn()` before playing the `Spawn` animation.
+  cubes/links re-enable in `spawn()` before starting their jump (`Cuttable.start_jump`).
 - New pooled scenes go through `_on_ScenePool_new_scene_instanced()` (`BeepSaber_Game.gd:624`):
   added to `track` forever, shown one frame at presize to warm shaders, then hidden via
   `hide_cube()` or `hide_pooled()`. A new entity type needs one of those.
