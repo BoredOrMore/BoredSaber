@@ -21,6 +21,8 @@ var _deck: Node3D
 var _notes := MultiMesh.new()
 var _blades := MultiMesh.new()
 var _material := ShaderMaterial.new()
+## the depth-only pass drawn first (FloorReflection.gdshader), with _material as its next pass
+var _prepass := ShaderMaterial.new()
 var _note_mesh: Mesh
 
 ## Mirrors the notes under `track` and the blades of `sabers` in the deck's top (`deck`'s y).
@@ -29,12 +31,16 @@ func _init(track: Node3D, sabers: Array[LightSaber], deck: Node3D) -> void:
 	_sabers = sabers
 	_deck = deck
 	_material.shader = SHADER
+	_material.render_priority = 1
+	_prepass.shader = SHADER
+	_prepass.set_shader_parameter(&"prepass", true)
+	_prepass.next_pass = _material
 	for multimesh: MultiMesh in [_notes, _blades]:
 		multimesh.transform_format = MultiMesh.TRANSFORM_3D
 		multimesh.use_custom_data = true
 		var instance := MultiMeshInstance3D.new()
 		instance.multimesh = multimesh
-		instance.material_override = _material
+		instance.material_override = _prepass
 		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		# the instances move every frame wherever the notes are: never culled by a stale box
 		instance.extra_cull_margin = 16384.0
@@ -48,6 +54,7 @@ func _process(_delta: float) -> void:
 		return
 	var floor_y := _deck.global_position.y
 	_material.set_shader_parameter(&"floor_y", floor_y)
+	_prepass.set_shader_parameter(&"floor_y", floor_y)
 	var mirror := Transform3D(Basis.from_scale(Vector3(1.0, -1.0, 1.0)), Vector3(0.0, 2.0 * floor_y, 0.0))
 	var count := 0
 	for node in _track.get_children():
