@@ -133,8 +133,11 @@ Above the list one row holds Search (icon), Filters (opens `FiltersPanel` over t
 - Response (`_on_HTTPRequest_request_completed` :214): requires `result == 0`, JSON `Dictionary`, `docs` `Array`, and
   skips non-`Dictionary` docs. Fields go through `Utils.get_str/get_float/get_array/get_dict` with defaults
   (`BeatSaverSongInfo._init` :14-23). `response_code` is not checked.
+- Covers: downloaded one after another (`update_next_cover`), the next starting as each arrives; each is decoded and
+  given its level strip on a `WorkerThreadPool` task (`_make_cover`, `LevelStrip.compose_image`), and only the 200 px
+  result is uploaded on the main thread; `_cover_list` drops covers finished for an older list.
 - Known gaps (report, don't silently patch in unrelated work): `versions[0]["hash"]` is indexed without checking
-  `versions` is non-empty (:234-235, :301); covers then load sequentially (`update_next_cover` :408).
+  `versions` is non-empty (:234-235, :301).
 - Download (:312): rejects HTML bodies; a `WorkerThreadPool` task (`_save_song`, awaited a frame at a time) writes
   the zip to `APPDATA_PATH/temp` and unpacks it to `Songs/<hash>/`; once the queue is empty
   `main_menu_ref.add_downloaded_songs` reads just those folders' info on another task and adds them to the list (no

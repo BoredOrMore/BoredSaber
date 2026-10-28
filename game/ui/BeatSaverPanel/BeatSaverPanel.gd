@@ -403,6 +403,7 @@ func update_list(req: BeatSaverRequest) -> void:
 		if goto_maps_by:
 			goto_maps_by.visible = false
 		song_data = []
+		_cover_list += 1
 		item_selected = -1
 		if _song_text:
 			_song_text.text = "Pick a song to see what it plays like."
@@ -878,6 +879,8 @@ func _text_input_cancel() -> void:
 
 
 var _current_cover_to_download := 0
+## Counts list rebuilds, so a cover finished for an older list is dropped.
+var _cover_list := 0
 
 func _update_all_covers() -> void:
 	httpcoverdownload.cancel_request()
@@ -894,19 +897,35 @@ func update_next_cover() -> void:
 		else:
 			httpcoverdownload.request(cover_url)
 
+## A cover arrived: the next one starts downloading at once, while this one is decoded, sized and given its level strip
+## on a worker thread (owner, 2026-10-28: the view hitched as covers came in; a full-size JPEG decoded on the main
+## thread), and only the finished 200 px image becomes the card's texture here.
 func _update_cover(result: int, _response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
-	if result == 0:
-		var img := Image.new()
-		if not img.load_jpg_from_buffer(body) == 0:
-			img.load_png_from_buffer(body)
-		if _current_cover_to_download < song_data.size():
-			item_list.set_item_icon(_current_cover_to_download, _with_levels(img, song_data[_current_cover_to_download]))
+	var index := _current_cover_to_download
+	var list := _cover_list
 	_current_cover_to_download += 1
-	
+	update_next_cover()
+	if result != 0 or index >= song_data.size():
+		return
+	var song: BeatSaverSongInfo = song_data[index]
+	var levels := _levels(song)
+	var made := []
+	var task := WorkerThreadPool.add_task(_make_cover.bind(body, levels, picked_level(), made))
+	while not WorkerThreadPool.is_task_completed(task):
+		await get_tree().process_frame
+	WorkerThreadPool.wait_for_task_completion(task)
+	if made.is_empty() or list != _cover_list or index >= song_data.size() or song_data[index] != song:
+		return
+	item_list.set_item_icon(index, ImageTexture.create_from_image(made[0]))
 	var canvas := get_parent().get_parent()
 	if canvas is OQ_UI2DCanvas: (canvas as OQ_UI2DCanvas)._input_update()
-	
-	update_next_cover()
+
+## Decodes a cover (JPEG or PNG) and draws its level strip (LevelStrip.compose_image) into `made`; on a worker thread.
+static func _make_cover(body: PackedByteArray, levels: Array, mine: int, made: Array) -> void:
+	var img := Image.new()
+	if img.load_jpg_from_buffer(body) != OK and img.load_png_from_buffer(body) != OK:
+		return
+	made.append(LevelStrip.compose_image(img, levels[0], mine, levels[1]))
 
 func _on_gotoMapsBy_pressed() -> void:
 	var selected_song := _get_selected_song()

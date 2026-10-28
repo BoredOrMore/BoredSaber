@@ -52,10 +52,18 @@ static func prepare(parent: Node) -> void:
 	for i in labels.size():
 		_glyphs[labels[i]] = image.get_region(Rect2i(i * cell, 0, cell, STRIP))
 	viewport.queue_free()
+	# every tint compose uses, made now, so compose_image only reads the caches (it runs on worker threads)
+	for letter: String in _glyphs:
+		for color: Color in [Constants.UI_PANEL, Constants.UI_TEXT_MUTED, Constants.UI_TEXT]:
+			_tinted_glyph(letter, color)
 
 ## The cover with the strip: levels the map has (indices in Constants.DIFFICULTY_LEVELS), the player's level (-1
 ## none) framed, and the estimate mark when not measured.
 static func compose(cover: Image, levels: Array, mine: int, estimated: bool) -> ImageTexture:
+	return ImageTexture.create_from_image(compose_image(cover, levels, mine, estimated))
+
+## compose's image, before it becomes a texture: safe on a worker thread once prepare has run.
+static func compose_image(cover: Image, levels: Array, mine: int, estimated: bool) -> Image:
 	var image := cover.duplicate() as Image
 	if image.is_compressed():
 		image.decompress()
@@ -74,12 +82,17 @@ static func compose(cover: Image, levels: Array, mine: int, estimated: bool) -> 
 		var box := Rect2i(COVER - ESTIMATE_BOX, 0, ESTIMATE_BOX, ESTIMATE_BOX)
 		image.fill_rect(box, Constants.UI_PANEL)
 		_blend_glyph(image, ESTIMATE, box.get_center(), Constants.UI_TEXT)
-	return ImageTexture.create_from_image(ImageUtils.round_corners(image, roundi(COVER * ImageUtils.COVER_CORNER)))
+	return ImageUtils.round_corners(image, roundi(COVER * ImageUtils.COVER_CORNER))
 
 ## Blends a letter's image tinted in color, centred on centre.
 static func _blend_glyph(image: Image, letter: String, centre: Vector2i, color: Color) -> void:
 	if not _glyphs.has(letter):
 		return
+	var glyph := _tinted_glyph(letter, color)
+	image.blend_rect(glyph, Rect2i(Vector2i.ZERO, glyph.get_size()), centre - glyph.get_size() / 2)
+
+## A letter's image tinted in color, made once and kept.
+static func _tinted_glyph(letter: String, color: Color) -> Image:
 	var key := letter + "|" + color.to_html()
 	if not _tinted.has(key):
 		var tinted := (_glyphs[letter] as Image).duplicate() as Image
@@ -87,5 +100,4 @@ static func _blend_glyph(image: Image, letter: String, centre: Vector2i, color: 
 			for x in tinted.get_width():
 				tinted.set_pixel(x, y, Color(color, tinted.get_pixel(x, y).a))
 		_tinted[key] = tinted
-	var glyph := _tinted[key] as Image
-	image.blend_rect(glyph, Rect2i(Vector2i.ZERO, glyph.get_size()), centre - glyph.get_size() / 2)
+	return _tinted[key]
