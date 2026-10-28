@@ -499,6 +499,7 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 	_update_all_covers()
 	_fill_reaction_filtered_list()
 	print("BeatSaver page: %d songs in %.1f ms" % [song_data.size(), (Time.get_ticks_usec() - started) / 1000.0])
+	_frame_work += "page %.1f ms " % ((Time.get_ticks_usec() - started) / 1000.0)
 	if result == 0:
 		if item_list.item_count > 0:
 			label.text = ""
@@ -758,8 +759,21 @@ func _update_download_button() -> void:
 		download_button.text = "Download"
 
 ## Keeps the download progress on the button current.
+## A frame of the open page longer than SLOW_FRAME_SECONDS is logged with what this page did in it (to find what
+## stutters dragging the list on the headset, 2026-10-28).
+const SLOW_FRAME_SECONDS := 0.04
+var _frame_work := ""
+var _decoding := 0
+
 func _process(delta: float) -> void:
+	if delta > SLOW_FRAME_SECONDS and is_visible_in_tree():
+		print("BeatSaver slow frame %.0f ms: %s (%d songs, %d covers decoding, %d waiting)" % [delta * 1000.0,
+				_frame_work if _frame_work else "nothing here", song_data.size(), _decoding, _finished_covers.size()])
+	_frame_work = ""
+	var started := Time.get_ticks_usec()
 	_flush_covers(delta)
+	if Time.get_ticks_usec() - started > 1000:
+		_frame_work += "covers %.1f ms " % ((Time.get_ticks_usec() - started) / 1000.0)
 	if downloading.is_empty():
 		return
 	var before := download_button.text
@@ -935,10 +949,13 @@ func _update_cover(result: int, _response_code: int, _headers: PackedStringArray
 	var song: BeatSaverSongInfo = song_data[index]
 	var levels := _levels(song)
 	var made := []
-	var task := WorkerThreadPool.add_task(_make_cover.bind(body, levels, picked_level(), made))
+	# low priority: the pool's high-priority threads would compete with the game's own for the cores
+	var task := WorkerThreadPool.add_task(_make_cover.bind(body, levels, picked_level(), made), false)
+	_decoding += 1
 	while not WorkerThreadPool.is_task_completed(task):
 		await get_tree().process_frame
 	WorkerThreadPool.wait_for_task_completion(task)
+	_decoding -= 1
 	if made.is_empty() or list != _cover_list:
 		return
 	_finished_covers.append([index, song, made[0]])
