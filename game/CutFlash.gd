@@ -1,41 +1,56 @@
 class_name CutFlash
 extends Node3D
 ## Sparks off a cut, as the player drew them: they leave the whole cut line through the note (not one point), most
-## thrown back against the swing (up for a down cut) in a fountain that spreads and falls away to the sides under
-## gravity, and a few carried on along the swing. Hot white cooling to the saber's colour (CPU particles with
-## short trails, SparkStreak.gdshader). COUNT pairs of emitters reused in turn, so a burst of cuts never
-## allocates. Nothing stays hanging where the cut was: a flat streak left there looked fake to the player. Sizes
-## in metres, untuned.
-
+## thrown back against the swing (up for a down cut) in a narrow plume, and a few carried on along the swing.
+## Owner, 2026-10-28: the sparks themselves behave like dust, no second layer. Each is born a crisp short streak along
+## its path, the way the saber went, then within STREAK_SECONDS shrinks to a small crisp point (CutSpark.gdshader); its
+## physics are dust's: hard drag (SPARK_DRAG) so it stops within a few tens of centimetres, weightless, swirling round
+## the cut in a vortex the swing sets (spinning the way the saber went, SPARK_SPIN at a full swing, slowing by
+## SPARK_SPIN_DRAG), lingering SPARK_SECONDS and drifting with the track past the player and out to the cut's side
+## (SPARK_DRIFT_BACK, SPARK_DRIFT_SIDE), so it clears the note lanes. Hot white cooling to the note colour leaned
+## SPARK_GREY of the way to SPARK_WHITE, so it reads as dust in light. COUNT pairs of emitters reused in turn, so a
+## burst of cuts never allocates. A streak left hanging on the cut line looked fake (2026-10-22, dd6c828), so the line
+## is only the sparks'. Sizes in metres, untuned until seen on the headset.
 const COUNT := 6
-## a spark's trail: its width and length in metres at scale 1 (two crossed strips along its velocity)
+## the trail used by other sparks (spark_mesh: the clash, Metal Factory): its width and length in metres at scale 1
 ## (the player found 4 mm by 12 cm too small and asked for the earlier size back)
 const SPARK_WIDTH := 0.024
 const SPARK_TRAIL := 0.3
 const SPARK_SHADER := preload("res://game/SparkStreak.gdshader")
+## a cut spark: a streak STREAK_LENGTH long at birth, a crisp point POINT_SIZE across after STREAK_SECONDS
+const CUT_SPARK_SHADER := preload("res://game/CutSpark.gdshader")
+const STREAK_LENGTH := 0.12
+const STREAK_SECONDS := 0.12
+const POINT_SIZE := 0.022
 ## half the length of the cut line the sparks leave from, along the swing through the note
 const CUT_LINE_HALF := 0.18
-## the fountain thrown back against the swing
+## the plume thrown back against the swing
 const FOUNTAIN_SPARKS := 28
-## speeds at a full swing, spread wide so some sparks shoot far and some drop short along the same narrow line
+## speeds at a full swing, spread so some sparks fly further than others along the same narrow line
 ## (the player asked for random speeds within a plume that doesn't open out)
 const FOUNTAIN_SPEED_MIN := 1.8
 const FOUNTAIN_SPEED_MAX := 4.8
 const FOUNTAIN_SPREAD_DEG := 40.0
-const FOUNTAIN_SECONDS := 0.5
 ## the few carried on along the swing
 const SPRAY_SPARKS := 8
 const SPRAY_SPEED_MIN := 2.0
 const SPRAY_SPEED_MAX := 5.0
 const SPRAY_SPREAD_DEG := 8.0
-const SPRAY_SECONDS := 0.4
-## pulls the sparks into falling arcs (m/s²)
-const SPARK_GRAVITY := 9.0
+## dust's physics: drag (per second), life, the vortex's spin at a full swing (rad/s) and how fast it dies away, the
+## drift toward the player and out to the side (m/s²)
+const SPARK_DRAG := 4.0
+const SPARK_SECONDS := 1.5
+const SPARK_SPIN := 9.0
+const SPARK_SPIN_DRAG := 1.8
+const SPARK_DRIFT_BACK := 2.2
+const SPARK_DRIFT_SIDE := 1.2
+## the colour it cools to: the note colour leaned this far to a grey-white
+const SPARK_GREY := 0.8
+const SPARK_WHITE := Color(0.86, 0.87, 0.9)
 ## The swing drives the sparks through one exponential curve, as the saber trail's opacity does: the tip's speed as
 ## a share x of SWING_FULL (m/s), eased as (e^(SWING_CURVE x) - 1) / (e^SWING_CURVE - 1), so a soft cut gives a
-## small, dim, narrow puff and only a real swing a full fountain. It scales the sparks' speed (the fountain's
-## height) from SPEED_SCALE_MIN to 1, their brightness from BRIGHTNESS_MIN to 1, the fountain's spread between the
-## two angles below, and the pull down by the speed's square root.
+## small, dim, narrow puff and only a real swing a full plume. It scales the sparks' speed from SPEED_SCALE_MIN to 1,
+## their brightness from BRIGHTNESS_MIN to 1, the plume's spread between the two angles below, and the vortex's spin.
 const SWING_FULL := 6.0
 const SWING_CURVE := 3.0
 const SPEED_SCALE_MIN := 0.35
@@ -43,53 +58,25 @@ const BRIGHTNESS_MIN := 0.2
 ## a narrow plume close along the swing, not a fan (the player's sketch: within about 20 degrees)
 const FOUNTAIN_SPREAD_MIN_DEG := 6.0
 const FOUNTAIN_SPREAD_MAX_DEG := 9.0
-## sparks vary in length (and width) only this much, so the burst looks even
+## sparks vary in size only this much, so the burst looks even
 const SPARK_SCALE_MIN := 0.85
 const SPARK_SCALE_MAX := 1.15
-## Dust beside the sparks (owner, 2026-10-28; doc/research/cut-dust-plan.md option 2): DUST_MOTES soft motes puff out
-## of the cut slowly (DUST_SPEED_MIN/MAX at a full swing) with strong drag, swirl round the cut in a vortex the swing
-## sets (CutDust.gdshader: spinning the way the saber went, DUST_SPIN at a full swing, slowing by DUST_SPIN_DRAG), then
-## drift with the track past the player and out to the sides (DUST_DRIFT_BACK, DUST_DRIFT_SIDE, a gentle pull), so they
-## clear the note lanes, fading over DUST_SECONDS. In the note colour leaned DUST_GREY of the way to DUST_WHITE, so it
-## reads as dust in light, not as something to cut. Untuned until seen on the headset.
-## The cut itself (owner, 2026-10-28): the sparks, born along the cut line the way the saber went, break up into the
-## dust, whose motes start along that same line (the emitter turned like the sparks'), not from a blob. A separate
-## streak hanging on the cut line was removed before (2026-10-22, dd6c828: it looked fake), so the line is only the
-## sparks. The motes are small crisp points, DUST_SIZE across, growing only DUST_SIZE_GROW (the first, 6 cm and 2.5x with
-## a soft edge, looked blurry on the headset).
-const DUST_MOTES := 40
-const DUST_SECONDS := 1.5
-const DUST_SIZE := 0.022
-const DUST_SIZE_GROW := 1.2
-const DUST_SPEED_MIN := 0.2
-const DUST_SPEED_MAX := 1.2
-const DUST_DRAG := 2.5
-const DUST_SPIN := 9.0
-const DUST_SPIN_DRAG := 1.8
-const DUST_DRIFT_BACK := 2.2
-const DUST_DRIFT_SIDE := 1.2
-const DUST_GREY := 0.8
-const DUST_WHITE := Color(0.86, 0.87, 0.9)
-const DUST_ALPHA := 0.9
-const DUST_SHADER := preload("res://game/CutDust.gdshader")
 
 var _next := 0
 var _fountains: Array[CPUParticles3D] = []
 var _sprays: Array[CPUParticles3D] = []
-var _dusts: Array[CPUParticles3D] = []
 
 func _ready() -> void:
 	for i in COUNT:
 		# each emitter's local y is the swing reversed (set per cut), so +y throws back, -y carries on
-		var fountain := _make_sparks(FOUNTAIN_SPARKS, FOUNTAIN_SECONDS, FOUNTAIN_SPEED_MIN, FOUNTAIN_SPEED_MAX)
+		var fountain := _make_sparks(FOUNTAIN_SPARKS, FOUNTAIN_SPEED_MIN, FOUNTAIN_SPEED_MAX)
 		fountain.spread = FOUNTAIN_SPREAD_DEG
 		fountain.direction = Vector3.UP
 		_fountains.append(fountain)
-		var spray := _make_sparks(SPRAY_SPARKS, SPRAY_SECONDS, SPRAY_SPEED_MIN, SPRAY_SPEED_MAX)
+		var spray := _make_sparks(SPRAY_SPARKS, SPRAY_SPEED_MIN, SPRAY_SPEED_MAX)
 		spray.spread = SPRAY_SPREAD_DEG
 		spray.direction = Vector3.DOWN
 		_sprays.append(spray)
-		_dusts.append(_make_dust())
 
 ## A spark with a trail for CPU particles with particle_flag_align_y: two crossed strips along +y (the velocity),
 ## the head at the top, so it shows from every side but straight along its path.
@@ -111,21 +98,32 @@ static func spark_mesh() -> ArrayMesh:
 	mesh.surface_set_material(0, material)
 	return mesh
 
-func _make_sparks(amount: int, seconds: float, speed_min: float, speed_max: float) -> CPUParticles3D:
+## One emitter of cut sparks: streaks that become dust (CutSpark.gdshader), with dust's drag and no gravity.
+func _make_sparks(amount: int, speed_min: float, speed_max: float) -> CPUParticles3D:
 	var sparks := CPUParticles3D.new()
-	sparks.mesh = spark_mesh()
+	var quad := QuadMesh.new()
+	var material := ShaderMaterial.new()
+	material.shader = CUT_SPARK_SHADER
+	material.set_shader_parameter(&"lifetime", SPARK_SECONDS)
+	material.set_shader_parameter(&"vortex_drag", SPARK_SPIN_DRAG)
+	material.set_shader_parameter(&"streak_length", STREAK_LENGTH)
+	material.set_shader_parameter(&"streak_seconds", STREAK_SECONDS)
+	material.set_shader_parameter(&"point_size", POINT_SIZE)
+	quad.material = material
+	sparks.mesh = quad
 	sparks.particle_flag_align_y = true
 	sparks.amount = amount
-	sparks.lifetime = seconds
+	sparks.lifetime = SPARK_SECONDS
 	sparks.one_shot = true
 	sparks.explosiveness = 1.0
 	sparks.emitting = false
 	sparks.local_coords = false
 	sparks.initial_velocity_min = speed_min
 	sparks.initial_velocity_max = speed_max
+	sparks.damping_min = SPARK_DRAG
+	sparks.damping_max = SPARK_DRAG * 1.3
 	sparks.scale_amount_min = SPARK_SCALE_MIN
 	sparks.scale_amount_max = SPARK_SCALE_MAX
-	sparks.gravity = Vector3(0.0, -SPARK_GRAVITY, 0.0)
 	# from anywhere along the cut line (the emitter's local y)
 	sparks.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
 	sparks.emission_box_extents = Vector3(0.005, CUT_LINE_HALF, 0.005)
@@ -133,44 +131,14 @@ func _make_sparks(amount: int, seconds: float, speed_min: float, speed_max: floa
 	add_child(sparks)
 	return sparks
 
-## One emitter of a cut's dust: soft round motes from the cut line, swirled and faded by CutDust.gdshader.
-func _make_dust() -> CPUParticles3D:
-	var dust := CPUParticles3D.new()
-	var quad := QuadMesh.new()
-	quad.size = Vector2.ONE * DUST_SIZE
-	var material := ShaderMaterial.new()
-	material.shader = DUST_SHADER
-	material.set_shader_parameter(&"lifetime", DUST_SECONDS)
-	material.set_shader_parameter(&"vortex_drag", DUST_SPIN_DRAG)
-	quad.material = material
-	dust.mesh = quad
-	dust.amount = DUST_MOTES
-	dust.lifetime = DUST_SECONDS
-	dust.one_shot = true
-	dust.explosiveness = 1.0
-	dust.emitting = false
-	dust.local_coords = false
-	dust.direction = Vector3.UP
-	dust.spread = 180.0
-	dust.damping_min = DUST_DRAG
-	dust.damping_max = DUST_DRAG * 1.3
-	dust.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
-	dust.emission_box_extents = Vector3(0.004, CUT_LINE_HALF, 0.004)
-	var grow := Curve.new()
-	grow.add_point(Vector2(0.0, 1.0))
-	grow.add_point(Vector2(1.0, DUST_SIZE_GROW))
-	dust.scale_amount_curve = grow
-	dust.color_ramp = Gradient.new()
-	add_child(dust)
-	return dust
-
 ## The swing as the player sees it: its part across the line of sight to the cut, so the spray flies the way the
 ## saber went (down for a down cut) instead of off toward or away from the player with the wrist's turn.
 func _across_view(sight: Vector3, swing: Vector3) -> Vector3:
 	var across := swing - sight * swing.dot(sight)
 	return across.normalized() if across.length() > 1e-4 else Vector3.DOWN
 
-## Sends sparks off the cut line through `at` along the swing: a fountain back against it and a spray along it.
+## Sends sparks off the cut line through `at` along the swing: a plume back against it and a spray along it, which
+## slow, swirl round the cut the way the saber went and drift away past the player.
 func flash(at: Vector3, swing: Vector3, color: Color) -> void:
 	var i := _next
 	_next = (_next + 1) % COUNT
@@ -183,6 +151,9 @@ func flash(at: Vector3, swing: Vector3, color: Color) -> void:
 	var x := clampf(swing.length() / SWING_FULL, 0.0, 1.0)
 	var power := (exp(SWING_CURVE * x) - 1.0) / (exp(SWING_CURVE) - 1.0)
 	var speed_scale := lerpf(SPEED_SCALE_MIN, 1.0, power)
+	var axis := swing.cross(toward)
+	axis = axis.normalized() if axis.length() > 1e-4 else Vector3.RIGHT
+	var tint := color.lerp(SPARK_WHITE, SPARK_GREY)
 	var fountain := _fountains[i]
 	var spray := _sprays[i]
 	fountain.initial_velocity_min = FOUNTAIN_SPEED_MIN * speed_scale
@@ -191,30 +162,12 @@ func flash(at: Vector3, swing: Vector3, color: Color) -> void:
 	spray.initial_velocity_min = SPRAY_SPEED_MIN * speed_scale
 	spray.initial_velocity_max = SPRAY_SPEED_MAX * speed_scale
 	for sparks: CPUParticles3D in [fountain, spray]:
-		sparks.gravity = Vector3(0.0, -SPARK_GRAVITY * sqrt(speed_scale), 0.0)
+		var material := (sparks.mesh as QuadMesh).material as ShaderMaterial
+		material.set_shader_parameter(&"vortex_centre", at)
+		material.set_shader_parameter(&"vortex_axis", axis)
+		material.set_shader_parameter(&"vortex_spin", SPARK_SPIN * power)
+		sparks.gravity = Vector3(signf(at.x) * SPARK_DRIFT_SIDE, 0.0, SPARK_DRIFT_BACK)
 		sparks.global_transform = Transform3D(basis, at)
 		sparks.color_ramp.set_color(0, Color(1.0, 1.0, 1.0, lerpf(BRIGHTNESS_MIN, 1.0, power)))
-		sparks.color_ramp.set_color(1, Color(color.r, color.g, color.b, 0.0))
+		sparks.color_ramp.set_color(1, Color(tint, 0.0))
 		sparks.restart()
-	if DebugView.flags & DebugView.NO_CUT_DUST == 0:
-		_puff(_dusts[i], at, basis, swing, toward, power, color)
-
-## Puffs a cut's dust at `at`: its vortex turns round the axis across the swing and the line to the player, the way
-## the saber went, as fast as the swing was strong; it drifts toward the player and out to the cut's side.
-func _puff(dust: CPUParticles3D, at: Vector3, basis: Basis, swing: Vector3, toward: Vector3, power: float,
-		color: Color) -> void:
-	var axis := swing.cross(toward)
-	axis = axis.normalized() if axis.length() > 1e-4 else Vector3.RIGHT
-	var material := (dust.mesh as QuadMesh).material as ShaderMaterial
-	material.set_shader_parameter(&"vortex_centre", at)
-	material.set_shader_parameter(&"vortex_axis", axis)
-	material.set_shader_parameter(&"vortex_spin", DUST_SPIN * power)
-	# the motes start along the cut line (the emitter's local y, as the sparks')
-	dust.global_transform = Transform3D(basis, at)
-	dust.initial_velocity_min = DUST_SPEED_MIN * lerpf(SPEED_SCALE_MIN, 1.0, power)
-	dust.initial_velocity_max = DUST_SPEED_MAX * lerpf(SPEED_SCALE_MIN, 1.0, power)
-	dust.gravity = Vector3(signf(at.x) * DUST_DRIFT_SIDE, 0.0, DUST_DRIFT_BACK)
-	var tint := color.lerp(DUST_WHITE, DUST_GREY)
-	dust.color_ramp.set_color(0, Color(tint, DUST_ALPHA * lerpf(BRIGHTNESS_MIN, 1.0, power)))
-	dust.color_ramp.set_color(1, Color(tint, 0.0))
-	dust.restart()
