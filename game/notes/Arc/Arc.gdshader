@@ -22,6 +22,12 @@ uniform float distance_fade_tip_max : hint_range(0.0, 4096.0, 0.01);
 uniform float distance_effect : hint_range(0.01, 4096.0, 0.01);
 uniform float distance_power : hint_range(0.01, 4096.0, 0.01);
 
+// The note jump (Cuttable.start_jump): an arc's ends follow its notes, each point starting UV2.x metres below its place
+// and rising to it on the same falling-ball arc, by how far through the half jump (half_jump, metres) it is from the
+// hit plane (hit_plane_z, world). Visual only. Assumes an unrotated lane, as the magnet below does.
+uniform float half_jump = 0.0;
+uniform float hit_plane_z = 0.0;
+
 varying float to_discard;
 varying float dist;
 varying float tip_dist;
@@ -39,6 +45,10 @@ void vertex() {
 	}
 
 	vec3 wrld_pos = NODE_POSITION_WORLD + VERTEX;
+	if (half_jump > 0.0) {
+		float rest = clamp((hit_plane_z - wrld_pos.z) / half_jump, 0.0, 1.0);
+		wrld_pos.y -= UV2.x * rest * rest;
+	}
 	dist = abs(wrld_pos.z - saber_pos.z);
 	float force = max(0.0, 1.0 - (dist / distance_effect));
 	VERTEX = mix(wrld_pos, saber_pos,

@@ -29,6 +29,10 @@ func spawn(info: ArcInfo, current_beat: float, _activator_cube: BeepCube = null)
 	var path := $Path3D as Path3D
 	visual = $Path3D/Visual
 	visual.material_override = right_material if arc_info.color == 1 else left_material
+	# the note jump's reach, for the arc's ends to follow their notes (Arc.gdshader)
+	for material: ShaderMaterial in [left_material, right_material, left_material_magnet, right_material_magnet]:
+		material.set_shader_parameter(&"half_jump", Map.half_jump_beats * Map.beat_distance)
+		material.set_shader_parameter(&"hit_plane_z", Constants.HIT_PLANE_Z)
 	activator_cube = _activator_cube
 	if activator_cube:
 		activator_cube.cutted.connect(_on_activator_cube_cutted)
