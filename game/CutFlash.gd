@@ -52,10 +52,15 @@ const SPARK_SCALE_MAX := 1.15
 ## drift with the track past the player and out to the sides (DUST_DRIFT_BACK, DUST_DRIFT_SIDE, a gentle pull), so they
 ## clear the note lanes, fading over DUST_SECONDS. In the note colour leaned DUST_GREY of the way to DUST_WHITE, so it
 ## reads as dust in light, not as something to cut. Untuned until seen on the headset.
-const DUST_MOTES := 32
+## The cut itself (owner, 2026-10-28): the sparks, born along the cut line the way the saber went, break up into the
+## dust, whose motes start along that same line (the emitter turned like the sparks'), not from a blob. A separate
+## streak hanging on the cut line was removed before (2026-10-22, dd6c828: it looked fake), so the line is only the
+## sparks. The motes are small crisp points, DUST_SIZE across, growing only DUST_SIZE_GROW (the first, 6 cm and 2.5x with
+## a soft edge, looked blurry on the headset).
+const DUST_MOTES := 40
 const DUST_SECONDS := 1.5
-const DUST_SIZE := 0.06
-const DUST_SIZE_GROW := 2.5
+const DUST_SIZE := 0.022
+const DUST_SIZE_GROW := 1.2
 const DUST_SPEED_MIN := 0.2
 const DUST_SPEED_MAX := 1.2
 const DUST_DRAG := 2.5
@@ -65,7 +70,7 @@ const DUST_DRIFT_BACK := 2.2
 const DUST_DRIFT_SIDE := 1.2
 const DUST_GREY := 0.8
 const DUST_WHITE := Color(0.86, 0.87, 0.9)
-const DUST_ALPHA := 0.55
+const DUST_ALPHA := 0.9
 const DUST_SHADER := preload("res://game/CutDust.gdshader")
 
 var _next := 0
@@ -150,7 +155,7 @@ func _make_dust() -> CPUParticles3D:
 	dust.damping_min = DUST_DRAG
 	dust.damping_max = DUST_DRAG * 1.3
 	dust.emission_shape = CPUParticles3D.EMISSION_SHAPE_BOX
-	dust.emission_box_extents = Vector3(0.03, CUT_LINE_HALF, 0.03)
+	dust.emission_box_extents = Vector3(0.004, CUT_LINE_HALF, 0.004)
 	var grow := Curve.new()
 	grow.add_point(Vector2(0.0, 1.0))
 	grow.add_point(Vector2(1.0, DUST_SIZE_GROW))
@@ -192,18 +197,20 @@ func flash(at: Vector3, swing: Vector3, color: Color) -> void:
 		sparks.color_ramp.set_color(1, Color(color.r, color.g, color.b, 0.0))
 		sparks.restart()
 	if DebugView.flags & DebugView.NO_CUT_DUST == 0:
-		_puff(_dusts[i], at, swing, toward, power, color)
+		_puff(_dusts[i], at, basis, swing, toward, power, color)
 
 ## Puffs a cut's dust at `at`: its vortex turns round the axis across the swing and the line to the player, the way
 ## the saber went, as fast as the swing was strong; it drifts toward the player and out to the cut's side.
-func _puff(dust: CPUParticles3D, at: Vector3, swing: Vector3, toward: Vector3, power: float, color: Color) -> void:
+func _puff(dust: CPUParticles3D, at: Vector3, basis: Basis, swing: Vector3, toward: Vector3, power: float,
+		color: Color) -> void:
 	var axis := swing.cross(toward)
 	axis = axis.normalized() if axis.length() > 1e-4 else Vector3.RIGHT
 	var material := (dust.mesh as QuadMesh).material as ShaderMaterial
 	material.set_shader_parameter(&"vortex_centre", at)
 	material.set_shader_parameter(&"vortex_axis", axis)
 	material.set_shader_parameter(&"vortex_spin", DUST_SPIN * power)
-	dust.global_transform = Transform3D(Basis.IDENTITY, at)
+	# the motes start along the cut line (the emitter's local y, as the sparks')
+	dust.global_transform = Transform3D(basis, at)
 	dust.initial_velocity_min = DUST_SPEED_MIN * lerpf(SPEED_SCALE_MIN, 1.0, power)
 	dust.initial_velocity_max = DUST_SPEED_MAX * lerpf(SPEED_SCALE_MIN, 1.0, power)
 	dust.gravity = Vector3(signf(at.x) * DUST_DRIFT_SIDE, 0.0, DUST_DRIFT_BACK)
