@@ -135,8 +135,9 @@ Above the list one row holds Search (icon), Filters (opens `FiltersPanel` over t
   (`BeatSaverSongInfo._init` :14-23). `response_code` is not checked.
 - Known gaps (report, don't silently patch in unrelated work): `versions[0]["hash"]` is indexed without checking
   `versions` is non-empty (:234-235, :301); covers then load sequentially (`update_next_cover` :408).
-- Download (:312): rejects HTML bodies, writes zip to `APPDATA_PATH/temp`, unzips to `Songs/<hash>/`, then
-  `main_menu_ref._on_LoadPlaylists_Button_pressed()` refreshes the list. New boundary code must validate like
+- Download (:312): rejects HTML bodies, writes zip to `APPDATA_PATH/temp`, unzips to `Songs/<hash>/` on a
+  `WorkerThreadPool` task, and once the queue is empty `main_menu_ref.add_downloaded_songs` adds just those folders
+  to the list (no rescan of the library). New boundary code must validate like
   the root rules say.
 
 ## Layout conventions

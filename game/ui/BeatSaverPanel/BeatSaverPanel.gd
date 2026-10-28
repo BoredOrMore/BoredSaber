@@ -123,6 +123,8 @@ const SORT_TABS := [["Popular", "Rating"], ["New", "Latest"], ["Staff picks", "C
 var search_word := ""
 var item_selected := -1
 var downloading := []#[["name","version_info", tags]]
+## song folders downloaded since the queue last ran empty, added to the song list together then
+var _downloaded: Array[String] = []
 ## Most previews kept in memory, so clicking a map again plays at once.
 const MAX_CACHED_PREVIEWS := 10
 ## Tries again after a failed list request before showing the error (the headset sometimes fails to connect
@@ -807,15 +809,21 @@ func _on_HTTPRequest_download_completed(result: int, response_code: int, headers
 				has_error = true
 		
 		if not has_error:
-			Utils.unzip(zippath,song_out_dir)
+			# unpacked on a worker thread: on the main thread it froze the view for each song (owner, 2026-10-28)
+			var task := WorkerThreadPool.add_task(Utils.unzip.bind(zippath, song_out_dir))
+			while not WorkerThreadPool.is_task_completed(task):
+				await get_tree().process_frame
+			WorkerThreadPool.wait_for_task_completion(task)
 			SongTags.remember(song_dir_name, downloading[0][2])
+			_downloaded.append(song_dir_name)
 		
 		DirAccess.remove_absolute(zippath)
 		
 		downloading.remove_at(0)
 		
 		if not downloading.size() > 0:
-			main_menu_ref._on_LoadPlaylists_Button_pressed()
+			main_menu_ref.add_downloaded_songs(_downloaded)
+			_downloaded = []
 	else:
 		label.text = "Couldn't download %s. Check your Wi-Fi and try again." % str(downloading[0][0])
 		vr.log_info("download error "+str(result))

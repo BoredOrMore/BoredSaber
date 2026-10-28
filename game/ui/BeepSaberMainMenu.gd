@@ -251,6 +251,25 @@ func _load_playlists() -> void:
 	if canvas is OQ_UI2DCanvas:
 		(canvas as OQ_UI2DCanvas)._input_update()
 
+## Adds just-downloaded song folders (`dir_names` under Songs/) to the list, without reading every song again
+## (owner, 2026-10-28: the view froze downloading many songs; reloading the whole library after a queue was most of
+## it).
+func add_downloaded_songs(dir_names: Array[String]) -> void:
+	for dir_name in dir_names:
+		if all_song_hashes.has(dir_name):
+			continue
+		var song := Map.load_map_info(Constants.APPDATA_PATH + "Songs/" + dir_name + "/")
+		if song:
+			_all_songs.append(song)
+		all_song_hashes.append(dir_name)
+	song_list_changed.emit()
+	SongTags.look_up_missing(self, _all_songs, _show_environment)
+	_sort_songs()
+	MapStats.count_all_async(_all_songs, _on_map_stats_counted)
+	var canvas := get_parent().get_parent()
+	if canvas is OQ_UI2DCanvas:
+		(canvas as OQ_UI2DCanvas)._input_update()
+
 func _discover_all_songs(seek_path: String) -> void:
 	_all_songs.clear()
 	all_song_hashes.clear()
