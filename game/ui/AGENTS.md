@@ -29,7 +29,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   (`BeepSaber_Game._open_profiles`) on its own canvas 10 cm in front of the menu, which takes no pointer input meanwhile.
   Picks, adds (max `Settings.MAX_PLAYERS`), renames (records too, `Highscores.rename_player`) and deletes players;
   names are typed on the menu's keyboard (`Keyboard_highscore`), which the menu ignores while its `_keyboard_for` is empty.
-- `BeatSaverPanel/`: browse/search/download maps from beatsaver.com (class `BeatSaverPanel`).
+- `BeatSaverPanel/`: browse/search/download maps from beatsaver.com (class `BeatSaverPanel`). `FrameProbe.gd`: a probe node for its
+  slow-frame log (where the frame's `_process` calls end).
 - Templates (owner, 2026-10-28: build UI as templates, pages only swap content): `menu_panel.tres`, the menus'
   rounded panel frame (24 px corners, about 1.6 degrees at 2 m), the root style of the song menu's three panels
   (`MenuPanel.tscn`, a frame that takes no input), Settings, the Download page and "Who's playing?";

@@ -249,6 +249,13 @@ func _card_text(song: BeatSaverSongInfo) -> String:
 	return text
 
 func _ready() -> void:
+	# the slow-frame probe: this page's _process first, a probe's last
+	process_priority = -1000
+	var probe := Node.new()
+	probe.process_priority = 1000
+	probe.set_script(_FRAME_PROBE)
+	probe.set_meta(&"panel", self)
+	add_child(probe)
 	var tab_group := ButtonGroup.new()
 	for tab: Array in SORT_TABS:
 		var button := Button.new()
@@ -762,10 +769,19 @@ func _update_download_button() -> void:
 ## A frame of the open page longer than SLOW_FRAME_SECONDS is logged with what this page did in it (to find what
 ## stutters dragging the list on the headset, 2026-10-28).
 const SLOW_FRAME_SECONDS := 0.04
+const _FRAME_PROBE := preload("res://game/ui/BeatSaverPanel/FrameProbe.gd")
 var _frame_work := ""
 var _decoding := 0
+## when every node's _process began and ended last frame (this page runs first, its probe last)
+var _process_began := 0
+var _process_ended := 0
 
 func _process(delta: float) -> void:
+	var now := Time.get_ticks_usec()
+	if delta > SLOW_FRAME_SECONDS and is_visible_in_tree():
+		print("BeatSaver slow frame split: every _process %.1f ms, the rest (physics, input, drawing, waiting on the headset) %.1f ms" % [
+				(_process_ended - _process_began) / 1000.0, (now - _process_ended) / 1000.0])
+	_process_began = now
 	if delta > SLOW_FRAME_SECONDS and is_visible_in_tree():
 		var page := get_viewport().get_viewport_rid()
 		var view := get_tree().root.get_viewport_rid()
