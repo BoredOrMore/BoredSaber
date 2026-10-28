@@ -114,5 +114,5 @@ void fragment() {
 	}
 	vec3 lit = base * (1.0 - GROOVE_DARK * groove);
 	lit += light_color.rgb * LIGHT_TINT + sheen;
-	ALBEDO = fog_dither(mix(lit, haze, fog), FRAGCOORD.xy);
+	ALBEDO = fog_dither(fog_result(mix(lit, haze, fog), VERTEX), FRAGCOORD.xy);
 }

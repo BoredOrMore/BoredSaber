@@ -88,7 +88,7 @@ void fragment(){
 	if (bg_4_intensity>0.0){ALBEDO = get_from_map(bg_4, xinv_uv, (bg_4_intensity*bg_4_intensity_mult), ALBEDO, bg_4_tint);}
 	ALBEDO.rgb = vec3(pow(ALBEDO.r, contrast), pow(ALBEDO.g, contrast), pow(ALBEDO.b, contrast));
 	ALBEDO += haze * (SKY_HAZE + HORIZON_HAZE * exp(-abs(UV.y - 0.5) * HORIZON_SHARPNESS));
-	ALBEDO = fog_dither(ALBEDO, FRAGCOORD.xy);
+	ALBEDO = fog_dither(fog_result(ALBEDO, VERTEX), FRAGCOORD.xy);
 	}
 }"
 

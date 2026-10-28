@@ -42,5 +42,5 @@ void fragment() {
 	// the haze lit from the stage's key light, seen this way (fog_light.gdshaderinc)
 	vec3 haze = haze_v;
 	vec3 body = haze * mix(BODY.x, BODY.y, crest) + env_light.rgb * CREST_LIGHT * crest;
-	ALBEDO = fog_dither(mix(body, haze, far), FRAGCOORD.xy);
+	ALBEDO = fog_dither(fog_result(mix(body, haze, far), VERTEX), FRAGCOORD.xy);
 }

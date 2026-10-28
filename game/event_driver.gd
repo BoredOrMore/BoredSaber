@@ -43,6 +43,26 @@ const MENU_LASER_SWEEP_SECONDS := 30.0
 ## The house light colour the menu lights lean toward, and how far (0 = note colours only): a near-neutral
 ## cool grey, like Beat Saber's menu, so the stage doesn't look tinted (saturation about 0.09). Untuned.
 const HOUSE_COLOR := Color(0.62, 0.64, 0.68)
+## The result moment (root AGENTS.md, Colour rules' exception; owner, 2026-10-28, after Beat Saber's red results room):
+## result_mood turns the air to the result's colour, not the screen: the result_air shader global (fog_light.gdshaderinc),
+## a fog of FAIL_AIR_DENSITY / CLEAR_AIR_DENSITY per metre, so the scenery goes deeper into it the farther away it is
+## (the sky most) and near things keep their own colour. A fail kills the stage lights and brings the danger colour in
+## at FAIL_HAZE_LEVEL (about half way at 20 m); a clear warms the air (CLEAR_WARM at CLEAR_HAZE_LEVEL) and bursts
+## CLEAR_SPARKS sparks in the note colours and white over the stage, once. Fades in over RESULT_FADE_IN_SECONDS (never a
+## flash, WCAG 2.3.1), holds RESULT_HOLD_SECONDS (owner: about 4 s), eases back over RESULT_FADE_OUT_SECONDS. Untuned.
+const FAIL_HAZE_LEVEL := 0.35
+const FAIL_AIR_DENSITY := 0.035
+const CLEAR_WARM := Color(1.0, 0.78, 0.5)
+const CLEAR_HAZE_LEVEL := 0.15
+const CLEAR_AIR_DENSITY := 0.02
+const RESULT_FADE_IN_SECONDS := 1.0
+const RESULT_HOLD_SECONDS := 4.0
+const RESULT_FADE_OUT_SECONDS := 3.0
+const CLEAR_SPARKS := 70
+const CLEAR_SPARK_SECONDS := 1.2
+## where the two bursts go off (left and right of the score board, above it) and how fast the sparks fly
+const CLEAR_SPARK_PLACES: Array[Vector3] = [Vector3(-2.5, 4.0, -6.0), Vector3(2.5, 4.3, -6.5)]
+const CLEAR_SPARK_SPEED := Vector2(3.0, 6.0)
 const MENU_HOUSE_MIX := 0.85
 ## Seconds the menu lights take to fade in before they start breathing.
 const MENU_FADE_SECONDS := 1.0
@@ -118,6 +138,10 @@ const CUT_WAVE_SPEED := 30.0
 const CUT_WAVE_REACH := 80.0
 ## a mistake dims the air by this much for a moment
 var _mistake_dip := 0.0
+## the result's air colour and thickness (result_air) and seconds since result_mood (-1: none)
+var _result_color := Color.BLACK
+var _result_density := 0.0
+var _result_time := -1.0
 const MISTAKE_DIP := 0.5
 const MISTAKE_DIP_SECONDS := 0.6
 ## 0 at x1 to 1 at x8, and where it is heading
@@ -517,6 +541,10 @@ func set_background() -> void:
 func _process(delta: float) -> void:
 	_combo_pulse = maxf(_combo_pulse - delta / COMBO_PULSE_SECONDS, 0.0)
 	_mistake_dip = maxf(_mistake_dip - delta / MISTAKE_DIP_SECONDS, 0.0)
+	if _result_time >= 0.0:
+		_result_time += delta
+		if _result_time > RESULT_FADE_IN_SECONDS + RESULT_HOLD_SECONDS + RESULT_FADE_OUT_SECONDS:
+			_result_time = -1.0
 	for i in 2:
 		if _cut_waves[i] >= 0.0:
 			_cut_waves[i] += CUT_WAVE_SPEED * delta
@@ -592,6 +620,8 @@ func _update_haze() -> void:
 		haze *= Constants.EERIE_HAZE_TINT
 	haze.a = 1.0
 	RenderingServer.global_shader_parameter_set(&"env_haze", haze)
+	var air := _result_density * _result_weight()
+	RenderingServer.global_shader_parameter_set(&"result_air", Vector4(_result_color.r, _result_color.g, _result_color.b, air))
 	light = light.clamp()
 	light.a = 1.0
 	RenderingServer.global_shader_parameter_set(&"env_light", light)
@@ -606,6 +636,62 @@ func set_combo_multiplier(multiplier: int) -> void:
 func cut_wave(saber_type: int) -> void:
 	_cut_waves[saber_type] = 0.0
 
+## Starts the result moment: a fail's dark stage and red air, or a clear's warm air and spark burst (see
+## FAIL_HAZE_LEVEL).
+func result_mood(failed: bool) -> void:
+	_result_time = 0.0
+	if failed:
+		_result_color = Constants.DANGER_COLOR * FAIL_HAZE_LEVEL
+		_result_density = FAIL_AIR_DENSITY
+		set_all_off()
+		return
+	_result_color = CLEAR_WARM * CLEAR_HAZE_LEVEL
+	_result_density = CLEAR_AIR_DENSITY
+	for i in CLEAR_SPARK_PLACES.size():
+		_spark_burst(CLEAR_SPARK_PLACES[i], Map.color_left if i == 0 else Map.color_right)
+
+## How far the air has turned to the result's colour now, 0 to 1.
+func _result_weight() -> float:
+	if _result_time < 0.0:
+		return 0.0
+	var fade_out_from := RESULT_FADE_IN_SECONDS + RESULT_HOLD_SECONDS
+	if _result_time < RESULT_FADE_IN_SECONDS:
+		return smoothstep(0.0, RESULT_FADE_IN_SECONDS, _result_time)
+	return 1.0 - smoothstep(fade_out_from, fade_out_from + RESULT_FADE_OUT_SECONDS, _result_time)
+
+## One burst of CLEAR_SPARKS sparks at `place`, starting white and cooling to `color`, freed when done.
+func _spark_burst(place: Vector3, color: Color) -> void:
+	var sparks := CPUParticles3D.new()
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.06, 0.06)
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	material.vertex_color_use_as_albedo = true
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	quad.material = material
+	sparks.mesh = quad
+	sparks.amount = CLEAR_SPARKS
+	sparks.lifetime = CLEAR_SPARK_SECONDS
+	sparks.one_shot = true
+	sparks.explosiveness = 1.0
+	sparks.direction = Vector3.UP
+	sparks.spread = 180.0
+	sparks.initial_velocity_min = CLEAR_SPARK_SPEED.x
+	sparks.initial_velocity_max = CLEAR_SPARK_SPEED.y
+	sparks.gravity = Vector3(0.0, -4.0, 0.0)
+	sparks.damping_min = 2.0
+	sparks.damping_max = 3.0
+	var ramp := Gradient.new()
+	ramp.set_color(0, Color.WHITE)
+	ramp.set_color(1, Color(color, 0.0))
+	sparks.color_ramp = ramp
+	sparks.position = place
+	add_child(sparks)
+	sparks.finished.connect(sparks.queue_free)
+	sparks.emitting = true
+
 ## Dims the air for a moment, for a miss, a bad cut or a bomb.
 func mistake_dip() -> void:
 	_mistake_dip = 1.0
@@ -617,6 +703,7 @@ func combo_pulse() -> void:
 ## A song starts: work out its intensity curve and take the stage down, to be built again as the song builds.
 func start_show(events: Array[EventInfo], bpm: float) -> void:
 	_intensity_curve = intensity_curve(events, bpm)
+	_result_time = -1.0
 	_show_bpm = bpm
 	_intensity = 0.0
 	_built = 0.0

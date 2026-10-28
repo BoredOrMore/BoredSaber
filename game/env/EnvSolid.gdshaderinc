@@ -331,6 +331,6 @@ void fragment() {
 		float haze_amount = fog;
 		vec3 windows_on = vec3(0.0);
 #endif
-		ALBEDO = fog_dither(mix(lit, haze, haze_amount) + light * (1.0 - haze_amount) + windows_on, FRAGCOORD.xy);
+		ALBEDO = fog_dither(fog_result(mix(lit, haze, haze_amount) + light * (1.0 - haze_amount) + windows_on, VERTEX), FRAGCOORD.xy);
 	}
 }

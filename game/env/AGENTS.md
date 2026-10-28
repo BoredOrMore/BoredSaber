@@ -36,6 +36,9 @@ Read the root `AGENTS.md` first ("Light", "Colour rules", "Pico 4 constraints").
   canyon windows; `_intensity > STRIP_DROP` is "the drop" (all strips, Pulse Void's `drop_beam`, Classic rib sweep).
   `build_up(curve, beat, bpm)` looks `BUILD_UP_SECONDS` ahead for the next drop; `_update_sweep` turns the moving
   heads (`diagonal_lasers`) toward `SWEEP_TARGET` over the player and pans them, on `SWEEP_STAGES` (Classic so far).
+- Result moment: `result_mood(failed)` (from `BeepSaber_Game` at a fail and at a clear): a fail kills the lights and
+  fades the danger colour into `result_air`, a clear a warm air and two spark bursts (`CLEAR_SPARK_PLACES`); fades in
+  over 1 s, holds `RESULT_HOLD_SECONDS`, eases out (root `AGENTS.md`, Colour rules' exception). `stage_capture --result`.
 - Menus: `set_menu_focus(true)`: house-tinted breathing lights, `classic_rig.set_built(1.0)`,
   pistons rest, no smoke and no extra haze (owner: the menus as clear as can be). `false`: smoke dissipates, all groups off until the map turns them on.
 - Per frame (`EventDriver._process`): decays combo/mistake pulses, writes `cut_waves`,
@@ -90,7 +93,8 @@ Shared scenery
   lit edge, only on the old `rings` (retired: `rings_enabled = false`).
 - `height_fog.gdshaderinc`: analytic exponential height fog per vertex, coloured by `env_haze`.
 - `fog_light.gdshaderinc`: haze in-scattering toward the stage key light (`fog_key`) plus 8-bit dither
-  (`fog_dither_on`); included by every scenery, sky and track shader.
+  (`fog_dither_on`), and `fog_result` (the result moment's air, `result_air`, by distance from the eye); included by every
+  scenery, sky and track shader, which pass their colour through `fog_dither(fog_result(colour, VERTEX), FRAGCOORD.xy)`.
 - `TrackDeck.gd` (`TrackDeck`): opaque deck (top y 0), curbs housing the thin edge light strips (`STRIP_*`), platform frame, end stops;
   runs to `FAR_Z` -150 (`FAR_Z_BY_STAGE`), fades into haze. `layout(lane_width)` for Wide modifiers; `set_stage` skin.
   Hidden for `Settings.old_track` and mixed reality (old see-through sheet instead).
@@ -139,7 +143,7 @@ Air
   EventDriver.
 - One MultiMesh per mesh/material (boxes, each glb model, strips, fixtures, bars); a new repeated piece joins one
   instead of adding nodes. Tool scripts build children without owner: never saved into `event_driver.tscn`.
-- Shader globals `env_haze`, `env_light`, `combo_glow`, `cut_waves`, `fog_key`, `fog_dither_on`, `debug_view`,
+- Shader globals `env_haze`, `env_light`, `combo_glow`, `cut_waves`, `fog_key`, `fog_dither_on`, `result_air`, `debug_view`,
   `atmosphere_eerie`, `left/right_saber(_color)` must be declared in `project.godot [shader_globals]`; a new
   `global uniform` needs an entry there or the shader fails to compile.
 - `LaserFixtures`: yoke basis fixed per place (recomputed when its laser moves, or when its beam leaves the yoke's

@@ -216,6 +216,10 @@ fog_dither_on={
 "type": "float",
 "value": 1.0
 }
+result_air={
+"type": "vec4",
+"value": Vector4(0, 0, 0, 0)
+}
 
 [xr]
 

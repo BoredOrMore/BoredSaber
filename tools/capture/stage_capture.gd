@@ -29,6 +29,8 @@ extends Node3D
 ##   --classic-city 1 (Night City's classic layout instead of the building canyon)
 ##   --build-up 0..1 (the moving heads' sweep before a drop, EventDriver.BUILD_UP_SECONDS: a made-up show whose drop is
 ##   that close, 1 = now; pair with --lights on)
+##   --result fail|clear (the result moment's mood, EventDriver.result_mood: the red or warm air, a clear's sparks; it
+##   fades in over a second, so pair with --seconds 3, or 0.5 to catch the sparks)
 ##   --stats 1 (print the frame's triangles, draw calls and objects as drawn, RenderingServer's counters, one view)
 ##   --dot 1 (a dot note)  --note-style 2 (0 Solid, 1 Neon: the Classic notes looks; 2 the glossy default)
 
@@ -106,6 +108,8 @@ func _ready() -> void:
 	stage.classic_rig.set_built(float(args.get("built", "1")))
 	if args.has("build-up"):
 		_fake_build_up(stage, float(args["build-up"]))
+	if args.has("result"):
+		stage.result_mood(args["result"] == "fail")
 	if args.has("beat"):
 		_beat = float(args["beat"])
 		stage.metal_factory_rig.slam(_beat, CAPTURE_BPM, 1.0)

@@ -245,6 +245,7 @@ func _update_low_health_sound() -> void:
 func _fail_song() -> void:
 	failing = true
 	_failed_at = get_current_time()
+	event_driver.result_mood(true)
 	Scoreboard.paused = true
 	_update_low_health_sound()
 	_song_end_player.stream = FAIL_SOUND
@@ -908,6 +909,7 @@ func _on_song_ended() -> void:
 		current_percent = -1
 	else:
 		current_percent = Scoreboard.accuracy()
+		event_driver.result_mood(false)
 		_song_end_player.stream = CLEAR_SOUND
 		_song_end_player.play()
 	print(Scoreboard.summary())
