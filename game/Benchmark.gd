@@ -46,6 +46,9 @@ const HZ90 := "hz90"
 ## so those phases are gone. Each phase sets its state every frame, as the song's start hangs the stage again.
 const FOG := "fog"
 const FOG_SONG_SECONDS := 20.0
+## The flag file's mode for the floor reflection and the build-up sweep (tools/bench.sh --only reflection), in a
+## song on Classic: all on, the reflection left out, each twice, then the sweep held on and all on again.
+const REFLECTION := "reflection"
 const HZ_SONG_SECONDS := 20.0
 const RENDER_SCALES: Array[float] = [1.0, 1.2, 1.44]
 const RESOLUTION_SONG_SECONDS := 20.0
@@ -126,6 +129,12 @@ func _stage_parts(off: String) -> void:
 	var views := {"scenery": DebugView.RINGS, "shading": DebugView.FLAT_SCENERY}
 	RenderingServer.global_shader_parameter_set(&"debug_view", views.get(off, 0))
 
+## Sets the benchmark-only DebugView bits to `bits` (the reflection mode), leaving the rest of the flags alone.
+func _set_debug_bits(bits: int) -> void:
+	var mask := DebugView.NO_REFLECTION | DebugView.FORCE_SWEEP
+	if DebugView.flags & mask != bits:
+		DebugView.flags = (DebugView.flags & ~mask) | bits
+
 ## Puts back and saves the settings of a run the game closed in the middle of; call at launch.
 static func restore_interrupted() -> void:
 	var path := Constants.APPDATA_PATH + BACKUP_FILE
@@ -174,6 +183,15 @@ func _phases(mode: String) -> Array:
 				phases.append(["%s_%s_song" % [stage[0], "all_on" if off == "" else "no_" + off],
 					func(_t: float) -> void: _stage_parts(off), stage[1], FOG_SONG_SECONDS, true])
 			phases.append(["%s_all_on_again_song" % stage[0], func(_t: float) -> void: _stage_parts(""), stage[1],
+				FOG_SONG_SECONDS, true])
+		return phases
+	if mode == REFLECTION:
+		var classic := func() -> void: Settings.environment = "classic"
+		var phases := []
+		for step: Array in [["all_on", 0], ["no_reflection", DebugView.NO_REFLECTION], ["all_on_again", 0],
+				["no_reflection_again", DebugView.NO_REFLECTION], ["sweep_held", DebugView.FORCE_SWEEP], ["all_on_last", 0]]:
+			var bits: int = step[1]
+			phases.append(["classic_%s_song" % step[0], func(_t: float) -> void: _set_debug_bits(bits), classic,
 				FOG_SONG_SECONDS, true])
 		return phases
 	if mode == HZ90:
@@ -394,6 +412,7 @@ func _show_status(phase_name: String) -> void:
 ## Puts every setting the benchmark touches back.
 func _restore() -> void:
 	LowResGlow.height = _glow_height
+	_set_debug_bits(0)
 	for key: StringName in _saved:
 		if Settings.get(key) != _saved[key]:
 			Settings.set(key, _saved[key])

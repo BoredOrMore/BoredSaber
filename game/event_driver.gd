@@ -655,6 +655,8 @@ static func build_up(curve: PackedFloat32Array, beat: float, bpm: float) -> floa
 func _update_sweep(delta: float) -> void:
 	var sweeping := environment in SWEEP_STAGES and not menu_focus and _intensity <= STRIP_DROP
 	var target := build_up(_intensity_curve, show_beat, _show_bpm) if sweeping else 0.0
+	if environment in SWEEP_STAGES and DebugView.flags & DebugView.FORCE_SWEEP != 0:
+		target = 1.0
 	_sweep = move_toward(_sweep, target, delta / SWEEP_EASE_SECONDS)
 	if _sweep == 0.0:
 		for laser: Node3D in _sweep_rest:

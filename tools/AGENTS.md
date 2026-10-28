@@ -76,7 +76,7 @@ Run: `blender -b -P tools/models/<script>.py -- game/models` (`OUT_DIR` = first 
 
 ## File map: other
 
-- `bench.sh [--only resolution|msaa|glowb|total|hz90|fog] [log]`: over adb, writes the mode to
+- `bench.sh [--only resolution|msaa|glowb|total|hz90|fog|reflection] [log]`: over adb, writes the mode to
   `/sdcard/Android/data/org.godotengine.open_saber_plus/files/benchmark`, waits for `BENCH done|cancelled`, saves
   logcat to `bench.log` (or `[log]`), runs `bench_report.py`. Game must be open in the song menu; headset worn or
   proximity sensor covered. Modes match `game/Benchmark.gd:27-47`.

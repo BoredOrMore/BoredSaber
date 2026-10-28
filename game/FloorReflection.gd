@@ -43,7 +43,7 @@ func _init(track: Node3D, sabers: Array[LightSaber], deck: Node3D) -> void:
 	_blades.instance_count = _sabers.size()
 
 func _process(_delta: float) -> void:
-	visible = _deck.is_visible_in_tree()
+	visible = _deck.is_visible_in_tree() and DebugView.flags & DebugView.NO_REFLECTION == 0
 	if not visible:
 		return
 	var floor_y := _deck.global_position.y
