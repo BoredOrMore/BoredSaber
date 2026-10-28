@@ -410,6 +410,7 @@ func update_list(req: BeatSaverRequest) -> void:
 		if goto_maps_by:
 			goto_maps_by.visible = false
 		song_data = []
+		_page_first = 0
 		_cover_list += 1
 		_finished_covers.clear()
 		item_selected = -1
@@ -505,7 +506,13 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 	
 	_update_all_covers()
 	_fill_reaction_filtered_list()
-	print("BeatSaver page: %d songs in %.1f ms" % [song_data.size(), (Time.get_ticks_usec() - started) / 1000.0])
+	var non_latin := 0
+	for song: BeatSaverSongInfo in song_data.slice(_page_first):
+		if song.name.to_ascii_buffer().get_string_from_ascii() != song.name or song.name.to_utf8_buffer().size() != song.name.length():
+			non_latin += 1
+	_page_first = song_data.size()
+	print("BeatSaver page: %d songs in %.1f ms; %d new titles not in Latin letters; %s" % [song_data.size(),
+			(Time.get_ticks_usec() - started) / 1000.0, non_latin, _font_stats()])
 	_frame_work += "page %.1f ms " % ((Time.get_ticks_usec() - started) / 1000.0)
 	if result == 0:
 		if item_list.item_count > 0:
@@ -772,6 +779,21 @@ const SLOW_FRAME_SECONDS := 0.04
 const _FRAME_PROBE := preload("res://game/ui/BeatSaverPanel/FrameProbe.gd")
 var _frame_work := ""
 var _decoding := 0
+var _page_first := 0
+
+## The list font's glyph cache: texture sheets and glyphs held (Roboto; system fallback fonts aren't visible here).
+func _font_stats() -> String:
+	var font := item_list.get_theme_font(&"font") as FontFile
+	if font == null:
+		return "font not a FontFile"
+	var size := Vector2i(item_list.get_theme_font_size(&"font_size"), 0)
+	var sheets := 0
+	var glyphs := 0
+	for cache in font.get_cache_count():
+		for cached: Vector2i in font.get_size_cache_list(cache):
+			sheets += font.get_texture_count(cache, cached)
+			glyphs += font.get_glyph_list(cache, cached).size()
+	return "font sheets %d, glyphs %d (size %d)" % [sheets, glyphs, size.x]
 ## when every node's _process began and ended last frame (this page runs first, its probe last)
 var _process_began := 0
 var _process_ended := 0
@@ -787,6 +809,7 @@ func _process(delta: float) -> void:
 		var view := get_tree().root.get_viewport_rid()
 		RenderingServer.viewport_set_measure_render_time(page, true)
 		RenderingServer.viewport_set_measure_render_time(view, true)
+		print("BeatSaver slow frame at %s" % _font_stats())
 		print("BeatSaver slow frame %.0f ms: %s (%d songs, %d covers decoding, %d waiting; textures %.0f MB; render cpu page %.1f view %.1f setup %.1f ms)" % [
 				delta * 1000.0, _frame_work if _frame_work else "nothing here", song_data.size(), _decoding,
 				_finished_covers.size(), Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED) / 1048576.0,
