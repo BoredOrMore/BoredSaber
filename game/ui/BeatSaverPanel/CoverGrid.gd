@@ -11,22 +11,23 @@ class_name CoverGrid
 ## A card was pressed.
 signal item_selected(index: int)
 
-## Columns, the card's width and height, the cover's size and the gaps between cards (px; the ItemList's look:
-## 220 px columns, 200 px covers, up to TEXT_LINES lines of 22 px text under them).
+## Columns, the card's width and height, the cover's size and the gaps between cards (px; the ItemList's look: 200 px
+## covers, up to TEXT_LINES lines of 22 px text under them, inside the list styles' 16 px side padding).
 const COLUMNS := 4
-const CARD_WIDTH := 220.0
+const CARD_WIDTH := 232.0
 const CARD_HEIGHT := 300.0
 const COVER_SIZE := 200
-const GAP := 12.0
+const GAP := 8.0
+const SIDE_PADDING := 16.0
 const TEXT_LINES := 3
 const FONT_SIZE := 22
 ## Rows of cards kept ready above and below the view, so a quick scroll doesn't show empty slots.
 const SPARE_ROWS := 1
 
-## The column width, for fitting titles (the ItemList's fixed_column_width).
+## The room for a title on a card (inside its padding), for fitting titles (the ItemList's fixed_column_width).
 var fixed_column_width: int:
 	get:
-		return int(CARD_WIDTH)
+		return int(CARD_WIDTH - 2.0 * SIDE_PADDING)
 var item_count: int:
 	get:
 		return _texts.size()
@@ -90,7 +91,18 @@ func _make_cards() -> void:
 	while _cards.size() < wanted:
 		var card := Button.new()
 		card.toggle_mode = true
-		card.theme_type_variation = &"CardButton"
+		# the ItemList's look: plain, its hover colour under the pointer, its selected colour when picked (owner,
+		# 2026-10-28: the card colour on every card crowded the page)
+		# every state keeps the selected look's margins, so nothing on the card moves when it is picked
+		var plain := StyleBoxEmpty.new()
+		var selected := get_theme_stylebox(&"selected", &"ItemList")
+		for side in [SIDE_LEFT, SIDE_TOP, SIDE_RIGHT, SIDE_BOTTOM]:
+			plain.set_content_margin(side, selected.get_content_margin(side))
+		card.add_theme_stylebox_override(&"normal", plain)
+		card.add_theme_stylebox_override(&"focus", plain)
+		card.add_theme_stylebox_override(&"hover", get_theme_stylebox(&"hovered", &"ItemList"))
+		for state: StringName in [&"pressed", &"hover_pressed"]:
+			card.add_theme_stylebox_override(state, get_theme_stylebox(&"selected", &"ItemList"))
 		card.size = Vector2(CARD_WIDTH, CARD_HEIGHT)
 		card.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		card.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
