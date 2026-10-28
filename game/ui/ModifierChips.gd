@@ -19,12 +19,12 @@ func build() -> void:
 	_add_heading_icons()
 
 ## Icons before the Modifiers area's row headings (owner, 2026-10-27: more icons on the song menu), each with its
-## word: a gauge for Speed, a cracked heart for Damage (the heart is health). ICON_SIZE px, the size of the chips'
+## word: a gauge for Speed, a crossed-out bolt for Damage (the bolt is Energy, owner 2026-10-28). ICON_SIZE px, the size of the chips'
 ## text. (The Modifiers heading has none: with many changes its Reset fills the row; Environment's dropdown shows
 ## the environment's picture.)
 const ICON_SIZE := 28
 const SPEED_ICON := preload("res://game/ui/icons/gauge.svg")
-const DAMAGE_ICON := preload("res://game/ui/icons/heart-crack.svg")
+const DAMAGE_ICON := preload("res://game/ui/icons/zap-off.svg")
 
 func _add_heading_icons() -> void:
 	_prefix_icon(_menu.get_node(^"Modifiers/Speed/Title") as Label, SPEED_ICON)

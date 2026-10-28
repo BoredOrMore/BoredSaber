@@ -30,6 +30,9 @@ Check:
 - [ ] Typed text, selections and saved results are visible where the player looks.
 - [ ] Wording follows the root `AGENTS.md` (no NJS/NPS/RT/JSON; one term per concept; short).
 - [ ] No hidden modes, no duplicate filters, current state shown plainly.
+- [ ] Each icon means one thing everywhere: no icon stands for two concepts, and a new icon takes a meaning no
+  other icon has (search `game/ui/icons/` and every `preload(` of an `.svg`). (The bolt meant both notes per second
+  and Energy, 2026-10-28: Energy keeps the bolt, notes per second got a music note.)
 - [ ] Test every state, not only the happy path: nothing selected, empty list, every filter on, no
       network (request fails), slow network, cancel at each step, error on load, first launch with
       default settings, mixed reality on, left-handed. Each one shows a message and a way on.

@@ -2,9 +2,9 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cpbm4ujhny0qa"
-path.s3tc="res://.godot/imported/zap.svg-ce4c9a83a49b656e6039b1fdc6b18fef.s3tc.ctex"
-path.etc2="res://.godot/imported/zap.svg-ce4c9a83a49b656e6039b1fdc6b18fef.etc2.ctex"
+uid="uid://bqmwan7wegvmp"
+path.s3tc="res://.godot/imported/zap-off.svg-84af18419a45bcf91af4d6bc81c01f73.s3tc.ctex"
+path.etc2="res://.godot/imported/zap-off.svg-84af18419a45bcf91af4d6bc81c01f73.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -12,8 +12,8 @@ metadata={
 
 [deps]
 
-source_file="res://game/ui/icons/zap.svg"
-dest_files=["res://.godot/imported/zap.svg-ce4c9a83a49b656e6039b1fdc6b18fef.s3tc.ctex", "res://.godot/imported/zap.svg-ce4c9a83a49b656e6039b1fdc6b18fef.etc2.ctex"]
+source_file="res://game/ui/icons/zap-off.svg"
+dest_files=["res://.godot/imported/zap-off.svg-84af18419a45bcf91af4d6bc81c01f73.s3tc.ctex", "res://.godot/imported/zap-off.svg-84af18419a45bcf91af4d6bc81c01f73.etc2.ctex"]
 
 [params]
 

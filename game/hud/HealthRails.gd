@@ -15,7 +15,7 @@ const RAIL_TILT_DEGREES := 30.0
 const RAIL_NEAR_Z := -1.0
 ## Worked out from the player's real eye (owner, 2026-10-27: further out, like the HUD, and from the eye): the strips
 ## start where the floor is RAIL_NEAR_DEGREES below it (they began 38 degrees down at 2 m, under a look down the
-## track) and grow with that distance against RAIL_LAID_OUT_DISTANCE, so their width and the heart keep their size
+## track) and grow with that distance against RAIL_LAID_OUT_DISTANCE, so their width and the bolt keep their size
 ## in view.
 const RAIL_NEAR_DEGREES := 22.0
 const RAIL_LAID_OUT_DISTANCE := 2.0
@@ -25,7 +25,7 @@ const RAIL_LENGTH := 5.0
 const RAIL_WIDTH := 0.05
 ## Must match edge_pad in HealthRail.gdshader.
 const EDGE_PAD := 0.01
-## Heart icon at the near end of the left strip, saying what the strips show: its size and how far it floats above
+## Bolt icon (Energy) at the near end of the left strip, saying what the strips show: its size and how far it floats above
 ## the strip's start.
 const ICON_SIZE := 0.1
 const ICON_LIFT := 0.1
@@ -59,7 +59,7 @@ func _ready() -> void:
 		_bars.append(_strip(side, RAIL_LENGTH, RAIL_NEAR_Z - RAIL_LENGTH / 2, _bar_material))
 		for i in Constants.FAIL_LIVES:
 			_pips.append(_strip(side, _pip_length, RAIL_NEAR_Z - _pip_length / 2 - i * (_pip_length + PIP_GAP), _lost_material))
-	_icon.texture = preload("res://game/ui/heart.svg")
+	_icon.texture = preload("res://game/ui/bolt.svg")
 	_icon.pixel_size = ICON_SIZE / _icon.texture.get_width()
 	_icon.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_icon.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS

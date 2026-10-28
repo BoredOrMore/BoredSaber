@@ -11,7 +11,8 @@ class_name StatPills
 ## and on the song menu its length and a workout's sets.
 
 const READY_ICON := preload("res://game/ui/icons/timer.svg")
-const NPS_ICON := preload("res://game/ui/icons/zap.svg")
+## a music note for notes per second; the bolt means Energy (owner, 2026-10-28: one symbol, one meaning)
+const NPS_ICON := preload("res://game/ui/icons/music.svg")
 const FLOW_ICON := preload("res://game/ui/icons/shuffle.svg")
 const LENGTH_ICON := preload("res://game/ui/icons/clock.svg")
 const WORKOUT_ICON := preload("res://game/ui/icons/dumbbell.svg")

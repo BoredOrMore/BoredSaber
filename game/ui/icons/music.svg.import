@@ -2,9 +2,9 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bghmole1owl33"
-path.s3tc="res://.godot/imported/heart-crack.svg-f0f9d7752aae067b813153d7661f75ba.s3tc.ctex"
-path.etc2="res://.godot/imported/heart-crack.svg-f0f9d7752aae067b813153d7661f75ba.etc2.ctex"
+uid="uid://soxtvpm008d3"
+path.s3tc="res://.godot/imported/music.svg-02fb277c82123f7113c0224b3d56ba8d.s3tc.ctex"
+path.etc2="res://.godot/imported/music.svg-02fb277c82123f7113c0224b3d56ba8d.etc2.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
@@ -12,8 +12,8 @@ metadata={
 
 [deps]
 
-source_file="res://game/ui/icons/heart-crack.svg"
-dest_files=["res://.godot/imported/heart-crack.svg-f0f9d7752aae067b813153d7661f75ba.s3tc.ctex", "res://.godot/imported/heart-crack.svg-f0f9d7752aae067b813153d7661f75ba.etc2.ctex"]
+source_file="res://game/ui/icons/music.svg"
+dest_files=["res://.godot/imported/music.svg-02fb277c82123f7113c0224b3d56ba8d.s3tc.ctex", "res://.godot/imported/music.svg-02fb277c82123f7113c0224b3d56ba8d.etc2.ctex"]
 
 [params]
 
