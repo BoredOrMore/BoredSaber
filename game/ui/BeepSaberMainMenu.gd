@@ -747,6 +747,13 @@ func selected_difficulty() -> DifficultyInfo:
 	return map.difficulty_beatmaps[_map_difficulty] if map and _map_difficulty >= 0 and _map_difficulty < map.difficulty_beatmaps.size() else null
 
 ## True while a song in the list is selected.
+## The difficulty Play would start for the picked song, or null with none picked.
+func picked_difficulty() -> DifficultyInfo:
+	if current_selected < 0 or current_selected >= _currently_selected_songlist_ref.size():
+		return null
+	var set0 := _currently_selected_songlist_ref[current_selected].difficulty_beatmaps
+	return set0[_map_difficulty] if _map_difficulty < set0.size() else null
+
 func has_song_picked() -> bool:
 	return not _loading and current_selected >= 0 and current_selected < _currently_selected_songlist_ref.size()
 

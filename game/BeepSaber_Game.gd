@@ -176,12 +176,68 @@ const MILESTONE_RUMBLE_DELAY := 0.12
 var failing := false
 # the last song start's timing, kept while it watches the frames after the start
 var _start_timing: StartTiming
+## Starting a song from the menu (owner, 2026-10-28: slashing Play froze the view). On the Pico a start took 70-90 ms
+## (reading the map 10, parsing it 31-37, loading the song 22-27) and the next frame 30-40 ms (cuts bench, d23b0c6).
+## So the picked difficulty's map file and song are read on a worker thread as soon as they're picked (_preload), and
+## the rest runs behind a short black fade: START_FADE_SECONDS down, the start, START_HOLD_SECONDS while its first
+## frames draw, back up.
+const START_FADE_SECONDS := 0.15
+const START_HOLD_SECONDS := 0.2
+var _preload_key := ""
+var _preload_task := -1
+var _preloaded := {}
 
+## Starts reading the map file and the song of `difficulty` of `info` on a worker thread, unless that's the one read.
+func _preload(info: MapInfo, difficulty: DifficultyInfo) -> void:
+	var key := info.filepath + difficulty.beatmap_filename
+	if key == _preload_key:
+		return
+	_finish_preload()
+	_preload_key = key
+	var into := {}
+	_preloaded = into
+	_preload_task = WorkerThreadPool.add_task(_read_song.bind(info, difficulty, into))
+
+## Reads the map file (as "map_data") and the song (as "stream", with its file's "size") into `into`; on a worker.
+static func _read_song(info: MapInfo, difficulty: DifficultyInfo, into: Dictionary) -> void:
+	into["map_data"] = Utils.binary_to_json(Utils.read_binary_file(info.filepath, difficulty.beatmap_filename))
+	var filename := info.filepath + info.song_filename
+	if FileAccess.file_exists(filename):
+		into["stream"] = AudioStreamOggVorbis.load_from_file(filename)
+		into["size"] = FileAccess.open(filename, FileAccess.READ).get_length()
+
+## Waits for the reading under way, if any.
+func _finish_preload() -> void:
+	if _preload_task >= 0:
+		WorkerThreadPool.wait_for_task_completion(_preload_task)
+		_preload_task = -1
+
+## What was read for `difficulty` of `info` (waiting for it if it's still being read), once; {} if something else was.
+func _take_preload(info: MapInfo, difficulty: DifficultyInfo) -> Dictionary:
+	if _preload_key != info.filepath + difficulty.beatmap_filename:
+		return {}
+	_finish_preload()
+	_preload_key = ""
+	return _preloaded
+
+## Starts a song: from the song menu behind a short black fade (START_*), otherwise (restart) at once.
 func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
+	var from_menu := gamestate == gamestate_mapselection and _result_moment != null
+	if from_menu:
+		await _result_moment.fade_out(START_FADE_SECONDS)
+	_start_map(info, map_difficulty)
+	if from_menu:
+		await get_tree().create_timer(START_HOLD_SECONDS).timeout
+		_result_moment.fade_in(START_FADE_SECONDS)
+
+## Loads the song and its map (using what _preload read when it's this one), sets the stage up and starts playing.
+func _start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	points_label_driver.visible = true
 	var timing := StartTiming.new()
 	_start_timing = timing
-	var map_data := Utils.binary_to_json(Utils.read_binary_file(info.filepath, map_difficulty.beatmap_filename))
+	var preloaded := _take_preload(info, map_difficulty)
+	var map_data: Dictionary = preloaded["map_data"] if preloaded.has("map_data") else \
+			Utils.binary_to_json(Utils.read_binary_file(info.filepath, map_difficulty.beatmap_filename))
 	
 	if (map_data.is_empty()):
 		vr.log_error("Could not read map data from " + info.filepath + "/" + map_difficulty.beatmap_filename)
@@ -213,7 +269,10 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	
 	var filename := info.filepath + info.song_filename
 	vr.log_info("loading: " + filename)
-	if FileAccess.file_exists(filename):
+	if preloaded.has("stream"):
+		song_player.stream = preloaded["stream"]
+		Loudness.apply(song_player.bus, song_player.stream, Loudness.key(preloaded["size"], song_player.stream))
+	elif FileAccess.file_exists(filename):
 		song_player.stream = AudioStreamOggVorbis.load_from_file(filename)
 		Loudness.apply(song_player.bus, song_player.stream, Loudness.key(FileAccess.open(filename, FileAccess.READ).get_length(),
 				song_player.stream))
@@ -1146,6 +1205,9 @@ func _on_BeepSaberMainMenu_difficulty_changed(map_info: MapInfo, diff_rank: int)
 	ranks.visible = diff_rank >= 0
 	if diff_rank >= 0:
 		ranks.load_highscores(map_info, diff_rank)
+	var difficulty := menu.picked_difficulty()
+	if map_info and difficulty and map_info.have_song:
+		_preload(map_info, difficulty)
 
 ## Shows the note to slash, in the selected song's colours, while the song menu is open with a song picked and
 ## nothing (keyboard, "Who's playing?") in front of it.
