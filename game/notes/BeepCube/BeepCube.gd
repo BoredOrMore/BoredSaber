@@ -116,7 +116,7 @@ func spawn(note_info: ColorNoteInfo, current_beat: float) -> void:
 	small_coll_area.set_collision_layer_value(CollisionLayerConstants.LeftNote_bit, not is_left_note)
 	small_coll_area.set_collision_layer_value(CollisionLayerConstants.RightNote_bit, is_left_note)
 	
-	start_jump(mi, jump_drop(note_info.line_layer, note_info.start_row), note_info.cut_angle)
+	start_jump(mi, note_info.cut_angle)
 	
 	slice_particles.reset()
 	mi.visible = true

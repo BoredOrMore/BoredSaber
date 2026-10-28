@@ -13,8 +13,6 @@ static loader in `game/Map.gd` that fills them. Format reference: https://bsmg.w
   record per object, each with `new_v2`/`new_v3` factories (`ChainInfo` is v3 only). v4 is converted to
   v3-shaped dicts in `Map.gd` before calling `new_v3`.
 - `../Map.gd` - static loader and current-map state (`current_info`, `*_stack`, colours, `one_saber`).
-  After loading, `Map.set_start_rows` sets each note's and bomb's `start_row` (how many sit below it in its lane on its
-  beat) for the note jump (`Cuttable.start_jump`).
 
 ## How it connects
 

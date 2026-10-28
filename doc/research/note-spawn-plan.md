@@ -125,3 +125,20 @@ Sources: ArcViewer source, https://github.com/AllPoland/ArcViewer (`Assets/__Scr
 bsmap `NoteJumpSpeed` (half jump duration / jump distance), https://jsr.io/@kvl/bsmap/doc/~/NoteJumpSpeed;
 ChroMapper difficulty settings, https://chromapper.atlassian.net/wiki/spaces/UG/pages/1048655/Difficulty+settings;
 the Beat Saber PC recording (2026-10-28, `recordings/`, not in git).
+
+## 7. Decision (owner, 2026-10-28)
+
+- Built: option C, fully Beat Saber (b75b343). No 180° spin-in, no bob, no grow-in. Full size from the start, the turn
+  to the cut direction in the first 30% of the jump (sine-out), driven by jump progress. A lean to face the head on
+  90/360 maps only: in the recording's second song (Standard), near notes show their sides as plain perspective
+  does, so Standard gets none.
+- Then **no rise** (owner's pick "ข"). With the start-row arc (ArcViewer's numbers: 0.6 m under the bottom row, 0.6 m
+  up per stacked note) the owner saw notes rise from the floor, while Beat Saber's notes look as if they fall from
+  above.
+  - Measured frame by frame (`fall_check_bs_vs_ours.jpg`, top: Beat Saber 127.55-128.3 s; bottom: ours with the
+    rise), a Beat Saber note's offset below the horizon grows in step with its size over its last 1.1 s. That means
+    its height stays nearly level.
+  - The "fall" is perspective: anything below eye level slides down the screen as it comes closer.
+  - Our rise worked against that, so ours read as coming up from the floor.
+  - Notes, bombs, chains and arcs now stay at their row's height for the whole jump. The start rows
+    (`Map.set_start_rows`) and the arc's matching lift are gone.

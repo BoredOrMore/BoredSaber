@@ -90,4 +90,4 @@ func spawn(info: BombInfo, current_beat: float) -> void:
 	
 	add_lane_rotation(info.rotation)
 	
-	start_jump($BombAnimation as Node3D, jump_drop(info.line_layer, info.start_row), 0.0)
+	start_jump($BombAnimation as Node3D, 0.0)

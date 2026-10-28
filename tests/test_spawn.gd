@@ -95,11 +95,11 @@ func test_notes(speed: float) -> void:
 	# the jump (Cuttable.start_jump): at the hit plane the note is at its row, full size, in its final direction
 	cube.spawn(ColorNoteInfo.new(5.0, 2, 2, 1, PI * 0.5, 0.0), 5.0)
 	check(near_t(cube.mi.transform, Transform3D.IDENTITY),
-		"a note at the hit plane has jumped to its row, full size, turned (visual %s)" % cube.mi.transform)
-	# where it appears it starts below its row, not yet turned
+		"a note at the hit plane is at its row, full size, turned (visual %s)" % cube.mi.transform)
+	# where it appears it is already at its row (no rise: the owner's pick), not yet turned
 	cube.spawn(ColorNoteInfo.new(2.0 + Map.half_jump_beats, 2, 1, 1, PI * 0.5, 0.0), 2.0)
-	var start_drop := (cube.mi.global_position - cube.global_position).y
-	check(start_drop < -0.1, "a note where it appears starts below its row (%.2f m)" % start_drop)
+	var start_offset := (cube.mi.global_position - cube.global_position).y
+	check(absf(start_offset) < EPS, "a note where it appears is at its row (%.3f m off)" % start_offset)
 	check(absf(cube.mi.global_basis.x.normalized().dot(Vector3.RIGHT) - 1.0) < 0.01,
 		"a note where it appears hasn't turned yet (visual x %s)" % cube.mi.global_basis.x)
 

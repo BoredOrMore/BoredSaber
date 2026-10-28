@@ -134,10 +134,6 @@ func build_mesh_arrays() -> void:
 	var verts := PackedVector3Array()
 	var normals := PackedVector3Array()
 	var uvs := PackedVector2Array()
-	# UV2.x: how far below its place each point starts the note jump, from the head's to the tail's (Arc.gdshader)
-	var drops := PackedVector2Array()
-	var head_drop := Cuttable.jump_drop(head_line_layer, 0)
-	var tail_drop := Cuttable.jump_drop(tail_line_layer, 0)
 	var indices := PackedInt32Array()
 	var ring_bases: Array[Basis] = []
 	var ring_points: Array[Vector3] = []
@@ -155,7 +151,6 @@ func build_mesh_arrays() -> void:
 			verts.append(point + local)
 			normals.append(local.normalized())
 			uvs.append(Vector2(offset, j * 0.5 / sides))
-			drops.append(Vector2(lerpf(head_drop, tail_drop, offset / maxf(length, 1e-4)), 0.0))
 		if i > 0:
 			var a := (i - 1) * (sides + 1)
 			var b := i * (sides + 1)
@@ -171,7 +166,6 @@ func build_mesh_arrays() -> void:
 			normals.append(basis.z if end == 0 else -basis.z)
 			var n := (p + Vector2(MESH_RADIUS, MESH_RADIUS)) / (2.0 * MESH_RADIUS)
 			uvs.append(Vector2(0.5 * n.x if end == 0 else 1.0 - 0.5 * n.x, 1.0 - 0.5 * n.y))
-			drops.append(Vector2(head_drop if end == 0 else tail_drop, 0.0))
 		if end == 0:
 			indices.append_array([start, start + 1, start + 2, start, start + 2, start + 3])
 		else:
@@ -181,7 +175,6 @@ func build_mesh_arrays() -> void:
 	mesh_arrays[Mesh.ARRAY_VERTEX] = verts
 	mesh_arrays[Mesh.ARRAY_NORMAL] = normals
 	mesh_arrays[Mesh.ARRAY_TEX_UV] = uvs
-	mesh_arrays[Mesh.ARRAY_TEX_UV2] = drops
 	mesh_arrays[Mesh.ARRAY_INDEX] = indices
 
 static func new_v2(arc_dict: Dictionary) -> ArcInfo:
