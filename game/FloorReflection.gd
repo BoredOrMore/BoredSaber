@@ -6,14 +6,12 @@ class_name FloorReflection
 ## the deck isn't (the old track, mixed reality). Untuned.
 
 const SHADER := preload("res://game/FloorReflection.gdshader")
-const NOTE_TEXTURE := preload("res://game/notes/BeepCube/BeepCubeEmission.png")
 ## at most this many notes are mirrored at once (the pool presizes 100; a dense map shows about 30 in flight)
 const MAX_NOTES := 64
 ## the mirrored blade's thickness (m): a thin bar, as the blade's glowing core reads
 const BLADE_WIDTH := 0.03
 ## custom data kinds the shader reads (FloorReflection.gdshader)
-const KIND_ARROW := 0.0
-const KIND_PLAIN := 1.0
+const KIND_NOTE := 0.0
 const KIND_LEFT_SABER := 2.0
 const KIND_RIGHT_SABER := 3.0
 
@@ -31,7 +29,6 @@ func _init(track: Node3D, sabers: Array[LightSaber], deck: Node3D) -> void:
 	_sabers = sabers
 	_deck = deck
 	_material.shader = SHADER
-	_material.set_shader_parameter(&"texture_emission", NOTE_TEXTURE)
 	for multimesh: MultiMesh in [_notes, _blades]:
 		multimesh.transform_format = MultiMesh.TRANSFORM_3D
 		multimesh.use_custom_data = true
@@ -62,7 +59,7 @@ func _process(_delta: float) -> void:
 			_notes.mesh = _note_mesh
 			_notes.instance_count = MAX_NOTES
 		var color := (cube.mi.material_override as ShaderMaterial).get_shader_parameter(&"color") as Color
-		color.a = KIND_PLAIN if cube.is_dot or not Settings.arrows_enabled else KIND_ARROW
+		color.a = KIND_NOTE
 		_notes.set_instance_transform(count, mirror * cube.mi.global_transform)
 		_notes.set_instance_custom_data(count, color)
 		count += 1
