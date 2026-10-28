@@ -85,7 +85,7 @@ const FAIL_LIVES := 4
 # Modifiers dropdown: [health_mode, fail_mode, label]
 # Health bar damage choices: [scale applied to every health loss, label]
 const DAMAGE_SCALES := [ [0.5, "50%"], [1.0, "100%"], [1.5, "150%"] ]
-const FAIL_OPTIONS := [ [false, FAIL_MODE_BAR, "No Fail"], [true, FAIL_MODE_BAR, "Health"], [true, FAIL_MODE_LIVES, "4 Lives"], [true, FAIL_MODE_INSTANT, "Instant"] ]
+const FAIL_OPTIONS := [ [false, FAIL_MODE_BAR, "No Fail"], [true, FAIL_MODE_BAR, "Energy"], [true, FAIL_MODE_LIVES, "4 Lives"], [true, FAIL_MODE_INSTANT, "Instant"] ]
 const DIFFICULTY_MASK := 0xFF
 const DIFFICULTY_HEALTH := 0x100
 const DIFFICULTY_BOMBS := 0x200
