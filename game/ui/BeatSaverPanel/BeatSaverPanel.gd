@@ -765,6 +765,18 @@ func _on_download_button_up() -> void:
 		download_next()
 	_update_download_button()
 
+## Writes a downloaded song's zip `body` to `zippath`, unpacks it into `song_out_dir` and removes the zip; on a worker
+## thread. Appends true to `saved` when the zip could be written.
+static func _save_song(body: PackedByteArray, zippath: String, song_out_dir: String, saved: Array) -> void:
+	var file := FileAccess.open(zippath, FileAccess.WRITE)
+	if not file:
+		return
+	file.store_buffer(body)
+	file.close()
+	Utils.unzip(zippath, song_out_dir)
+	DirAccess.remove_absolute(zippath)
+	saved.append(true)
+
 func download_next() -> void:
 	if downloading.size() > 0:
 		httpdownload.request(downloading[0][1]['downloadURL'])
@@ -789,15 +801,6 @@ func _on_HTTPRequest_download_completed(result: int, response_code: int, headers
 		var song_dir_name: String = downloading[0][1]["hash"]
 
 		var zippath := Constants.APPDATA_PATH+"temp/%s.zip"%song_dir_name
-		if not has_error:
-			var file := FileAccess.open(zippath,FileAccess.WRITE)
-			if file:
-				file.store_buffer(body)
-				file.close()
-			else:
-				vr.log_file_error(FileAccess.get_open_error(), zippath, "BeatSaverPanel.gd at line 261")
-				has_error = true
-		
 		var song_out_dir := Constants.APPDATA_PATH+("Songs/%s/"%song_dir_name)
 		if not has_error:
 			DirAccess.remove_absolute(song_out_dir)
@@ -809,15 +812,18 @@ func _on_HTTPRequest_download_completed(result: int, response_code: int, headers
 				has_error = true
 		
 		if not has_error:
-			# unpacked on a worker thread: on the main thread it froze the view for each song (owner, 2026-10-28)
-			var task := WorkerThreadPool.add_task(Utils.unzip.bind(zippath, song_out_dir))
+			# saved and unpacked on a worker thread: on the main thread it froze the view for each song (owner,
+			# 2026-10-28)
+			var saved := []
+			var task := WorkerThreadPool.add_task(_save_song.bind(body, zippath, song_out_dir, saved))
 			while not WorkerThreadPool.is_task_completed(task):
 				await get_tree().process_frame
 			WorkerThreadPool.wait_for_task_completion(task)
-			SongTags.remember(song_dir_name, downloading[0][2])
-			_downloaded.append(song_dir_name)
-		
-		DirAccess.remove_absolute(zippath)
+			if saved.is_empty():
+				vr.log_file_error(FileAccess.get_open_error(), zippath, "BeatSaverPanel._save_song")
+			else:
+				SongTags.remember(song_dir_name, downloading[0][2])
+				_downloaded.append(song_dir_name)
 		
 		downloading.remove_at(0)
 		

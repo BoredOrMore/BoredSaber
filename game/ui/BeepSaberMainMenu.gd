@@ -255,13 +255,19 @@ func _load_playlists() -> void:
 ## (owner, 2026-10-28: the view froze downloading many songs; reloading the whole library after a queue was most of
 ## it).
 func add_downloaded_songs(dir_names: Array[String]) -> void:
-	for dir_name in dir_names:
-		if all_song_hashes.has(dir_name):
-			continue
-		var song := Map.load_map_info(Constants.APPDATA_PATH + "Songs/" + dir_name + "/")
-		if song:
-			_all_songs.append(song)
-		all_song_hashes.append(dir_name)
+	var new_names := dir_names.filter(func(dir_name: String) -> bool: return not all_song_hashes.has(dir_name))
+	# their info read on a worker thread, as the download's unzip
+	var songs := []
+	var task := WorkerThreadPool.add_task(func() -> void:
+		for dir_name: String in new_names:
+			songs.append(Map.load_map_info(Constants.APPDATA_PATH + "Songs/" + dir_name + "/")))
+	while not WorkerThreadPool.is_task_completed(task):
+		await get_tree().process_frame
+	WorkerThreadPool.wait_for_task_completion(task)
+	for i in new_names.size():
+		if songs[i]:
+			_all_songs.append(songs[i])
+		all_song_hashes.append(new_names[i])
 	song_list_changed.emit()
 	SongTags.look_up_missing(self, _all_songs, _show_environment)
 	_sort_songs()
