@@ -161,7 +161,7 @@ var _preview_cache := {}
 ## URL of the preview being downloaded.
 var _preview_url := ""
 
-@onready var item_list := $ItemList as ItemList
+@onready var item_list := $ItemList as CoverGrid
 @onready var sort_tabs := $SortTabs as HBoxContainer
 @onready var search_button := $search as Button
 @onready var clear_search_button := $ClearSearch as Button
@@ -220,11 +220,6 @@ func _levels(song: BeatSaverSongInfo) -> Array:
 		if difficulty.characteristic == "" or difficulty.characteristic == "Standard":
 			levels.append(MapStats.level_of(info, difficulty, MapStats.get_stats(info, difficulty)))
 	return [levels, false]
-
-## A cover with the map's level strip (LevelStrip).
-func _with_levels(cover: Image, song: BeatSaverSongInfo) -> ImageTexture:
-	var levels := _levels(song)
-	return LevelStrip.compose(cover, levels[0], picked_level(), levels[1])
 
 ## A title cut to fit one line of a card, ending in "…"; the details panel shows it whole.
 func _one_line(title: String) -> String:
@@ -405,9 +400,6 @@ func _search_url(page: int, query: String, sort_order: String) -> String:
 func update_list(req: BeatSaverRequest) -> void:
 	if req.page == 0:
 		# brand new request, clear list to prep for reload
-		# the old covers go a few a frame (_release_covers): hundreds freed at once stalled the headset about a second
-		for i in item_list.item_count:
-			_retired_covers.append(item_list.get_item_icon(i))
 		item_list.clear()
 		label.text = "Loading songs…"
 		if goto_maps_by:
@@ -458,13 +450,13 @@ func _get_selected_song() -> BeatSaverSongInfo:
 var _placeholder_cards := {}
 var _placeholder_image: Image
 
-func _placeholder_card(song: BeatSaverSongInfo) -> ImageTexture:
+func _placeholder_card(song: BeatSaverSongInfo) -> Image:
 	var levels := _levels(song)
 	var key := "%s|%d|%s" % [levels[0], picked_level(), levels[1]]
 	if not _placeholder_cards.has(key):
 		if _placeholder_image == null:
 			_placeholder_image = placeholder_cover.get_image()
-		_placeholder_cards[key] = LevelStrip.compose(_placeholder_image, levels[0], picked_level(), levels[1])
+		_placeholder_cards[key] = LevelStrip.compose_image(_placeholder_image, levels[0], picked_level(), levels[1])
 	return _placeholder_cards[key]
 
 func _on_HTTPRequest_request_completed(result: int, _response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
@@ -486,9 +478,7 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 						var parsed_song := BeatSaverSongInfo.new(i as Dictionary)
 						if not parsed_song.is_playable() or (prev_request.type != "uploader" and not parsed_song.passes_reaction_filter()):
 							continue
-						var index := item_list.add_item(_card_text(parsed_song))
-						item_list.set_item_icon(index, _placeholder_card(parsed_song))
-						item_list.set_item_tooltip_enabled(index, false)
+						item_list.add_item(_card_text(parsed_song), _placeholder_card(parsed_song))
 						song_data.append(parsed_song)
 
 	elif _list_retries_left > 0 and prev_request != null:
@@ -802,7 +792,6 @@ var _process_began := 0
 var _process_ended := 0
 
 func _process(delta: float) -> void:
-	_retired_covers.resize(maxi(_retired_covers.size() - COVERS_RELEASED_PER_FRAME, 0))
 	var now := Time.get_ticks_usec()
 	if delta > SLOW_FRAME_SECONDS and is_visible_in_tree():
 		print("BeatSaver slow frame split: every _process %.1f ms, the rest (physics, input, drawing, waiting on the headset) %.1f ms" % [
@@ -970,10 +959,6 @@ var _cover_list := 0
 const COVER_FLUSH_SECONDS := 0.25
 var _finished_covers := []
 var _cover_flush_wait := 0.0
-## Covers of a list that was replaced (a filter change, a search), let go COVERS_RELEASED_PER_FRAME a frame (headset,
-## f9cfdf1: changing the filter on a 371-song list froze a second as 30 MB of covers were freed together).
-const COVERS_RELEASED_PER_FRAME := 8
-var _retired_covers: Array[Texture2D] = []
 
 func _update_all_covers() -> void:
 	httpcoverdownload.cancel_request()
@@ -1023,7 +1008,7 @@ func _flush_covers(delta: float) -> void:
 	for cover: Array in _finished_covers:
 		var index: int = cover[0]
 		if index < song_data.size() and song_data[index] == cover[1]:
-			item_list.set_item_icon(index, ImageTexture.create_from_image(cover[2]))
+			item_list.set_item_image(index, cover[2])
 	_finished_covers.clear()
 	var canvas := get_parent().get_parent()
 	if canvas is OQ_UI2DCanvas: (canvas as OQ_UI2DCanvas)._input_update()

@@ -2,6 +2,7 @@
 
 [ext_resource type="StyleBox" path="res://game/ui/menu_panel.tres" id="menu_panel"]
 [ext_resource type="Script" path="res://game/ui/BeatSaverPanel/BeatSaverPanel.gd" id="2"]
+[ext_resource type="Script" path="res://game/ui/BeatSaverPanel/CoverGrid.gd" id="cover_grid"]
 [ext_resource type="PackedScene" uid="uid://dtipmx5ep1dkk" path="res://game/ui/vr_slider.tscn" id="3"]
 [ext_resource type="Texture2D" uid="uid://cviyxvrpvyr0g" path="res://game/data/beepsaber_logo.png" id="5"]
 [ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="menu_theme"]
@@ -49,20 +50,14 @@ offset_top = 160.0
 offset_right = 1000.0
 offset_bottom = 216.0
 
-[node name="ItemList" type="ItemList" parent="."]
+[node name="ItemList" type="ScrollContainer" parent="."]
 layout_mode = 0
 offset_left = 16.0
 offset_top = 228.0
 offset_right = 1000.0
 offset_bottom = 926.0
-max_text_lines = 3
 theme_override_font_sizes/font_size = 22
-theme_override_constants/h_separation = 12
-max_columns = 4
-same_column_width = true
-fixed_column_width = 220
-icon_mode = 0
-fixed_icon_size = Vector2i(200, 200)
+script = ExtResource("cover_grid")
 
 [node name="SortTabs" type="HBoxContainer" parent="."]
 layout_mode = 0

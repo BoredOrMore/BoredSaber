@@ -59,10 +59,7 @@ static func prepare(parent: Node) -> void:
 
 ## The cover with the strip: levels the map has (indices in Constants.DIFFICULTY_LEVELS), the player's level (-1
 ## none) framed, and the estimate mark when not measured.
-static func compose(cover: Image, levels: Array, mine: int, estimated: bool) -> ImageTexture:
-	return ImageTexture.create_from_image(compose_image(cover, levels, mine, estimated))
-
-## compose's image, before it becomes a texture: safe on a worker thread once prepare has run.
+## Safe on a worker thread once prepare has run.
 static func compose_image(cover: Image, levels: Array, mine: int, estimated: bool) -> Image:
 	var image := cover.duplicate() as Image
 	if image.is_compressed():
