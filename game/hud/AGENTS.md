@@ -34,7 +34,7 @@ arrangement (owner, 2026-10-27).
 - `points_label.gd/.tscn` (class `PointsLabel`): one popped cut number (`Hud.NUMBER_FONT`) or MISS (the live grade's
   font, `Hud.GRADE_FONT`, Kanit Black Italic; every digit and letter checked to tessellate cleanly at 100 px).
 - `ResultMoment.gd` (class `ResultMoment`, made in `BeepSaber_Game._ready`): the end of a song. On a fail a big "FAILED"
-  `WORD_DISTANCE` ahead of the real eye in the grade font, white-hot with a danger-colour glow (Label3D outline layers,
+  `WORD_DISTANCE` ahead of the real eye in the grade font, drawn over the nearer HUD (`WORD_PRIORITY`, no depth test), white-hot with a danger-colour glow (Label3D outline layers,
   as the HUD grade's) and a faint mirror image in the deck; on a fail or a clear a `FADE_SECONDS` fade to black (a quad
   on the XR camera, no post-processing) and back up on the score screen. `stage_capture --failed-word 1`.
 - `HealthRails.gd` (class `HealthRails`) + `HealthRail.gdshader`: health as two strips beside the track (bar mode

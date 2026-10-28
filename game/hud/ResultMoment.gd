@@ -9,6 +9,9 @@ class_name ResultMoment
 
 const WORD := "FAILED"
 const WORD_DISTANCE := 7.0
+## the word draws over everything nearer, the HUD's combo and accuracy included (owner, 2026-10-28), at this render
+## priority (its glow layers just under it); only the fade quad draws over it
+const WORD_PRIORITY := 20
 const WORD_HEIGHT := 1.0
 ## the word's letters at a 100 px font through pixel_size; Kanit's capitals are about 0.73 of the font size
 const FONT_SIZE := 100
@@ -54,7 +57,8 @@ func _init(camera: Node3D) -> void:
 	_fade.visible = false
 	camera.add_child(_fade)
 
-## The word's glow layers and core under `holder`, at `alpha`; the mirror's ignores depth so the deck doesn't hide it.
+## The word's glow layers and core under `holder`, at `alpha`, drawn over what's nearer (the HUD; the mirror's over
+## the deck).
 func _build_word(holder: Node3D, alpha: float) -> void:
 	var pixel := WORD_HEIGHT / (FONT_SIZE * CAP_SHARE)
 	for i in GLOW_LAYERS.size() + 1:
@@ -65,19 +69,20 @@ func _build_word(holder: Node3D, alpha: float) -> void:
 		label.pixel_size = pixel
 		label.shaded = false
 		label.double_sided = true
-		label.no_depth_test = alpha < 1.0
+		label.no_depth_test = true
 		label.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		if i < GLOW_LAYERS.size():
 			# outlines only, widest at the back
 			label.modulate = Color(1, 1, 1, 0)
 			label.outline_size = GLOW_LAYERS[i][0]
 			label.outline_modulate = Color(Constants.DANGER_COLOR, GLOW_LAYERS[i][1] * alpha)
-			label.render_priority = -1 - i
-			label.outline_render_priority = -1 - i
+			label.render_priority = WORD_PRIORITY - 1 - i
+			label.outline_render_priority = WORD_PRIORITY - 1 - i
 			label.position.z = -0.01 * (i + 1)
 		else:
 			label.modulate = Color(Constants.DANGER_COLOR.lerp(Color.WHITE, CORE_WHITE), alpha)
 			label.outline_size = 0
+			label.render_priority = WORD_PRIORITY
 		holder.add_child(label)
 
 ## Pops "FAILED" up WORD_DISTANCE ahead of `eye`, with its mirror image in the deck.
