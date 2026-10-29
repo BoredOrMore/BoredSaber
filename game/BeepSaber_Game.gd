@@ -36,7 +36,7 @@ var current_health := Constants.HEALTH_START
 
 @onready var main_menu := $MainMenu_OQ_UI2DCanvas as OQ_UI2DCanvas
 @onready var pause_menu := $PauseMenu_canvas as OQ_UI2DCanvas
-@onready var pause_countdown := $Pause_countdown as OQ_UI2DLabel
+@onready var pause_countdown := $Pause_countdown as Label3D
 @onready var settings_canvas := $Settings_canvas as OQ_UI2DCanvas
 @onready var settings_panel := settings_canvas.ui_control as SettingsPanel
 @onready var profiles_canvas := $Profiles_canvas as OQ_UI2DCanvas
@@ -597,6 +597,12 @@ const COUNTDOWN_TICK := preload("res://game/data/countdown_tick.wav")
 const COUNTDOWN_GO := preload("res://game/data/countdown_go.wav")
 var _countdown_player := AudioStreamPlayer.new()
 
+## The countdown's digit height in metres, as the old 16 px Roboto digit drawn 4.587 times larger (0.051 m at 0.65 m,
+## about 4.5 degrees); Kanit's digits stand as tall as its capitals (ResultMoment.CAP_SHARE).
+const COUNTDOWN_DIGIT_HEIGHT := 0.051
+const COUNTDOWN_FONT_SIZE := 100
+const COUNTDOWN_OUTLINE_SIZE := 16
+
 const PAUSE_SOUND := preload("res://game/data/pause.wav")
 
 ## Plays the falling notes for the song pausing (resuming has the countdown).
@@ -615,6 +621,13 @@ func _ready() -> void:
 	add_child(cut_flash)
 	_countdown_player.bus = &"SFX"
 	add_child(_countdown_player)
+	# the countdown in the numbers' font (Hud.NUMBER_FONT), outlined in the panel colour to read over the stage
+	pause_countdown.font = Hud.NUMBER_FONT
+	pause_countdown.font_size = COUNTDOWN_FONT_SIZE
+	pause_countdown.pixel_size = COUNTDOWN_DIGIT_HEIGHT / (ResultMoment.CAP_SHARE * COUNTDOWN_FONT_SIZE)
+	pause_countdown.outline_size = COUNTDOWN_OUTLINE_SIZE
+	pause_countdown.modulate = Constants.UI_TEXT
+	pause_countdown.outline_modulate = Constants.UI_PANEL
 	_mistake_player = AudioStreamPlayer3D.new()
 	_mistake_player.attenuation_model = AudioStreamPlayer3D.ATTENUATION_DISABLED
 	_mistake_player.bus = &"SFX"
@@ -1184,7 +1197,7 @@ func _unpause_button() -> void:
 	track.visible = true
 	# a second per number, so "3" means three seconds to get ready
 	for seconds in [3, 2, 1]:
-		pause_countdown.set_label_text(str(seconds))
+		pause_countdown.text = str(seconds)
 		play_countdown(seconds)
 		await get_tree().create_timer(1.0).timeout
 	pause_countdown.visible = false
