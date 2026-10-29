@@ -51,19 +51,24 @@ func _on_cut_piece_died():
 	if _piece_death_count >= 2:
 		release()
 		
+## Turns it onto a lane turned `angle` radians about the player's standing point (Constants.LANE_PIVOT_Z).
 func add_lane_rotation(angle):
 	var c := cos(angle)
 	var s := sin(angle)
 	
 	var x := transform.origin.x
-	var z := transform.origin.z
+	var z := transform.origin.z - Constants.LANE_PIVOT_Z
 	transform.origin.x = c * x - s * z
-	transform.origin.z = s * x + c * z
+	transform.origin.z = s * x + c * z + Constants.LANE_PIVOT_Z
 	
 	rotation.y = -angle
 	
 	lane_rotation = angle
 	_forward = Vector3(-s, 0.0, c)
+
+## Its place along its lane in the track's space as if the lane weren't turned: 0 on the hit plane, below 0 ahead.
+func lane_z() -> float:
+	return (transform.origin - Vector3(0.0, 0.0, Constants.LANE_PIVOT_Z)).dot(_forward) + Constants.LANE_PIVOT_Z
 
 ## Starts the jump of `visual` (the part the jump turns): it turns `turn` radians (the note's cut angle) to its cut
 ## direction (see JUMP_TURN_SHARE).
@@ -87,7 +92,7 @@ static func fly_offset(ahead: float) -> float:
 ## Puts the visual where its jump is now (and, before it, where it flies in).
 func _apply_jump() -> void:
 	var half := Map.half_jump_beats * Map.beat_distance
-	var ahead := -transform.origin.dot(_forward)
+	var ahead := -lane_z()
 	var p := clampf(1.0 - ahead / half, 0.0, 1.0) if half > 0.0 else 1.0
 	var turned := sin(clampf(p / JUMP_TURN_SHARE, 0.0, 1.0) * PI * 0.5)
 	var yaw := 0.0
@@ -108,7 +113,7 @@ func _physics_process(delta: float) -> void:
 	transform.origin += speed * delta * _forward
 	if _jump_visual:
 		_apply_jump()
-	var rz := global_transform.origin.dot(_forward)
+	var rz := lane_z() + Constants.HIT_PLANE_Z
 	
 	if rz > -3.0:
 		set_collision_disabled(false)

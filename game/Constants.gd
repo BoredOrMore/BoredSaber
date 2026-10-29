@@ -39,6 +39,12 @@ const MISS_Z := 2.5
 ## made players push from the shoulder instead of swinging (doc/research/scoring-and-reach.md). Track-local z 0 is
 ## still the beat; game/AGENTS.md lists what to check when this changes.
 const HIT_PLANE_Z := 0.35
+## The player's standing point, XROrigin3D's z in BeepSaber_Game.tscn.
+const PLAYER_Z := 1.0
+## Where a 90/360 map's lane rotation turns the track's things about, in the track's own space: the player's standing
+## point, as Beat Saber's (owner, 2026-10-29), so a note on a lane turned 90 degrees reaches its hit point 0.65 m to the
+## player's side instead of in front.
+const LANE_PIVOT_Z := PLAYER_Z - HIT_PLANE_Z
 const DIRECTION8_OFFSET := 2 * TAU 
 const DIRECTION8_COMPARE := DIRECTION8_OFFSET - .001
 const ROTATION_EPS := 1e-5
