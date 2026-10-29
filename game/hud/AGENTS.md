@@ -14,6 +14,8 @@ arrangement (owner, 2026-10-27).
 - `Scoreboard.score_changed` → `BeepSaber_Game._display_points()` → `hud.show_points(points, played, length,
   accuracy)`. `_physics_process` emits `score_changed` once a second so the clock ticks.
 - Visibility: game states (`game/scripts/GameState/*.gd`) show and hide `Point_Label`; the two panels follow it.
+  A fail calls `hud.fade_out(FAIL_WORD_DELAY)` (`BeepSaber_Game._fail_song`): both panels fade and hide before FAILED
+  shows (owner, 2026-10-29).
 - `Scoreboard.points_awarded` → `PointsLabelDriver.show_points` (cut numbers and misses at the note).
 - Health: `BeepSaber_Game.tscn` node with `HealthRails.gd`; the game calls `start_map` and updates it on damage.
 
@@ -42,6 +44,10 @@ arrangement (owner, 2026-10-27).
   player's eye: they start `RAIL_NEAR_DEGREES` (22°) below it and widen with that distance.
 
 ## Invariants and gotchas
+
+- Fades go through each material's own opacity (`albedo_color.a`, the ring's `fade`, `Label3D.modulate`):
+  `GeometryInstance3D.transparency` is ignored by the Compatibility renderer. `Hud.fade_out` handles text materials,
+  the multiplier ring's shader and 3D labels; anything else new on a panel needs a case there (it reports it).
 
 - `TextMesh.font_size` is capped at 127: sizes go through `pixel_size` (`Hud._set_letters`, font 100 px).
 - The panels are placed from the player's real eye (the headset's place at a song's start, `BeepSaber_Game._eye`):
