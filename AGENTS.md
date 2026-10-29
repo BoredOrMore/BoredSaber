@@ -134,6 +134,9 @@ Process
 - For any menu, panel, HUD or score-screen work, follow `.claude/skills/vr-ui-design/SKILL.md` before
   building (flow, 3D placement, sizes, feedback) and `.claude/skills/vr-ui-review/SKILL.md` before calling
   it done (every game state that shows the node, overlap and depth checks, headset walk-through).
+- To catch the player's eye or make them move (warnings, cues from outside the view, HUD and menu placement, haptics,
+  cue sounds), follow `doc/research/player-guidance.md`: comfort angles, Pico 4 field of view, what each sense can do,
+  and how far things shift while the player leans, crouches, swings or turns.
 - Fix the class, not the case: when a UX problem is found, search the whole game for the same pattern,
   fix every instance in one change, and add the check to `vr-ui-review` so it doesn't come back.
 
@@ -153,6 +156,9 @@ motion), and HUD placement.
   from real maps. Record the sources and the numbers in the commit message or the folder `AGENTS.md`.
 - If no research exists yet for a value, do it first (or ask the user), and mark any placeholder
   clearly as untuned in code and in the reply.
+- Gameplay that must be seen, heard or felt in time (notes, walls and bombs from outside the view, 90/360 turns,
+  dodges, haptics, cue sounds) starts from `doc/research/player-guidance.md`: where the player can see, how far
+  ahead a cue must come, and which sense to use.
 - Changes to feel need a playtest on the headset before they are called done.
 
 ## Colour rules
