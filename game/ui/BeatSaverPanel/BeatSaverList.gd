@@ -47,6 +47,7 @@ var _row_cover: Array[Image] = []
 func _ready() -> void:
 	horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_theme_stylebox_override(&"panel", get_theme_stylebox(&"panel", &"ItemList"))
+	_content.mouse_filter = Control.MOUSE_FILTER_PASS
 	add_child(_content)
 	get_v_scroll_bar().value_changed.connect(func(_value: float) -> void: _place_rows())
 	resized.connect(_make_rows)
@@ -114,6 +115,8 @@ func _make_rows() -> void:
 		box.content_margin_right = LevelStrip.WIDTH + SIDE_WIDTH + 2.0 * END_GAP
 	while _rows.size() < wanted:
 		var row := Button.new()
+		# lets the list see the pointer come in over a row too, so the thumbstick scrolls it (vr_slider)
+		row.mouse_filter = Control.MOUSE_FILTER_PASS
 		row.toggle_mode = true
 		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		row.clip_text = true
