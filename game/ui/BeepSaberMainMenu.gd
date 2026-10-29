@@ -550,8 +550,7 @@ func play_selected_preview(volume_db := 0.0, restart := false) -> void:
 	if song_preview.playing and not restart:
 		song_preview.fade_to(volume_db)
 		return
-	play_preview(Utils.read_binary_file(map.filepath, map.song_filename), map.preview_start_time, map.preview_duration,
-		'ogg', volume_db)
+	song_preview.start_file(map.filepath + map.song_filename, map.preview_start_time, volume_db)
 
 ## Plays a song's audio as the preview (BeatSaver's previews too); duration is unused: it plays to the end and loops.
 func play_preview(buffer: PackedByteArray, start_time: float = 0.0, _duration: float = -1.0, buffer_data_type_hint: String = 'ogg', volume_db: float = 0.0) -> void:
@@ -585,7 +584,7 @@ func _select_song(id: int, with_preview: bool = true) -> void:
 	
 	# preview song
 	if with_preview and Settings.audio_music_preview > 0 and map.have_song:
-		play_preview(Utils.read_binary_file(map.filepath, map.song_filename), map.preview_start_time, map.preview_duration)
+		song_preview.start_file(map.filepath + map.song_filename, map.preview_start_time)
 	
 	# the difficulty last played (its rank), or the first
 	var rank := PlayCount.get_last_difficulty(map) & Constants.DIFFICULTY_MASK
