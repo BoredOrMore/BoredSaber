@@ -502,7 +502,8 @@ func _show() -> void:
 
 ## BeatSaver search URL for one page. Leaving out the automapper parameter leaves out AI-made maps.
 func _search_url(page: int, query: String, sort_order: String) -> String:
-	return "https://beatsaver.com/api/search/text/%d?q=%s&sortOrder=%s%s" % [page, query.uri_encode(), sort_order, _filter_query()]
+	return "https://beatsaver.com/api/search/text/%d?q=%s&sortOrder=%s&pageSize=%d%s" % [page, query.uri_encode(), sort_order,
+		PAGE_SIZE, _filter_query()]
 
 func update_list(req: BeatSaverRequest) -> void:
 	if req.page == 0:
@@ -637,16 +638,15 @@ const REACTION_FILL_ITEMS := 20
 ## Most pages fetched on their own in a row, so a rare reaction time can't keep requesting forever.
 const REACTION_FILL_PAGES := 10
 
-## Fetches the next pages on its own while the list is too short to scroll, since the next page loads only
-## when the player scrolls near the end (owner, 2026-10-29: the first page of Latest showed no scroll bar, so no
-## more songs ever came: automapped maps and ones without Standard are left out, and a page can keep few). BeatSaver
-## can't filter by reaction time either, so with that filter on it keeps going until REACTION_FILL_ITEMS songs.
+## Fetches the next pages on its own while the list still ends within FETCH_ROWS_LEFT rows of the view, since the
+## next page otherwise loads only when the player scrolls (owner, 2026-10-29: the first page of Latest showed no scroll
+## bar, so no more songs ever came: automapped maps and ones without Standard are left out, and a page can keep few).
+## BeatSaver can't filter by reaction time either, so with that filter on it keeps going until REACTION_FILL_ITEMS songs.
 func _fill_short_list() -> void:
 	if prev_request == null or next_page_available == -1 or prev_request.page >= REACTION_FILL_PAGES:
 		return
-	var scrolls := item_list.item_count * (BeatSaverList.ROW_HEIGHT + BeatSaverList.ROW_SEPARATION) > item_list.size.y
 	var level_fill := picked_level() >= 0 and prev_request.type != "uploader" and item_list.item_count < REACTION_FILL_ITEMS
-	if scrolls and not level_fill:
+	if not _near_end() and not level_fill:
 		return
 	prev_request.page += 1
 	update_list(prev_request)
@@ -1238,17 +1238,21 @@ func _on_gotoMapsBy_pressed() -> void:
 	prev_request.data = str(selected_song.uploader_id)
 	update_list(prev_request)
 	
-# SCROLL_TO_FETCH_THRESHOLD
-# Range: 0.0 to 1.0
-# Description: Used to request the next page of songs from the current list
-# once the user scrolls past this threshold
-const SCROLL_TO_FETCH_THRESHOLD := 0.9
+## Songs a text search or sorted list asks BeatSaver for at a time (its default is 20; a mapper's list has no page
+## size), and how many songs may still be below the view before the next page is fetched (owner, 2026-10-29).
+const PAGE_SIZE := 50
+const FETCH_ROWS_LEFT := 15
 var _scroll_page_request_pending := false
 
-func _on_ListV_Scroll_value_changed(new_value: float) -> void:
-	var scroll_range := v_scroll.max_value - v_scroll.min_value
-	var scroll_ratio := (new_value + v_scroll.page) / scroll_range
-	if scroll_ratio > SCROLL_TO_FETCH_THRESHOLD:
+## True when FETCH_ROWS_LEFT or fewer songs are below the bottom of the view.
+func _near_end() -> bool:
+	var row_step := BeatSaverList.ROW_HEIGHT + BeatSaverList.ROW_SEPARATION
+	var rows_seen := ceili((item_list.scroll_vertical + item_list.size.y) / row_step)
+	return item_list.item_count - rows_seen <= FETCH_ROWS_LEFT
+
+## Fetches the next page once the player scrolls near the end of the list.
+func _on_ListV_Scroll_value_changed(_new_value: float) -> void:
+	if _near_end():
 		if next_page_available == -1:
 			# no next page to load
 			return

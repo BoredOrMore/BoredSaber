@@ -413,6 +413,27 @@ func _check_download_page(page: BeatSaverPanel) -> void:
 			"download page: a first page too short to scroll fetches the next one on its own (page %d)" % page.prev_request.page)
 	page.httpreq.cancel_request()
 	page._scroll_page_request_pending = false
+	# a page of PAGE_SIZE songs; the next is fetched once FETCH_ROWS_LEFT songs or fewer are below the view
+	check(page._search_url(0, "", "Latest").contains("pageSize=%d" % BeatSaverPanel.PAGE_SIZE),
+			"download page: a list asks BeatSaver for %d songs a page" % BeatSaverPanel.PAGE_SIZE)
+	var full_page := []
+	for i in BeatSaverPanel.PAGE_SIZE:
+		full_page.append(map)
+	page.prev_request.page = 0
+	page.update_list(page.prev_request)
+	page.httpreq.cancel_request()
+	page._on_HTTPRequest_request_completed(0, 200, PackedStringArray(), JSON.stringify({"docs": full_page}).to_utf8_buffer())
+	await _settle()
+	var row_step := BeatSaverList.ROW_HEIGHT + BeatSaverList.ROW_SEPARATION
+	var rows_in_view := ceili(page.item_list.size.y / row_step)
+	page.v_scroll.value = (BeatSaverPanel.PAGE_SIZE - BeatSaverPanel.FETCH_ROWS_LEFT - rows_in_view - 1) * row_step
+	var early := page.prev_request.page
+	page.v_scroll.value += row_step
+	check(early == 0 and page.prev_request.page == 1 and page._scroll_page_request_pending,
+			"download page: the next page loads once %d songs are left below the view (page %d, then %d)" % [
+			BeatSaverPanel.FETCH_ROWS_LEFT, early, page.prev_request.page])
+	page.httpreq.cancel_request()
+	page._scroll_page_request_pending = false
 
 func vr_slider_momentum() -> float:
 	return preload("res://game/ui/vr_slider.gd").MOMENTUM_SECONDS
