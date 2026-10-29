@@ -375,7 +375,7 @@ func _check_download_page(page: BeatSaverPanel) -> void:
 		"uploader": {"id": 5}, "metadata": {"songName": LONG_NAME, "songAuthorName": LONG_NAME,
 		"levelAuthorName": "Nixie.Korten and Friends", "duration": 296.0, "bpm": 128.0},
 		"versions": [{"hash": "abc", "coverURL": "", "previewURL": "", "downloadURL": "", "diffs": diffs}]}
-	page._on_HTTPRequest_request_completed(0, 200, PackedStringArray(), JSON.stringify({"docs": [map, map, map]}).to_utf8_buffer())
+	await page._on_HTTPRequest_request_completed(0, 200, PackedStringArray(), JSON.stringify({"docs": [map, map, map]}).to_utf8_buffer())
 	page._on_ItemList_item_selected(0)
 	await _settle()
 	check(page.item_list.item_count == 3, "the download page lists the maps it was sent (%d)" % page.item_list.item_count)
@@ -413,21 +413,31 @@ func _check_download_page(page: BeatSaverPanel) -> void:
 	Settings.beatsaver_filter_length = 0
 	# no level filter and a page too short to scroll (owner, 2026-10-29: the first page showed no scroll bar and never grew)
 	page.prev_request.page = 0
-	page._on_HTTPRequest_request_completed(0, 200, PackedStringArray(), JSON.stringify({"docs": [map, map, map]}).to_utf8_buffer())
+	await page._on_HTTPRequest_request_completed(0, 200, PackedStringArray(), JSON.stringify({"docs": [map, map, map]}).to_utf8_buffer())
 	check(page._scroll_page_request_pending and page.prev_request.page == 1,
 			"download page: a first page too short to scroll fetches the next one on its own (page %d)" % page.prev_request.page)
 	page.httpreq.cancel_request()
 	page._scroll_page_request_pending = false
-	# a page of PAGE_SIZE songs; the next is fetched once FETCH_ROWS_LEFT songs or fewer are below the view
+	# a page that comes in after a newer request is dropped
+	page.prev_request.page = 0
+	var late_page := page._on_HTTPRequest_request_completed.bind(0, 200, PackedStringArray(),
+			JSON.stringify({"docs": [map]}).to_utf8_buffer())
+	late_page.call()
+	page.update_list(page.prev_request)
+	page.httpreq.cancel_request()
+	await _settle()
+	check(page.item_list.item_count == 0, "download page: a page that comes after a newer request is left out (%d rows)" %
+			page.item_list.item_count)
 	check(page._search_url(0, "", "Latest").contains("pageSize=%d" % BeatSaverPanel.PAGE_SIZE),
 			"download page: a list asks BeatSaver for %d songs a page" % BeatSaverPanel.PAGE_SIZE)
+	# a page of PAGE_SIZE songs; the next is fetched once FETCH_ROWS_LEFT songs or fewer are below the view
 	var full_page := []
 	for i in BeatSaverPanel.PAGE_SIZE:
 		full_page.append(map)
 	page.prev_request.page = 0
 	page.update_list(page.prev_request)
 	page.httpreq.cancel_request()
-	page._on_HTTPRequest_request_completed(0, 200, PackedStringArray(), JSON.stringify({"docs": full_page}).to_utf8_buffer())
+	await page._on_HTTPRequest_request_completed(0, 200, PackedStringArray(), JSON.stringify({"docs": full_page}).to_utf8_buffer())
 	await _settle()
 	var row_step := BeatSaverList.ROW_HEIGHT + BeatSaverList.ROW_SEPARATION
 	var rows_in_view := ceili(page.item_list.size.y / row_step)

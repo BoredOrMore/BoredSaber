@@ -276,13 +276,6 @@ func _strip(song: BeatSaverSongInfo) -> Texture2D:
 	return _strip_textures[key]
 
 func _ready() -> void:
-	# the slow-frame probe: this page's _process first, a probe's last
-	process_priority = -1000
-	var probe := Node.new()
-	probe.process_priority = 1000
-	probe.set_script(_FRAME_PROBE)
-	probe.set_meta(&"panel", self)
-	add_child(probe)
 	for tab: Array in SORT_TABS:
 		sort_button.add_item(tab[0])
 	var style_group := ButtonGroup.new()
@@ -513,7 +506,6 @@ func update_list(req: BeatSaverRequest) -> void:
 		if goto_maps_by:
 			goto_maps_by.visible = false
 		song_data = []
-		_page_first = 0
 		_cover_list += 1
 		_finished_covers.clear()
 		item_selected = -1
@@ -524,6 +516,7 @@ func update_list(req: BeatSaverRequest) -> void:
 		return
 	httpcoverdownload.cancel_request()
 	httpreq.cancel_request()
+	_list_request += 1
 	prev_page_available = req.page
 	next_page_available = -1
 	
@@ -578,31 +571,38 @@ func _show_empty(text: String) -> void:
 	empty_list.text = text
 	empty_list.visible = not text.is_empty()
 
-func _on_HTTPRequest_request_completed(result: int, _response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
-	var started := Time.get_ticks_usec()
-	if result == 0:
-		var json_data: Variant = JSON.parse_string(body.get_string_from_utf8())
-		if json_data is Dictionary:
-			var json_dict := json_data as Dictionary
-			next_page_available = prev_page_available + 1
-			
-			if json_dict.has("docs"):
-				var docs: Variant = json_dict["docs"]
-				if docs is Array:
-					var docs_array := docs as Array
-					# an empty page is the end of the list
-					if docs_array.is_empty():
-						next_page_available = -1
-					# resume covers a newer page interrupted, rather than skipping them
-					_current_cover_to_download = mini(_current_cover_to_download, song_data.size())
-					for i: Variant in docs_array:
-						if not i is Dictionary: continue
-						var parsed_song := BeatSaverSongInfo.new(i as Dictionary)
-						if not parsed_song.is_playable() or (prev_request.type != "uploader" and not parsed_song.passes_reaction_filter()):
-							continue
-						item_list.add_item(_row_text(parsed_song), _side_text(parsed_song), _placeholder_row_cover(), _strip(parsed_song))
-						song_data.append(parsed_song)
+## Rows added to the list per frame as a page comes in, so a page of PAGE_SIZE never stalls a frame (owner,
+## 2026-10-29: Get songs froze for a moment as each new page came while scrolling; a 50-song page took 10-13 ms in one
+## frame on desktop, over the 13.9 ms frame at 72 Hz and a few times that on the headset).
+const ROWS_PER_FRAME := 10
+## Counts list requests, so a page that comes in after a newer request is dropped.
+var _list_request := 0
 
+func _on_HTTPRequest_request_completed(result: int, _response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	if result == 0:
+		var request := _list_request
+		var parsed := []
+		# low priority: the pool's high-priority threads would compete with the game's own for the cores
+		var task := WorkerThreadPool.add_task(_parse_page.bind(body, parsed), false)
+		# always a frame later, so a request made meanwhile is seen the same way however fast the page parsed
+		await get_tree().process_frame
+		while not WorkerThreadPool.is_task_completed(task):
+			await get_tree().process_frame
+		WorkerThreadPool.wait_for_task_completion(task)
+		if request != _list_request:
+			return
+		if not parsed.is_empty():
+			var songs: Array = parsed[0]
+			# resume covers a newer page interrupted, rather than skipping them
+			_current_cover_to_download = mini(_current_cover_to_download, song_data.size())
+			for first in range(0, songs.size(), ROWS_PER_FRAME):
+				if first > 0:
+					await get_tree().process_frame
+					if request != _list_request:
+						return
+				_add_rows(songs.slice(first, first + ROWS_PER_FRAME))
+			# an empty page is the end of the list
+			next_page_available = -1 if songs.is_empty() else prev_page_available + 1
 	elif _list_retries_left > 0 and prev_request != null:
 		_list_retries_left -= 1
 		vr.log_warning("BeatSaver list request failed (result %d), trying again" % result)
@@ -619,19 +619,43 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 	
 	_update_all_covers()
 	_fill_short_list()
-	var non_latin := 0
-	for song: BeatSaverSongInfo in song_data.slice(_page_first):
-		if song.name.to_ascii_buffer().get_string_from_ascii() != song.name or song.name.to_utf8_buffer().size() != song.name.length():
-			non_latin += 1
-	_page_first = song_data.size()
-	print("BeatSaver page: %d songs in %.1f ms; %d new titles not in Latin letters; %s" % [song_data.size(),
-			(Time.get_ticks_usec() - started) / 1000.0, non_latin, _font_stats()])
-	_frame_work += "page %.1f ms " % ((Time.get_ticks_usec() - started) / 1000.0)
 	if result == 0:
 		if item_list.item_count > 0:
 			_show_empty("")
 		elif not _scroll_page_request_pending:
 			_show_empty(NO_MATCH_TEXT)
+
+## Parses a BeatSaver page into `parsed` as [maps playable here], left empty when the page isn't a map list; on a
+## worker thread.
+static func _parse_page(body: PackedByteArray, parsed: Array) -> void:
+	var json_data: Variant = JSON.parse_string(body.get_string_from_utf8())
+	if not json_data is Dictionary:
+		return
+	var songs := []
+	var docs: Variant = (json_data as Dictionary).get("docs")
+	if docs is Array:
+		for i: Variant in docs as Array:
+			if not i is Dictionary: continue
+			var song := BeatSaverSongInfo.new(i as Dictionary)
+			if song.is_playable():
+				songs.append(song)
+	parsed.append(songs)
+
+## Adds the parsed maps that pass the level filter (an uploader's maps all show) to the list.
+func _add_rows(songs: Array) -> void:
+	var texts := PackedStringArray()
+	var sides := PackedStringArray()
+	var covers: Array[Image] = []
+	var strips: Array[Texture2D] = []
+	for song: BeatSaverSongInfo in songs:
+		if prev_request.type != "uploader" and not song.passes_reaction_filter():
+			continue
+		texts.append(_row_text(song))
+		sides.append(_side_text(song))
+		covers.append(_placeholder_row_cover())
+		strips.append(_strip(song))
+		song_data.append(song)
+	item_list.add_items(texts, sides, covers, strips)
 
 ## Most items the list fetches pages for on its own while the reaction time filter hides songs.
 const REACTION_FILL_ITEMS := 20
@@ -942,54 +966,9 @@ func _update_download_button() -> void:
 	else:
 		download_button.text = "Download"
 
-## Keeps the download progress on the button current.
-## A frame of the open page longer than SLOW_FRAME_SECONDS is logged with what this page did in it (to find what
-## stutters dragging the list on the headset, 2026-10-28).
-const SLOW_FRAME_SECONDS := 0.04
-const _FRAME_PROBE := preload("res://game/ui/BeatSaverPanel/FrameProbe.gd")
-var _frame_work := ""
-var _decoding := 0
-var _page_first := 0
-
-## The list font's glyph cache: texture sheets and glyphs held (Roboto; system fallback fonts aren't visible here).
-func _font_stats() -> String:
-	var font := item_list.get_theme_font(&"font") as FontFile
-	if font == null:
-		return "font not a FontFile"
-	var size := Vector2i(item_list.get_theme_font_size(&"font_size"), 0)
-	var sheets := 0
-	var glyphs := 0
-	for cache in font.get_cache_count():
-		for cached: Vector2i in font.get_size_cache_list(cache):
-			sheets += font.get_texture_count(cache, cached)
-			glyphs += font.get_glyph_list(cache, cached).size()
-	return "font sheets %d, glyphs %d (size %d)" % [sheets, glyphs, size.x]
-## when every node's _process began and ended last frame (this page runs first, its probe last)
-var _process_began := 0
-var _process_ended := 0
-
+## Puts finished covers on the list and keeps the download progress on the button current.
 func _process(delta: float) -> void:
-	var now := Time.get_ticks_usec()
-	if delta > SLOW_FRAME_SECONDS and is_visible_in_tree():
-		print("BeatSaver slow frame split: every _process %.1f ms, the rest (physics, input, drawing, waiting on the headset) %.1f ms" % [
-				(_process_ended - _process_began) / 1000.0, (now - _process_ended) / 1000.0])
-	_process_began = now
-	if delta > SLOW_FRAME_SECONDS and is_visible_in_tree():
-		var page := get_viewport().get_viewport_rid()
-		var view := get_tree().root.get_viewport_rid()
-		RenderingServer.viewport_set_measure_render_time(page, true)
-		RenderingServer.viewport_set_measure_render_time(view, true)
-		print("BeatSaver slow frame at %s" % _font_stats())
-		print("BeatSaver slow frame %.0f ms: %s (%d songs, %d covers decoding, %d waiting; textures %.0f MB; render cpu page %.1f view %.1f setup %.1f ms)" % [
-				delta * 1000.0, _frame_work if _frame_work else "nothing here", song_data.size(), _decoding,
-				_finished_covers.size(), Performance.get_monitor(Performance.RENDER_TEXTURE_MEM_USED) / 1048576.0,
-				RenderingServer.viewport_get_measured_render_time_cpu(page),
-				RenderingServer.viewport_get_measured_render_time_cpu(view), RenderingServer.get_frame_setup_time_cpu()])
-	_frame_work = ""
-	var started := Time.get_ticks_usec()
 	_flush_covers(delta)
-	if Time.get_ticks_usec() - started > 1000:
-		_frame_work += "covers %.1f ms " % ((Time.get_ticks_usec() - started) / 1000.0)
 	if downloading.is_empty():
 		return
 	var before := download_button.text
@@ -1175,11 +1154,9 @@ func _update_cover(result: int, _response_code: int, _headers: PackedStringArray
 	var made := []
 	# low priority: the pool's high-priority threads would compete with the game's own for the cores
 	var task := WorkerThreadPool.add_task(_make_cover.bind(body, BeatSaverList.COVER_SIZE, made), false)
-	_decoding += 1
 	while not WorkerThreadPool.is_task_completed(task):
 		await get_tree().process_frame
 	WorkerThreadPool.wait_for_task_completion(task)
-	_decoding -= 1
 	if made.is_empty() or list != _cover_list:
 		return
 	_finished_covers.append([index, song, made[0]])
