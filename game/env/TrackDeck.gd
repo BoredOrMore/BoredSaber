@@ -10,6 +10,8 @@ class_name TrackDeck
 ## plain plates fill out to the deck's width, the edges run on along its sides and an end stop closes it behind the
 ## player. It stands in for the old see-through track sheet, which stays for mixed reality and as the Old track setting
 ## (Settings.old_track). EventDriver lays it out for the lanes' width (the Wide modifiers); the pad stays 2 m.
+## On 90/360 maps the deck and its curbs turn with the notes about the player (turn, EventDriver.TRACK_TURN_TIME); the
+## platform stays.
 ## Sizes in metres; untuned.
 
 const DECK_SHADER := preload("res://game/env/TrackDeck.gdshader")
@@ -59,6 +61,8 @@ const SKINS := {"metal_factory": 1, "neon_grid": 2}
 const METAL_BY_STAGE := {"metal_factory": MetalFactoryRig.METAL_SHEEN}
 
 var _deck: MeshInstance3D
+## the deck and its curbs, which turn with the notes (turn)
+var _turning: Node3D
 var _curbs: MultiMesh
 var _ends: MultiMesh
 var _base: MeshInstance3D
@@ -72,13 +76,15 @@ var deck_material: ShaderMaterial
 
 ## Builds the deck, its edges and end stops and the platform; layout() sizes them.
 func _ready() -> void:
+	_turning = Node3D.new()
+	add_child(_turning)
 	deck_material = ShaderMaterial.new()
 	deck_material.shader = DECK_SHADER
 	_deck = MeshInstance3D.new()
 	_deck.mesh = BoxMesh.new()
 	_deck.material_override = deck_material
 	_deck.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(_deck)
+	_turning.add_child(_deck)
 	_curbs = MultiMesh.new()
 	_curbs.transform_format = MultiMesh.TRANSFORM_3D
 	_curbs.mesh = LaserFixtures._model_mesh(EDGE_MODEL)
@@ -90,7 +96,7 @@ func _ready() -> void:
 	_curb_material = curb_material
 	curbs.material_override = curb_material
 	curbs.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(curbs)
+	_turning.add_child(curbs)
 	_ends = _add_multimesh(LaserFixtures._model_mesh(END_MODEL), 1, curb_material)
 	_base = MeshInstance3D.new()
 	_base.mesh = BoxMesh.new()
@@ -143,6 +149,10 @@ func layout(lane_width: float) -> void:
 			Vector3(side * (FRAME_HALF + filler * 0.5), -PAD_DEPTH * 0.5, PLATFORM_Z)))
 	_base.transform = Transform3D(Basis.from_scale(Vector3(half * 2.0, DECK_DEPTH - PAD_DEPTH, FRAME_HALF * 2.0)),
 		Vector3(0.0, -PAD_DEPTH - (DECK_DEPTH - PAD_DEPTH) * 0.5, PLATFORM_Z))
+
+## Turns the deck and its curbs to `place` (EventDriver's turn about the player); the platform stays.
+func turn(place: Transform3D) -> void:
+	_turning.transform = place
 
 ## Fits the deck to environment `id`: its skin (TrackDeck.gdshader: Metal Factory's tread plate, Neon Grid's dark glass,
 ## plain plates elsewhere) and its far end and fade.

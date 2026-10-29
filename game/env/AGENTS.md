@@ -8,9 +8,14 @@ Read the root `AGENTS.md` first ("Light", "Colour rules", "Pico 4 constraints").
 ## Entry points and flow
 
 - Scene: `game/event_driver.tscn` (`Level/`): the sky `Sphere`, the five light-group holders (`DiagonalLasers`,
-  `SquareLasers`, `Left/RightWavingLasers`, `TrackLights`), the old `rings`, `ClassicRig`, `NeonGridRig`, `NightCityRig`,
-  `MetalFactoryRig`, `PulseVoid`, `NeonGrid` floor, `TrackDeck`, `StageSmoke`. Every rig is built at load (tool
-  scripts, `_ready`) and stays in memory; only visibility changes.
+  `SquareLasers`, `Left/RightWavingLasers`, `TrackTurn/TrackLights`), the old `rings`, `ClassicRig`, `NeonGridRig`,
+  `NightCityRig`, `MetalFactoryRig`, `PulseVoid`, `NeonGrid` floor, `TrackDeck`, `StageSmoke`. Every rig is built at load
+  (tool scripts, `_ready`) and stays in memory; only visibility changes.
+- The track turns with the notes on 90/360 maps (`EventDriver._turn_track`): `Level/TrackTurn` (the edge light strips,
+  the old see-through track `floor` and its `Endpath`) and `TrackDeck.turn` (deck and curbs) turn about the player's
+  standing point (`Constants.PLAYER_Z`) to `Map.track_rotation(show_beat)`, easing over `TRACK_TURN_TIME` (0.3 s,
+  untuned) or until the next turn. The platform, camera and XR origin never turn. `set_background` lays the turning
+  parts out unturned (it writes global transforms), then turns them back.
 - Stage choice: `Settings.ENVIRONMENTS` (`Settings.gd:35`, ids `classic`, `neon_grid`, `pulse_void`, `night_city`,
   `metal_factory`, plus `auto`). `EventDriver.pick_environment(map)` -> `map_environment`:
   `Constants.MAP_ENVIRONMENTS` (map's Beat Saber env name), then `TAG_ENVIRONMENTS` (genre), then a folder-name hash
@@ -98,6 +103,7 @@ Shared scenery
 - `TrackDeck.gd` (`TrackDeck`): opaque deck (top y 0), curbs housing the thin edge light strips (`STRIP_*`), platform frame, end stops;
   runs to `FAR_Z` -150 (`FAR_Z_BY_STAGE`), fades into haze. `layout(lane_width)` for Wide modifiers; `set_stage` skin.
   Hidden for `Settings.old_track` and mixed reality (old see-through sheet instead).
+  Its deck and curbs sit under a child that `turn(place)` turns with the notes; the platform pieces don't.
 - `TrackDeck.gdshader`: deck skin per stage (`SKINS`: plates, tread plate, dark glass), lane grooves, `fade_z`.
 
 Light carriers

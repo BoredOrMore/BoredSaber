@@ -949,7 +949,9 @@ libraries = {
 }
 autoplay = "laser_anim"
 
-[node name="Endpath" type="MeshInstance3D" parent="Level"]
+[node name="TrackTurn" type="Node3D" parent="Level"]
+
+[node name="Endpath" type="MeshInstance3D" parent="Level/TrackTurn"]
 transform = Transform3D(-1.61803e-07, 0, -3.00028, 0, 2.05989, 0, 3.70161, 0, -1.31146e-07, 0, 0, -84.8588)
 layers = 3
 mesh = ExtResource("8_krd13")
@@ -957,41 +959,41 @@ skeleton = NodePath("../..")
 surface_material_override/0 = SubResource("StandardMaterial3D_yn705")
 surface_material_override/1 = ExtResource("floor_lights")
 
-[node name="floor" type="MeshInstance3D" parent="Level"]
+[node name="floor" type="MeshInstance3D" parent="Level/TrackTurn"]
 transform = Transform3D(-3.9101e-06, 0, 3, 0, 1, 0, -23.25, 0, -4.88762e-07, 0, 0, -24.75)
 layers = 3
 material_override = SubResource("18")
 mesh = SubResource("19")
 
-[node name="line0" type="MeshInstance3D" parent="Level/floor"]
+[node name="line0" type="MeshInstance3D" parent="Level/TrackTurn/floor"]
 transform = Transform3D(1, 0, 6.82121e-16, 0, 1, 0, -2.27374e-13, 0, 0.003, 0, 0.01, 0)
 layers = 3
 material_override = SubResource("20")
 mesh = SubResource("19")
 skeleton = NodePath("../..")
 
-[node name="line1" type="MeshInstance3D" parent="Level/floor"]
+[node name="line1" type="MeshInstance3D" parent="Level/TrackTurn/floor"]
 transform = Transform3D(1, 0, 6.82121e-16, 0, 1, 0, -2.27374e-13, 0, 0.003, 0, 0.01, -0.5)
 layers = 3
 material_override = SubResource("20")
 mesh = SubResource("19")
 skeleton = NodePath("../..")
 
-[node name="line2" type="MeshInstance3D" parent="Level/floor"]
+[node name="line2" type="MeshInstance3D" parent="Level/TrackTurn/floor"]
 transform = Transform3D(1, 0, 6.82121e-16, 0, 1, 0, -2.27374e-13, 0, 0.003, 0, 0.01, 0.5)
 layers = 3
 material_override = SubResource("20")
 mesh = SubResource("19")
 skeleton = NodePath("../..")
 
-[node name="line3" type="MeshInstance3D" parent="Level/floor"]
+[node name="line3" type="MeshInstance3D" parent="Level/TrackTurn/floor"]
 transform = Transform3D(1, 0, 6.82121e-16, 0, 1, 0, -2.27374e-13, 0, 0.003, 0, 0.01, 1)
 layers = 3
 material_override = SubResource("20")
 mesh = SubResource("19")
 skeleton = NodePath("../..")
 
-[node name="line4" type="MeshInstance3D" parent="Level/floor"]
+[node name="line4" type="MeshInstance3D" parent="Level/TrackTurn/floor"]
 transform = Transform3D(1, 0, 6.82121e-16, 0, 1, 0, -2.27374e-13, 0, 0.003, 0, 0.01, -1)
 layers = 3
 material_override = SubResource("20")
@@ -1029,15 +1031,15 @@ mesh = SubResource("neon_grid_floor_mesh")
 visible = false
 script = ExtResource("pulse_void")
 
-[node name="TrackLights" type="Node3D" parent="Level"]
+[node name="TrackLights" type="Node3D" parent="Level/TrackTurn"]
 
-[node name="Bar1" type="MeshInstance3D" parent="Level/TrackLights"]
+[node name="Bar1" type="MeshInstance3D" parent="Level/TrackTurn/TrackLights"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1.44912, 3, 0, -24.686)
 layers = 3
 material_override = ExtResource("floor_lights")
 mesh = SubResource("10")
 
-[node name="Bar2" type="MeshInstance3D" parent="Level/TrackLights"]
+[node name="Bar2" type="MeshInstance3D" parent="Level/TrackTurn/TrackLights"]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1.44912, -3, 0, -24.686)
 layers = 3
 material_override = ExtResource("floor_lights")

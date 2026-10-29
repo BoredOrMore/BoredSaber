@@ -45,6 +45,10 @@ static var color_right: Color :
 		_color_right = c
 static var last_beat := 0.
 static var one_saber := false
+## Where the track points through the song on 90/360 maps (get_turns): the beats at which the lanes' direction changes
+## and the direction (radians, as the objects' lane rotation) from each on. Empty when it never turns.
+static var turn_beats := PackedFloat64Array()
+static var turn_angles := PackedFloat64Array()
 
 const ROTATIONS_V2 := [ -60., -45., -30., -15., 15., 30., 45., 60. ]
 const ROTATE_ALL := 0. # for testing
@@ -488,6 +492,37 @@ static func half_jump_beats_for(bpm: float, njs: float, offset: float) -> float:
 static func beats_per_second() -> float:
 	return current_info.beats_per_minute * Settings.music_speed / 6000.
 
+## Finds where the track turns, from the loaded notes, bombs and walls (a chain starts on a note): the direction changes at the beat of the
+## first object on a lane turned another way (after the map's rotation events, the Mirror and Gradual rotation
+## modifiers, whatever the format: v4 has no rotation events, only each object's own).
+static func get_turns() -> void:
+	var objects := []
+	for o in note_stack:
+		objects.append([o.beat, o.rotation])
+	for o in bomb_stack:
+		objects.append([o.beat, o.rotation])
+	for o in obstacle_stack:
+		objects.append([o.beat, o.rotation])
+	objects.sort_custom(compare_times)
+	turn_beats.clear()
+	turn_angles.clear()
+	var angle := 0.0
+	for o: Array in objects:
+		if absf(angle_difference(angle, o[1])) > Constants.ROTATION_EPS:
+			angle = o[1]
+			turn_beats.append(o[0])
+			turn_angles.append(angle)
+
+## The way the track points at `beat` (radians): the direction of the last turn at or before it, 0 before any.
+static func track_rotation(beat: float) -> float:
+	var i := turn_beats.bsearch(beat, false)
+	return turn_angles[i - 1] if i > 0 else 0.0
+
+## The beat of the first turn after `beat`, INF when there's none.
+static func next_turn_beat(beat: float) -> float:
+	var i := turn_beats.bsearch(beat, false)
+	return turn_beats[i] if i < turn_beats.size() else INF
+
 static func get_last_beat() -> void:
 	current_info.last_beat = 0.
 	for note_info in note_stack:
@@ -574,6 +609,7 @@ static func load_beatmap(info: MapInfo, difficulty: DifficultyInfo, map_data: Di
 		Utils.custom_thread_wait_to_finish(event_thread_0)
 		Utils.custom_thread_wait_to_finish(arc_thread_0)
 		get_last_beat()
+		get_turns()
 		return true
 	elif map_data.has("version"):
 		var version := Utils.get_str(map_data, "version", "")
@@ -636,6 +672,7 @@ static func load_beatmap(info: MapInfo, difficulty: DifficultyInfo, map_data: Di
 			Utils.custom_thread_wait_to_finish(chain_thread_0)
 			Utils.custom_thread_wait_to_finish(event_thread_0)
 			get_last_beat()
+			get_turns()
 			return true
 	vr.log_warning("selected map is an unsupported version")
 	return false

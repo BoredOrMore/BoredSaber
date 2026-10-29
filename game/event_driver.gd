@@ -172,6 +172,18 @@ const INTENSITY_RISE_SECONDS := 1.0
 const INTENSITY_FALL_SECONDS := 3.0
 ## the song's beat now, set by the Playing state; the curve and the smoothed intensity
 var show_beat := 0.0
+## The track turns with the notes on 90/360 maps (owner, 2026-10-29): the deck and its curbs (TrackDeck.turn), the edge
+## light strips with the map's left and right lights in them, and the old see-through track with its end piece
+## (TrackTurn) turn about the player's standing point to where the map's lanes point now (Map.track_rotation), easing in
+## and out over TRACK_TURN_TIME, or until the next turn when that comes sooner. The camera and XR origin never turn.
+## UNTUNED: no official Beat Saber value found; needs a headset playtest on a 90 and a 360 map.
+const TRACK_TURN_TIME := 0.3
+## where the track points now and the turn it is easing through (radians, as the lanes' rotation; seconds)
+var track_angle := 0.0
+var _turn_from := 0.0
+var _turn_to := 0.0
+var _turn_time := 0.0
+var _turn_left := 0.0
 ## the song's tempo, for the Metal Factory's pistons
 var _show_bpm := 0.0
 var _intensity_curve := PackedFloat32Array()
@@ -203,7 +215,7 @@ var _bars_lowered := false
 @onready var square_lasers_holder := $Level/SquareLasers as Node3D
 @onready var left_waving_lasers_holder := $Level/LeftWavingLasers as Node3D
 @onready var right_waving_lasers_holder := $Level/RightWavingLasers as Node3D
-@onready var track_lights_holder := $Level/TrackLights as Node3D
+@onready var track_lights_holder := $Level/TrackTurn/TrackLights as Node3D
 
 @onready var sphere_material := ($Level/Sphere as MeshInstance3D).material_override as ShaderMaterial
 @onready var classic_sky_material := sphere_material
@@ -213,13 +225,14 @@ var _bars_lowered := false
 @onready var square_lasers_material := ($Level/SquareLasers/Bar7 as MeshInstance3D).material_override as ShaderMaterial
 @onready var left_waving_lasers_material := ($Level/LeftWavingLasers/laser1/Bar7 as MeshInstance3D).material_override as ShaderMaterial
 @onready var right_waving_lasers_material := ($Level/RightWavingLasers/laser1/Bar7 as MeshInstance3D).material_override as ShaderMaterial
-@onready var track_lights_material := ($Level/TrackLights/Bar1 as MeshInstance3D).material_override as ShaderMaterial
-@onready var floor_mesh := ($Level/floor as MeshInstance3D).mesh as PlaneMesh
-@onready var floor_material := ($Level/floor as MeshInstance3D).material_override as StandardMaterial3D
-@onready var track_lights_right := $Level/TrackLights/Bar1 as MeshInstance3D
-@onready var track_lights_left := $Level/TrackLights/Bar2 as MeshInstance3D
-@onready var end_path := $Level/Endpath as MeshInstance3D
+@onready var track_lights_material := ($Level/TrackTurn/TrackLights/Bar1 as MeshInstance3D).material_override as ShaderMaterial
+@onready var floor_mesh := ($Level/TrackTurn/floor as MeshInstance3D).mesh as PlaneMesh
+@onready var floor_material := ($Level/TrackTurn/floor as MeshInstance3D).material_override as StandardMaterial3D
+@onready var track_lights_right := $Level/TrackTurn/TrackLights/Bar1 as MeshInstance3D
+@onready var track_lights_left := $Level/TrackTurn/TrackLights/Bar2 as MeshInstance3D
+@onready var end_path := $Level/TrackTurn/Endpath as MeshInstance3D
 @onready var track_deck := $Level/TrackDeck as TrackDeck
+@onready var track_turn := $Level/TrackTurn as Node3D
 @onready var stage_smoke := $Level/StageSmoke as StageSmoke
 ## the player's platform border (game/floor.tscn): always lit, white-hot with the right note colour at its edges,
 ## whatever the map's light show does, so the player always sees where they stand
@@ -452,20 +465,22 @@ func show_scenery_for_mixed_reality() -> void:
 	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple" and environment != "metal_factory"
 
 func set_background() -> void:
+	# laid out unturned, then turned back to where it points
+	track_turn.transform = Transform3D.IDENTITY
 	var track_lights_width := track_lights_right.get_aabb().size.x
 	track_lights_right.global_transform.origin.x = track_lights_width / 2 + 2 * Settings.LANE_DISTANCE_X - .01
 	track_lights_left.global_transform.origin.x = -track_lights_right.transform.origin.x
 	end_path.scale.z = track_lights_right.global_transform.origin.x + track_lights_width / 2 - .01
 	floor_mesh.size.y = 4 * Settings.LANE_DISTANCE_X
-	($Level/floor/line1).global_transform.origin.x = Settings.LANE_DISTANCE_X
-	($Level/floor/line2).global_transform.origin.x = -Settings.LANE_DISTANCE_X
-	($Level/floor/line3).global_transform.origin.x = 2 * Settings.LANE_DISTANCE_X
-	($Level/floor/line4).global_transform.origin.x = -2 * Settings.LANE_DISTANCE_X
-	($Level/floor).scale.z = 1
+	($Level/TrackTurn/floor/line1).global_transform.origin.x = Settings.LANE_DISTANCE_X
+	($Level/TrackTurn/floor/line2).global_transform.origin.x = -Settings.LANE_DISTANCE_X
+	($Level/TrackTurn/floor/line3).global_transform.origin.x = 2 * Settings.LANE_DISTANCE_X
+	($Level/TrackTurn/floor/line4).global_transform.origin.x = -2 * Settings.LANE_DISTANCE_X
+	($Level/TrackTurn/floor).scale.z = 1
 	# the deck with its curbs (TrackDeck), whose curbs house the edge light strips; or the old see-through sheet, with
 	# its strips at its edges, in mixed reality (the room must show through) and with the Old track setting
 	var old_track := Settings.old_track or Settings.mixed_reality
-	($Level/floor as Node3D).visible = old_track
+	($Level/TrackTurn/floor as Node3D).visible = old_track
 	# the old track's far end piece; the deck ends in its own low stop (it rose over the horizon straight ahead)
 	end_path.visible = old_track
 	track_deck.visible = not old_track
@@ -487,6 +502,7 @@ func set_background() -> void:
 		var thin := TrackDeck.STRIP_WIDTH / strip.get_aabb().size.x
 		strip.global_transform = Transform3D(Basis.from_scale(Vector3(thin, 1.0, stretch)),
 			Vector3(place.x, place.y, (span.x + span.y) * 0.5))
+	_apply_track_turn()
 	# Metal Factory has no moving heads: its lights glow in the wall vents
 	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple" and environment != "metal_factory"
 	if Settings.background == "simple":
@@ -559,6 +575,7 @@ func _process(delta: float) -> void:
 	var quiet := not menu_focus and Settings.atmosphere == "Eerie" and _since_event > QUIET_AFTER_SECONDS
 	_quiet = move_toward(_quiet, 1.0 if quiet else 0.0, delta / (QUIET_FADE_SECONDS if quiet else QUIET_RISE_SECONDS))
 	_update_haze()
+	_turn_track(delta)
 	if track_deck.visible:
 		track_deck.deck_material.set_shader_parameter(&"light_color", floor_material.albedo_color)
 	if environment == "metal_factory":
@@ -629,6 +646,31 @@ func _update_haze() -> void:
 			- QUIET_DIM * _quiet)
 
 ## Sets how lit up the scene is for the combo multiplier (1, 2, 4 or 8).
+## Eases the track toward where the map's lanes point at show_beat (straight ahead in the menus).
+func _turn_track(delta: float) -> void:
+	var target := 0.0 if menu_focus or Map.current_info == null else Map.track_rotation(show_beat)
+	if absf(angle_difference(_turn_to, target)) > Constants.ROTATION_EPS:
+		_turn_from = track_angle
+		_turn_to = target
+		var until_next := INF if menu_focus or Map.current_info == null \
+				else (Map.next_turn_beat(show_beat) - show_beat) / Map.beats_per_second()
+		_turn_time = minf(TRACK_TURN_TIME, until_next)
+		_turn_left = _turn_time
+	if _turn_left <= 0.0 and track_angle == _turn_to:
+		return
+	_turn_left = maxf(_turn_left - delta, 0.0)
+	var p := 1.0 - _turn_left / _turn_time if _turn_time > 0.0 else 1.0
+	# the short way round (a 360 map's lanes wrap at 360 degrees)
+	track_angle = _turn_to if p >= 1.0 else _turn_from + angle_difference(_turn_from, _turn_to) * smoothstep(0.0, 1.0, p)
+	_apply_track_turn()
+
+## Turns the track's turning parts to track_angle about the player's standing point.
+func _apply_track_turn() -> void:
+	var turn := Basis(Vector3.UP, -track_angle)
+	var pivot := Vector3(0.0, 0.0, Constants.PLAYER_Z)
+	track_turn.transform = Transform3D(turn, pivot - turn * pivot)
+	track_deck.turn(track_turn.transform)
+
 func set_combo_multiplier(multiplier: int) -> void:
 	_combo_target = log(maxf(multiplier, 1)) / log(8.0)
 

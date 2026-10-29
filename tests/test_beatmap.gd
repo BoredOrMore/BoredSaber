@@ -198,6 +198,22 @@ func _ready() -> void:
 	var back := Map.get_rotations_v2([{"_time": 1.0, "_type": 14.0, "_value": 0.0}])
 	check(is_equal_approx(back[0][1], 300.0), "a v2 turn left from 0 is 300 degrees (got %s)" % back[0][1])
 
+	# the track turns at the first object on a turned lane, and points that way until the next turn (Map.get_turns)
+	Settings.gradual_rotation = 0.0
+	Map.load_beatmap(make_info("3.3.0", 120), make_difficulty(16, 0.0), read_map("v3.dat"))
+	check(Map.turn_beats.is_empty() and Map.track_rotation(3.0) == 0.0,
+		"a map without rotation never turns the track (turns at %s)" % Map.turn_beats)
+	var turning := read_map("v3.dat")
+	turning["rotationEvents"] = [{"b": 2.0, "e": 0.0, "r": 90.0}, {"b": 4.0, "e": 0.0, "r": -90.0}]
+	Map.load_beatmap(make_info("3.3.0", 120), make_difficulty(16, 0.0), turning)
+	check(Map.turn_beats == PackedFloat64Array([2.0, 4.0]), "the track turns at beats 2 and 4 (got %s)" % Map.turn_beats)
+	check(Map.track_rotation(1.9) == 0.0 and is_equal_approx(Map.track_rotation(2.0), PI * 0.5)
+		and is_equal_approx(Map.track_rotation(3.9), PI * 0.5) and is_equal_approx(Map.track_rotation(4.0), 0.0),
+		"it points ahead, then 90 degrees from beat 2, then ahead again from beat 4 (%s, %s, %s, %s)" % [
+		Map.track_rotation(1.9), Map.track_rotation(2.0), Map.track_rotation(3.9), Map.track_rotation(4.0)])
+	check(Map.next_turn_beat(2.0) == 4.0 and Map.next_turn_beat(4.0) == INF,
+		"the next turn after beat 2 is at 4, none after 4 (%s, %s)" % [Map.next_turn_beat(2.0), Map.next_turn_beat(4.0)])
+
 	for key: String in saved:
 		Settings.set(key, saved[key])
 	print("%d failure(s)" % failures)
