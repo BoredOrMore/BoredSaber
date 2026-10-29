@@ -52,7 +52,8 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
 - `test_show_intensity.tscn` / `.gd` - checks `EventDriver.intensity_curve` (the build-up of the stage): a calm part
   low and a dense part high, values in 0..1, no curve without light events, finite values for a flat light show; the
   track's turn on 90/360 maps (`EventDriver.Turn`): eased in and out over `TRACK_TURN_TIME`, keeping its speed when a
-  new turn comes mid-way, the short way round.
+  new turn comes mid-way, the short way round; Henge's drop (`EventDriver.henge_drop`): starts past `STRIP_DROP`,
+  holds through a dip, ends under `HENGE_DROP_RELEASE`; nothing builds without light events.
 
 ## Running
 
