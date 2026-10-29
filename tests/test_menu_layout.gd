@@ -406,6 +406,13 @@ func _check_download_page(page: BeatSaverPanel) -> void:
 	_check_layout(page, "download page, filters open")
 	Settings.beatsaver_filter_reaction = 0
 	Settings.beatsaver_filter_length = 0
+	# no level filter and a page too short to scroll (owner, 2026-10-29: the first page showed no scroll bar and never grew)
+	page.prev_request.page = 0
+	page._on_HTTPRequest_request_completed(0, 200, PackedStringArray(), JSON.stringify({"docs": [map, map, map]}).to_utf8_buffer())
+	check(page._scroll_page_request_pending and page.prev_request.page == 1,
+			"download page: a first page too short to scroll fetches the next one on its own (page %d)" % page.prev_request.page)
+	page.httpreq.cancel_request()
+	page._scroll_page_request_pending = false
 
 func vr_slider_momentum() -> float:
 	return preload("res://game/ui/vr_slider.gd").MOMENTUM_SECONDS

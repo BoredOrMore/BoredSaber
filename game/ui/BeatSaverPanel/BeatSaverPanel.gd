@@ -589,6 +589,9 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 				var docs: Variant = json_dict["docs"]
 				if docs is Array:
 					var docs_array := docs as Array
+					# an empty page is the end of the list
+					if docs_array.is_empty():
+						next_page_available = -1
 					# resume covers a newer page interrupted, rather than skipping them
 					_current_cover_to_download = mini(_current_cover_to_download, song_data.size())
 					for i: Variant in docs_array:
@@ -614,7 +617,7 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 	_redraw()
 	
 	_update_all_covers()
-	_fill_reaction_filtered_list()
+	_fill_short_list()
 	var non_latin := 0
 	for song: BeatSaverSongInfo in song_data.slice(_page_first):
 		if song.name.to_ascii_buffer().get_string_from_ascii() != song.name or song.name.to_utf8_buffer().size() != song.name.length():
@@ -634,12 +637,16 @@ const REACTION_FILL_ITEMS := 20
 ## Most pages fetched on their own in a row, so a rare reaction time can't keep requesting forever.
 const REACTION_FILL_PAGES := 10
 
-## BeatSaver can't filter by reaction time, so it is applied to each page after it arrives and a page
-## can show few or no songs; fetch the next pages until the list has enough songs to scroll.
-func _fill_reaction_filtered_list() -> void:
-	if picked_level() < 0 or prev_request == null or prev_request.type == "uploader":
+## Fetches the next pages on its own while the list is too short to scroll, since the next page loads only
+## when the player scrolls near the end (owner, 2026-10-29: the first page of Latest showed no scroll bar, so no
+## more songs ever came: automapped maps and ones without Standard are left out, and a page can keep few). BeatSaver
+## can't filter by reaction time either, so with that filter on it keeps going until REACTION_FILL_ITEMS songs.
+func _fill_short_list() -> void:
+	if prev_request == null or next_page_available == -1 or prev_request.page >= REACTION_FILL_PAGES:
 		return
-	if next_page_available == -1 or item_list.item_count >= REACTION_FILL_ITEMS or prev_request.page >= REACTION_FILL_PAGES:
+	var scrolls := item_list.item_count * (BeatSaverList.ROW_HEIGHT + BeatSaverList.ROW_SEPARATION) > item_list.size.y
+	var level_fill := picked_level() >= 0 and prev_request.type != "uploader" and item_list.item_count < REACTION_FILL_ITEMS
+	if scrolls and not level_fill:
 		return
 	prev_request.page += 1
 	update_list(prev_request)
