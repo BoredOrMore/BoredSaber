@@ -4,7 +4,7 @@ class_name WarningIcon
 ## or the headset; pointing the laser at it opens a card listing those warnings in plain words. Warnings: the play
 ## area (the guardian) too small for the saber's reach or the Slash to play note (where the runtime gives it: Pico
 ## doesn't, and an unknown play area isn't warned about); a low battery; a hot
-## headset; 30 minutes of songs this session; Full resolution lowered to Sharp after stuttering. It only warns: it
+## headset; (30 minutes of songs this session: off for now); Full resolution lowered to Sharp after stuttering. It only warns: it
 ## never changes anything. Checked every CHECK_SECONDS while the song menu shows.
 
 ## Just above the song menu centre panel's top right corner (22 degrees right, 22 up, on the menus' 2 m curve), facing
@@ -154,8 +154,9 @@ func messages() -> PackedStringArray:
 		out.append(BATTERY_TEXT % battery)
 	if _thermal_status() >= HOT_THERMAL_STATUS:
 		out.append(HOT_TEXT)
-	if game.played_seconds >= BREAK_SECONDS:
-		out.append(BREAK_TEXT)
+	# the 30 minute break reminder is off for now (owner, 2026-10-29)
+	#if game.played_seconds >= BREAK_SECONDS:
+	#	out.append(BREAK_TEXT)
 	if not Settings.resolution_cap.is_empty():
 		out.append(LOWERED_TEXT)
 	return out
