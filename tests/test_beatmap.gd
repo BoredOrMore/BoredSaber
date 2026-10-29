@@ -129,7 +129,8 @@ func check_map(tag: String, file: String, version: String, has_chain: bool, has_
 
 func _ready() -> void:
 	var saved := {}
-	for key: String in ["flip", "gradual_rotation", "bombs_enabled", "walls_enabled", "handedness", "disable_map_color"]:
+	for key: String in ["flip", "gradual_rotation", "bombs_enabled", "walls_enabled", "handedness", "disable_map_color",
+			"environment"]:
 		saved[key] = Settings.get(key)
 	Settings.flip = 0
 	Settings.gradual_rotation = 0.0
@@ -222,6 +223,22 @@ func _ready() -> void:
 		"a rotation event at beat 1.5 turns the cue at 1.5 and the track at the next note, 2 (cue %s, track %s at 1.6)" % [
 		Map.cue_rotation(1.6), Map.track_rotation(1.6)])
 	Map.load_beatmap(make_info("3.3.0", 120), make_difficulty(16, 0.0), turning)
+
+	# 90 and 360 degree maps play on Henge, the stage built for them, whatever the map or the player names; Standard
+	# maps go on as before (owner, 2026-10-29)
+	var info := make_info("3.3.0", 120)
+	var saved_difficulty := Map.current_difficulty
+	Settings.environment = "classic"
+	Map.current_difficulty = DifficultyInfo.new("Expert", 7, "Expert.dat", 16.0, 0.0, {}, "Expert", "360Degree")
+	check(EventDriver.pick_environment(info) == "henge", "a 360 map plays on Henge (got %s)" % EventDriver.pick_environment(info))
+	Map.current_difficulty = DifficultyInfo.new("Expert", 7, "Expert.dat", 16.0, 0.0, {}, "Expert", "90Degree")
+	check(EventDriver.pick_environment(info) == "henge", "a 90 map plays on Henge (got %s)" % EventDriver.pick_environment(info))
+	Map.current_difficulty = make_difficulty(16, 0.0)
+	check(EventDriver.pick_environment(info) == "classic", "a Standard map keeps the player's pick (got %s)" %
+		EventDriver.pick_environment(info))
+	Settings.environment = "auto"
+	check(EventDriver.pick_environment(info) != "henge", "Follow map never picks Henge for a Standard map")
+	Map.current_difficulty = saved_difficulty
 
 	for key: String in saved:
 		Settings.set(key, saved[key])
