@@ -47,7 +47,6 @@ var _row_cover: Array[Image] = []
 func _ready() -> void:
 	horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_theme_stylebox_override(&"panel", get_theme_stylebox(&"panel", &"ItemList"))
-	_content.mouse_filter = Control.MOUSE_FILTER_PASS
 	add_child(_content)
 	get_v_scroll_bar().value_changed.connect(func(_value: float) -> void: _place_rows())
 	resized.connect(_make_rows)
@@ -115,8 +114,6 @@ func _make_rows() -> void:
 		box.content_margin_right = LevelStrip.WIDTH + SIDE_WIDTH + 2.0 * END_GAP
 	while _rows.size() < wanted:
 		var row := Button.new()
-		# lets the list see the pointer come in over a row too, so the thumbstick scrolls it (vr_slider)
-		row.mouse_filter = Control.MOUSE_FILTER_PASS
 		row.toggle_mode = true
 		row.alignment = HORIZONTAL_ALIGNMENT_LEFT
 		row.clip_text = true
@@ -129,6 +126,10 @@ func _make_rows() -> void:
 		for state: StringName in [&"pressed", &"hover_pressed"]:
 			row.add_theme_stylebox_override(state, selected)
 		row.pressed.connect(_on_row_pressed.bind(_rows.size()))
+		# the list's own enter and exit, so vr_slider's thumbstick scroll sees a pointer that came in over a row. Not
+		# MOUSE_FILTER_PASS: with it, picking and dragging rows stopped working on the headset (owner, 2026-10-29)
+		row.mouse_entered.connect(mouse_entered.emit)
+		row.mouse_exited.connect(mouse_exited.emit)
 		var texture := ImageTexture.create_from_image(Image.create(COVER_SIZE, COVER_SIZE, false, Image.FORMAT_RGBA8))
 		row.icon = texture
 		var strip := TextureRect.new()
