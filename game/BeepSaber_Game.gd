@@ -1296,6 +1296,11 @@ var _height_held := false
 var _height_notice := Label3D.new()
 var _height_notice_back := MeshInstance3D.new()
 const HEIGHT_NOTICE_PADDING := 0.03
+const HEIGHT_NOTICE_FONT_SIZE := 56
+const HEIGHT_NOTICE_PIXEL_SIZE := 0.001
+## The notice's countdown digit, in the numbers' font on the notice's last line, as tall as the 56 px digit it replaced.
+var _height_digit := Label3D.new()
+const HEIGHT_DIGIT_HEIGHT := 0.04
 ## The current player's Settings.players entry when "Who's playing?" opened (a rename keeps the entry).
 var _height_player := {}
 
@@ -1311,8 +1316,8 @@ func _adjust_height() -> void:
 		_height_held = false
 		return
 	if not _height_notice.is_inside_tree():
-		_height_notice.font_size = 56
-		_height_notice.pixel_size = 0.001
+		_height_notice.font_size = HEIGHT_NOTICE_FONT_SIZE
+		_height_notice.pixel_size = HEIGHT_NOTICE_PIXEL_SIZE
 		_height_notice.outline_size = 12
 		_height_notice.modulate = Constants.UI_TEXT
 		_height_notice.outline_modulate = Constants.UI_PANEL
@@ -1328,11 +1333,24 @@ func _adjust_height() -> void:
 		_height_notice_back.mesh = QuadMesh.new()
 		_height_notice_back.material_override = back_material
 		_height_notice.add_child(_height_notice_back)
+		_height_digit.font = Hud.NUMBER_FONT
+		_height_digit.font_size = COUNTDOWN_FONT_SIZE
+		_height_digit.pixel_size = HEIGHT_DIGIT_HEIGHT / (ResultMoment.CAP_SHARE * COUNTDOWN_FONT_SIZE)
+		_height_digit.outline_size = COUNTDOWN_OUTLINE_SIZE
+		_height_digit.modulate = Constants.UI_TEXT
+		_height_digit.outline_modulate = Constants.UI_PANEL
+		_height_digit.no_depth_test = true
+		_height_digit.render_priority = Material.RENDER_PRIORITY_MAX
+		_height_notice.add_child(_height_digit)
 	_height_notice.visible = true
 	for seconds in [3, 2, 1]:
-		_height_notice.text = ("Measuring height for %s\nStand straight, look ahead\n%d" if measure
-				else "Adjusting height for %s\n%d") % [Settings.player_name, seconds]
+		# the last line is left blank for the digit
+		_height_notice.text = ("Measuring height for %s\nStand straight, look ahead\n " if measure
+				else "Adjusting height for %s\n ") % Settings.player_name
+		_height_digit.text = str(seconds)
 		var font := _height_notice.font if _height_notice.font else ThemeDB.fallback_font
+		var lines := _height_notice.text.count("\n") + 1
+		_height_digit.position.y = -(lines - 1) * 0.5 * font.get_height(_height_notice.font_size) * _height_notice.pixel_size
 		var text_size := font.get_multiline_string_size(_height_notice.text, HORIZONTAL_ALIGNMENT_CENTER, -1,
 				_height_notice.font_size) * _height_notice.pixel_size
 		(_height_notice_back.mesh as QuadMesh).size = text_size + Vector2.ONE * HEIGHT_NOTICE_PADDING * 2.0
