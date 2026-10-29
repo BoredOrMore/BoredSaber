@@ -76,8 +76,9 @@ var _recently_added_songs: Array[MapInfo] # newest is first, oldest is last
 var _most_played_songs: Array[MapInfo] # most played is first, least played is last
 var _currently_selected_songlist_ref: Array[MapInfo] = _all_songs # reference to whichever map list is the currently selected one
 
-# keep a record of all song hashes so we can check if the song is already in our local database
-var all_song_hashes: Array[String]
+## Every song folder's name (its hash) in the library, as a set (hash -> true): Get songs asks it for every row it
+## shows and every frame of a download, so a lookup is O(1), not a search of the whole library (owner, 2026-10-29).
+var all_song_hashes := {}
 # send a signal whenever the all_song_keys array changes
 signal song_list_changed()
 
@@ -267,7 +268,7 @@ func add_downloaded_songs(dir_names: Array[String]) -> void:
 	for i in new_names.size():
 		if songs[i]:
 			_all_songs.append(songs[i])
-		all_song_hashes.append(new_names[i])
+		all_song_hashes[new_names[i]] = true
 	song_list_changed.emit()
 	SongTags.look_up_missing(self, _all_songs, _show_environment)
 	_sort_songs()
@@ -295,7 +296,7 @@ func _discover_all_songs(seek_path: String) -> void:
 				if song:
 					_all_songs.append(song)
 				# record all hashes, even those that have unsupported versions
-				all_song_hashes.append(file_name)
+				all_song_hashes[file_name] = true
 			file_name = dir.get_next()
 	emit_signal("song_list_changed")
 

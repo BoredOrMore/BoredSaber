@@ -93,8 +93,12 @@ Henge (24 monoliths round the player, for 90/360 maps; BLOCKOUT 2026-10-29)
   (`_floor_mesh`, `_band`); a floor ring strip (`ring_material`, the floor lights' colour, set by EventDriver).
   `slab_top(i)` places the lasers (`LightRig` "henge": diagonal beams straight up, waving lasers between; no square bars).
 - `HengeStrip.gdshader`: the edge strips, left or right lasers' colour by which side of the track's turned line the
-  slab stands (`track_turn.gdshaderinc`; `strip_material` params set each frame by EventDriver).
-- `HengeFloor.gdshader`: dark ground plus vertex-colour bands of the haze's colour. `HengeSky.gdshader`: dark with a
+  slab stands (`track_turn.gdshaderinc`; `strip_material` params set each frame by EventDriver); `lit` lights the
+  slabs one by one round the ring from straight ahead (`EventDriver._update_henge`: `_built` x `HENGE_BUILT_SHARE`,
+  all the way over a drop's run-up, `build_up`). Drops come from the show intensity with a hold (`henge_drop`:
+  past `STRIP_DROP`, held `HENGE_DROP_HOLD_SECONDS`, released under `HENGE_DROP_RELEASE`); no light events, dark.
+- `HengeFloor.gdshader`: dark ground plus vertex-colour bands of the haze's colour; `flood` (the drop, eased) brightens
+  the bands and adds `FLOOD_LEVEL` grey, capped at `FLOOR_MAX` below the notes. `HengeSky.gdshader`: dark with a
   neutral horizon glow (no `bg_<type>`). Picked only in the menu or for 90/360 maps; never by Follow map.
 
 Metal Factory (underground power plant)

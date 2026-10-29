@@ -506,6 +506,7 @@ func update_list(req: BeatSaverRequest) -> void:
 		if goto_maps_by:
 			goto_maps_by.visible = false
 		song_data = []
+		_song_index.clear()
 		_cover_list += 1
 		_finished_covers.clear()
 		item_selected = -1
@@ -654,6 +655,7 @@ func _add_rows(songs: Array) -> void:
 		sides.append(_side_text(song))
 		covers.append(_placeholder_row_cover())
 		strips.append(_strip(song))
+		_song_index[song.get_hash()] = song_data.size()
 		song_data.append(song)
 	item_list.add_items(texts, sides, covers, strips)
 
@@ -966,6 +968,10 @@ func _update_download_button() -> void:
 	else:
 		download_button.text = "Download"
 
+## Each listed map's place in song_data by its hash, so a download finds its row in O(1) every frame (it searched the
+## whole list twice a frame; owner, 2026-10-29: optimise with big O)
+var _song_index := {}
+
 ## Puts finished covers on the list and keeps the download progress on the button current.
 func _process(delta: float) -> void:
 	_flush_covers(delta)
@@ -973,18 +979,10 @@ func _process(delta: float) -> void:
 		return
 	var before := download_button.text
 	_update_download_button()
-	var index := song_data.find(_downloading_song())
+	var index: int = _song_index.get(Utils.get_str(downloading[0][1] as Dictionary, "hash", ""), -1)
 	var row_changed := index >= 0 and index < item_list.item_count and item_list.set_item_side(index, _side_text(song_data[index]))
 	if download_button.text != before or row_changed:
 		_redraw()
-
-## The listed map being downloaded now, or null.
-func _downloading_song() -> BeatSaverSongInfo:
-	var hash := Utils.get_str(downloading[0][1] as Dictionary, "hash", "")
-	for song in song_data:
-		if song.get_hash() == hash:
-			return song
-	return null
 
 ## Downloads the picked map, or once it is in the song list, picks it there and closes this page.
 func _on_download_button_up() -> void:

@@ -1,6 +1,7 @@
 extends Node
 # Headless checks for the show's intensity curve (EventDriver.intensity_curve), which builds the stage as the song builds,
-# and for the track's turn on 90/360 maps (EventDriver.Turn): eased in and out, never jerking when a new turn comes.
+# and for the track's turn on 90/360 maps (EventDriver.Turn): eased in and out, never jerking when a new turn comes;
+# and for Henge's drop (EventDriver.henge_drop): held through the intensity's flicker at the threshold.
 # Run: godot --headless --path . res://tests/test_show_intensity.tscn
 
 var failures := 0
@@ -92,6 +93,7 @@ func _ready() -> void:
 	check(Settings.ENVIRONMENTS.any(func(e: Array) -> bool: return e[0] == "metal_factory"), "the menu offers the Metal Factory")
 
 	check_turn()
+	check_henge_drop()
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -126,3 +128,17 @@ func check_turn() -> void:
 	turn.step(deg_to_rad(345.0), dt)
 	check(not turn.step(deg_to_rad(345.0), 10.0) or absf(angle_difference(turn.angle, deg_to_rad(-15.0))) < 1e-4,
 		"345 degrees is where -15 already is: no turn the long way round")
+
+## Henge's drop starts past STRIP_DROP, holds for HENGE_DROP_HOLD_SECONDS whatever the intensity does, then holds on
+## while it stays at HENGE_DROP_RELEASE or more and ends under it; a map without light events never builds or drops.
+func check_henge_drop() -> void:
+	check(not EventDriver.henge_drop(false, EventDriver.STRIP_DROP, 0.0), "no drop at the threshold itself")
+	check(EventDriver.henge_drop(false, EventDriver.STRIP_DROP + 0.05, 0.0), "a drop starts past STRIP_DROP")
+	check(EventDriver.henge_drop(true, 0.1, EventDriver.HENGE_DROP_HOLD_SECONDS - 0.1),
+		"a drop holds through a dip in its first HENGE_DROP_HOLD_SECONDS")
+	check(EventDriver.henge_drop(true, EventDriver.HENGE_DROP_RELEASE + 0.05, 30.0), "and on while the intensity stays up")
+	check(not EventDriver.henge_drop(true, EventDriver.HENGE_DROP_RELEASE - 0.05, EventDriver.HENGE_DROP_HOLD_SECONDS),
+		"and ends once it falls under HENGE_DROP_RELEASE after the hold")
+	var none: Array[EventInfo] = []
+	check(EventDriver.build_up(EventDriver.intensity_curve(none, 120.0), 4.0, 120.0) == 0.0,
+		"without light events nothing builds up: Henge stays dark")

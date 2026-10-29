@@ -10,7 +10,7 @@ extends Node3D
 ## slab tops (the diagonal lasers, LightRig). Bands of light from the gaps between the slabs rake across the floor
 ## toward the player, the slabs' shadows between, drawn in the floor's vertex colour (HengeFloor.gdshader), not per pixel.
 ## Slabs and strips are split into QUADRANTS MultiMeshes so the ones behind the player are culled. The build-up (edges
-## lighting one by one round the circle) and the drop (every gap floods) come later.
+## lighting one by one round the circle) and the drop (every gap floods) are EventDriver._update_henge's.
 ## BLOCKOUT: plain boxes and strips. A tool script, so it shows in the editor too. Sizes in metres, untuned.
 
 const STRIP_SHADER := preload("res://game/env/HengeStrip.gdshader")
@@ -38,6 +38,8 @@ const QUADRANTS := 4
 ## the strips' material (left/right colours and the track's turn set each frame by EventDriver) and the floor ring's
 var strip_material: ShaderMaterial
 var ring_material: ShaderMaterial
+## the floor's material, its drop flood set each frame by EventDriver
+var floor_material: ShaderMaterial
 
 func _ready() -> void:
 	# black, unlit: the slabs read as silhouettes against the horizon's glow (the scenery's shader lit them grey, lighter
@@ -58,7 +60,7 @@ func _ready() -> void:
 		_add_boxes(strips, strip_material)
 	var floor_disc := MeshInstance3D.new()
 	floor_disc.mesh = _floor_mesh()
-	var floor_material := ShaderMaterial.new()
+	floor_material = ShaderMaterial.new()
 	floor_material.shader = FLOOR_SHADER
 	floor_disc.material_override = floor_material
 	floor_disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
