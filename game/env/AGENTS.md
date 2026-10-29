@@ -8,9 +8,16 @@ Read the root `AGENTS.md` first ("Light", "Colour rules", "Pico 4 constraints").
 ## Entry points and flow
 
 - Scene: `game/event_driver.tscn` (`Level/`): the sky `Sphere`, the five light-group holders (`DiagonalLasers`,
-  `SquareLasers`, `Left/RightWavingLasers`, `TrackLights`), the old `rings`, `ClassicRig`, `NeonGridRig`, `NightCityRig`,
-  `MetalFactoryRig`, `PulseVoid`, `NeonGrid` floor, `TrackDeck`, `StageSmoke`. Every rig is built at load (tool
-  scripts, `_ready`) and stays in memory; only visibility changes.
+  `SquareLasers`, `Left/RightWavingLasers`, `TrackTurn/TrackLights`), the old `rings`, `ClassicRig`, `NeonGridRig`,
+  `NightCityRig`, `MetalFactoryRig`, `PulseVoid`, `NeonGrid` floor, `TrackDeck`, `StageSmoke`. Every rig is built at load
+  (tool scripts, `_ready`) and stays in memory; only visibility changes.
+- The track turns with the notes on 90/360 maps (`EventDriver._turn_track`): `Level/TrackTurn` (the edge light strips,
+  the old see-through track `floor` and its `Endpath`) and `TrackDeck.turn` (deck and curbs) turn about the player's
+  standing point (`Constants.PLAYER_Z`) to `Map.track_rotation(show_beat)`, easing over `TRACK_TURN_TIME` (0.8 s,
+  untuned; a cubic ease in and out that keeps its speed when a new turn comes mid-way). The platform, camera and XR origin never turn. `set_background` lays the turning
+  parts out unturned (it writes global transforms), then turns them back.
+  The turn cue (`TrackDeck.set_cue`, a chevron on the floor) eases the same way to `Map.cue_rotation(show_beat)`, the
+  map's rotation events, so it leads the lanes (inner class `Turn` eases both).
 - Stage choice: `Settings.ENVIRONMENTS` (`Settings.gd:35`, ids `classic`, `neon_grid`, `pulse_void`, `night_city`,
   `metal_factory`, plus `auto`). `EventDriver.pick_environment(map)` -> `map_environment`:
   `Constants.MAP_ENVIRONMENTS` (map's Beat Saber env name), then `TAG_ENVIRONMENTS` (genre), then a folder-name hash
@@ -98,7 +105,18 @@ Shared scenery
 - `TrackDeck.gd` (`TrackDeck`): opaque deck (top y 0), curbs housing the thin edge light strips (`STRIP_*`), platform frame, end stops;
   runs to `FAR_Z` -150 (`FAR_Z_BY_STAGE`), fades into haze. `layout(lane_width)` for Wide modifiers; `set_stage` skin.
   Hidden for `Settings.old_track` and mixed reality (old see-through sheet instead).
+  Its deck and curbs sit under a child that `turn(place)` turns with the notes; the platform pieces don't. On 90/360
+  maps during a song (`layout(lane_width, true)` from `EventDriver.set_background`) the platform is a black disc
+  (`round_radius()`, as far as the square reaches) with a rim, the deck starting where its corners meet the disc
+  (`deck_near()`), so it meets it at any angle; Standard keeps the square pad. There, like Glass Desert (the long deck
+  turning made players dizzy, owner 2026-10-29; then no lane floor either) there is no deck, curbs or edge strips
+  ahead, no floor reflection; the map's track lights light the platform's ring (`Floor.set_round(radius, lights)`), and
+  the turn cue chevron (`CUE_*`, `Constants.TURN_CUE_COLOR`) shows.
 - `TrackDeck.gdshader`: deck skin per stage (`SKINS`: plates, tread plate, dark glass), lane grooves, `fade_z`.
+- `track_turn.gdshaderinc`: `track_angle` and `track_xz(world)`, a point's place on the unturned track, so the deck's
+  grooves and skin and the far fade (`TrackDeck.gdshader`, `EnvSolid.gdshaderinc`'s `fade_z`, `LightStrip.gdshader`) turn
+  with the track on 90/360 maps; set on the deck, curb and edge-strip materials by `TrackDeck.turn` and
+  `EventDriver._apply_track_turn`.
 
 Light carriers
 - `NeonRibbon.gdshader`: the beam/bar ribbon (1 x 32 PlaneMesh) that turns to face the eye, `min_pixels` floor;

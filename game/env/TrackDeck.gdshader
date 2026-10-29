@@ -27,6 +27,7 @@ render_mode unshaded, shadows_disabled, fog_disabled;
 // the haze before they shimmer. Untuned.
 global uniform vec4 env_haze;
 #include "res://game/env/fog_light.gdshaderinc"
+#include "res://game/env/track_turn.gdshaderinc"
 
 // 1. base: near-black, the lane grooves just visible in it (owner, 2026-10-25: the deck read too bright; it was 0.06)
 uniform vec4 albedo : source_color = vec4(0.035, 0.035, 0.04, 1.0);
@@ -62,12 +63,15 @@ const float DECK_HAZE = 0.3;
 uniform vec2 fade_z = vec2(60.0, 140.0);
 
 varying vec3 world;
+// where it is on the unturned track (track_turn.gdshaderinc)
+varying vec2 track;
 varying float fog;
 
 void vertex() {
 	world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	fog = (1.0 - exp(-FOG_DENSITY * length(world - CAMERA_POSITION_WORLD))) * DECK_HAZE;
-	fog = max(fog, smoothstep(fade_z.x, fade_z.y, -world.z));
+	track = track_xz(world);
+	fog = max(fog, smoothstep(fade_z.x, fade_z.y, -track.y));
 }
 
 // 1 on a line every `spacing` metres through `origin` along `x`, `half_width` wide, antialiased; 0 elsewhere.
@@ -101,12 +105,12 @@ void fragment() {
 	vec3 haze = fog_lit(env_haze.rgb, (INV_VIEW_MATRIX * vec4(-VIEW, 0.0)).xyz);
 	// 3 and the skin's pattern only on the deck's top (its sides are plain)
 	float top = step(-0.01, world.y);
-	float groove = lines(world.x, 0.0, lane_width, GROOVE_HALF_WIDTH) * top;
+	float groove = lines(track.x, 0.0, lane_width, GROOVE_HALF_WIDTH) * top;
 	vec3 base = albedo.rgb;
 	vec3 sheen = vec3(0.0);
 	if (skin == 1) {
 		float near = 1.0 - smoothstep(TREAD_FADE.x, TREAD_FADE.y, length(world - CAMERA_POSITION_WORLD));
-		base *= 1.0 + top * near * (TREAD_LIGHT * tread(world.xz) + RIVET_LIGHT * rivets(world.xz));
+		base *= 1.0 + top * near * (TREAD_LIGHT * tread(track) + RIVET_LIGHT * rivets(track));
 	} else if (skin == 2) {
 		base *= GLASS_BASE;
 		float grazing = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), GLASS_SHARPNESS);

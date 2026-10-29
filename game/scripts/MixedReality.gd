@@ -37,7 +37,7 @@ func set_mixed_reality(mr: bool):
 		get_node("/root/BeepSaber/Point_Label/Text_Background2").hide()
 	
 	(get_node("/root/BeepSaber/event_driver") as EventDriver).show_scenery_for_mixed_reality()
-	material = (get_node("/root/BeepSaber/event_driver/Level/floor") as MeshInstance3D).material_override as StandardMaterial3D
+	material = (get_node("/root/BeepSaber/event_driver/Level/TrackTurn/floor") as MeshInstance3D).material_override as StandardMaterial3D
 	var gradient_texture := material.albedo_texture as GradientTexture2D
 	var gradient := gradient_texture.gradient
 	for i in gradient.get_point_count():

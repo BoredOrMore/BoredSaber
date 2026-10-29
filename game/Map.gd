@@ -45,6 +45,16 @@ static var color_right: Color :
 		_color_right = c
 static var last_beat := 0.
 static var one_saber := false
+## the characteristics whose lanes turn: 90 and 360 degree maps
+const TURNING_CHARACTERISTICS: Array[String] = ["90Degree", "360Degree"]
+## Where the track points through the song on 90/360 maps (get_turns): the beats at which the lanes' direction changes
+## and the direction (radians, as the objects' lane rotation) from each on. Empty when it never turns.
+static var turn_beats := PackedFloat64Array()
+static var turn_angles := PackedFloat64Array()
+## Where the turn cue points (get_turns, EventDriver): the map's rotation events, which come at or before the first
+## object on the turned lane, so the cue can lead the lanes; radians as the lanes'.
+static var cue_beats := PackedFloat64Array()
+static var cue_angles := PackedFloat64Array()
 
 const ROTATIONS_V2 := [ -60., -45., -30., -15., 15., 30., 45., 60. ]
 const ROTATE_ALL := 0. # for testing
@@ -435,8 +445,8 @@ static func load_chain_stack_v3(chain_data: Array, rotations: Array) -> void:
 				@warning_ignore("unsafe_cast")
 				var c := chain_data[i] as Dictionary
 				var beat := Utils.get_float(c, "b", 0.)
-				c["hr"] = Utils.get_float(c, "r", 0.) + get_rotation(rotations, beat)
-				c["tr"] = c["hr"]
+				# ChainInfo.new_v3 reads the lane rotation from "r" (it once got "hr", so chains never turned)
+				c["r"] = Utils.get_float(c, "r", 0.) + get_rotation(rotations, beat)
 				chain_stack[last_index - i] = ChainInfo.new_v3(chain_data[i] as Dictionary)
 			i += 1
 	var midpoint := chain_data.size() >> 1
@@ -488,6 +498,47 @@ static func half_jump_beats_for(bpm: float, njs: float, offset: float) -> float:
 static func beats_per_second() -> float:
 	return current_info.beats_per_minute * Settings.music_speed / 6000.
 
+## Finds where the track turns, from the loaded notes, bombs and walls (a chain starts on a note): the direction changes at the beat of the
+## first object on a lane turned another way (after the map's rotation events, the Mirror and Gradual rotation
+## modifiers, whatever the format: v4 has no rotation events, only each object's own). The turn cue follows the map's
+## rotation events `rotations` ([beat, degrees], get_rotations_v2/v3), or the track where there are none (v4) or Gradual
+## rotation turns every object its own way.
+static func get_turns(rotations: Array) -> void:
+	var objects := []
+	for o in note_stack:
+		objects.append([o.beat, o.rotation])
+	for o in bomb_stack:
+		objects.append([o.beat, o.rotation])
+	for o in obstacle_stack:
+		objects.append([o.beat, o.rotation])
+	objects.sort_custom(compare_times)
+	turn_beats.clear()
+	turn_angles.clear()
+	var angle := 0.0
+	for o: Array in objects:
+		if absf(angle_difference(angle, o[1])) > Constants.ROTATION_EPS:
+			angle = o[1]
+			turn_beats.append(o[0])
+			turn_angles.append(angle)
+	cue_beats = turn_beats
+	cue_angles = turn_angles
+	if not rotations.is_empty() and absf(Settings.gradual_rotation) <= Constants.ROTATION_EPS:
+		cue_beats = PackedFloat64Array()
+		cue_angles = PackedFloat64Array()
+		for r: Array in rotations:
+			cue_beats.append(r[0])
+			cue_angles.append(Utils.adjust_lane_rotation(deg_to_rad(r[1])))
+
+## The way the track points at `beat` (radians): the direction of the last turn at or before it, 0 before any.
+static func track_rotation(beat: float) -> float:
+	var i := turn_beats.bsearch(beat, false)
+	return turn_angles[i - 1] if i > 0 else 0.0
+
+## Where the turn cue points at `beat` (radians): the last rotation event at or before it, 0 before any.
+static func cue_rotation(beat: float) -> float:
+	var i := cue_beats.bsearch(beat, false)
+	return cue_angles[i - 1] if i > 0 else 0.0
+
 static func get_last_beat() -> void:
 	current_info.last_beat = 0.
 	for note_info in note_stack:
@@ -522,9 +573,9 @@ static func get_rotations_v2(events: Array) -> Array:
 				continue
 			angle += ROTATIONS_V2[index]
 			if angle < 0:
-				angle += TAU
-			elif angle >= TAU:
-				angle -= TAU
+				angle += 360
+			elif angle >= 360:
+				angle -= 360
 			r.append([t, angle])
 	r.sort_custom(compare_times)
 	return r
@@ -574,6 +625,7 @@ static func load_beatmap(info: MapInfo, difficulty: DifficultyInfo, map_data: Di
 		Utils.custom_thread_wait_to_finish(event_thread_0)
 		Utils.custom_thread_wait_to_finish(arc_thread_0)
 		get_last_beat()
+		get_turns(rotations)
 		return true
 	elif map_data.has("version"):
 		var version := Utils.get_str(map_data, "version", "")
@@ -636,6 +688,7 @@ static func load_beatmap(info: MapInfo, difficulty: DifficultyInfo, map_data: Di
 			Utils.custom_thread_wait_to_finish(chain_thread_0)
 			Utils.custom_thread_wait_to_finish(event_thread_0)
 			get_last_beat()
+			get_turns(rotations)
 			return true
 	vr.log_warning("selected map is an unsupported version")
 	return false

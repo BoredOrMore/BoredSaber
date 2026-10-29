@@ -27,7 +27,7 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
   script error stopping it part-way; the particle sword finds its particles.
 - `test_beatmap.tscn` / `.gd` + `data/beatmap/` (small v2, v3, v4 maps) - `Map.load_beatmap`: counts, stack order (popped
   from the back), lanes, layers, colours and cut directions of notes, bombs, walls, arcs, chains and light events in
-  each format, plain and mirrored (`Settings.flip`); `half_jump_beats_for`/`set_note_jump`; gradual rotation; a v4 map
+  each format, plain and mirrored (`Settings.flip`); `half_jump_beats_for`/`set_note_jump`; gradual rotation; v2 rotation events adding up in degrees; where the track turns (`get_turns`, `track_rotation`); a v4 map
   leaves no lights from the last map; a stray non-object v2 note is skipped (it once looped forever).
 - `test_scoreboard.tscn` / `.gd` - `Scoreboard`: multiplier steps (2, 6, 14 hits) and halving, combo, max points and
   accuracy, modifier shares and No Fail, bad cuts, walls, chain links, `restart`. A `FakeGame` stands in for
@@ -36,16 +36,20 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
   map, difficulty and modifier set, player names, saving.
 - `test_spawn.tscn` / `.gd` - notes, bombs, walls and arcs from their real pools: place on spawn (lane, row, beat),
   movement per second, and a reused one placed as a fresh one would be (arcs once kept their old place); the note jump
-  (at the hit plane a note's visual is at its row, full size, turned; where it appears it is at its row, unturned). Not covered:
-  chains, rotated lanes, the arc's magnet hookup.
+  (at the hit plane a note's visual is at its row, full size, turned; where it appears it is at its row, unturned). Turned lanes
+  (90°, 180°, -90°): notes, bombs, walls and arcs turned about the player's standing point, a turned note flown to its
+  hit point on its beat, rotation 0 unchanged. Not covered: chains, the arc's magnet hookup.
 - `test_health.tscn` / `.gd` - `Health` (the rules `BeepSaber_Game.update_health` applies): starting health per fail
   mode, hits, misses and walls in the bar, Half Damage, 4 Lives, Instant, No Fail's hidden bar, the cap.
 - `test_cut.tscn` / `.gd` - cut judgement (`BeepCube.right_saber`, `angle_accuracy`, `centre_accuracy`,
   `beat_accuracy_at`) and the chain's curve (`ChainLink.curve_points`, `link_place`).
 - `test_hud.tscn` / `.gd` - the HUD's panels placed from the player's eye (`Hud._panel`): the same angle and distance
-  for any eye, facing it, grown by distance, turned out to clear the lanes on Wide 200%.
+  for any eye, facing it, grown by distance, turned out to clear the lanes on Wide 200%; `Hud.turn` takes the panels and
+  the score round the player with the track and back.
 - `test_show_intensity.tscn` / `.gd` - checks `EventDriver.intensity_curve` (the build-up of the stage): a calm part
-  low and a dense part high, values in 0..1, no curve without light events, finite values for a flat light show.
+  low and a dense part high, values in 0..1, no curve without light events, finite values for a flat light show; the
+  track's turn on 90/360 maps (`EventDriver.Turn`): eased in and out over `TRACK_TURN_TIME`, keeping its speed when a
+  new turn comes mid-way, the short way round.
 
 ## Running
 

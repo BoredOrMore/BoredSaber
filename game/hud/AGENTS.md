@@ -18,6 +18,8 @@ arrangement (owner, 2026-10-27).
   (`BeepSaber_Game._fail_song`): both panels and the energy strips fade and hide before FAILED shows (owner, 2026-10-29).
 - `Scoreboard.points_awarded` → `PointsLabelDriver.show_points` (cut numbers and misses at the note).
 - Health: `BeepSaber_Game.tscn` node with `HealthRails.gd`; the game calls `start_map` and updates it on damage.
+- 90/360 maps: `EventDriver.track_turned` turns the HUD (`Hud.turn`, from where `place` put it) and the energy strips
+  (the `HealthRails` node) about the player's standing point with the track (`TrackDeck.turned`).
 
 ## File map
 

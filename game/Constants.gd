@@ -39,6 +39,12 @@ const MISS_Z := 2.5
 ## made players push from the shoulder instead of swinging (doc/research/scoring-and-reach.md). Track-local z 0 is
 ## still the beat; game/AGENTS.md lists what to check when this changes.
 const HIT_PLANE_Z := 0.35
+## The player's standing point, XROrigin3D's z in BeepSaber_Game.tscn.
+const PLAYER_Z := 1.0
+## Where a 90/360 map's lane rotation turns the track's things about, in the track's own space: the player's standing
+## point, as Beat Saber's (owner, 2026-10-29), so a note on a lane turned 90 degrees reaches its hit point 0.65 m to the
+## player's side instead of in front.
+const LANE_PIVOT_Z := PLAYER_Z - HIT_PLANE_Z
 const DIRECTION8_OFFSET := 2 * TAU 
 const DIRECTION8_COMPARE := DIRECTION8_OFFSET - .001
 const ROTATION_EPS := 1e-5
@@ -209,6 +215,9 @@ const HEALTH_FULL_COLOR := Color(0.74, 0.86, 0.93)
 ## The footprints on the standing platform (game/floor.gd): a neutral white a little brighter than grey, so they
 ## read on every stage without competing with notes (owner, 2026-10-29).
 const FOOTPRINT_COLOR := Color(0.8, 0.8, 0.8)
+## The turn cue on 90/360 maps (TrackDeck.set_cue): the chevron on the floor pointing where the player turns next. A
+## neutral white like the footprints, not a note, accent or danger colour (owner, 2026-10-29: like Glass Desert's).
+const TURN_CUE_COLOR := Color(0.8, 0.8, 0.8)
 # The X shown for a missed note: a softer red than pure red
 const MISS_COLOR := Color("ff4d5e")
 # The combo HUD's multiplier ring (ComboHud.gd): lit and unlit segments. A broken combo tints it MISS_COLOR for a moment.

@@ -20,7 +20,9 @@ func _physics_process(delta: float) -> void:
 	#	queue_free()
 	
 	transform.origin += speed * delta * transform.basis.z
-	var rz := global_transform.origin.dot(transform.basis.z)
+	# its place along its lane as if the lane weren't turned (Cuttable.lane_z), from the player's side of the hit plane
+	var rz := (transform.origin - Vector3(0.0, 0.0, Constants.LANE_PIVOT_Z)).dot(transform.basis.z) \
+		+ Constants.LANE_PIVOT_Z + Constants.HIT_PLANE_Z
 	
 	if rz > despawn_z:
 		hide_pooled()
@@ -81,14 +83,15 @@ func spawn(wall_info: ObstacleInfo, current_beat: float) -> void:
 	var x := (0.5 * wall_info.width + wall_info.line_index - 2) * Settings.LANE_DISTANCE_X
 	var y := bottom + 0.5 * y_size
 	_fit_over_curb(mesh, x, x_size, bottom, y_size)
-	var z := (current_beat - wall_info.beat) * Map.beat_distance - depth
+	# turned about the player's standing point, as notes (Cuttable.add_lane_rotation)
+	var z := (current_beat - wall_info.beat) * Map.beat_distance - depth - Constants.LANE_PIVOT_Z
 	
 	var c := cos(wall_info.rotation)
 	var s := sin(wall_info.rotation)
 	
 	transform.origin.x = c * x - s * z
 	transform.origin.y = y
-	transform.origin.z = s * x + c * z
+	transform.origin.z = s * x + c * z + Constants.LANE_PIVOT_Z
 		
 	rotation.y = -wall_info.rotation
 	

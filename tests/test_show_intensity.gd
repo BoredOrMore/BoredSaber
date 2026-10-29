@@ -1,5 +1,6 @@
 extends Node
-# Headless checks for the show's intensity curve (EventDriver.intensity_curve), which builds the stage as the song builds.
+# Headless checks for the show's intensity curve (EventDriver.intensity_curve), which builds the stage as the song builds,
+# and for the track's turn on 90/360 maps (EventDriver.Turn): eased in and out, never jerking when a new turn comes.
 # Run: godot --headless --path . res://tests/test_show_intensity.tscn
 
 var failures := 0
@@ -90,5 +91,38 @@ func _ready() -> void:
 	check(heavy, "metal, dubstep and drum-and-bass pick the Metal Factory")
 	check(Settings.ENVIRONMENTS.any(func(e: Array) -> bool: return e[0] == "metal_factory"), "the menu offers the Metal Factory")
 
+	check_turn()
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
+
+## A 45 degree turn eases in and out over TRACK_TURN_TIME, peaking at 1.5 x its average speed; a new turn half way keeps
+## the speed it had (no jump) and lands on the new target at rest; it takes the short way round.
+func check_turn() -> void:
+	var dt := 1.0 / 90.0
+	var turn := EventDriver.Turn.new()
+	var target := deg_to_rad(45.0)
+	var peak := 0.0
+	var steps := 0
+	while turn.step(target, dt):
+		peak = maxf(peak, absf(turn.speed))
+		steps += 1
+	check(is_equal_approx(turn.angle, target) and absf(turn.speed) < 1e-6, "a 45 degree turn ends on it, at rest")
+	check(absf(steps * dt - EventDriver.TRACK_TURN_TIME) < 2.0 * dt, "it takes TRACK_TURN_TIME (%.2f s)" % (steps * dt))
+	check(absf(rad_to_deg(peak) - 1.5 * 45.0 / EventDriver.TRACK_TURN_TIME) < 1.0,
+		"its peak speed is 1.5 x the average (%.0f deg/s)" % rad_to_deg(peak))
+	turn = EventDriver.Turn.new()
+	for i in roundi(EventDriver.TRACK_TURN_TIME * 0.5 / dt):
+		turn.step(target, dt)
+	var before := turn.speed
+	turn.step(deg_to_rad(90.0), dt)
+	check(absf(turn.speed - before) < deg_to_rad(10.0), "a new turn half way keeps its speed (%.0f then %.0f deg/s)" % [
+		rad_to_deg(before), rad_to_deg(turn.speed)])
+	while turn.step(deg_to_rad(90.0), dt):
+		pass
+	check(is_equal_approx(wrapf(turn.angle, -PI, PI), deg_to_rad(90.0)), "and lands on the new target")
+	turn = EventDriver.Turn.new()
+	turn.step(deg_to_rad(-15.0), dt)
+	turn.step(deg_to_rad(-15.0), 10.0)
+	turn.step(deg_to_rad(345.0), dt)
+	check(not turn.step(deg_to_rad(345.0), 10.0) or absf(angle_difference(turn.angle, deg_to_rad(-15.0))) < 1e-4,
+		"345 degrees is where -15 already is: no turn the long way round")

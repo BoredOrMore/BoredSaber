@@ -50,6 +50,9 @@ func spawn(info: ArcInfo, current_beat: float, _activator_cube: BeepCube = null)
 	# a pooled arc kept the place it moved to last time; the path below is laid out from the track's origin
 	transform = Transform3D.IDENTITY
 	rotation.y = -arc_info.head_rotation
+	# turned about the player's standing point, as notes (Cuttable.add_lane_rotation)
+	var pivot := Vector3(0.0, 0.0, Constants.LANE_PIVOT_Z)
+	transform.origin = pivot - transform.basis * pivot
 
 func _on_activator_cube_cutted(correct_saber: bool) -> void:
 	if activator_cube and activator_cube.cutted.is_connected(_on_activator_cube_cutted):
@@ -68,7 +71,7 @@ func _process(delta: float) -> void:
 	_travelled += speed * delta
 	# it flies in with its head note (Cuttable.fly_offset)
 	visual.position = Vector3(0.0, 0.0, -Cuttable.fly_offset(_head_ahead - _travelled))
-	if transform.origin.dot(transform.basis.z) >= despawn_z:
+	if _travelled >= despawn_z:
 		hide_pooled()
 		release()
 
