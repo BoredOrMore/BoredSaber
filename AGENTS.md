@@ -26,6 +26,8 @@ line `@AGENTS.md`, so Claude Code loads the folder's doc when it opens a file th
   `tools/asset_pipeline/` has its own rules.
 - `.github/`: CI build, APK release and how to test a build on the headset with adb.
 - `addons/`: not tracked; CI installs godot_openxr_vendors there.
+- `doc/godot/api-changes.md`: Godot 4.4-4.7 API and breaking changes newer than the models' training data; check it
+  before writing a Godot API call you are unsure of and before an engine upgrade.
 
 ## Rules
 
