@@ -2,7 +2,8 @@ extends Node
 # Headless checks that the HUD's panels are placed from the player's eye (Hud._panel): the same angle and distance
 # for any eye, clear of the lanes on the Wide modifiers, grown so the lines keep their size in view; and that a fail's
 # fade (Hud.fade_out, HealthRails.fade_out) fades the panels and the energy strips, hides them and leaves them whole
-# for the next song; and that on 90/360 maps the HUD turns with the track about the player (Hud.turn).
+# for the next song; and that on 90/360 maps the HUD turns with the track about the player (Hud.turn) and sits above
+# every note (Hud.raised_pitch).
 # Run: godot --headless --path . res://tests/test_hud.tscn
 
 var failures := 0
@@ -53,6 +54,7 @@ func _ready() -> void:
 			"the live grade starts at F and climbs a step every 5 notes, never above the accuracy's grade")
 	await check_fade_out()
 	check_turn()
+	check_raised()
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -136,3 +138,26 @@ func check_turn() -> void:
 	hud.queue_free()
 	for node: Node in [point_label, combo, percent]:
 		node.queue_free()
+
+## On 90/360 maps the panels sit above the notes: their lowest line clear of the highest note's top seen from the
+## panels' distance, by the margin; within 20 degrees up, shrinking when an eye sits low; Standard stays at HUD_PITCH.
+func check_raised() -> void:
+	var height := rad_to_deg((Hud.HUD_PANEL_BELOW + Hud.HUD_PANEL_ABOVE) / Hud.HUD_LAID_OUT_DISTANCE)
+	var below := rad_to_deg(Hud.HUD_PANEL_BELOW / Hud.HUD_LAID_OUT_DISTANCE)
+	for eye_y: float in [1.5, 1.6, 1.75, 1.9]:
+		var top := 2.15
+		var raised := Hud.raised_pitch(eye_y, top)
+		var bottom: float = raised[0] - below * raised[1]
+		var note_top := rad_to_deg(atan((top - eye_y) / Hud.HUD_DISTANCE))
+		check(bottom >= note_top + Hud.HUD_ABOVE_NOTES_MARGIN_DEG - 0.01 and bottom >= 0.0,
+			"eye %.2f m: the panels' lowest line (%.1f deg) clears the highest note (%.1f deg) by the margin" % [eye_y,
+			bottom, note_top])
+		check(bottom + height * raised[1] <= Hud.HUD_MAX_UP_DEG + 0.01 and raised[1] == 1.0,
+			"eye %.2f m: the panels' top (%.1f deg) within 20 degrees up at full size" % [eye_y, bottom + height * raised[1]])
+	var low := Hud.raised_pitch(1.0, 2.15)
+	var low_bottom: float = low[0] - below * low[1]
+	check(low[1] < 1.0 and low[1] >= Hud.HUD_MIN_SCALE and (low[1] == Hud.HUD_MIN_SCALE
+		or absf(low_bottom + height * low[1] - Hud.HUD_MAX_UP_DEG) < 0.01),
+		"a low eye (1.0 m): the panels shrink (%.2f) to keep their top within 20 degrees up" % low[1])
+	check(Hud._panel(Hud.HUD_EYE, 1.0).origin.is_equal_approx(Hud._panel(Hud.HUD_EYE, 1.0, Hud.HUD_PITCH, 1.0).origin),
+		"Standard maps keep the panels at HUD_PITCH, full size")

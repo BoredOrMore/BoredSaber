@@ -34,6 +34,21 @@ const HUD_YAW := 19.0
 const HUD_PITCH := -3.6
 const HUD_LANE_MARGIN := 0.7
 const HUD_LAID_OUT_DISTANCE := 4.0
+## On 90/360 maps notes fly in from every side, so no side angle keeps both panels clear of them (owner, 2026-10-29:
+## both covered incoming notes; measured on our maps, notes past the panels' distance span up to ±49 degrees across but
+## only -10 to +6 up and down). There the panels sit above every note the map has, worked out at the song's start from
+## the eye and the map (notes_top): their lowest line HUD_ABOVE_NOTES_MARGIN_DEG over the highest note's top seen from
+## HUD_DISTANCE. Standard maps keep HUD_PITCH. The panels reach HUD_PANEL_BELOW and HUD_PANEL_ABOVE laid-out metres
+## below and above their centre (the grade at its biggest; the combo's caption). Untuned.
+const HUD_ABOVE_NOTES_MARGIN_DEG := 2.0
+const HUD_PANEL_BELOW := 0.3
+const HUD_PANEL_ABOVE := 0.44
+## half a note's height at block size 100, and the bombs' and chain links' too
+const HUD_NOTE_HALF := 0.25
+## the comfort limit for something stared at (AGENTS.md: 20 degrees up); a raised panel whose top would pass it shrinks
+## to fit (fit_up), to no less than HUD_MIN_SCALE. A stopgap choice until the owner picks one (2026-10-29).
+const HUD_MAX_UP_DEG := 20.0
+const HUD_MIN_SCALE := 0.6
 ## The smallest lines are 0.11 m at 4 m (capitals about 1.1 degrees); the old HUD's text was 0.15 m.
 const HUD_COMBO_CAPTION := Vector3(0.0, 0.38, 0.11)
 const HUD_COMBO := Vector3(0.0, 0.24, 0.22)
@@ -150,8 +165,14 @@ func place(eye := HUD_EYE) -> void:
 	_grade_label.scale = Vector3.ONE
 	_grade_label.position = Vector3(HUD_GRADE.x, HUD_GRADE.y, 0.0)
 	_grade_label.rotation = Vector3.ZERO
-	_left.global_transform = _panel(eye, -1.0)
-	_right.global_transform = _panel(eye, 1.0)
+	var pitch := HUD_PITCH
+	var size := 1.0
+	if Map.current_difficulty != null and Map.current_difficulty.characteristic in Map.TURNING_CHARACTERISTICS:
+		var raised := raised_pitch(eye.y, notes_top())
+		pitch = raised[0]
+		size = raised[1]
+	_left.global_transform = _panel(eye, -1.0, pitch, size)
+	_right.global_transform = _panel(eye, 1.0, pitch, size)
 	_point_label.global_transform = _left.global_transform * Transform3D(Basis(), Vector3(HUD_SCORE.x, HUD_SCORE.y, 0.0))
 	_combo.global_transform = _left.global_transform * Transform3D(Basis(), Vector3(HUD_COMBO.x, HUD_COMBO.y, 0.0))
 	_combo.rest_at(_combo.position)
@@ -173,14 +194,41 @@ func turn(angle: float) -> void:
 
 ## A panel on side (-1 left, 1 right): HUD_DISTANCE from the eye at HUD_YAW and HUD_PITCH, turned further out when
 ## that would put it within HUD_LANE_MARGIN of the outer lane; facing the eye and grown for its distance.
-static func _panel(eye: Vector3, side: float) -> Transform3D:
-	var pitch := deg_to_rad(HUD_PITCH)
+static func _panel(eye: Vector3, side: float, pitch_deg := HUD_PITCH, size := 1.0) -> Transform3D:
+	var pitch := deg_to_rad(pitch_deg)
 	var level := HUD_DISTANCE * cos(pitch)
 	var clear := 1.5 * Settings.LANE_DISTANCE_X + HUD_LANE_MARGIN
 	var yaw := maxf(deg_to_rad(HUD_YAW), asin(clampf((clear - side * eye.x) / level, -1.0, 1.0)))
 	var at := eye + Vector3(side * sin(yaw) * level, HUD_DISTANCE * sin(pitch), -cos(yaw) * level)
-	var grow := HUD_DISTANCE / HUD_LAID_OUT_DISTANCE
+	var grow := HUD_DISTANCE / HUD_LAID_OUT_DISTANCE * size
 	return Transform3D(Basis.looking_at(eye - at, Vector3.UP, true).scaled(Vector3.ONE * grow), at)
+
+## The highest any note, bomb, chain link or arc end of the loaded map reaches (its top, metres above the floor).
+static func notes_top() -> float:
+	var layer := 0.0
+	for note in Map.note_stack:
+		layer = maxf(layer, note.line_layer)
+	for bomb in Map.bomb_stack:
+		layer = maxf(layer, bomb.line_layer)
+	for chain in Map.chain_stack:
+		layer = maxf(layer, maxf(chain.head_line_layer, chain.tail_line_layer))
+	for arc in Map.arc_stack:
+		layer = maxf(layer, maxf(arc.head_line_layer, arc.tail_line_layer))
+	return Constants.layer_y(layer) + HUD_NOTE_HALF * Settings.block_size / 100.0
+
+## The panels' pitch (degrees) and size above notes reaching `top` metres, seen from an eye `eye_y` up: the lowest line
+## HUD_ABOVE_NOTES_MARGIN_DEG over the highest note's top at HUD_DISTANCE (never below level: farther notes come
+## closer to it), shrunk by fit_up if the top would pass HUD_MAX_UP_DEG.
+static func raised_pitch(eye_y: float, top: float) -> Array[float]:
+	var bottom := maxf(rad_to_deg(atan((top - eye_y) / HUD_DISTANCE)), 0.0) + HUD_ABOVE_NOTES_MARGIN_DEG
+	var size := fit_up(bottom)
+	return [bottom + rad_to_deg(HUD_PANEL_BELOW / HUD_LAID_OUT_DISTANCE) * size, size]
+
+## How much a panel whose lowest line is `bottom` degrees up shrinks so its top stays within HUD_MAX_UP_DEG (1: not at
+## all), no less than HUD_MIN_SCALE.
+static func fit_up(bottom: float) -> float:
+	var height := rad_to_deg((HUD_PANEL_BELOW + HUD_PANEL_ABOVE) / HUD_LAID_OUT_DISTANCE)
+	return clampf((HUD_MAX_UP_DEG - bottom) / height, HUD_MIN_SCALE, 1.0)
 
 ## Fades both panels out over `seconds`, then hides them (owner, 2026-10-29: on a fail only FAILED stays in view);
 ## the next song shows them whole again. Every text, ring and glow on them is faded through its own opacity: the
