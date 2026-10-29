@@ -49,7 +49,7 @@ func _ready() -> void:
 	footprints.mesh = footprints_plane
 	var footprints_material := ShaderMaterial.new()
 	footprints_material.shader = FOOTPRINTS
-	footprints_material.set_shader_parameter(&"line_color", Constants.FOOTPRINT_COLOR)
+	footprints_material.set_shader_parameter(&"foot_color", Constants.FOOTPRINT_COLOR)
 	footprints.material_override = footprints_material
 	footprints.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# on the burn marks, under the saber light pools
