@@ -245,6 +245,9 @@ For any environment or layout change, follow `.claude/skills/rhythm-world-design
 records in `doc/world/` (game bible, visual style, spatial layout, audio-visual mapping) up to date. Where it
 disagrees with the Light, Colour or playspace rules here, these rules win; suggest a change to the owner when the
 skill's way is clearly better or at least no slower on the headset.
+For a new stage or a new look direction, start with `.claude/skills/creative-director/SKILL.md`: it gets abstract
+concepts (shape and light expressing a feeling) from `.claude/skills/stage-concept/SKILL.md`, each checked by the
+budget agent (`.claude/agents/budget.md`) before it reaches the owner.
 
 Sources: James Gurney, "Color and Light" (luminance and saturation, limited palettes); Richard
 Pilbrow, "Stage Lighting Design" (direction, source and movement of stage light); W3C WCAG 2.2
