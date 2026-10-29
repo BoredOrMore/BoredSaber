@@ -154,8 +154,9 @@ func changed(rare_only := false) -> PackedStringArray:
 ## Each environment's pictures (tools/capture/env_thumbnails.sh): the card, and the wide one for the closed button.
 const ENVIRONMENT_THUMBS := "res://game/env/thumbs/%s.png"
 const ENVIRONMENT_WIDE_THUMBS := "res://game/env/thumbs/%s_wide.png"
-## The cards' height: three rows of two fill the right panel under Back, so nothing scrolls (13 degrees at 2 m).
-const ENVIRONMENT_CARD_HEIGHT := 196
+## The cards' height: four rows of two (six stages and Follow map) fill the right panel under Back, so nothing scrolls
+## (about 10 degrees at 2 m; three rows took 196 px before Henge).
+const ENVIRONMENT_CARD_HEIGHT := 148
 ## The closed Environment button in the Look section, showing the pick's picture (Settings.ENVIRONMENTS).
 var environment_button: EnvironmentCard
 

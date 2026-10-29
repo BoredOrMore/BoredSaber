@@ -91,6 +91,8 @@ const FOG_KEYS := {
 	"night_city": Vector4(0.2, 0.1, -1.0, 0.075),
 	"pulse_void": Vector4(0.0, 0.0, -1.0, 0.1),
 	"metal_factory": Vector4(0.0, 0.05, -1.0, 0.04),
+	# Henge: the glow low on the horizon all round, gently (HengeSky.gdshader)
+	"henge": Vector4(0.0, 0.05, -1.0, 0.04),
 }
 
 ## Pulse Void's beams: their width and brightness, parts of the beams' own (untuned)
@@ -148,7 +150,7 @@ func apply(id: String) -> void:
 	var sky_scale := 1.0
 	if id == "night_city" and not Settings.classic_night_city:
 		sky_scale = CANYON_SKY_SCALE
-	elif id == "neon_grid" or id == "classic" or id == "pulse_void":
+	elif id == "neon_grid" or id == "classic" or id == "pulse_void" or id == "henge":
 		# Classic's tunnel runs 600 m ahead (ClassicRig): the sky behind its far end
 		sky_scale = NEON_SKY_SCALE
 	(_d.get_node(^"Level/Sphere") as Node3D).scale = Vector3.ONE * sky_scale
@@ -244,6 +246,19 @@ func apply(id: String) -> void:
 				_d.diagonal_lasers[i].global_position = PulseVoid.leg_floodlight(i, _d.diagonal_lasers.size())
 			for i in waving.size():
 				waving[i].global_position = PulseVoid.rim_beacon(i, waving.size())
+			for bar in square_bars():
+				bar.visible = false
+		"henge":
+			# the ring of monoliths (HengeRig, blockout): the diagonal lasers' beams straight up from slab tops round the
+			# circle, the waving lasers' on the slabs between; the slabs' edge strips carry the left and right lasers' light
+			# (EventDriver), so the square bars are left out
+			var diagonal := _d.diagonal_lasers.size()
+			for i in diagonal:
+				var top := HengeRig.slab_top(roundi(float(i) * HengeRig.SLAB_COUNT / diagonal) % HengeRig.SLAB_COUNT)
+				aim(_d.diagonal_lasers[i], top, Vector3.UP)
+			for i in waving.size():
+				waving[i].global_position = HengeRig.slab_top(
+					roundi((i + 0.5) * HengeRig.SLAB_COUNT / waving.size()) % HengeRig.SLAB_COUNT)
 			for bar in square_bars():
 				bar.visible = false
 		"metal_factory":

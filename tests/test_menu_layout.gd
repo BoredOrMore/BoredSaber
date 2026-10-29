@@ -374,6 +374,13 @@ func _check_download_page(page: BeatSaverPanel) -> void:
 	page._on_ItemList_item_selected(0)
 	await _settle()
 	check(page.item_list.item_count == 3, "the download page lists the maps it was sent (%d)" % page.item_list.item_count)
+	# the pointer coming onto a row (not the gap between rows) lets the thumbstick scroll the list
+	var row_point := page.item_list.get_global_rect().position + Vector2(200.0, BeatSaverList.ROW_HEIGHT / 2.0)
+	_pointer(row_point - Vector2(0.0, 300.0), null)
+	_pointer(row_point, null)
+	await get_tree().process_frame
+	check(page.get_node(^"list_slider").is_mouse_in, "download page: pointing at a song row lets the thumbstick scroll the list")
+	_pointer(row_point - Vector2(0.0, 300.0), null)
 	check(page.chip_row.get_combined_minimum_size().x <= page.chip_row.size.x,
 			"download page: the search and filter chips fit above the list (%.0f of %.0f px)" % [
 			page.chip_row.get_combined_minimum_size().x, page.chip_row.size.x])
