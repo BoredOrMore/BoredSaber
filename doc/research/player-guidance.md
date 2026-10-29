@@ -3,7 +3,8 @@
 Researched 2026-10-29 at the owner's request ("use all senses available in VR to guide the player, calculated
 with range of motion and FOV, including while the player moves"). Read this before designing or reviewing any
 UI, UX or gameplay-loop element that must catch the player's eye or make the player move: menus and HUD
-placement, warnings, notes and walls that come from outside the view, 90/360 maps, haptics, cue sounds.
+placement, warnings, notes and walls that come from outside the view, 90/360 maps, haptics, and sound design
+(cue, hit, miss and warning sounds).
 Human-readable version with diagrams: https://claude.ai/artifact/9dTaYLqrVN1gpUVZUhQaCc
 
 Everything under "Ideas" is untested; changes to game feel still need a headset playtest (root `AGENTS.md`).
@@ -86,6 +87,22 @@ Lead times = choice reaction time 0.35-0.5 s (Hick-Hyman) + movement time + tors
 | Balance (vestibular) | no output | — | any camera motion the player didn't make causes sickness | LaViola 2000; Rebenitsch & Owen 2016 |
 | Smell, heat, wind | none | — | needs extra hardware | out of scope |
 
+## Sound design
+
+How a sound is built decides whether the player can tell where it comes from, what it means and when it happened.
+
+| Rule | Why (numbers) | Sources |
+|---|---|---|
+| A sound that must show direction is broadband with a sharp onset (a click, noise burst, whoosh), not a pure tone or a slow swell | left/right comes from time differences below ~1.5 kHz and level differences above; up/down and front/back come from the ear's filtering above ~4-5 kHz, which a pure tone or a bass-only sound doesn't carry | Middlebrooks & Green 1991; Blauert 1997 |
+| Directional cues start ~1-1.5 s ahead and keep sounding long enough for the player to turn the head | the front/back mix-up of a generic HRTF mostly disappears once the head moves | Wightman & Kistler 1999 |
+| Godot has no built-in HRTF: `AudioStreamPlayer3D` only pans left/right and falls off with distance, so front and back sound the same | add a cue that differs front vs back (e.g. a duller, low-passed sound behind) or pair the sound with a visual | Godot docs; Blauert 1997 |
+| Warnings sit clearly above the music but not far above it, are short, and have a distinct rhythm or pitch pattern | Patterson's guidelines: about 15-25 dB above the masked threshold; louder startles without helping | Patterson 1982; Edworthy et al. 1991 |
+| Each meaning has one sound, used everywhere (one sound for miss, one for danger, one for confirm) | sounds that resemble their event (auditory icons) are learned fastest; abstract earcons need a consistent family | Gaver 1986; Brewster et al. 1993 |
+| Hit sounds land on the beat, not on the frame the cut was detected | sound and picture fuse within +45 / -125 ms; rhythm accuracy is judged from sound | ITU-R BT.1359; Repp 2005 |
+| Leave space in the frequency band of warnings (duck the music briefly, or pick a band the song uses little) | a cue masked by the song carries no information | Patterson 1982 |
+| Keep loudness consistent: songs normalised (the game uses -14 LUFS), SFX gains fixed per meaning | the player learns one loudness per meaning | ITU-R BS.1770; repo audio round 2026-10-27 |
+| Don't repeat a cue constantly or play it on every note | people stop hearing constant sounds; save cues for events that need action | Edworthy 1994 |
+
 ## Guidance techniques: current versus outdated
 
 | Technique | Status | Evidence | On Pico 4 |
@@ -138,6 +155,8 @@ Ernst & Banks 2002, Nature 415 · Miller 1982, Cognitive Psychology 14 · Repp 2
 Rev. · Hove et al. 2013, J. Exp. Psychol. HPP · Mills 1958, JASA 30 · Wightman & Kistler 1999, JASA 105 ·
 Verrillo 1966, Psychonomic Science · de Jesus Oliveira et al. 2017, IEEE TVCG 23(4) · Hincapié-Ramos et al. 2014,
 ACM CHI · Wolan-Nieroda et al. 2020, BioMed Res. Int. · Chu 2014 (Samsung); Alger 2015 · Lécuyer 2009, Presence 18 ·
-Rietzler et al. 2018, ACM CHI · Sun et al. 2018, ACM TOG · Langbehn et al. 2018, ACM TOG · Mhaidli & Schaub 2021,
+Rietzler et al. 2018, ACM CHI · Middlebrooks & Green 1991, Annu. Rev. Psychol. 42 · Blauert 1997, Spatial Hearing (MIT Press) ·
+Patterson 1982, CAA Paper 82017 · Edworthy et al. 1991, Human Factors 33 · Edworthy 1994, Ergonomics 37 ·
+Gaver 1986, Human-Computer Interaction 2 · Brewster et al. 1993, ACM INTERCHI · ITU-R BS.1770 · Sun et al. 2018, ACM TOG · Langbehn et al. 2018, ACM TOG · Mhaidli & Schaub 2021,
 ACM CHI · Land & McLeod 2000, Nature Neuroscience 3 · Mann et al. 2013, PLoS ONE · Strasburger et al. 2011,
 J. Vision · Drillis & Contini 1966 · ITU-R BT.1359.

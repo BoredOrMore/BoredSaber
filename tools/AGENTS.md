@@ -102,7 +102,8 @@ Run: `blender -b -P tools/models/<script>.py -- game/models` (`OUT_DIR` = first 
 
 - New capture option: `_args()` users in `stage_capture.gd`; document it in the header block `:7-31`.
 - New model: copy a `model_export.py` user, add spec under `doc/assets/`, export to `game/models`.
-- New synth sound: add a `save(...)` in the matching `make_*_sounds.py`.
+- New synth sound: add a `save(...)` in the matching `make_*_sounds.py`; design it by the Sound design rules in
+  `doc/research/player-guidance.md`.
 - Bench phases: `game/Benchmark.gd` (the game side), then `bench.sh` usage comment.
 
 ## How to check a change
