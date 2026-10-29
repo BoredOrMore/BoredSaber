@@ -2,7 +2,7 @@ extends Node
 # Headless checks that the HUD's panels are placed from the player's eye (Hud._panel): the same angle and distance
 # for any eye, clear of the lanes on the Wide modifiers, grown so the lines keep their size in view; and that a fail's
 # fade (Hud.fade_out, HealthRails.fade_out) fades the panels and the energy strips, hides them and leaves them whole
-# for the next song.
+# for the next song; and that on 90/360 maps the HUD turns with the track about the player (Hud.turn).
 # Run: godot --headless --path . res://tests/test_hud.tscn
 
 var failures := 0
@@ -52,6 +52,7 @@ func _ready() -> void:
 			and Hud.shown_grade(1.0, 30) == "SS" and Hud.shown_grade(0.7, 100) == "A" and Hud.shown_grade(0.7, 10) == "C",
 			"the live grade starts at F and climbs a step every 5 notes, never above the accuracy's grade")
 	await check_fade_out()
+	check_turn()
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -101,3 +102,37 @@ func check_fade_out() -> void:
 	check(not rails.visible and float(bar.get_shader_parameter(&"fade")) == 1.0 and rails._icon.modulate.a == 1.0,
 			"after the fade the energy strips are hidden and whole again for the next song")
 	rails.queue_free()
+
+## Builds a HUD from stand-ins and turns it with the track: each part turned about the player's standing point, the
+## panels still facing the eye turned with them, and back where it was when the track points ahead again.
+func check_turn() -> void:
+	var point_label := MeshInstance3D.new()
+	point_label.mesh = TextMesh.new()
+	point_label.material_override = StandardMaterial3D.new()
+	var combo := ComboHud.new()
+	combo.mesh = TextMesh.new()
+	combo.material_override = StandardMaterial3D.new()
+	var percent := preload("res://game/hud/PercentIndicator.tscn").instantiate() as PercentIndicator
+	for node: Node in [point_label, combo, percent]:
+		add_child(node)
+	var hud := Hud.new(point_label, combo, percent)
+	add_child(hud)
+	var near := func(a: Vector3, b: Vector3) -> bool: return a.distance_to(b) < 0.001
+	var pivot := Vector3(0.0, Hud.HUD_EYE.y, Constants.PLAYER_Z)
+	var left := hud._left.global_transform
+	var score := point_label.global_position
+	hud.turn(PI * 0.5)
+	var turned := pivot + Basis(Vector3.UP, -PI * 0.5) * (left.origin - pivot)
+	check(near.call(hud._left.global_position, turned), "a 90 degree turn takes the left panel round the player: %s, " %
+		hud._left.global_position + "expected %s" % turned)
+	check(near.call(point_label.global_position, pivot + Basis(Vector3.UP, -PI * 0.5) * (score - pivot)),
+		"and the score with it: %s" % point_label.global_position)
+	var to_eye := (pivot + Basis(Vector3.UP, -PI * 0.5) * (Hud.HUD_EYE - pivot)) - hud._left.global_position
+	check(hud._left.global_basis.z.normalized().dot(to_eye.normalized()) > 0.999,
+		"the turned panel still faces the eye turned with it")
+	hud.turn(0.0)
+	check(near.call(hud._left.global_position, left.origin) and near.call(point_label.global_position, score),
+		"turned back, the HUD is where it was")
+	hud.queue_free()
+	for node: Node in [point_label, combo, percent]:
+		node.queue_free()

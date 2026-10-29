@@ -178,6 +178,8 @@ var show_beat := 0.0
 ## and out over TRACK_TURN_TIME, or until the next turn when that comes sooner. The camera and XR origin never turn.
 ## UNTUNED: no official Beat Saber value found; needs a headset playtest on a 90 and a 360 map.
 const TRACK_TURN_TIME := 0.3
+## the track has turned to `angle` (track_angle); the HUD and the energy strips turn with it (BeepSaber_Game)
+signal track_turned(angle: float)
 ## where the track points now and the turn it is easing through (radians, as the lanes' rotation; seconds)
 var track_angle := 0.0
 var _turn_from := 0.0
@@ -675,6 +677,7 @@ func _apply_track_turn() -> void:
 	track_turn.transform = TrackDeck.turned(track_angle)
 	track_deck.turn(track_angle)
 	track_lights_material.set_shader_parameter(&"track_angle", track_angle)
+	track_turned.emit(track_angle)
 
 func set_combo_multiplier(multiplier: int) -> void:
 	_combo_target = log(maxf(multiplier, 1)) / log(8.0)

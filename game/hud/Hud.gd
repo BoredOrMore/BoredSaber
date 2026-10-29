@@ -81,6 +81,11 @@ var _combo: ComboHud
 var _percent_indicator: PercentIndicator
 var _left: Node3D
 var _right: Node3D
+## On 90/360 maps the HUD turns with the track about the player (turn, EventDriver.track_turned), keeping its angles and
+## distance to the track's direction: where place() put the panels, the score and the combo with the track straight,
+## and how far the track has turned
+var _placed: Array[Transform3D] = []
+var _turn := 0.0
 var _accuracy_label: MeshInstance3D
 var _grade_label: MeshInstance3D
 ## The grade shown, "" before a song's first note, to pop the label when it goes up.
@@ -152,6 +157,19 @@ func place(eye := HUD_EYE) -> void:
 	_combo.rest_at(_combo.position)
 	_combo.ring.transform = Transform3D(Basis.from_scale(Vector3.ONE * HUD_RING_SIZE),
 			Vector3(HUD_RING.x, HUD_RING.y, 0.0))
+	_placed = [_left.global_transform, _right.global_transform, _point_label.global_transform, _combo.global_transform]
+	turn(_turn)
+
+## Turns the panels, the score and the combo `angle` radians about the player's standing point with the track
+## (TrackDeck.turned), from where place() put them.
+func turn(angle: float) -> void:
+	_turn = angle
+	var turned := TrackDeck.turned(angle)
+	_left.global_transform = turned * _placed[0]
+	_right.global_transform = turned * _placed[1]
+	_point_label.global_transform = turned * _placed[2]
+	_combo.global_transform = turned * _placed[3]
+	_combo.rest_at(_combo.position)
 
 ## A panel on side (-1 left, 1 right): HUD_DISTANCE from the eye at HUD_YAW and HUD_PITCH, turned further out when
 ## that would put it within HUD_LANE_MARGIN of the outer lane; facing the eye and grown for its distance.

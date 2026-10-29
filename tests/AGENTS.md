@@ -43,7 +43,8 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
 - `test_cut.tscn` / `.gd` - cut judgement (`BeepCube.right_saber`, `angle_accuracy`, `centre_accuracy`,
   `beat_accuracy_at`) and the chain's curve (`ChainLink.curve_points`, `link_place`).
 - `test_hud.tscn` / `.gd` - the HUD's panels placed from the player's eye (`Hud._panel`): the same angle and distance
-  for any eye, facing it, grown by distance, turned out to clear the lanes on Wide 200%.
+  for any eye, facing it, grown by distance, turned out to clear the lanes on Wide 200%; `Hud.turn` takes the panels and
+  the score round the player with the track and back.
 - `test_show_intensity.tscn` / `.gd` - checks `EventDriver.intensity_curve` (the build-up of the stage): a calm part
   low and a dense part high, values in 0..1, no curve without light events, finite values for a flat light show.
 
