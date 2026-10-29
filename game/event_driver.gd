@@ -634,12 +634,7 @@ func _process(delta: float) -> void:
 	if track_deck.visible:
 		track_deck.deck_material.set_shader_parameter(&"light_color", floor_material.albedo_color)
 	if henge_rig.visible:
-		# the slabs' edges in the left and right lasers' colours, by where the track points; the floor ring in the floor
-		# lights'
-		henge_rig.strip_material.set_shader_parameter(&"left_color", left_waving_lasers_material.get_shader_parameter(&"light_color"))
-		henge_rig.strip_material.set_shader_parameter(&"right_color", right_waving_lasers_material.get_shader_parameter(&"light_color"))
-		henge_rig.strip_material.set_shader_parameter(&"track_angle", track_angle)
-		henge_rig.ring_material.set_shader_parameter(&"light_color", track_lights_material.get_shader_parameter(&"light_color"))
+		_update_henge(delta)
 	if environment == "metal_factory":
 		metal_factory_rig.set_vent_colors(diagonal_lasers_material.get_shader_parameter(&"light_color"),
 				left_waving_lasers_material.get_shader_parameter(&"light_color"),
@@ -803,6 +798,8 @@ func start_show(events: Array[EventInfo], bpm: float) -> void:
 	_show_bpm = bpm
 	_intensity = 0.0
 	_built = 0.0
+	_henge_drop = false
+	_henge_flood = 0.0
 	show_beat = 0.0
 	classic_rig.set_built(0.0)
 
@@ -819,6 +816,47 @@ func _update_show(delta: float) -> void:
 		metal_factory_rig.slam(show_beat, _show_bpm, _intensity)
 		metal_factory_rig.turn_gears(delta, _intensity)
 		metal_factory_rig.breathe(show_beat, _show_bpm, _intensity)
+
+## Henge's show (doc/world/GAME_BIBLE.md: held breath, then release), from the show's intensity (intensity_curve, the
+## map's light events): the slabs' edges light one by one round the ring as the show builds (HENGE_BUILT_SHARE of the
+## ring by _built) and all the way round over the run-up to a drop (build_up); on the drop every gap floods
+## (HengeFloor.gdshader's flood), easing in over HENGE_FLOOD_RISE_SECONDS and out over HENGE_FLOOD_FALL_SECONDS, never
+## a flash. The intensity hovers at STRIP_DROP for a while (desktop run over 18 maps: drops of under a second, on and
+## off), so a drop holds on until it falls under HENGE_DROP_RELEASE and has lasted HENGE_DROP_HOLD_SECONDS
+## (henge_drop). A map without light events builds nothing: Henge stays dark (the owner's rule). Untuned.
+const HENGE_BUILT_SHARE := 0.5
+const HENGE_FLOOD_RISE_SECONDS := 0.6
+const HENGE_FLOOD_FALL_SECONDS := 2.5
+const HENGE_DROP_RELEASE := 0.6
+const HENGE_DROP_HOLD_SECONDS := 4.0
+var _henge_drop := false
+var _henge_drop_seconds := 0.0
+var _henge_flood := 0.0
+
+## Lights Henge's slab edges (in the left and right lasers' colours, by where the track points) and the floor ring (in
+## the floor lights'), with its build-up and drop (see HENGE_BUILT_SHARE).
+func _update_henge(delta: float) -> void:
+	_henge_drop_seconds = _henge_drop_seconds + delta if _henge_drop else 0.0
+	_henge_drop = not menu_focus and henge_drop(_henge_drop, _intensity, _henge_drop_seconds)
+	var lit := 1.0
+	if not menu_focus:
+		lit = 1.0 if _henge_drop else maxf(_built * HENGE_BUILT_SHARE, build_up(_intensity_curve, show_beat, _show_bpm))
+	_henge_flood = move_toward(_henge_flood, 1.0 if _henge_drop else 0.0,
+			delta / (HENGE_FLOOD_RISE_SECONDS if _henge_drop else HENGE_FLOOD_FALL_SECONDS))
+	var strips := henge_rig.strip_material
+	strips.set_shader_parameter(&"left_color", left_waving_lasers_material.get_shader_parameter(&"light_color"))
+	strips.set_shader_parameter(&"right_color", right_waving_lasers_material.get_shader_parameter(&"light_color"))
+	strips.set_shader_parameter(&"track_angle", track_angle)
+	strips.set_shader_parameter(&"lit", lit)
+	henge_rig.floor_material.set_shader_parameter(&"flood", _henge_flood)
+	henge_rig.ring_material.set_shader_parameter(&"light_color", track_lights_material.get_shader_parameter(&"light_color"))
+
+## Whether Henge's drop is on: it starts when `intensity` passes STRIP_DROP and, once on (`was`), holds until the
+## intensity falls under HENGE_DROP_RELEASE after HENGE_DROP_HOLD_SECONDS (`held`, seconds it has been on).
+static func henge_drop(was: bool, intensity: float, held: float) -> bool:
+	if intensity > STRIP_DROP:
+		return true
+	return was and (intensity >= HENGE_DROP_RELEASE or held < HENGE_DROP_HOLD_SECONDS)
 
 ## How close the drop after `beat` in `curve` (intensity_curve at `bpm`) is: 0 when none comes within BUILD_UP_SECONDS,
 ## rising to 1 as it arrives.
