@@ -83,6 +83,7 @@ Find the type of every node from step 1, then run its list on top of sections 2-
 
 ### Text and numbers
 - [ ] Height ≥ 1.85° (`ui_angles` floor); Roboto Medium body, SemiBold/Bold headings in 2D; 3D `TextMesh` Medium.
+  One owner exception (Bored, 2026-10-29): the far HUD of 90/360 maps uses Beat Saber's 1.1-1.4° (`Hud.FAR_*_DEG`).
 - [ ] Numbers: Kanit Italic 600, thousands "," in scores and counts (not time or percent), a unit on every value.
 - [ ] Contrast ≥ 4.5:1 (3:1 at 24 px and up) on every background it sits on (normal, hover, selected).
 - [ ] Player words only (root `AGENTS.md`); one word per concept across every screen.

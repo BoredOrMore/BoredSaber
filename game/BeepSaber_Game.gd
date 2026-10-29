@@ -336,6 +336,7 @@ func _start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	current_health = Health.start_value(Settings.health_mode, Settings.fail_mode)
 	if Settings.health_mode:
 		health_rails.start_map(Settings.fail_mode == Constants.FAIL_MODE_LIVES, current_health / Constants.HEALTH_MAX, _eye())
+		hud.show_health(current_health / Constants.HEALTH_MAX)
 	
 	_clear_track()
 	_lowered_resolution = false
@@ -354,6 +355,7 @@ func update_health(delta: float, mistake: bool = false) -> void:
 		return
 	if Settings.health_mode:
 		health_rails.update_health(current_health / Constants.HEALTH_MAX)
+		hud.show_health(current_health / Constants.HEALTH_MAX)
 		if current_health <= 0 and gamestate == gamestate_playing and not failing:
 			_fail_song()
 		_update_low_health_sound()
