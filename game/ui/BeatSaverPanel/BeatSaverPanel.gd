@@ -132,9 +132,9 @@ const MAX_CACHED_PREVIEWS := 10
 const LIST_RETRIES := 2
 const LIST_RETRY_SECONDS := 1.0
 var _list_retries_left := LIST_RETRIES
-## The level filter (owner, 2026-10-27): "Any level" or one level, matched exactly (a map shows when one of its
-## difficulties plays at that level), kept per player in Settings.beatsaver_filter_reaction (0 any, 1 + level).
-const ANY_LEVEL_TEXT := "Any level"
+## The level filter (owner, 2026-10-27): any difficulty (Constants.ANY_DIFFICULTY_LABEL, the song menu's word) or one
+## level, matched exactly (a map shows when one of its difficulties plays at that level), kept per player in
+## Settings.beatsaver_filter_reaction (0 any, 1 + level).
 ## The details list a map's levels and its words; Details opens the rest (reaction time, flow, walls, description).
 const DETAILS_TEXT := "Details"
 
@@ -156,28 +156,53 @@ static func nps_window(level: int) -> Vector2:
 ## Icons of the big button: download, or play once the song is in the library.
 const DOWNLOAD_ICON := preload("res://game/ui/icons/download.svg")
 const PLAY_ICON := preload("res://game/ui/icons/play.svg")
+const CLEAR_ICON := preload("res://game/ui/icons/x.svg")
+## The sort button while a search lists maps by how well they match.
+const BEST_MATCH_TEXT := "Best match"
+## The Filters button, with how many filters are on; the chip that stands for several filters when their chips don't
+## fit above the list; the chip of the mapper list "More by" opened (its x goes back to the list before).
+const FILTERS_TEXT := "Filters"
+const FILTERS_ON_TEXT := "Filters · %d"
+const SOME_FILTERS_TEXT := "%d filters"
+const MAPPER_CHIP_TEXT := "By %s"
+## Most letters of the search shown on its chip, before "…".
+const SEARCH_CHIP_LETTERS := 16
+## The x on a chip, px.
+const CHIP_ICON_SIZE := 24
+## A map's cover in the list (BeatSaverList.COVER_SIZE) and in the details, px. Only the picked map's big cover is
+## fetched (DetailCoverDownload), so the list keeps 20 KB per map instead of 160 KB (owner, 2026-10-29, layout A).
+const DETAIL_COVER := 152
 ## Preview mp3 bytes by preview URL, oldest first.
 var _preview_cache := {}
 ## URL of the preview being downloaded.
 var _preview_url := ""
 
-@onready var item_list := $ItemList as CoverGrid
-@onready var sort_tabs := $SortTabs as HBoxContainer
+@onready var item_list := $ItemList as BeatSaverList
+@onready var sort_button := $SortButton as OptionButton
 @onready var search_button := $search as Button
-@onready var clear_search_button := $ClearSearch as Button
-@onready var back_button := $back as Button
+@onready var filters_button := $Filters_Button as Button
+@onready var filters_panel := $FiltersPanel as Panel
+@onready var chip_row := $ChipRow as HBoxContainer
+@onready var source_label := $ChipRow/Source as Label
+@onready var empty_list := $EmptyList as Label
 @onready var label := $Label as Label
+@onready var cover_rect := $TextureRect as TextureRect
+@onready var title_label := $Head/Title as Label
+@onready var artist_label := $Head/Artist as Label
+@onready var mapper_label := $Head/Mapper as Label
 @onready var httpreq := $HTTPReq as HTTPRequest
 @onready var httpdownload := $HTTPDownload as HTTPRequest
 @onready var httpcoverdownload := $CoverDownload as HTTPRequest
+@onready var httpdetailcover := $DetailCoverDownload as HTTPRequest
 @onready var httppreviewdownload := $PreviewDownload as HTTPRequest
 @onready var placeholder_cover := preload("res://game/data/beepsaber_logo.png")
 @onready var goto_maps_by := $gotoMapsBy as Button
 @onready var download_button := $download as Button
-@onready var reaction_filter := $ReactionFilter as OptionButton
-@onready var genre_filter := $GenreFilter as OptionButton
-@onready var style_chips := $StyleChips as HBoxContainer
-@onready var length_filter := $LengthFilter as OptionButton
+@onready var reaction_filter := $FiltersPanel/Rows/DifficultyRow/ReactionFilter as OptionButton
+@onready var genre_filter := $FiltersPanel/Rows/GenreRow/GenreFilter as OptionButton
+@onready var style_chips := $FiltersPanel/Rows/StyleRow/StyleChips as HFlowContainer
+@onready var length_filter := $FiltersPanel/Rows/LengthRow/LengthFilter as OptionButton
+@onready var clear_filters_button := $FiltersPanel/Rows/ClearFilters_Button as Button
 @onready var v_scroll := item_list.get_v_scroll_bar()
 
 const MAX_BACK_STACK_DEPTH := 10
@@ -195,7 +220,8 @@ var prev_request: BeatSaverRequest
 
 func on_song_list_changed() -> void:
 	for item_index in mini(item_list.item_count, song_data.size()):
-		item_list.set_item_text(item_index, _card_text(song_data[item_index]))
+		item_list.set_item_side(item_index, _side_text(song_data[item_index]))
+		item_list.set_item_strip(item_index, _strip(song_data[item_index]))
 	_update_download_button()
 
 ## True if the map is already in the song list.
@@ -221,27 +247,33 @@ func _levels(song: BeatSaverSongInfo) -> Array:
 			levels.append(MapStats.level_of(info, difficulty, MapStats.get_stats(info, difficulty)))
 	return [levels, false]
 
-## A title cut to fit one line of a card, ending in "…"; the details panel shows it whole.
-func _one_line(title: String) -> String:
-	var font := item_list.get_theme_font("font")
-	var font_size := item_list.get_theme_font_size("font_size")
-	var room := float(item_list.fixed_column_width)
-	if font.get_string_size(title, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x <= room:
-		return title
-	while title.length() > 1 and font.get_string_size(title + "…", HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x > room:
-		title = title.left(-1)
-	return title.strip_edges() + "…"
+## A map's row text, as the song menu names its songs: "Artist - Title" (the map's name when it has neither).
+static func _row_text(song: BeatSaverSongInfo) -> String:
+	if song.song_name.is_empty():
+		return song.name
+	return "%s - %s" % [song.song_author_name, song.song_name] if not song.song_author_name.is_empty() else song.song_name
 
-## A map's card under its cover (its levels are on the cover): title and length, then whether staff picked it or it
-## is already downloaded.
-func _card_text(song: BeatSaverSongInfo) -> String:
+## The end of a map's row: how its download is going, else its length, with "✓" once it is in the library.
+func _side_text(song: BeatSaverSongInfo) -> String:
+	var hash := song.get_hash()
+	if not downloading.is_empty() and Utils.get_str(downloading[0][1] as Dictionary, "hash", "") == hash:
+		var total := httpdownload.get_body_size()
+		return "↓ %d%%" % (100 * httpdownload.get_downloaded_bytes() / total) if total > 0 else "↓ …"
+	if downloading.any(func(entry: Array) -> bool: return Utils.get_str(entry[1] as Dictionary, "hash", "") == hash):
+		return "↓ …"
 	var seconds := int(song.duration)
-	var text := "%s\n%d:%02d" % [_one_line(song.name), seconds / 60, seconds % 60]
-	if _in_library(song):
-		text += "\n✓ In library"
-	elif song.curated:
-		text += "\n★ Staff pick"
-	return text
+	return "%s%d:%02d" % ["✓ " if _in_library(song) else "", seconds / 60, seconds % 60]
+
+## Level strips by kind (levels, the player's level, estimated), each one texture shared by every row that shows it.
+var _strip_textures := {}
+
+## A map's level strip: measured once it is in the library, else BeatSaver's estimate.
+func _strip(song: BeatSaverSongInfo) -> Texture2D:
+	var levels := _levels(song)
+	var key := "%s|%d|%s" % [levels[0], picked_level(), levels[1]]
+	if not _strip_textures.has(key):
+		_strip_textures[key] = ImageTexture.create_from_image(LevelStrip.strip_image(levels[0], picked_level(), levels[1]))
+	return _strip_textures[key]
 
 func _ready() -> void:
 	# the slow-frame probe: this page's _process first, a probe's last
@@ -251,32 +283,24 @@ func _ready() -> void:
 	probe.set_script(_FRAME_PROBE)
 	probe.set_meta(&"panel", self)
 	add_child(probe)
-	var tab_group := ButtonGroup.new()
 	for tab: Array in SORT_TABS:
-		var button := Button.new()
-		button.text = tab[0]
-		button.toggle_mode = true
-		button.button_group = tab_group
-		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.pressed.connect(_on_sort_tab_pressed.bind(tab[1]))
-		sort_tabs.add_child(button)
-	(sort_tabs.get_child(0) as Button).set_pressed_no_signal(true)
+		sort_button.add_item(tab[0])
 	var style_group := ButtonGroup.new()
 	for style: Array in STYLES:
 		var chip := Button.new()
+		chip.theme_type_variation = &"ChipButton"
 		chip.text = style[0]
 		chip.toggle_mode = true
 		chip.button_group = style_group
-		chip.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		chip.add_theme_font_size_override(&"font_size", 22)
 		chip.pressed.connect(_on_style_pressed.bind(style[1]))
 		style_chips.add_child(chip)
 	(style_chips.get_child(0) as Button).set_pressed_no_signal(true)
 	for genre: Array in GENRES:
 		genre_filter.add_item(genre[0])
 	UI_AudioEngine.attach_children(self)
-	back_button.visible = false
 	v_scroll.value_changed.connect(_on_ListV_Scroll_value_changed)
+	_detail_texture = ImageTexture.create_from_image(_sized(placeholder_cover.get_image(), DETAIL_COVER))
+	cover_rect.texture = _detail_texture
 	
 	var is_web := OS.get_name() == "Web"
 	
@@ -299,7 +323,7 @@ func _ready() -> void:
 
 	main_menu_ref.song_list_changed.connect(on_song_list_changed)
 	
-	reaction_filter.add_item(ANY_LEVEL_TEXT)
+	reaction_filter.add_item(Constants.ANY_DIFFICULTY_LABEL)
 	for level: Array in Constants.DIFFICULTY_LEVELS:
 		reaction_filter.add_item(level[0])
 	LevelStrip.prepare(self)
@@ -310,10 +334,91 @@ func _ready() -> void:
 	_sync_filter_controls()
 	Settings.changed.connect(_on_settings_changed)
 
-## Shows the saved song filters in the dropdowns.
+## Shows the filters in their controls, on the Filters button and as chips above the list.
 func _sync_filter_controls() -> void:
 	reaction_filter.select(picked_level() + 1)
 	length_filter.select(MapStats.length_filter(Settings.beatsaver_filter_length)[0])
+	for i in STYLES.size():
+		(style_chips.get_child(i) as Button).set_pressed_no_signal(STYLES[i][1] == _style_tag)
+	genre_filter.select(GENRES.map(func(genre: Array) -> String: return genre[1]).find(_genre_tag))
+	var on := _filter_chips()
+	filters_button.text = FILTERS_ON_TEXT % on.size() if not on.is_empty() else FILTERS_TEXT
+	clear_filters_button.visible = not on.is_empty()
+	_update_chips()
+
+## The filters that are on, as [chip text, what pressing its x does].
+func _filter_chips() -> Array:
+	var chips := []
+	if not _style_tag.is_empty():
+		chips.append([_tag_name(_style_tag), func() -> void: _on_style_pressed("")])
+	if not _genre_tag.is_empty():
+		chips.append([_tag_name(_genre_tag), func() -> void: _on_genre_filter_item_selected(0)])
+	if picked_level() >= 0:
+		chips.append([Constants.DIFFICULTY_LEVELS[picked_level()][0], func() -> void: Settings.beatsaver_filter_reaction = 0])
+	var length := MapStats.length_filter(Settings.beatsaver_filter_length)
+	if int(length[0]) != 0:
+		chips.append([length[1], func() -> void: Settings.beatsaver_filter_length = 0])
+	return chips
+
+## The row above the list shows what it lists (owner, 2026-10-29, layout A: show which filters are on): the mapper of
+## a "More by" list, or the search and each filter on, each a chip whose x takes it off; when the filters' chips don't
+## fit, one chip stands for them all. With none it credits BeatSaver.
+func _update_chips() -> void:
+	var chips := []
+	var filters := []
+	if prev_request != null and prev_request.type == "uploader":
+		chips.append([MAPPER_CHIP_TEXT % _uploader_name, _on_back_pressed])
+	else:
+		if not search_word.is_empty():
+			var shown := search_word if search_word.length() <= SEARCH_CHIP_LETTERS else search_word.left(SEARCH_CHIP_LETTERS).strip_edges() + "…"
+			chips.append(["\"%s\"" % shown, _on_clear_search_pressed])
+		filters = _filter_chips()
+	_fill_chips(chips + filters)
+	if chip_row.get_combined_minimum_size().x > chip_row.size.x:
+		_fill_chips(chips + [[SOME_FILTERS_TEXT % filters.size(), _on_clear_filters_pressed]])
+
+## Puts chips [text, what pressing it does] in the row above the list; with none it credits BeatSaver.
+func _fill_chips(chips: Array) -> void:
+	for chip in chip_row.get_children():
+		if chip != source_label:
+			chip_row.remove_child(chip)
+			chip.queue_free()
+	for entry: Array in chips:
+		var chip := Button.new()
+		chip.theme_type_variation = &"ChipButton"
+		chip.text = entry[0]
+		chip.icon = CLEAR_ICON
+		chip.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		chip.add_theme_constant_override(&"icon_max_width", CHIP_ICON_SIZE)
+		chip.pressed.connect(entry[1] as Callable)
+		UI_AudioEngine.attach_button(chip)
+		chip_row.add_child(chip)
+		chip_row.move_child(chip, chip_row.get_child_count() - 2)
+	source_label.visible = chips.is_empty()
+
+## Opens or closes the filters over the list.
+func _set_filters_open(open: bool) -> void:
+	filters_panel.visible = open
+	_redraw()
+
+## Turns every filter off and lists again once.
+func _on_clear_filters_pressed() -> void:
+	_style_tag = ""
+	_genre_tag = ""
+	_clearing = true
+	Settings.beatsaver_filter_reaction = 0
+	Settings.beatsaver_filter_length = 0
+	_clearing = false
+	_sync_filter_controls()
+	_reload()
+
+## True while Clear filters changes several settings, so the list loads once.
+var _clearing := false
+
+## Draws the page again (it redraws only on input otherwise).
+func _redraw() -> void:
+	var canvas := get_parent().get_parent()
+	if canvas is OQ_UI2DCanvas: (canvas as OQ_UI2DCanvas)._input_update()
 
 ## BeatSaver search parameters for the picked style and genre (both must match) and the saved length filter,
 ## or "" when all are off.
@@ -339,7 +444,7 @@ func _filter_query() -> String:
 
 ## Follows filter changes and reloads the current list with them.
 func _on_settings_changed(key: StringName) -> void:
-	if key != &"beatsaver_filter_reaction" and key != &"beatsaver_filter_length":
+	if key != &"beatsaver_filter_reaction" and key != &"beatsaver_filter_length" or _clearing:
 		return
 	_sync_filter_controls()
 	_reload()
@@ -353,11 +458,13 @@ func _reload() -> void:
 ## Lists only maps of one style (a BeatSaver tag), or any.
 func _on_style_pressed(tag: String) -> void:
 	_style_tag = tag
+	_sync_filter_controls()
 	_reload()
 
 ## Lists only maps of one genre (a BeatSaver tag), or any.
 func _on_genre_filter_item_selected(index: int) -> void:
 	_genre_tag = GENRES[index][1]
+	_sync_filter_controls()
 	_reload()
 
 ## Stores the picked reaction time filter.
@@ -401,7 +508,7 @@ func update_list(req: BeatSaverRequest) -> void:
 	if req.page == 0:
 		# brand new request, clear list to prep for reload
 		item_list.clear()
-		label.text = "Loading songs…"
+		_show_empty(LOADING_TEXT)
 		if goto_maps_by:
 			goto_maps_by.visible = false
 		song_data = []
@@ -409,11 +516,9 @@ func update_list(req: BeatSaverRequest) -> void:
 		_cover_list += 1
 		_finished_covers.clear()
 		item_selected = -1
-		if _song_text:
-			_song_text.text = "Pick a song to see what it plays like."
-			StatPills.fill(_level_rows, [])
-		($TextureRect as TextureRect).texture = placeholder_cover
+		_show_no_song()
 		_update_download_button()
+		_update_chips()
 	if not httpcoverdownload:
 		return
 	httpcoverdownload.cancel_request()
@@ -444,20 +549,33 @@ func _get_selected_song() -> BeatSaverSongInfo:
 		return song_data[item_selected]
 	return null
 
-## The logo with a song's level strip, until its cover comes: made once per strip (levels, the player's level, estimate)
-## and reused; built per card from the logo read back from the GPU, a page of cards froze dragging the list (owner,
-## 2026-10-28; headset: one second at 20 of 72 frames while scrolling Get songs).
-var _placeholder_cards := {}
+## The logo as a row's cover until the map's own comes: made once and shared; read back from the GPU for each row, a page
+## of them froze dragging the list (owner, 2026-10-28; headset: one second at 20 of 72 frames while scrolling Get songs).
 var _placeholder_image: Image
 
-func _placeholder_card(song: BeatSaverSongInfo) -> Image:
-	var levels := _levels(song)
-	var key := "%s|%d|%s" % [levels[0], picked_level(), levels[1]]
-	if not _placeholder_cards.has(key):
-		if _placeholder_image == null:
-			_placeholder_image = placeholder_cover.get_image()
-		_placeholder_cards[key] = LevelStrip.compose_image(_placeholder_image, levels[0], picked_level(), levels[1])
-	return _placeholder_cards[key]
+func _placeholder_row_cover() -> Image:
+	if _placeholder_image == null:
+		_placeholder_image = _sized(placeholder_cover.get_image(), BeatSaverList.COVER_SIZE)
+	return _placeholder_image
+
+## An image as a cover of size px: RGBA8, square, its corners rounded like the song menu's covers.
+static func _sized(image: Image, size: int) -> Image:
+	var sized := image.duplicate() as Image
+	if sized.is_compressed():
+		sized.decompress()
+	sized.convert(Image.FORMAT_RGBA8)
+	sized.resize(size, size, Image.INTERPOLATE_BILINEAR)
+	return ImageUtils.round_corners(sized, roundi(size * ImageUtils.COVER_CORNER))
+
+## What the list area says while it has no songs: loading, nothing found or no connection.
+const LOADING_TEXT := "Loading songs…"
+const NO_MATCH_TEXT := "No songs match. Try fewer filters."
+const NO_CONNECTION_TEXT := "Can't reach BeatSaver. Check your Wi-Fi."
+
+## Shows a message where the list is, or none.
+func _show_empty(text: String) -> void:
+	empty_list.text = text
+	empty_list.visible = not text.is_empty()
 
 func _on_HTTPRequest_request_completed(result: int, _response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	var started := Time.get_ticks_usec()
@@ -478,7 +596,7 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 						var parsed_song := BeatSaverSongInfo.new(i as Dictionary)
 						if not parsed_song.is_playable() or (prev_request.type != "uploader" and not parsed_song.passes_reaction_filter()):
 							continue
-						item_list.add_item(_card_text(parsed_song), _placeholder_card(parsed_song))
+						item_list.add_item(_row_text(parsed_song), _side_text(parsed_song), _placeholder_row_cover(), _strip(parsed_song))
 						song_data.append(parsed_song)
 
 	elif _list_retries_left > 0 and prev_request != null:
@@ -489,13 +607,11 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 		return
 	else:
 		vr.log_error("request error "+str(result))
-		label.text = "Can't reach BeatSaver. Check your Wi-Fi."
+		if item_list.item_count == 0:
+			_show_empty(NO_CONNECTION_TEXT)
 	_list_retries_left = LIST_RETRIES
-	back_button.visible = prev_request != null and prev_request.type == "uploader" and back_stack.size() > 0
 	_scroll_page_request_pending = false
-	
-	var canvas := get_parent().get_parent()
-	if canvas is OQ_UI2DCanvas: (canvas as OQ_UI2DCanvas)._input_update()
+	_redraw()
 	
 	_update_all_covers()
 	_fill_reaction_filtered_list()
@@ -509,9 +625,9 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 	_frame_work += "page %.1f ms " % ((Time.get_ticks_usec() - started) / 1000.0)
 	if result == 0:
 		if item_list.item_count > 0:
-			label.text = ""
+			_show_empty("")
 		elif not _scroll_page_request_pending:
-			label.text = "No songs match. Try another style."
+			_show_empty(NO_MATCH_TEXT)
 
 ## Most items the list fetches pages for on its own while the reaction time filter hides songs.
 const REACTION_FILL_ITEMS := 20
@@ -530,8 +646,12 @@ func _fill_reaction_filtered_list() -> void:
 	_scroll_page_request_pending = true
 
 
+## Lists every map in the picked sort order, leaving any search.
+func _on_sort_selected(index: int) -> void:
+	_list_sorted(SORT_TABS[index][1])
+
 ## Lists every map in one sort order, leaving any search.
-func _on_sort_tab_pressed(sort_order: String) -> void:
+func _list_sorted(sort_order: String) -> void:
 	_set_search("")
 	back_stack.clear()
 	prev_request = BeatSaverRequest.new()
@@ -540,22 +660,18 @@ func _on_sort_tab_pressed(sort_order: String) -> void:
 	prev_request.data = sort_order
 	update_list(prev_request)
 
-## Shows the search text on the search button (with a clear button) and lights the sort tabs only when
-## there is no search.
+## Keeps the search (shown as a chip above the list); while there is one the sort button says the list is in best
+## match order.
 func _set_search(text: String) -> void:
 	search_word = text
-	search_button.text = text if not text.is_empty() else "Search songs"
-	clear_search_button.visible = not text.is_empty()
 	if not text.is_empty():
-		var pressed := (sort_tabs.get_child(0) as Button).button_group.get_pressed_button()
-		if pressed:
-			pressed.set_pressed_no_signal(false)
+		sort_button.select(-1)
+		sort_button.text = BEST_MATCH_TEXT
 
 ## Clears the search and goes back to the Popular list.
 func _on_clear_search_pressed() -> void:
-	var popular := sort_tabs.get_child(0) as Button
-	popular.set_pressed_no_signal(true)
-	_on_sort_tab_pressed(SORT_TABS[0][1])
+	sort_button.select(0)
+	_list_sorted(SORT_TABS[0][1])
 
 
 func _on_ItemList_item_selected(index: int) -> void:
@@ -566,7 +682,14 @@ func _on_ItemList_item_selected(index: int) -> void:
 	_details_toggle.visible = true
 	goto_maps_by.visible = selected_data.uploader_id != -1 and prev_request != null and prev_request.type != "uploader"
 	_show_details(selected_data)
-	($TextureRect as TextureRect).texture = item_list.get_item_icon(index)
+	# the row's small cover at once, the big one when it arrives
+	_detail_texture.update(_sized(item_list.get_item_image(index), DETAIL_COVER))
+	httpdetailcover.cancel_request()
+	_detail_cover_song = selected_data
+	var cover_url := _get_cover_url_from_song_data(selected_data)
+	if not cover_url.is_empty() and httpdetailcover.request(cover_url) != OK:
+		vr.log_warning("Cover request failed: %s" % cover_url)
+	label.text = ""
 	_update_download_button()
 
 	if Settings.audio_master > 0 and Settings.audio_music_preview > 0:
@@ -579,28 +702,27 @@ func _on_ItemList_item_selected(index: int) -> void:
 		elif httppreviewdownload.request(_preview_url) != OK:
 			vr.log_warning("Preview request failed: %s" % _preview_url)
 
-## The picked map in plain words: title, artist and mapper, how liked it is, its tags, each difficulty and
-## the start of its description.
+## The rest of the picked map in plain words, under its title, artist and mapper: how liked it is, whether staff picked
+## it, its tags, each Standard difficulty, the other modes by name and the start of its description. Short enough for
+## the song menu's side panel with five Standard difficulties (tests/test_menu_layout.gd).
 func _details_text(song: BeatSaverSongInfo) -> String:
-	if not _details_toggle.button_pressed:
-		return _short_details_text(song)
 	var muted := Constants.UI_TEXT_MUTED.to_html(false)
-	var seconds := int(song.duration)
-	var text := "[b]%s[/b]\n%s\n[color=#%s]Mapped by %s · %d%% liked · %d:%02d[/color]" % [
-		_escape(song.song_name), _escape(song.song_author_name), muted, _escape(song.level_author_name),
-		roundi(song.score * 100.0), seconds / 60, seconds % 60]
+	var text := "[color=#%s]%d%% liked%s[/color]" % [muted, roundi(song.score * 100.0), " · ★ Staff pick" if song.curated else ""]
 	var tag_names := PackedStringArray()
 	for tag in song.tags:
 		tag_names.append(_tag_name(tag))
 	if not tag_names.is_empty():
 		text += "\n[color=#%s]%s[/color]" % [muted, " · ".join(tag_names)]
-	text += "\n"
+	var modes := PackedStringArray()
 	for diff: Variant in Utils.get_array(song.versions[0] as Dictionary, "diffs", []):
 		var d := diff as Dictionary
+		var mode := Utils.get_str(d, "characteristic", "Standard")
+		if mode != "Standard":
+			if not modes.has(mode):
+				modes.append(mode)
+			continue
 		var level: Array = Constants.DIFFICULTY_LEVELS[song.level_of(d)]
 		var line: String = level[0]
-		if Utils.get_str(d, "characteristic", "Standard") != "Standard":
-			line += " · %s" % Utils.get_str(d, "characteristic", "")
 		if song.bpm > 0.0:
 			line += " · Notes %.2f s ahead" % song.reaction_seconds(d)
 		var flow := MapStats.flow_level(BeatSaverSongInfo.parity_percent(d))
@@ -610,49 +732,58 @@ func _details_text(song: BeatSaverSongInfo) -> String:
 		if walls > 0:
 			line += " · %s walls" % Hud._grouped(walls)
 		text += "\n[color=#%s]%s[/color]" % [(level[1] as Color).to_html(false), line]
-	var description := song.description.strip_edges()
+	if not modes.is_empty():
+		text += "\n[color=#%s]Also %s[/color]" % [muted, ", ".join(modes)]
+	var description := song.description.strip_edges().replace("\n", " ")
 	if not description.is_empty():
-		var lines := description.split("\n", false)
-		var shown := "\n".join(lines.slice(0, DESCRIPTION_LINES))
-		if lines.size() > DESCRIPTION_LINES:
-			shown += " …"
-		text += "\n\n[color=#%s]%s[/color]" % [muted, _escape(shown)]
+		if description.length() > DESCRIPTION_LETTERS:
+			description = description.left(DESCRIPTION_LETTERS).strip_edges() + "…"
+		text += "\n[color=#%s]%s[/color]" % [muted, _escape(description)]
 	return text
 
-## The picked map in a few words: title and artist, mapper and length; _level_row_controls adds each Standard
-## difficulty under it. Details shows the rest.
-func _short_details_text(song: BeatSaverSongInfo) -> String:
-	var muted := Constants.UI_TEXT_MUTED.to_html(false)
-	var seconds := int(song.duration)
-	return "[b]%s[/b]\n%s\n[color=#%s]Mapped by %s · %d:%02d[/color]" % [_escape(song.song_name),
-		_escape(song.song_author_name), muted, _escape(song.level_author_name), seconds / 60, seconds % 60]
-
-## Each Standard difficulty as a rounded bar in its level's colour and name ("≈" while estimated) over its stats
-## pills (StatPills: time to get ready, notes per second, swing flow), measured once the map is in the library;
-## then what "≈" means.
+## Each Standard difficulty as a rounded bar across the panel in its level's colour and name ("≈" while estimated); the
+## player's level (the level filter) says so and has its stats pills (StatPills: time to get ready, notes per second,
+## swing flow) under it, measured once the map is in the library; then what "≈" means. Only that level's pills: all
+## five levels' did not fit the song menu's side panel (owner, 2026-10-29, layout A shows bars only); Details has
+## every level's numbers.
 func _level_row_controls(song: BeatSaverSongInfo) -> Array[Control]:
 	var controls: Array[Control] = []
 	var rows := _difficulty_rows(song)
 	rows.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	var estimated := _local_map(song) == null
+	var pills_shown := false
 	for row: Array in rows:
 		var entry: Array = Constants.DIFFICULTY_LEVELS[row[0]]
 		var bar := PanelContainer.new()
 		bar.theme_type_variation = &"LevelBar"
-		bar.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 		var colored := bar.get_theme_stylebox(&"panel", &"LevelBar").duplicate() as StyleBoxFlat
 		colored.bg_color = entry[1]
+		# a bar across the panel: its words keep off the rounded ends
+		colored.content_margin_left = LEVEL_BAR_MARGIN
+		colored.content_margin_right = LEVEL_BAR_MARGIN
 		bar.add_theme_stylebox_override(&"panel", colored)
+		var line := HBoxContainer.new()
+		bar.add_child(line)
 		var level_name := Label.new()
 		level_name.text = "%s%s" % [entry[0], " ≈" if estimated else ""]
-		level_name.add_theme_font_size_override(&"font_size", LEVEL_BAR_SIZE)
-		level_name.add_theme_color_override(&"font_color", Constants.UI_PANEL)
-		bar.add_child(level_name)
+		level_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		line.add_child(level_name)
+		var mine: bool = row[0] == picked_level()
+		if mine:
+			var tag := Label.new()
+			tag.text = YOUR_LEVEL_TEXT
+			line.add_child(tag)
+		for label: Label in line.get_children():
+			label.add_theme_font_size_override(&"font_size", LEVEL_BAR_SIZE)
+			label.add_theme_color_override(&"font_color", Constants.UI_PANEL)
 		controls.append(bar)
-		var pills := StatPills.flow()
-		pills.alignment = FlowContainer.ALIGNMENT_BEGIN
-		StatPills.fill(pills, StatPills.difficulty(row[1], row[2], row[3], PILL_ICON_SIZE))
-		controls.append(pills)
+		# a second difficulty at the same level shows its bar only
+		if mine and not pills_shown:
+			pills_shown = true
+			var pills := StatPills.flow()
+			pills.alignment = FlowContainer.ALIGNMENT_BEGIN
+			StatPills.fill(pills, StatPills.difficulty(row[1], row[2], row[3], PILL_ICON_SIZE))
+			controls.append(pills)
 	if estimated:
 		var hint := Label.new()
 		hint.text = ESTIMATE_HINT
@@ -662,13 +793,18 @@ func _level_row_controls(song: BeatSaverSongInfo) -> Array[Control]:
 		controls.append(hint)
 	return controls
 
+## The tag on the bar of the player's level, and the room at a bar's ends (px).
+const YOUR_LEVEL_TEXT := "Your level"
+const LEVEL_BAR_MARGIN := 12.0
+
 ## The details' text and, in the short details, the level rows under it, in one column where song_data stood.
 var _song_text: RichTextLabel
 var _level_rows := VBoxContainer.new()
+var _details_box := VBoxContainer.new()
 
 func _make_details_box() -> void:
 	_song_text = $song_data as RichTextLabel
-	var box := VBoxContainer.new()
+	var box := _details_box
 	box.position = _song_text.position
 	box.size = _song_text.size
 	box.add_theme_constant_override(&"separation", 12)
@@ -679,9 +815,32 @@ func _make_details_box() -> void:
 	box.add_child(_level_rows)
 	_level_rows.add_theme_constant_override(&"separation", 8)
 
+## The picked map beside its cover (title, artist, mapper and length) and under it its levels, or with Details on the
+## rest of what BeatSaver says about it.
 func _show_details(song: BeatSaverSongInfo) -> void:
-	_song_text.text = _details_text(song)
-	StatPills.fill(_level_rows, [] if _details_toggle.button_pressed else _level_row_controls(song))
+	var seconds := int(song.duration)
+	title_label.text = song.song_name if not song.song_name.is_empty() else song.name
+	artist_label.text = song.song_author_name
+	mapper_label.text = "by %s · %d:%02d" % [song.level_author_name, seconds / 60, seconds % 60]
+	var long := _details_toggle.button_pressed
+	_song_text.visible = long
+	_song_text.text = _details_text(song) if long else ""
+	StatPills.fill(_level_rows, [] if long else _level_row_controls(song))
+
+## The details with no map picked: a hint where the title goes and the logo for a cover.
+func _show_no_song() -> void:
+	if _song_text == null:
+		return
+	title_label.text = "Pick a song to see what it plays like."
+	artist_label.text = ""
+	mapper_label.text = ""
+	_song_text.visible = false
+	StatPills.fill(_level_rows, [])
+	_details_toggle.visible = false
+	httpdetailcover.cancel_request()
+	_detail_cover_song = null
+	_detail_texture.update(_sized(placeholder_cover.get_image(), DETAIL_COVER))
+	label.text = ""
 
 ## Icons in the details' pills, the size of their 22 px text.
 const PILL_ICON_SIZE := 24
@@ -710,8 +869,8 @@ func _difficulty_rows(song: BeatSaverSongInfo) -> Array:
 ## What "≈" means, under the level bars of a map not yet downloaded.
 const ESTIMATE_HINT := "≈ about: measured once downloaded"
 
-## The level bars' text size in the short details: at the page's 2 m about 1.85 degrees (vr-ui-design).
-const LEVEL_BAR_SIZE := 34
+## The level bars' text size in the short details: at the page's 2 m and scale 2.4 about 1.85 degrees (vr-ui-design).
+const LEVEL_BAR_SIZE := 28
 var _details_toggle := Button.new()
 
 ## Details beside "More by", halving its width: opens and closes the long details.
@@ -731,8 +890,8 @@ func _add_details_toggle() -> void:
 	UI_AudioEngine.attach_button(_details_toggle)
 	goto_maps_by.size.x = half
 
-## Most description lines the details show.
-const DESCRIPTION_LINES := 3
+## Most letters of the description the details show (about two lines).
+const DESCRIPTION_LETTERS := 70
 
 ## Text with BBCode brackets made harmless.
 static func _escape(text: String) -> String:
@@ -817,9 +976,18 @@ func _process(delta: float) -> void:
 		return
 	var before := download_button.text
 	_update_download_button()
-	if download_button.text != before:
-		var canvas := get_parent().get_parent()
-		if canvas is OQ_UI2DCanvas: (canvas as OQ_UI2DCanvas)._input_update()
+	var index := song_data.find(_downloading_song())
+	var row_changed := index >= 0 and index < item_list.item_count and item_list.set_item_side(index, _side_text(song_data[index]))
+	if download_button.text != before or row_changed:
+		_redraw()
+
+## The listed map being downloaded now, or null.
+func _downloading_song() -> BeatSaverSongInfo:
+	var hash := Utils.get_str(downloading[0][1] as Dictionary, "hash", "")
+	for song in song_data:
+		if song.get_hash() == hash:
+			return song
+	return null
 
 ## Downloads the picked map, or once it is in the song list, picks it there and closes this page.
 func _on_download_button_up() -> void:
@@ -836,7 +1004,9 @@ func _on_download_button_up() -> void:
 	downloading.append([song.name, song.versions[0], song.tags])
 	if downloading.size() == 1:
 		download_next()
+	label.text = ""
 	_update_download_button()
+	item_list.set_item_side(item_selected, _side_text(song))
 
 ## Writes a downloaded song's zip `body` to `zippath`, unpacks it into `song_out_dir` and removes the zip; on a worker
 ## thread. Appends true to `saved` when the zip could be written.
@@ -908,10 +1078,8 @@ func _on_HTTPRequest_download_completed(result: int, response_code: int, headers
 		vr.log_info("download error "+str(result))
 		downloading.remove_at(0)
 	_update_download_button()
-	
-	var canvas := get_parent().get_parent()
-	if canvas is OQ_UI2DCanvas:
-		(canvas as OQ_UI2DCanvas)._input_update()
+	on_song_list_changed()
+	_redraw()
 	download_next()
 
 func _on_preview_download_completed(result: int, _response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
@@ -986,10 +1154,9 @@ func _update_cover(result: int, _response_code: int, _headers: PackedStringArray
 	if result != 0 or index >= song_data.size():
 		return
 	var song: BeatSaverSongInfo = song_data[index]
-	var levels := _levels(song)
 	var made := []
 	# low priority: the pool's high-priority threads would compete with the game's own for the cores
-	var task := WorkerThreadPool.add_task(_make_cover.bind(body, levels, picked_level(), made), false)
+	var task := WorkerThreadPool.add_task(_make_cover.bind(body, BeatSaverList.COVER_SIZE, made), false)
 	_decoding += 1
 	while not WorkerThreadPool.is_task_completed(task):
 		await get_tree().process_frame
@@ -1010,19 +1177,42 @@ func _flush_covers(delta: float) -> void:
 		if index < song_data.size() and song_data[index] == cover[1]:
 			item_list.set_item_image(index, cover[2])
 	_finished_covers.clear()
-	var canvas := get_parent().get_parent()
-	if canvas is OQ_UI2DCanvas: (canvas as OQ_UI2DCanvas)._input_update()
+	_redraw()
 
-## Decodes a cover (JPEG or PNG) and draws its level strip (LevelStrip.compose_image) into `made`; on a worker thread.
-static func _make_cover(body: PackedByteArray, levels: Array, mine: int, made: Array) -> void:
+## Decodes a cover (JPEG or PNG) and sizes it to size px into `made`; on a worker thread.
+static func _make_cover(body: PackedByteArray, size: int, made: Array) -> void:
 	var img := Image.new()
 	if img.load_jpg_from_buffer(body) != OK and img.load_png_from_buffer(body) != OK:
 		return
-	made.append(LevelStrip.compose_image(img, levels[0], mine, levels[1]))
+	made.append(_sized(img, size))
+
+## The details' cover, written over in place for each picked map (one texture for the page's life).
+var _detail_texture: ImageTexture
+## The map whose big cover is being fetched, so a late one for an earlier pick is dropped.
+var _detail_cover_song: BeatSaverSongInfo
+
+## The picked map's big cover arrived: decoded and sized on a worker thread, then shown in the details.
+func _on_detail_cover_completed(result: int, _response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	var song := _detail_cover_song
+	if result != 0 or song == null:
+		return
+	var made := []
+	var task := WorkerThreadPool.add_task(_make_cover.bind(body, DETAIL_COVER, made), false)
+	while not WorkerThreadPool.is_task_completed(task):
+		await get_tree().process_frame
+	WorkerThreadPool.wait_for_task_completion(task)
+	if made.is_empty() or song != _detail_cover_song:
+		return
+	_detail_texture.update(made[0])
+	_redraw()
+
+## The mapper whose maps "More by" lists, for its chip.
+var _uploader_name := ""
 
 func _on_gotoMapsBy_pressed() -> void:
 	var selected_song := _get_selected_song()
 	if selected_song.uploader_id == -1: return
+	_uploader_name = selected_song.level_author_name
 	_add_to_back_stack(prev_request)
 	prev_request = BeatSaverRequest.new()
 	prev_request.page = 0
@@ -1063,7 +1253,6 @@ func _on_back_pressed() -> void:
 	prev_request.page = 0
 	back_stack.pop_back()
 	update_list(prev_request)
-	back_button.visible = false
 
 func _get_cover_url_from_song_data(song_info: BeatSaverSongInfo) -> String:
 	var song_versions := song_info.versions
@@ -1088,10 +1277,11 @@ var _is_first_show := true
 func _on_BeatSaverPanel_visibility_changed() -> void:
 	if _is_first_show:
 		# start on the most liked maps
-		_on_sort_tab_pressed(SORT_TABS[0][1])
+		sort_button.select(0)
+		_list_sorted(SORT_TABS[0][1])
 		_is_first_show = false
 	elif item_list.item_count == 0 and httpreq.get_http_client_status() == HTTPClient.STATUS_DISCONNECTED:
 		if prev_request != null and prev_request.type != "uploader":
 			_reload()
 		else:
-			_on_sort_tab_pressed(SORT_TABS[0][1])
+			_on_clear_search_pressed()

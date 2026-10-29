@@ -14,7 +14,8 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
 
 - `test_menu_layout.tscn` / `.gd` - lays out the song menu (Song tab, More modifiers, More tab) and "Who's playing?"
   headless with worst-case content (every modifier changed, a long player name and title, eight characteristic
-  tabs, five numbered levels, two stats lines, six players with a delete question) and fails when a visible control
+  tabs, five numbered levels, two stats lines, six players with a delete question; on the Download page every filter
+  and a long search as chips, a map with long names and five levels, its Details, a download and the open filters) and fails when a visible control
   spills out of its parent or the panel, or two controls placed with offsets are closer than `MIN_GAP` (4 px). A
   control wholly under an open overlay (`OVERLAYS`: More, More modifiers) counts as hidden. Content inside a
   `ScrollContainer` is allowed to run past it. Run it after any change to these panels or the theme. It also drags the song
