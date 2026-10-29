@@ -19,7 +19,9 @@ constraints apply here unchanged.
 - Startup (`_ready`): fills `GlobalReferences.*_pool` from `$BeepCubePool` etc. and presizes them
   (cubes 100, links 100, bombs 30, walls 15, arcs 15), inits `vr`, then enters `gamestate_mapselection`.
 - Preload: the menu's `difficulty_changed` -> `_preload` reads the picked difficulty's map file and song on a
-  `WorkerThreadPool` task (`_read_song`); `_start_map` takes them (`_take_preload`, waiting if still reading).
+  `WorkerThreadPool` task (`_read_song`) once it stayed picked `PRELOAD_DELAY_SECONDS`; `_start_map` takes them
+  (`_take_preload`, waiting if still reading). Nothing on the main thread waits for the read of a song scrolled past:
+  each step through the list froze for the last song's read (owner, 2026-10-29).
 - Start: menu signal `start_map` -> `start_map(info, difficulty)` (from the menu or a restart behind a black fade, `START_*`) ->
   `_start_map` -> `Map.load_beatmap()` (threaded
   parsers fill `note_stack`, `bomb_stack`, `obstacle_stack`, `arc_stack`, `chain_stack`,

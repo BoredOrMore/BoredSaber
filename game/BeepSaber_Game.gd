@@ -186,20 +186,37 @@ var _start_timing: StartTiming
 const START_SPARK_SECONDS := 0.3
 const START_FADE_SECONDS := 0.15
 const START_HOLD_SECONDS := 0.2
+## Seconds a difficulty must stay picked before _preload reads it, so scrolling through the song list doesn't read
+## every song it passes (owner, 2026-10-29: scrolling the list froze while each step waited for the last song's read).
+const PRELOAD_DELAY_SECONDS := 0.3
 var _preload_key := ""
+## whether the read of _preload_key has started (it waits PRELOAD_DELAY_SECONDS first)
+var _preload_started := false
 var _preload_task := -1
 var _preloaded := {}
+## the reads not yet collected (by their task id): the one under way, and those of songs scrolled past
+var _preload_running := {}
 
-## Starts reading the map file and the song of `difficulty` of `info` on a worker thread, unless that's the one read.
+## Reads the map file and the song of `difficulty` of `info` on a worker thread once it has stayed picked for
+## PRELOAD_DELAY_SECONDS, unless that's the one read. Never waits for an earlier read: that one finishes on its own.
 func _preload(info: MapInfo, difficulty: DifficultyInfo) -> void:
 	var key := info.filepath + difficulty.beatmap_filename
 	if key == _preload_key:
 		return
-	_finish_preload()
 	_preload_key = key
-	var into := {}
-	_preloaded = into
-	_preload_task = WorkerThreadPool.add_task(_read_song.bind(info, difficulty, into))
+	_preload_started = false
+	_preloaded = {}
+	await get_tree().create_timer(PRELOAD_DELAY_SECONDS).timeout
+	if key != _preload_key or _preload_started:
+		return
+	_preload_started = true
+	var task := WorkerThreadPool.add_task(_read_song.bind(info, difficulty, _preloaded))
+	_preload_task = task
+	_preload_running[task] = true
+	while not WorkerThreadPool.is_task_completed(task):
+		await get_tree().process_frame
+	if _preload_running.erase(task):
+		WorkerThreadPool.wait_for_task_completion(task)
 
 ## Reads the map file (as "map_data") and the song (as "stream", with its file's "size") into `into`; on a worker.
 static func _read_song(info: MapInfo, difficulty: DifficultyInfo, into: Dictionary) -> void:
@@ -209,18 +226,17 @@ static func _read_song(info: MapInfo, difficulty: DifficultyInfo, into: Dictiona
 		into["stream"] = AudioStreamOggVorbis.load_from_file(filename)
 		into["size"] = FileAccess.open(filename, FileAccess.READ).get_length()
 
-## Waits for the reading under way, if any.
-func _finish_preload() -> void:
-	if _preload_task >= 0:
-		WorkerThreadPool.wait_for_task_completion(_preload_task)
-		_preload_task = -1
-
-## What was read for `difficulty` of `info` (waiting for it if it's still being read), {} if something else was. It
-## stays, so a restart of the song finds it in memory.
+## What was read for `difficulty` of `info` (waiting for it if it's still being read, reading it now if it was picked
+## too recently to have started), {} if something else was. It stays, so a restart of the song finds it in memory.
 func _take_preload(info: MapInfo, difficulty: DifficultyInfo) -> Dictionary:
 	if _preload_key != info.filepath + difficulty.beatmap_filename:
 		return {}
-	_finish_preload()
+	if not _preload_started:
+		# behind the start's black fade, like the rest of the start
+		_preload_started = true
+		_read_song(info, difficulty, _preloaded)
+	elif _preload_running.erase(_preload_task):
+		WorkerThreadPool.wait_for_task_completion(_preload_task)
 	return _preloaded
 
 ## Starts a song behind a short black fade (START_*): from the song menu after the play block's sparks, on a restart
