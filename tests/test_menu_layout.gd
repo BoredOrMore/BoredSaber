@@ -13,6 +13,8 @@ const BACKGROUNDS := ["LeftPanel", "CentrePanel", "RightPanel"]
 const MIN_VISIBLE_ROWS := 5
 const TEST_HIGHSCORES := "user://test_menu_highscores.json"
 const LONG_NAME := "Wolfgang Amadeus Mozart and the Very Long Band Name"
+## Seconds a test song preview may take to decode once its START_DELAY_SECONDS have passed, before it counts as not playing.
+const PREVIEW_DECODE_SECONDS := 2.0
 
 var failures := 0
 
@@ -62,7 +64,10 @@ func _ready() -> void:
 		preview.transition_time = 0.05
 		Settings.audio_music_preview = maxf(Settings.audio_music_preview, 1.0)
 		menu.play_selected_preview(0.0, true)
-		await get_tree().create_timer(0.3).timeout
+		# it waits START_DELAY_SECONDS, then decodes the song on a worker thread
+		var give_up := Time.get_ticks_msec() + int((SongPreview.START_DELAY_SECONDS + PREVIEW_DECODE_SECONDS) * 1000.0)
+		while not preview.playing and Time.get_ticks_msec() < give_up:
+			await get_tree().process_frame
 		check(preview.playing and preview.stream != null, "the selected song's preview plays")
 		await menu.stop_preview()
 		check(not preview.playing, "stop_preview stops the preview")
