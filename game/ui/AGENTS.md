@@ -33,8 +33,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   `BeatSaverList.gd` (class `BeatSaverList`): the song list's rows (72 px cover, "Artist - Title") with the level strip
   and length at the end, a fixed set of recycled rows, each with one cover texture written over in place, the 72 px
   covers kept as images; only the picked map's big cover is fetched (`DetailCoverDownload`)
-  (doc/research/get-songs-list-plan.md). `FrameProbe.gd`: a probe node for its slow-frame log (where the frame's
-  `_process` calls end).
+  (doc/research/get-songs-list-plan.md). A page of maps is parsed on a worker thread and its rows added
+  `ROWS_PER_FRAME` a frame.
 - Templates (owner, 2026-10-28: build UI as templates, pages only swap content): `menu_panel.tres`, the menus'
   rounded panel frame (24 px corners, about 1.6 degrees at 2 m), the root style of the song menu's three panels
   (`MenuPanel.tscn`, a frame that takes no input), Settings, the Download page and "Who's playing?";

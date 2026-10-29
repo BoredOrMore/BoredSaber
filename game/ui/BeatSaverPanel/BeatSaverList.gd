@@ -52,15 +52,14 @@ func _ready() -> void:
 	resized.connect(_make_rows)
 	_make_rows()
 
-## Adds a song's row: "Artist - Title", the text at its end (length or state), its cover image and level strip;
-## returns its index.
-func add_item(text: String, side: String, cover: Image, strip: Texture2D) -> int:
-	_texts.append(text)
-	_sides.append(side)
-	_covers.append(cover)
-	_strips.append(strip)
+## Adds songs' rows, each "Artist - Title", the text at its end (length or state), its cover image and level strip,
+## laying the rows out once for all of them.
+func add_items(texts: PackedStringArray, sides: PackedStringArray, covers: Array[Image], strips: Array[Texture2D]) -> void:
+	_texts.append_array(texts)
+	_sides.append_array(sides)
+	_covers.append_array(covers)
+	_strips.append_array(strips)
 	_grow()
-	return _texts.size() - 1
 
 ## Changes the text at a row's end (its length, or how its download is going); true if it changed.
 func set_item_side(index: int, side: String) -> bool:
