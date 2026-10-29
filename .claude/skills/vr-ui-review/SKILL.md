@@ -141,6 +141,10 @@ Flag:
       closer than 0.8 m or further than 3 m [Meta hands UI].
 - [ ] Two pieces overlapping in view whose depths differ by less than ~5 cm, or the one to read is
       behind (the hidden name text box: keyboard text at z -0.83 behind the score panel at z -0.78).
+- [ ] Something in front of a curved panel crossing it at its edges: the panel bends toward the eye (its edges
+      sit closer than its centre), so check the gap at the front piece's ends, not its middle, with the
+      distance from the panel's axis (the keyboard's text box sank 9 cm into the curved "Who's playing?"
+      panel and touched the song menu; the keyboards now sit 10% closer along the eye ray, same angles).
 - [ ] A side panel not facing the player.
 - [ ] Targets under ~3° (≈ 5.2 cm at 1 m), text under 1.85° high (the `ui_angles` floor, from the
       main menu's 28 px at scale 2.4 and 2 m).

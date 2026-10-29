@@ -14,7 +14,8 @@ in `game/` point into it, and the canvas behaviour below is tuned for Pico 4 per
 - `OQ_UI2D/OQ_UI2DLabel.tscn` + `scripts/OQ_UI2DLabel.gd`: text on a quad, auto-sized, redraws once per change.
 - `OQ_UI2D/OQ_UI2DLogWindow.tscn`: shows the `vr` log ring buffer; mounted under `Settings_canvas`.
 - `OQ_UI2D/theme/`: Roboto fonts (used by `game/ui/menu_theme.tres`, `BlackWhiteThem.tres`, `EndScore.tscn`, and
-  served by `song_uploader.gd:93`), `oq_ui2d_standard.theme` (keyboard `TextEdit` only), `godot_splash_512.png`.
+  served by `song_uploader.gd:93`), `oq_ui2d_standard.theme` (label, log and notification windows; the keyboard's `TextEdit`
+  takes its field style from `game/ui/menu_theme.tres`), `godot_splash_512.png`.
 - `OQ_ARVROrigin/Feature_VRSimulator.tscn`: desktop keyboard/mouse stand-in, added when `!vr.inVR`
   (`game/BeepSaber_Game.gd:307-308`).
 
