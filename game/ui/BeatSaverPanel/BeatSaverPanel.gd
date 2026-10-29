@@ -741,49 +741,57 @@ func _details_text(song: BeatSaverSongInfo) -> String:
 		text += "\n[color=#%s]%s[/color]" % [muted, _escape(description)]
 	return text
 
-## Each Standard difficulty as a rounded bar across the panel in its level's colour and name ("≈" while estimated); the
-## player's level (the level filter) says so and has its stats pills (StatPills: time to get ready, notes per second,
-## swing flow) under it, measured once the map is in the library; then what "≈" means. Only that level's pills: all
-## five levels' did not fit the song menu's side panel (owner, 2026-10-29, layout A shows bars only); Details has
-## every level's numbers.
+## Each Standard difficulty as a rounded bar across the panel in its level's colour, with its name ("≈" while
+## estimated) and its numbers in columns under a header of stats pills (StatPills: time to get ready, notes per second,
+## swing flow, each icon with its unit), measured once the map is in the library; the player's level (the level
+## filter) framed in UI_ACCENT; then what "≈" means. A table, so all five levels' numbers fit the song menu's side
+## panel (owner, 2026-10-29: every level's pills and numbers; one pill row per level took 632 of 341 px).
 func _level_row_controls(song: BeatSaverSongInfo) -> Array[Control]:
 	var controls: Array[Control] = []
 	var rows := _difficulty_rows(song)
+	if rows.is_empty():
+		return controls
 	rows.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
 	var estimated := _local_map(song) == null
-	var pills_shown := false
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override(&"separation", 0)
+	var corner := Control.new()
+	corner.custom_minimum_size.x = LEVEL_COLUMNS[0] + LEVEL_BAR_MARGIN
+	header.add_child(corner)
+	var heads := [[StatPills.READY_ICON, "s"], [StatPills.NPS_ICON, "notes/s"], [StatPills.FLOW_ICON, "flow"]]
+	for k in heads.size():
+		var cell := CenterContainer.new()
+		cell.custom_minimum_size.x = LEVEL_COLUMNS[k + 1]
+		cell.add_child(StatPills.pill(heads[k][0], heads[k][1], PILL_ICON_SIZE))
+		header.add_child(cell)
+	controls.append(header)
 	for row: Array in rows:
 		var entry: Array = Constants.DIFFICULTY_LEVELS[row[0]]
 		var bar := PanelContainer.new()
 		bar.theme_type_variation = &"LevelBar"
 		var colored := bar.get_theme_stylebox(&"panel", &"LevelBar").duplicate() as StyleBoxFlat
 		colored.bg_color = entry[1]
-		# a bar across the panel: its words keep off the rounded ends
+		# the name keeps off the rounded left end; the columns line up with the header's pills
 		colored.content_margin_left = LEVEL_BAR_MARGIN
-		colored.content_margin_right = LEVEL_BAR_MARGIN
+		colored.content_margin_right = 0.0
+		if row[0] == picked_level():
+			colored.border_color = Constants.UI_ACCENT
+			colored.set_border_width_all(LEVEL_FRAME)
 		bar.add_theme_stylebox_override(&"panel", colored)
 		var line := HBoxContainer.new()
+		line.add_theme_constant_override(&"separation", 0)
 		bar.add_child(line)
-		var level_name := Label.new()
-		level_name.text = "%s%s" % [entry[0], " ≈" if estimated else ""]
-		level_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		line.add_child(level_name)
-		var mine: bool = row[0] == picked_level()
-		if mine:
-			var tag := Label.new()
-			tag.text = YOUR_LEVEL_TEXT
-			line.add_child(tag)
-		for label: Label in line.get_children():
+		var texts := ["%s%s" % [entry[0], " ≈" if estimated else ""], "%.2f" % row[1],
+			"%.1f" % row[2] if row[2] > 0.0 else "–", "%d%%" % roundi(row[3])]
+		for k in texts.size():
+			var label := Label.new()
+			label.text = texts[k]
+			label.custom_minimum_size.x = LEVEL_COLUMNS[k]
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if k == 0 else HORIZONTAL_ALIGNMENT_CENTER
 			label.add_theme_font_size_override(&"font_size", LEVEL_BAR_SIZE)
 			label.add_theme_color_override(&"font_color", Constants.UI_PANEL)
+			line.add_child(label)
 		controls.append(bar)
-		# a second difficulty at the same level shows its bar only
-		if mine and not pills_shown:
-			pills_shown = true
-			var pills := StatPills.flow()
-			pills.alignment = FlowContainer.ALIGNMENT_BEGIN
-			StatPills.fill(pills, StatPills.difficulty(row[1], row[2], row[3], PILL_ICON_SIZE))
-			controls.append(pills)
 	if estimated:
 		var hint := Label.new()
 		hint.text = ESTIMATE_HINT
@@ -793,9 +801,12 @@ func _level_row_controls(song: BeatSaverSongInfo) -> Array[Control]:
 		controls.append(hint)
 	return controls
 
-## The tag on the bar of the player's level, and the room at a bar's ends (px).
-const YOUR_LEVEL_TEXT := "Your level"
+## The room at a bar's left end, the frame round the player's level, and the table's column widths: the level's name
+## ("Expert+ ≈"), then get ready, notes per second and flow, each as wide as its header pill (px; with the margin they
+## fill the 432 px details column).
 const LEVEL_BAR_MARGIN := 12.0
+const LEVEL_FRAME := 3
+const LEVEL_COLUMNS: Array[float] = [122.0, 74.0, 128.0, 96.0]
 
 ## The details' text and, in the short details, the level rows under it, in one column where song_data stood.
 var _song_text: RichTextLabel
