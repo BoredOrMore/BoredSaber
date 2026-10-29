@@ -46,6 +46,79 @@ Check:
 - [ ] A HUD addition takes its tier by urgency (now: big, steady, high contrast; secondary: smaller, muted; rare:
       off the HUD), `doc/research/game-ui.md`.
 
+## 2b. Checks by type of UI
+
+Find the type of every node from step 1, then run its list on top of sections 2-5. A node can be more than one type
+(a button on a curved panel runs both lists).
+
+### HUD during play (`game/hud/`)
+- [ ] Placed from the eye at song start (`Hud.gd`), inside the no-turn zone (±30° side, +20° / -12°), checked at 3 eye
+  heights and with Wide lanes (as `tests/test_hud` does).
+- [ ] Never inside the note lane or the wall/bomb space, at any lane width.
+- [ ] Tier by urgency (`doc/research/game-ui.md`): now = big and steady, secondary = smaller and muted.
+- [ ] Brightness below notes and sabers (Light rule 1); no colour with another job (no note colour, no `DANGER_COLOR`
+  except low Energy).
+- [ ] Motion only on events (combo pop, red shake), short; nothing that pulses all song long.
+- [ ] GPU time in play compared with the last build (`PxrMetric`).
+
+### Curved menu panels (song menu, Get songs, Settings, Who's playing)
+- [ ] Built from `MenuPanel` / `MenuSection` templates and the shared theme; no hand-built frame.
+- [ ] Turn zone: ±45° side, top edge +20°, bottom -27°; glance-only up to ±70°.
+- [ ] Horizontal curve only, centred on the eye; rises with eye height on each state change (`_place_menus`).
+- [ ] Only the song list scrolls on the song page; everything else fits its panel.
+- [ ] Pointer hit point matches the drawn point on the curve (0 px error in the panel test).
+- [ ] Rounded corners.
+
+### Flat screens and popups (score screen, Pause, confirm popups, Licenses)
+- [ ] Stay flat (owner, 2026-10-27); face the eye; in the no-turn zone when shown after a song.
+- [ ] Every one has Cancel / Back / Close; nothing behind it can be pressed while it is open.
+- [ ] Shown in front of whatever is behind it with ≥ 5 cm depth gap, never behind another panel.
+
+### Buttons and controls (buttons, chips, tabs, toggles, sliders)
+- [ ] Uses one of the theme's button templates (`theme_type_variation`); one `PrimaryButton` (`UI_ACCENT`) per screen;
+  destructive = `ConfirmButton`, apart from the main action.
+- [ ] Target ≥ 2.5-3° on its smaller side at its real distance; ≥ 4 px from its neighbours.
+- [ ] Hover, press and sound; selected state visible without colour alone (white label + border).
+- [ ] Looks like what it does (a tab switches in place; a button that opens a screen is not a tab).
+
+### Text and numbers
+- [ ] Height ≥ 1.85° (`ui_angles` floor); Roboto Medium body, SemiBold/Bold headings in 2D; 3D `TextMesh` Medium.
+- [ ] Numbers: Kanit Italic 600, thousands "," in scores and counts (not time or percent), a unit on every value.
+- [ ] Contrast ≥ 4.5:1 (3:1 at 24 px and up) on every background it sits on (normal, hover, selected).
+- [ ] Player words only (root `AGENTS.md`); one word per concept across every screen.
+- [ ] Longest real content fits without clipping (`tests/test_menu_layout`).
+
+### Feedback in the lane (MISS, cut numbers, FAILED, combo banner, sparks)
+- [ ] Never hides the next notes: shows behind or beside the cut point and fades before the next note arrives there.
+- [ ] Colour by job: MISS white (owner, 2026-10-28), note colours only for cut feedback, `DANGER_COLOR` only for danger.
+- [ ] Flashes < 3 per second, moderate peaks (Light rule 8); short, no lingering motion.
+- [ ] Same in mixed reality (draws only what play needs).
+
+### Input (pointer, keyboard, thumbstick)
+- [ ] Both hands work; left-handed setting respected.
+- [ ] Keyboard has ✕, typed text visible where the player looks, empty input can't block Enter.
+- [ ] Thumbstick scroll gives light haptic per row; no input the player can't give in that state.
+
+### Sound and haptics as UI
+- [ ] Every press has a sound; the same action uses the same sound everywhere.
+- [ ] Haptics short and light in menus; in play they follow cuts, clashes and walls only.
+- [ ] Nothing relies on sound or haptics alone (pair with a visual).
+
+## 2c. Does the change collide with anything?
+
+Run all three before calling a UI change done, and list the result in the report (section 7).
+
+1. **Space.** For each changed node, in every state from step 1, compute its angular box (yaw, pitch, size) from the
+   real eye (`tools/capture/ui_angles`, at eye 1.5, 1.6 and 1.75 m) and compare it with every other node visible in
+   that state: HUD, menus, popups, the slash note, the keyboard, the note lane and wall space, the saber's reach.
+   Flag any two boxes that overlap in view, unless one is meant to sit on the other (≥ 5 cm in front, the one to read
+   in front).
+2. **Rules.** Check the change line by line against root `AGENTS.md` (UX, Colour, Light), `vr-ui-design` and the
+   lists in 2b. If a rule has to bend, stop and ask the owner; don't ship the exception.
+3. **Other work.** Check open branches and threads for edits to the same files or nodes
+   (`git log origin/<branch> -- <file>` for each open branch); if another thread owns that UI (e.g. the menu layout),
+   hand the change over instead of editing it.
+
 ## 3. Check placement in 3D (numbers, not guesses)
 
 For each visible piece in each state, compute its world centre and size:
@@ -53,8 +126,10 @@ For each visible piece in each state, compute its world centre and size:
 - World position = parent transform applied to the child offset, through every parent
   (`Transform3D(...)` in `.tscn` is row-major basis then origin; columns are the local axes).
 - Canvas size in metres = control size px / 1024 × node scale.
-- Angle from straight ahead for the player at `XROrigin3D` (0, 0, 1), eyes (0, 1.6, 1), facing -z:
-  with dx = x, dy = y - 1.6, dz = z - 1: yaw = atan2(dx, -dz), pitch = atan2(dy, hypot(dx, dz)).
+- Angle from the player's real eye (root `AGENTS.md`), not a fixed one: for an eye at (ex, ey, ez) facing -z, with
+  dx = x - ex, dy = y - ey, dz = z - ez: yaw = atan2(dx, -dz), pitch = atan2(dy, hypot(dx, dz)). Pieces placed from
+  the eye move with it, so check at eye heights 1.5, 1.6 and 1.75 m (`tools/capture/ui_angles` with `--eye`), the
+  player at `XROrigin3D` (0, 0, 1).
 
 Flag:
 
@@ -67,8 +142,8 @@ Flag:
 - [ ] Two pieces overlapping in view whose depths differ by less than ~5 cm, or the one to read is
       behind (the hidden name text box: keyboard text at z -0.83 behind the score panel at z -0.78).
 - [ ] A side panel not facing the player.
-- [ ] Targets under ~3° (≈ 5.2 cm at 1 m), text smaller in angle than the main menu's 28 px at
-      scale 2.4 and 2 m (≈ 1.9°).
+- [ ] Targets under ~3° (≈ 5.2 cm at 1 m), text under 1.85° high (the `ui_angles` floor, from the
+      main menu's 28 px at scale 2.4 and 2 m).
 - [ ] Hit areas that don't match the drawn shape; interactive elements overlapping or touching.
 - [ ] Text floating above its background; many depth levels to refocus between.
 - [ ] Sustained pulsing (worst near 0.2 Hz) or busy motion at the edges of view.
@@ -138,4 +213,5 @@ Follow `.github/AGENTS.md` to install the build. Then:
 
 - Problems found, each with cause and fix, worst first.
 - What you checked and how (numbers for placement, states walked, headset or not).
+- The three collision checks from 2c (space, rules, other work) and what each found.
 - Anything you couldn't verify, said plainly.
