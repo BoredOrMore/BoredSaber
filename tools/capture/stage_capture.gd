@@ -84,9 +84,11 @@ func _ready() -> void:
 	var world := WorldEnvironment.new()
 	world.environment = _game_environment()
 	add_child(world)
-	add_child(FLOOR_SCENE.instantiate())
+	var platform := FLOOR_SCENE.instantiate() as Floor
+	add_child(platform)
 	var stage := ENVIRONMENT_SCENE.instantiate() as EventDriver
 	add_child(stage)
+	stage.platform = platform
 
 	var camera := Camera3D.new()
 	camera.fov = float(args.get("fov", "90"))

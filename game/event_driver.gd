@@ -233,6 +233,8 @@ var _bars_lowered := false
 @onready var end_path := $Level/TrackTurn/Endpath as MeshInstance3D
 @onready var track_deck := $Level/TrackDeck as TrackDeck
 @onready var track_turn := $Level/TrackTurn as Node3D
+## the player's platform marks (burn marks, border lights, footprints), set by BeepSaber_Game; the stage capture has none
+var platform: Floor
 @onready var stage_smoke := $Level/StageSmoke as StageSmoke
 ## the player's platform border (game/floor.tscn): always lit, white-hot with the right note colour at its edges,
 ## whatever the map's light show does, so the player always sees where they stand
@@ -484,7 +486,11 @@ func set_background() -> void:
 	# the old track's far end piece; the deck ends in its own low stop (it rose over the horizon straight ahead)
 	end_path.visible = old_track
 	track_deck.visible = not old_track
-	track_deck.layout(Settings.LANE_DISTANCE_X)
+	# the platform is round on 90/360 maps while a song plays, so the deck turning with the notes meets it at any angle
+	var turning := Map.current_difficulty != null and Map.current_difficulty.characteristic in Map.TURNING_CHARACTERISTICS
+	track_deck.layout(Settings.LANE_DISTANCE_X, turning and not menu_focus and not old_track)
+	if platform:
+		platform.set_round(track_deck.round_radius() - TrackDeck.RIM_WIDTH if track_deck.is_round() else 0.0)
 	# the deck's strips run its whole length, out to where it fades into the haze, and fade with it; the old track's
 	# stop at its end, as they always did
 	var span := track_deck.strip_span()

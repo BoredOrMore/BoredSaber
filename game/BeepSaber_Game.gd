@@ -727,6 +727,7 @@ func _ready() -> void:
 	hud = Hud.new(point_label, multiplier_label as ComboHud, percent_indicator)
 	add_child(hud)
 	_floor_reflection = FloorReflection.new(track, [left_saber, right_saber], event_driver.track_deck)
+	event_driver.platform = standing_ground
 	add_child(_floor_reflection)
 	_result_moment = ResultMoment.new($XROrigin3D/XRCamera3D as Node3D)
 	add_child(_result_moment)

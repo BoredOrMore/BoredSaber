@@ -59,10 +59,22 @@ const CURB_OUT := 0.3
 const SKINS := {"metal_factory": 1, "neon_grid": 2}
 ## the edges' metal sheen on stages whose metal shines (EnvSolid layer 8); none elsewhere
 const METAL_BY_STAGE := {"metal_factory": MetalFactoryRig.METAL_SHEEN}
+## On 90/360 maps the platform is round (owner, 2026-10-29), so the deck turning with the notes meets it at any angle: a
+## disc reaching as far as the square platform does (the deck's half width plus EDGE_REACH), its top ROUND_TOP above the
+## deck's so it covers the deck's near end, whose corners touch its edge; ringed by a rim RIM_WIDTH wide that stands
+## CURB_RISE high like the curbs. The burn marks, lights and footprints lie on it (Floor.set_round). Untuned.
+const ROUND_TOP := 0.004
+const RIM_WIDTH := 0.12
+const ROUND_SEGMENTS := 96
 
 var _deck: MeshInstance3D
 ## the deck and its curbs, which turn with the notes (turn)
 var _turning: Node3D
+## the square platform's pieces (base, fillers, frame, end stop) and the round one's (disc, rim), one set shown
+var _square: Array[Node3D] = []
+var _disc: MeshInstance3D
+var _rim: MeshInstance3D
+var _round := false
 var _curbs: MultiMesh
 var _ends: MultiMesh
 var _base: MeshInstance3D
@@ -98,18 +110,48 @@ func _ready() -> void:
 	curbs.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_turning.add_child(curbs)
 	_ends = _add_multimesh(LaserFixtures._model_mesh(END_MODEL), 1, curb_material)
+	_square.append(get_child(-1))
 	_base = MeshInstance3D.new()
 	_base.mesh = BoxMesh.new()
 	_base.material_override = deck_material
 	_base.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_base)
+	_square.append(_base)
 	_fillers = _add_multimesh(BoxMesh.new(), 2, curb_material)
+	_square.append(get_child(-1))
 	var frame := MeshInstance3D.new()
 	frame.mesh = LaserFixtures._model_mesh(FRAME_MODEL)
 	frame.material_override = curb_material
 	frame.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	frame.position = Vector3(0.0, 0.0, PLATFORM_Z)
 	add_child(frame)
+	_square.append(frame)
+	_disc = MeshInstance3D.new()
+	var disc := CylinderMesh.new()
+	disc.radial_segments = ROUND_SEGMENTS
+	disc.rings = 1
+	disc.height = DECK_DEPTH
+	_disc.mesh = disc
+	# black, as the burn-mark sheet that is the pad's surface (Floor's cutFloor, 2 m square), so the sheet doesn't show
+	# as a square on it
+	var disc_material := StandardMaterial3D.new()
+	disc_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	disc_material.albedo_color = Color.BLACK
+	_disc.material_override = disc_material
+	_disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_disc.position = Vector3(0.0, ROUND_TOP - DECK_DEPTH * 0.5, PLATFORM_Z)
+	add_child(_disc)
+	_rim = MeshInstance3D.new()
+	var rim := TorusMesh.new()
+	rim.ring_segments = 8
+	rim.rings = ROUND_SEGMENTS
+	_rim.mesh = rim
+	_rim.material_override = curb_material
+	_rim.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# its section's lower half sunk in the disc, its top CURB_RISE above it
+	_rim.transform = Transform3D(Basis.from_scale(Vector3(1.0, 2.0 * CURB_RISE / RIM_WIDTH, 1.0)),
+		Vector3(0.0, ROUND_TOP, PLATFORM_Z))
+	add_child(_rim)
 	layout(_lane_width)
 
 ## A MultiMesh of `count` copies of `mesh` with `material`, without shadows, added as a child.
@@ -126,16 +168,21 @@ func _add_multimesh(mesh: Mesh, count: int, material: ShaderMaterial) -> MultiMe
 	return multimesh
 
 ## Sizes the deck for lanes `lane_width` apart (four lanes): the edges at its sides out to the stage's far end, the end
-## stop behind the platform, and the platform's base and fillers out to the deck's width.
-func layout(lane_width: float) -> void:
+## stop behind the platform, and the platform's base and fillers out to the deck's width; or, with `round_platform` (90/360
+## maps), the round platform with the deck and its edges starting at its edge.
+func layout(lane_width: float, round_platform := false) -> void:
 	_lane_width = lane_width
+	_round = round_platform
 	var half := 2.0 * lane_width
-	var length := DECK_NEAR - _far_z
+	var near := deck_near()
+	var length := near - _far_z
 	_deck.transform = Transform3D(Basis.from_scale(Vector3(half * 2.0, DECK_DEPTH, length)),
-		Vector3(0.0, -DECK_DEPTH * 0.5, (DECK_NEAR + _far_z) * 0.5))
+		Vector3(0.0, -DECK_DEPTH * 0.5, (near + _far_z) * 0.5))
 	deck_material.set_shader_parameter(&"lane_width", lane_width)
-	var edge_length := BACK_Z - _far_z
-	var edge_z := (BACK_Z + _far_z) * 0.5
+	# on the round platform the edges start at the deck's near end, so they turn with it clear of the disc
+	var edge_start := near if _round else BACK_Z
+	var edge_length := edge_start - _far_z
+	var edge_z := (edge_start + _far_z) * 0.5
 	_ends.set_instance_transform(0, Transform3D(Basis(Vector3.UP, PI) * Basis.from_scale(Vector3((half + EDGE_REACH) * 2.0, 1.0, 1.0)),
 		Vector3(0.0, 0.0, BACK_Z)))
 	for i in 2:
@@ -149,6 +196,30 @@ func layout(lane_width: float) -> void:
 			Vector3(side * (FRAME_HALF + filler * 0.5), -PAD_DEPTH * 0.5, PLATFORM_Z)))
 	_base.transform = Transform3D(Basis.from_scale(Vector3(half * 2.0, DECK_DEPTH - PAD_DEPTH, FRAME_HALF * 2.0)),
 		Vector3(0.0, -PAD_DEPTH - (DECK_DEPTH - PAD_DEPTH) * 0.5, PLATFORM_Z))
+	var radius := round_radius()
+	(_disc.mesh as CylinderMesh).top_radius = radius
+	(_disc.mesh as CylinderMesh).bottom_radius = radius
+	(_rim.mesh as TorusMesh).inner_radius = radius - RIM_WIDTH
+	(_rim.mesh as TorusMesh).outer_radius = radius
+	for piece in _square:
+		piece.visible = not _round
+	_disc.visible = _round
+	_rim.visible = _round
+
+## Whether the platform is round (layout).
+func is_round() -> bool:
+	return _round
+
+## The round platform's radius: as far as the square one reaches (the deck's half width plus EDGE_REACH).
+func round_radius() -> float:
+	return 2.0 * _lane_width + EDGE_REACH
+
+## The deck's near end (z): the square platform's front edge, or where the deck's corners meet the round one's edge.
+func deck_near() -> float:
+	if not _round:
+		return DECK_NEAR
+	var half := 2.0 * _lane_width
+	return PLATFORM_Z - sqrt(round_radius() ** 2 - half * half)
 
 ## Turns the deck and its curbs to `place` (EventDriver's turn about the player); the platform stays.
 func turn(place: Transform3D) -> void:
@@ -164,7 +235,7 @@ func set_stage(id: String) -> void:
 	_curb_material.set_shader_parameter(&"fade_z", fade)
 	_curb_material.set_shader_parameter(&"metal", METAL_BY_STAGE.get(id, 0.0))
 	_curb_material.set_shader_parameter(&"matcap", MetalFactoryRig.MATCAP)
-	layout(_lane_width)
+	layout(_lane_width, _round)
 
 ## Where the deck fades into the haze: from and to, in metres out along the track (-z).
 func fade_z() -> Vector2:
@@ -172,7 +243,7 @@ func fade_z() -> Vector2:
 
 ## The span along the track the edge strips run over: from the deck's near end to its far end (z).
 func strip_span() -> Vector2:
-	return Vector2(DECK_NEAR, _far_z)
+	return Vector2(deck_near(), _far_z)
 
 ## Where an edge light strip `strip_size` big sits in the edge's channel on `side` (-1 left, 1 right), its top
 ## STRIP_PROUD above the curb's. Level with it, the two tops fought for depth and the strip vanished a few metres out

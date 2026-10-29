@@ -45,6 +45,8 @@ static var color_right: Color :
 		_color_right = c
 static var last_beat := 0.
 static var one_saber := false
+## the characteristics whose lanes turn: 90 and 360 degree maps
+const TURNING_CHARACTERISTICS: Array[String] = ["90Degree", "360Degree"]
 ## Where the track points through the song on 90/360 maps (get_turns): the beats at which the lanes' direction changes
 ## and the direction (radians, as the objects' lane rotation) from each on. Empty when it never turns.
 static var turn_beats := PackedFloat64Array()

@@ -90,7 +90,8 @@ constraints apply here unchanged.
 - `Benchmark.gd` (class `Benchmark`) — hands-off GPU benchmark (Settings > Advanced, or `tools/bench.sh`).
 - `DebugView.gd` (class `DebugView`) — Settings > Advanced switches that leave parts of the scene out to measure
   their GPU cost; bits of the `debug_view` shader global, never saved.
-- `event_driver.gd/.tscn` — lighting events and background; `floor.gd/.tscn` — floor and burn marks.
+- `event_driver.gd/.tscn` — lighting events and background; `floor.gd/.tscn` — floor and burn marks; on 90/360 maps
+  `set_round` swaps its square border bars for a ring of lights on the round platform (`TrackDeck`).
 - `SpectatorWindow.gd/.tscn` — desktop spectator camera/HUD.
 - Menus and panels (song menu, settings, end score, highscores, pause, `vr_slider`) live in `ui/`.
 - `vr_goggles.gdshader` + `.glb` (the headset model in `BeepSaber_Game.tscn`), `GodotSplash.tscn`, `BlackWhiteThem.tres`, `background*.tres` — visuals.

@@ -103,7 +103,10 @@ Shared scenery
 - `TrackDeck.gd` (`TrackDeck`): opaque deck (top y 0), curbs housing the thin edge light strips (`STRIP_*`), platform frame, end stops;
   runs to `FAR_Z` -150 (`FAR_Z_BY_STAGE`), fades into haze. `layout(lane_width)` for Wide modifiers; `set_stage` skin.
   Hidden for `Settings.old_track` and mixed reality (old see-through sheet instead).
-  Its deck and curbs sit under a child that `turn(place)` turns with the notes; the platform pieces don't.
+  Its deck and curbs sit under a child that `turn(place)` turns with the notes; the platform pieces don't. On 90/360
+  maps during a song (`layout(lane_width, true)` from `EventDriver.set_background`) the platform is a black disc
+  (`round_radius()`, as far as the square reaches) with a rim, the deck and edges starting where its corners meet the
+  disc (`deck_near()`), so they meet it at any angle; Standard keeps the square pad.
 - `TrackDeck.gdshader`: deck skin per stage (`SKINS`: plates, tread plate, dark glass), lane grooves, `fade_z`.
 
 Light carriers
