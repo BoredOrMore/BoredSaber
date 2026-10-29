@@ -670,12 +670,11 @@ func _turn_track(delta: float) -> void:
 	track_angle = _turn_to if p >= 1.0 else _turn_from + angle_difference(_turn_from, _turn_to) * smoothstep(0.0, 1.0, p)
 	_apply_track_turn()
 
-## Turns the track's turning parts to track_angle about the player's standing point.
+## Turns the track's turning parts to track_angle about the player's standing point, the strips' far fade with them.
 func _apply_track_turn() -> void:
-	var turn := Basis(Vector3.UP, -track_angle)
-	var pivot := Vector3(0.0, 0.0, Constants.PLAYER_Z)
-	track_turn.transform = Transform3D(turn, pivot - turn * pivot)
-	track_deck.turn(track_turn.transform)
+	track_turn.transform = TrackDeck.turned(track_angle)
+	track_deck.turn(track_angle)
+	track_lights_material.set_shader_parameter(&"track_angle", track_angle)
 
 func set_combo_multiplier(multiplier: int) -> void:
 	_combo_target = log(maxf(multiplier, 1)) / log(8.0)

@@ -108,6 +108,10 @@ Shared scenery
   (`round_radius()`, as far as the square reaches) with a rim, the deck and edges starting where its corners meet the
   disc (`deck_near()`), so they meet it at any angle; Standard keeps the square pad.
 - `TrackDeck.gdshader`: deck skin per stage (`SKINS`: plates, tread plate, dark glass), lane grooves, `fade_z`.
+- `track_turn.gdshaderinc`: `track_angle` and `track_xz(world)`, a point's place on the unturned track, so the deck's
+  grooves and skin and the far fade (`TrackDeck.gdshader`, `EnvSolid.gdshaderinc`'s `fade_z`, `LightStrip.gdshader`) turn
+  with the track on 90/360 maps; set on the deck, curb and edge-strip materials by `TrackDeck.turn` and
+  `EventDriver._apply_track_turn`.
 
 Light carriers
 - `NeonRibbon.gdshader`: the beam/bar ribbon (1 x 32 PlaneMesh) that turns to face the eye, `min_pixels` floor;

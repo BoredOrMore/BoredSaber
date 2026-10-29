@@ -221,9 +221,18 @@ func deck_near() -> float:
 	var half := 2.0 * _lane_width
 	return PLATFORM_Z - sqrt(round_radius() ** 2 - half * half)
 
-## Turns the deck and its curbs to `place` (EventDriver's turn about the player); the platform stays.
-func turn(place: Transform3D) -> void:
-	_turning.transform = place
+## Where the track's turning parts go when it has turned `angle` radians about the player's standing point.
+static func turned(angle: float) -> Transform3D:
+	var basis := Basis(Vector3.UP, -angle)
+	var pivot := Vector3(0.0, 0.0, PLATFORM_Z)
+	return Transform3D(basis, pivot - basis * pivot)
+
+## Turns the deck and its curbs `angle` radians about the player (EventDriver's turn), their grooves, skin and far fade
+## with them (track_turn.gdshaderinc); the platform stays.
+func turn(angle: float) -> void:
+	_turning.transform = turned(angle)
+	deck_material.set_shader_parameter(&"track_angle", angle)
+	_curb_material.set_shader_parameter(&"track_angle", angle)
 
 ## Fits the deck to environment `id`: its skin (TrackDeck.gdshader: Metal Factory's tread plate, Neon Grid's dark glass,
 ## plain plates elsewhere) and its far end and fade.

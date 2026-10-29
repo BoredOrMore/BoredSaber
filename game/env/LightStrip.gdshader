@@ -9,6 +9,7 @@ global uniform vec4 env_haze;
 // Fades into the haze's colour from fade_z.x to fade_z.y metres out along the track (-z), for strips that run on into
 // the distance (the track's edge lights, TrackDeck.gd); off (0, 0) for the rest.
 uniform vec2 fade_z = vec2(0.0);
+#include "res://game/env/track_turn.gdshaderinc"
 uniform vec4 light_color : source_color = vec4(1.0);
 // For thin strips that run far out (the track's edge lines, TrackDeck.STRIP_WIDTH): never thinner than min_pixels on
 // screen, dimmed by the width they gained instead, so far lines don't flicker (as NeonRibbon.gdshader); 0 is off.
@@ -46,6 +47,6 @@ void fragment() {
 	ALBEDO /= sqrt(widened);
 	ALBEDO += cut_wave_light(world) * CUT_WAVE_GAIN;
 	if (fade_z.y > fade_z.x) {
-		ALBEDO = mix(ALBEDO, env_haze.rgb, smoothstep(fade_z.x, fade_z.y, -world.z));
+		ALBEDO = mix(ALBEDO, env_haze.rgb, smoothstep(fade_z.x, fade_z.y, -track_xz(world).y));
 	}
 }
