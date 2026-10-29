@@ -16,6 +16,8 @@ Read the root `AGENTS.md` first ("Light", "Colour rules", "Pico 4 constraints").
   standing point (`Constants.PLAYER_Z`) to `Map.track_rotation(show_beat)`, easing over `TRACK_TURN_TIME` (0.3 s,
   untuned) or until the next turn. The platform, camera and XR origin never turn. `set_background` lays the turning
   parts out unturned (it writes global transforms), then turns them back.
+  The turn cue (`TrackDeck.set_cue`, a chevron on the floor) eases the same way to `Map.cue_rotation(show_beat)`, the
+  map's rotation events, so it leads the lanes (inner class `Turn` eases both).
 - Stage choice: `Settings.ENVIRONMENTS` (`Settings.gd:35`, ids `classic`, `neon_grid`, `pulse_void`, `night_city`,
   `metal_factory`, plus `auto`). `EventDriver.pick_environment(map)` -> `map_environment`:
   `Constants.MAP_ENVIRONMENTS` (map's Beat Saber env name), then `TAG_ENVIRONMENTS` (genre), then a folder-name hash
@@ -105,8 +107,11 @@ Shared scenery
   Hidden for `Settings.old_track` and mixed reality (old see-through sheet instead).
   Its deck and curbs sit under a child that `turn(place)` turns with the notes; the platform pieces don't. On 90/360
   maps during a song (`layout(lane_width, true)` from `EventDriver.set_background`) the platform is a black disc
-  (`round_radius()`, as far as the square reaches) with a rim, the deck and edges starting where its corners meet the
-  disc (`deck_near()`), so they meet it at any angle; Standard keeps the square pad.
+  (`round_radius()`, as far as the square reaches) with a rim, the deck starting where its corners meet the disc
+  (`deck_near()`), so it meets it at any angle; Standard keeps the square pad. There, like Glass Desert (the long deck
+  turning made players dizzy, owner 2026-10-29), the deck is a `STUB_LENGTH` stub fading over `STUB_FADE` (`end_z()`),
+  without curbs, its edge strips flush on it (`strip_position(..., on_stub)`), and the turn cue chevron
+  (`CUE_*`, `Constants.TURN_CUE_COLOR`) shows.
 - `TrackDeck.gdshader`: deck skin per stage (`SKINS`: plates, tread plate, dark glass), lane grooves, `fade_z`.
 - `track_turn.gdshaderinc`: `track_angle` and `track_xz(world)`, a point's place on the unturned track, so the deck's
   grooves and skin and the far fade (`TrackDeck.gdshader`, `EnvSolid.gdshaderinc`'s `fade_z`, `LightStrip.gdshader`) turn

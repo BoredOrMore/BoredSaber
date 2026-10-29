@@ -215,6 +215,9 @@ const HEALTH_FULL_COLOR := Color(0.74, 0.86, 0.93)
 ## The footprints on the standing platform (game/floor.gd): a neutral white a little brighter than grey, so they
 ## read on every stage without competing with notes (owner, 2026-10-29).
 const FOOTPRINT_COLOR := Color(0.8, 0.8, 0.8)
+## The turn cue on 90/360 maps (TrackDeck.set_cue): the chevron on the floor pointing where the player turns next. A
+## neutral white like the footprints, not a note, accent or danger colour (owner, 2026-10-29: like Glass Desert's).
+const TURN_CUE_COLOR := Color(0.8, 0.8, 0.8)
 # The X shown for a missed note: a softer red than pure red
 const MISS_COLOR := Color("ff4d5e")
 # The combo HUD's multiplier ring (ComboHud.gd): lit and unlit segments. A broken combo tints it MISS_COLOR for a moment.

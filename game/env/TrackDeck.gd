@@ -66,6 +66,18 @@ const METAL_BY_STAGE := {"metal_factory": MetalFactoryRig.METAL_SHEEN}
 const ROUND_TOP := 0.004
 const RIM_WIDTH := 0.12
 const ROUND_SEGMENTS := 96
+## Like Beat Saber's Glass Desert (owner, 2026-10-29: the long deck sweeping past the feet as it turned made players
+## dizzy): on the round platform's maps the deck is only a short stub from the platform, STUB_LENGTH long, fading into
+## the haze over its last STUB_FADE, without its curbs; the edge strips lie flush on its edges. UNTUNED.
+const STUB_LENGTH := 6.0
+const STUB_FADE := 4.0
+## The turn cue (set_cue): a small chevron lying on the floor CUE_DISTANCE out from the player, CUE_LIFT up, pointing
+## where the map's rotation events turn the player next (EventDriver), in Constants.TURN_CUE_COLOR; CUE_POINTS is its
+## outline in metres (x across, z along, the tip toward -z). UNTUNED.
+const CUE_DISTANCE := 2.6
+const CUE_LIFT := 0.01
+const CUE_POINTS := [Vector2(0.0, -0.18), Vector2(0.28, 0.1), Vector2(0.28, 0.2), Vector2(0.0, -0.06),
+	Vector2(-0.28, 0.2), Vector2(-0.28, 0.1)]
 
 var _deck: MeshInstance3D
 ## the deck and its curbs, which turn with the notes (turn)
@@ -75,6 +87,8 @@ var _square: Array[Node3D] = []
 var _disc: MeshInstance3D
 var _rim: MeshInstance3D
 var _round := false
+var _curb_instance: MultiMeshInstance3D
+var _cue: MeshInstance3D
 var _curbs: MultiMesh
 var _ends: MultiMesh
 var _base: MeshInstance3D
@@ -109,6 +123,7 @@ func _ready() -> void:
 	curbs.material_override = curb_material
 	curbs.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_turning.add_child(curbs)
+	_curb_instance = curbs
 	_ends = _add_multimesh(LaserFixtures._model_mesh(END_MODEL), 1, curb_material)
 	_square.append(get_child(-1))
 	_base = MeshInstance3D.new()
@@ -152,7 +167,27 @@ func _ready() -> void:
 	_rim.transform = Transform3D(Basis.from_scale(Vector3(1.0, 2.0 * CURB_RISE / RIM_WIDTH, 1.0)),
 		Vector3(0.0, ROUND_TOP, PLATFORM_Z))
 	add_child(_rim)
+	_cue = MeshInstance3D.new()
+	_cue.mesh = _cue_mesh()
+	var cue_material := StandardMaterial3D.new()
+	cue_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	cue_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	cue_material.albedo_color = Constants.TURN_CUE_COLOR
+	_cue.material_override = cue_material
+	_cue.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_cue)
+	set_cue(0.0)
 	layout(_lane_width)
+
+## The turn cue's chevron (CUE_POINTS), flat, facing up.
+static func _cue_mesh() -> ArrayMesh:
+	var outline := PackedVector2Array(CUE_POINTS)
+	var tool := SurfaceTool.new()
+	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
+	tool.set_normal(Vector3.UP)
+	for i in Geometry2D.triangulate_polygon(outline):
+		tool.add_vertex(Vector3(outline[i].x, 0.0, outline[i].y))
+	return tool.commit()
 
 ## A MultiMesh of `count` copies of `mesh` with `material`, without shadows, added as a child.
 func _add_multimesh(mesh: Mesh, count: int, material: ShaderMaterial) -> MultiMesh:
@@ -175,14 +210,16 @@ func layout(lane_width: float, round_platform := false) -> void:
 	_round = round_platform
 	var half := 2.0 * lane_width
 	var near := deck_near()
-	var length := near - _far_z
+	var far := end_z()
+	var length := near - far
 	_deck.transform = Transform3D(Basis.from_scale(Vector3(half * 2.0, DECK_DEPTH, length)),
-		Vector3(0.0, -DECK_DEPTH * 0.5, (near + _far_z) * 0.5))
+		Vector3(0.0, -DECK_DEPTH * 0.5, (near + far) * 0.5))
 	deck_material.set_shader_parameter(&"lane_width", lane_width)
-	# on the round platform the edges start at the deck's near end, so they turn with it clear of the disc
-	var edge_start := near if _round else BACK_Z
-	var edge_length := edge_start - _far_z
-	var edge_z := (edge_start + _far_z) * 0.5
+	var fade := fade_z()
+	deck_material.set_shader_parameter(&"fade_z", fade)
+	_curb_material.set_shader_parameter(&"fade_z", fade)
+	var edge_length := BACK_Z - far
+	var edge_z := (BACK_Z + far) * 0.5
 	_ends.set_instance_transform(0, Transform3D(Basis(Vector3.UP, PI) * Basis.from_scale(Vector3((half + EDGE_REACH) * 2.0, 1.0, 1.0)),
 		Vector3(0.0, 0.0, BACK_Z)))
 	for i in 2:
@@ -205,6 +242,8 @@ func layout(lane_width: float, round_platform := false) -> void:
 		piece.visible = not _round
 	_disc.visible = _round
 	_rim.visible = _round
+	_curb_instance.visible = not _round
+	_cue.visible = _round
 
 ## Whether the platform is round (layout).
 func is_round() -> bool:
@@ -220,6 +259,14 @@ func deck_near() -> float:
 		return DECK_NEAR
 	var half := 2.0 * _lane_width
 	return PLATFORM_Z - sqrt(round_radius() ** 2 - half * half)
+
+## Where the deck ends (z): the stage's far end, or the stub's on the round platform's maps.
+func end_z() -> float:
+	return deck_near() - STUB_LENGTH if _round else _far_z
+
+## Points the turn cue `angle` radians round the player (EventDriver's cue, from the map's rotation events).
+func set_cue(angle: float) -> void:
+	_cue.transform = turned(angle) * Transform3D(Basis.IDENTITY, Vector3(0.0, CUE_LIFT, PLATFORM_Z - CUE_DISTANCE))
 
 ## Where the track's turning parts go when it has turned `angle` radians about the player's standing point.
 static func turned(angle: float) -> Transform3D:
@@ -239,23 +286,24 @@ func turn(angle: float) -> void:
 func set_stage(id: String) -> void:
 	deck_material.set_shader_parameter(&"skin", SKINS.get(id, 0))
 	_far_z = FAR_Z_BY_STAGE.get(id, FAR_Z)
-	var fade := fade_z()
-	deck_material.set_shader_parameter(&"fade_z", fade)
-	_curb_material.set_shader_parameter(&"fade_z", fade)
 	_curb_material.set_shader_parameter(&"metal", METAL_BY_STAGE.get(id, 0.0))
 	_curb_material.set_shader_parameter(&"matcap", MetalFactoryRig.MATCAP)
 	layout(_lane_width, _round)
 
 ## Where the deck fades into the haze: from and to, in metres out along the track (-z).
 func fade_z() -> Vector2:
+	if _round:
+		return Vector2(STUB_LENGTH - STUB_FADE - deck_near(), -end_z())
 	return Vector2(minf(FADE_START, -_far_z * 0.6), -_far_z - FADE_TAIL)
 
 ## The span along the track the edge strips run over: from the deck's near end to its far end (z).
 func strip_span() -> Vector2:
-	return Vector2(deck_near(), _far_z)
+	return Vector2(deck_near(), end_z())
 
 ## Where an edge light strip `strip_size` big sits in the edge's channel on `side` (-1 left, 1 right), its top
 ## STRIP_PROUD above the curb's. Level with it, the two tops fought for depth and the strip vanished a few metres out
-## (desktop capture, 2026-10-25).
-static func strip_position(lane_width: float, side: float, strip_size: Vector3) -> Vector3:
+## (desktop capture, 2026-10-25). On the stub (`on_stub`, no curbs) it lies on the deck's edge, its top STRIP_PROUD up.
+static func strip_position(lane_width: float, side: float, strip_size: Vector3, on_stub := false) -> Vector3:
+	if on_stub:
+		return Vector3(side * (2.0 * lane_width - STRIP_WIDTH * 0.5), STRIP_PROUD - strip_size.y * 0.5, 0.0)
 	return Vector3(side * (2.0 * lane_width + STRIP_OUT), CURB_RISE + STRIP_PROUD - strip_size.y * 0.5, 0.0)

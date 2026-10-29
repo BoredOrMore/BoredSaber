@@ -213,6 +213,15 @@ func _ready() -> void:
 		Map.track_rotation(1.9), Map.track_rotation(2.0), Map.track_rotation(3.9), Map.track_rotation(4.0)])
 	check(Map.chain_stack.size() == 1 and is_equal_approx(Map.chain_stack[0].rotation, PI * 0.5),
 		"a v3 chain at beat 2 is on the turned lane (%s)" % [Map.chain_stack.map(func(c: ChainInfo) -> float: return c.rotation)])
+	# the turn cue goes by the rotation events, so it leads the lanes when an event comes before its first note
+	var early := read_map("v3.dat")
+	early["rotationEvents"] = [{"b": 1.5, "e": 0.0, "r": 90.0}]
+	Map.load_beatmap(make_info("3.3.0", 120), make_difficulty(16, 0.0), early)
+	check(is_equal_approx(Map.cue_rotation(1.6), PI * 0.5) and Map.track_rotation(1.6) == 0.0
+		and is_equal_approx(Map.track_rotation(2.0), PI * 0.5),
+		"a rotation event at beat 1.5 turns the cue at 1.5 and the track at the next note, 2 (cue %s, track %s at 1.6)" % [
+		Map.cue_rotation(1.6), Map.track_rotation(1.6)])
+	Map.load_beatmap(make_info("3.3.0", 120), make_difficulty(16, 0.0), turning)
 	check(Map.next_turn_beat(2.0) == 4.0 and Map.next_turn_beat(4.0) == INF,
 		"the next turn after beat 2 is at 4, none after 4 (%s, %s)" % [Map.next_turn_beat(2.0), Map.next_turn_beat(4.0)])
 

@@ -172,7 +172,7 @@ const INTENSITY_RISE_SECONDS := 1.0
 const INTENSITY_FALL_SECONDS := 3.0
 ## the song's beat now, set by the Playing state; the curve and the smoothed intensity
 var show_beat := 0.0
-## The track turns with the notes on 90/360 maps (owner, 2026-10-29): the deck and its curbs (TrackDeck.turn), the edge
+## The track turns with the notes on 90/360 maps (owner, 2026-10-29): the deck's short stub (TrackDeck.turn), the edge
 ## light strips with the map's left and right lights in them, and the old see-through track with its end piece
 ## (TrackTurn) turn about the player's standing point to where the map's lanes point now (Map.track_rotation), easing in
 ## and out over TRACK_TURN_TIME, or until the next turn when that comes sooner. The camera and XR origin never turn.
@@ -180,12 +180,34 @@ var show_beat := 0.0
 const TRACK_TURN_TIME := 0.3
 ## the track has turned to `angle` (track_angle); the HUD and the energy strips turn with it (BeepSaber_Game)
 signal track_turned(angle: float)
-## where the track points now and the turn it is easing through (radians, as the lanes' rotation; seconds)
+## where the track points now (radians, as the lanes' rotation) and its turn; the turn cue's (TrackDeck.set_cue), which
+## turns at the map's rotation events (Map.cue_rotation), so it can lead the lanes, easing the same way
 var track_angle := 0.0
-var _turn_from := 0.0
-var _turn_to := 0.0
-var _turn_time := 0.0
-var _turn_left := 0.0
+var _track_turn := Turn.new()
+var _cue_turn := Turn.new()
+
+## An angle easing in and out to a new target over TRACK_TURN_TIME (or `until_next` seconds when sooner), the short way
+## round (a 360 map's lanes wrap at 360 degrees).
+class Turn:
+	var angle := 0.0
+	var _from := 0.0
+	var _to := 0.0
+	var _time := 0.0
+	var _left := 0.0
+
+	## Moves `delta` seconds on toward `target`; true when the angle changed.
+	func step(target: float, until_next: float, delta: float) -> bool:
+		if absf(angle_difference(_to, target)) > Constants.ROTATION_EPS:
+			_from = angle
+			_to = target
+			_time = minf(TRACK_TURN_TIME, until_next)
+			_left = _time
+		if _left <= 0.0 and angle == _to:
+			return false
+		_left = maxf(_left - delta, 0.0)
+		var p := 1.0 - _left / _time if _time > 0.0 else 1.0
+		angle = _to if p >= 1.0 else _from + angle_difference(_from, _to) * smoothstep(0.0, 1.0, p)
+		return true
 ## the song's tempo, for the Metal Factory's pistons
 var _show_bpm := 0.0
 var _intensity_curve := PackedFloat32Array()
@@ -505,7 +527,7 @@ func set_background() -> void:
 			strip.global_transform = Transform3D(rest.basis, Vector3(strip.global_position.x, rest.origin.y, rest.origin.z))
 			continue
 		var side := signf(strip.global_position.x)
-		var place := TrackDeck.strip_position(Settings.LANE_DISTANCE_X, side, strip.get_aabb().size)
+		var place := TrackDeck.strip_position(Settings.LANE_DISTANCE_X, side, strip.get_aabb().size, track_deck.is_round())
 		var stretch := (span.x - span.y) / strip.get_aabb().size.z
 		var thin := TrackDeck.STRIP_WIDTH / strip.get_aabb().size.x
 		strip.global_transform = Transform3D(Basis.from_scale(Vector3(thin, 1.0, stretch)),
@@ -654,23 +676,16 @@ func _update_haze() -> void:
 			- QUIET_DIM * _quiet)
 
 ## Sets how lit up the scene is for the combo multiplier (1, 2, 4 or 8).
-## Eases the track toward where the map's lanes point at show_beat (straight ahead in the menus).
+## Eases the track toward where the map's lanes point at show_beat, and the turn cue toward where its rotation events
+## point (both straight ahead in the menus).
 func _turn_track(delta: float) -> void:
-	var target := 0.0 if menu_focus or Map.current_info == null else Map.track_rotation(show_beat)
-	if absf(angle_difference(_turn_to, target)) > Constants.ROTATION_EPS:
-		_turn_from = track_angle
-		_turn_to = target
-		var until_next := INF if menu_focus or Map.current_info == null \
-				else (Map.next_turn_beat(show_beat) - show_beat) / Map.beats_per_second()
-		_turn_time = minf(TRACK_TURN_TIME, until_next)
-		_turn_left = _turn_time
-	if _turn_left <= 0.0 and track_angle == _turn_to:
-		return
-	_turn_left = maxf(_turn_left - delta, 0.0)
-	var p := 1.0 - _turn_left / _turn_time if _turn_time > 0.0 else 1.0
-	# the short way round (a 360 map's lanes wrap at 360 degrees)
-	track_angle = _turn_to if p >= 1.0 else _turn_from + angle_difference(_turn_from, _turn_to) * smoothstep(0.0, 1.0, p)
-	_apply_track_turn()
+	var playing := not menu_focus and Map.current_info != null
+	var until_next := (Map.next_turn_beat(show_beat) - show_beat) / Map.beats_per_second() if playing else INF
+	if _track_turn.step(Map.track_rotation(show_beat) if playing else 0.0, until_next, delta):
+		track_angle = _track_turn.angle
+		_apply_track_turn()
+	if _cue_turn.step(Map.cue_rotation(show_beat) if playing else 0.0, INF, delta):
+		track_deck.set_cue(_cue_turn.angle)
 
 ## Turns the track's turning parts to track_angle about the player's standing point, the strips' far fade with them.
 func _apply_track_turn() -> void:
