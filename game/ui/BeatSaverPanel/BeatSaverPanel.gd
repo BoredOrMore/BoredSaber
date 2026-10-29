@@ -513,6 +513,7 @@ func update_list(req: BeatSaverRequest) -> void:
 		if goto_maps_by:
 			goto_maps_by.visible = false
 		song_data = []
+		_song_index.clear()
 		_page_first = 0
 		_cover_list += 1
 		_finished_covers.clear()
@@ -601,6 +602,7 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 						if not parsed_song.is_playable() or (prev_request.type != "uploader" and not parsed_song.passes_reaction_filter()):
 							continue
 						item_list.add_item(_row_text(parsed_song), _side_text(parsed_song), _placeholder_row_cover(), _strip(parsed_song))
+						_song_index[parsed_song.get_hash()] = song_data.size()
 						song_data.append(parsed_song)
 
 	elif _list_retries_left > 0 and prev_request != null:
@@ -947,6 +949,9 @@ func _update_download_button() -> void:
 ## stutters dragging the list on the headset, 2026-10-28).
 const SLOW_FRAME_SECONDS := 0.04
 const _FRAME_PROBE := preload("res://game/ui/BeatSaverPanel/FrameProbe.gd")
+## Each listed map's place in song_data by its hash, so a download finds its row in O(1) every frame (it searched the
+## whole list twice a frame; owner, 2026-10-29: optimise with big O)
+var _song_index := {}
 var _frame_work := ""
 var _decoding := 0
 var _page_first := 0
@@ -994,18 +999,10 @@ func _process(delta: float) -> void:
 		return
 	var before := download_button.text
 	_update_download_button()
-	var index := song_data.find(_downloading_song())
+	var index: int = _song_index.get(Utils.get_str(downloading[0][1] as Dictionary, "hash", ""), -1)
 	var row_changed := index >= 0 and index < item_list.item_count and item_list.set_item_side(index, _side_text(song_data[index]))
 	if download_button.text != before or row_changed:
 		_redraw()
-
-## The listed map being downloaded now, or null.
-func _downloading_song() -> BeatSaverSongInfo:
-	var hash := Utils.get_str(downloading[0][1] as Dictionary, "hash", "")
-	for song in song_data:
-		if song.get_hash() == hash:
-			return song
-	return null
 
 ## Downloads the picked map, or once it is in the song list, picks it there and closes this page.
 func _on_download_button_up() -> void:

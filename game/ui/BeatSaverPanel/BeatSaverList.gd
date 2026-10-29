@@ -67,7 +67,10 @@ func set_item_side(index: int, side: String) -> bool:
 	if _sides[index] == side:
 		return false
 	_sides[index] = side
-	_place_rows(true)
+	# only that row's label, if it is on a row: a download's progress changes it every frame
+	var slot := index % _rows.size()
+	if _row_item[slot] == index:
+		_row_sides[slot].text = side
 	return true
 
 ## Changes a row's level strip (measured once the map is in the library).
@@ -75,7 +78,9 @@ func set_item_strip(index: int, strip: Texture2D) -> void:
 	if _strips[index] == strip:
 		return
 	_strips[index] = strip
-	_place_rows(true)
+	var slot := index % _rows.size()
+	if _row_item[slot] == index:
+		_row_strips[slot].texture = strip
 
 ## Puts a song's cover (or its placeholder) on its row.
 func set_item_image(index: int, cover: Image) -> void:
@@ -93,12 +98,16 @@ func clear() -> void:
 	_covers.clear()
 	_strips.clear()
 	_selected = -1
+	# the rows show other songs now, whatever index they had: their text and strip are set again
+	_row_item.fill(-1)
 	_grow()
 	scroll_vertical = 0
 
+## Sizes the content for the songs; new songs get their rows' text as they come into view (`_place_rows` sets a row's
+## text only when it shows another song), so adding a page re-lays no text already on screen.
 func _grow() -> void:
 	_content.custom_minimum_size = Vector2(0.0, _texts.size() * (ROW_HEIGHT + ROW_SEPARATION))
-	_place_rows(true)
+	_place_rows()
 
 ## Enough rows for the view and SPARE_ROWS on each side, each with its own cover texture.
 func _make_rows() -> void:
