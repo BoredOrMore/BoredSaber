@@ -119,6 +119,8 @@ Light carriers
   shared by Neon Grid arches, Pulse Void seams, Classic ribs.
 - `PlayerLight.gdshader` + `player_light.gdshaderinc`: saber light pools on the floor (`game/floor.gd`,
   `LightSaber.gd`) and the cut-wave ring (`cut_waves`) that other light shaders add.
+- `Footprints.gdshader`: two thin footprint outlines on the standing platform (`game/floor.gd`), toes toward the track,
+  30 cm apart, `Constants.FOOTPRINT_COLOR`, always shown and never changing (owner, 2026-10-29).
 
 Air
 - `StageSmoke.gd` (`StageSmoke`): floor layer (`FloorSmoke.gdshader`) + three fog sheets (`FogSheet.gdshader`,

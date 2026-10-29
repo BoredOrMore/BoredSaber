@@ -17,6 +17,9 @@ var C_RIGHT := Color()
 const PLAYER_LIGHT := preload("res://game/env/PlayerLight.gdshader")
 ## metres; the square around the player where the sabers light the floor
 const PLAYER_LIGHT_SIZE := 4.0
+const FOOTPRINTS := preload("res://game/env/Footprints.gdshader")
+## metres; the patch of platform the footprints are drawn on
+const FOOTPRINTS_SIZE := Vector2(0.6, 0.4)
 const mixed_reality_burn_alpha := 0.3
 # keep drawing this long after the last mark so it can fade out, then stop
 const FADE_OUT_SECONDS := 1.5
@@ -40,6 +43,18 @@ func _ready() -> void:
 	# just above the platform and the burn marks
 	pools.position.y = 0.003
 	add_child(pools)
+	var footprints := MeshInstance3D.new()
+	var footprints_plane := PlaneMesh.new()
+	footprints_plane.size = FOOTPRINTS_SIZE
+	footprints.mesh = footprints_plane
+	var footprints_material := ShaderMaterial.new()
+	footprints_material.shader = FOOTPRINTS
+	footprints_material.set_shader_parameter(&"line_color", Constants.FOOTPRINT_COLOR)
+	footprints.material_override = footprints_material
+	footprints.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# on the burn marks, under the saber light pools
+	footprints.position.y = 0.002
+	add_child(footprints)
 	
 	if OS.get_name() == &"Web":
 		sub_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE

@@ -206,6 +206,9 @@ const UI_TEXT_MUTED := Color(0.6, 0.63, 0.67)
 const UI_DANGER := Color(1.0, 0.45, 0.4)
 ## Health strips when full: the light UI text tinted toward the accent. They shift to the song's danger colour as health drops.
 const HEALTH_FULL_COLOR := Color(0.74, 0.86, 0.93)
+## The footprint outlines on the standing platform (game/floor.gd): a neutral white a little brighter than grey, so they
+## read on every stage without competing with notes (owner, 2026-10-29).
+const FOOTPRINT_COLOR := Color(0.8, 0.8, 0.8)
 # The X shown for a missed note: a softer red than pure red
 const MISS_COLOR := Color("ff4d5e")
 # The combo HUD's multiplier ring (ComboHud.gd): lit and unlit segments. A broken combo tints it MISS_COLOR for a moment.
