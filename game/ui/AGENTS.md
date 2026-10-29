@@ -68,8 +68,9 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
 - `StepperSpinBox.gd` (class `StepperSpinBox`): number between big − and + buttons for the pointer; hold repeats.
 - `RoundedQuad.gdshader`: a flat colour quad with round corners for UI in 3D (WarningIcon), cut by alpha scissor
   and alpha to coverage like the canvases, never blended.
-- `WarningIcon.gd` (class `WarningIcon`, a `UIRaycastTarget`): red "!" by the song menu while something may hurt
-  the player or headset; pointing at it opens the list of warnings.
+- `WarningIcon.gd` (class `WarningIcon`, a `UIRaycastTarget`): red "!" just above the song menu centre panel's top
+  right corner while something may hurt the player or headset; pointing at it opens the list of warnings on a flat card
+  set in front of the curved panel (a flat card tangent at the icon sank into the curve).
 - `UI_AudioEngine/` (`UI_AudioEngine.gd/.tscn`): autoload; `attach_children(node)` wires hover and press sounds to every `Button` below `node`:
   on/off for a toggle in no `ButtonGroup`, back for names in `BACK_BUTTON_NAMES`, click for the rest.
 - `BeepSaberMainMenu.gd/.tscn` (class `MainMenu`: song list, Song/More tabs and a Settings gear above the right column; the Song tab holds

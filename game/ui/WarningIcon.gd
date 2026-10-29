@@ -7,9 +7,10 @@ class_name WarningIcon
 ## headset; 30 minutes of songs this session; Full resolution lowered to Sharp after stuttering. It only warns: it
 ## never changes anything. Checked every CHECK_SECONDS while the song menu shows.
 
-## In the song menu centre panel's top right corner, at the end of its top bar (22 degrees right, 18 up, 2 cm in front of
-## the curved panel), facing the player.
-const ICON_POSITION := Vector3(0.746, 2.239, -0.834)
+## Just above the song menu centre panel's top right corner (22 degrees right, 22 up, on the menus' 2 m curve), facing
+## the player, opposite the clock (MenuClock). It sat in the top bar, half over "Get songs" and turned so its inner edge
+## sank into the curved panel (owner, 2026-10-29).
+const ICON_POSITION := Vector3(0.7457, 2.4125, -0.8556)
 ## 0.14 m at about 2.07 m: about 4 degrees, above the 3 degree minimum target (vr-ui-design).
 const ICON_SIZE := 0.14
 ## Round corners, as the menus' (owner, 2026-10-28): the card's like a panel's 24 px, the icon's like a chip's 14 px,
@@ -19,6 +20,12 @@ const ICON_CORNER := 0.033
 const ROUNDED_QUAD := preload("res://game/ui/RoundedQuad.gdshader")
 const CARD_WIDTH := 0.95
 const CARD_PADDING := 0.04
+## The card hangs CARD_GAP under the icon, reaching left from its right edge: its middle CARD_YAW degrees right, and
+## CARD_RADIUS from the menus' curve axis (the 2 m curve through the eye), so its ends, 0.95 m apart, stay about 1 cm
+## in front of the curved panel (a flat 0.95 m card bows 6 cm off a 2 m curve).
+const CARD_GAP := 0.02
+const CARD_YAW := 9.8
+const CARD_RADIUS := 1.93
 ## Text 60 px at 0.001 m a pixel: the song menu's 28 px body text at its scale (2.4 / 1024 m a pixel).
 const TEXT_SIZE := 60
 const TEXT_PIXEL := 0.001
@@ -43,6 +50,8 @@ var _icon_material := ShaderMaterial.new()
 var _card := Node3D.new()
 var _card_back := MeshInstance3D.new()
 var _card_text := Label3D.new()
+## the card's top edge in the icon's frame
+var _card_top := 0.0
 ## A double tick from the icon's place when it appears, so it's noticed without looking for it.
 var _sound := AudioStreamPlayer3D.new()
 var _messages := PackedStringArray()
@@ -54,8 +63,8 @@ var _play_area := PackedVector3Array()
 var _play_area_read := false
 
 func _ready() -> void:
-	# facing the player at the middle of the play space
-	look_at_from_position(ICON_POSITION, 2.0 * ICON_POSITION - Vector3(0.0, ICON_POSITION.y, 0.0), Vector3.UP)
+	# facing the player: turned away from the menus' curve axis, through the eye
+	look_at_from_position(ICON_POSITION, 2.0 * ICON_POSITION - Vector3(0.0, ICON_POSITION.y, Hud.HUD_EYE.z), Vector3.UP)
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE * ICON_SIZE
 	_icon.mesh = quad
@@ -97,7 +106,14 @@ func _ready() -> void:
 	_card_back.mesh = QuadMesh.new()
 	_card_back.material_override = back_material
 	_card.add_child(_card_back)
-	_card.position = Vector3(ICON_SIZE / 2.0 - CARD_WIDTH, 0.0, 0.01)
+	# flat, so it faces the eye at its own middle and stands in front of the curve (the panel's turn hid its far end)
+	var yaw := deg_to_rad(CARD_YAW)
+	var middle := Vector3(CARD_RADIUS * sin(yaw), ICON_POSITION.y - ICON_SIZE / 2.0 - CARD_GAP,
+		Hud.HUD_EYE.z - CARD_RADIUS * cos(yaw))
+	var top_left := Transform3D(Basis(), middle).looking_at(
+		2.0 * middle - Vector3(0.0, middle.y, Hud.HUD_EYE.z), Vector3.UP).translated_local(Vector3(-CARD_WIDTH / 2.0, 0.0, 0.0))
+	_card.transform = transform.affine_inverse() * top_left
+	_card_top = _card.position.y
 	_card.visible = false
 	add_child(_card)
 	_sound.stream = preload("res://game/data/warning.wav")
@@ -238,4 +254,4 @@ func _show_card_text() -> void:
 	(_card_back.mesh as QuadMesh).size = Vector2(CARD_WIDTH, height)
 	(_card_back.material_override as ShaderMaterial).set_shader_parameter(&"size", Vector2(CARD_WIDTH, height))
 	_card_back.position = Vector3(CARD_WIDTH / 2.0, height / 2.0, 0.0)
-	_card.position.y = -ICON_SIZE / 2.0 - 0.02 - height
+	_card.position.y = _card_top - height
