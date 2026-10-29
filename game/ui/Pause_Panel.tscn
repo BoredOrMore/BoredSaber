@@ -77,3 +77,10 @@ __meta__ = {
 [connection signal="button_up" from="mainmenu" to="." method="_on_mainmenu_button_up"]
 [connection signal="button_up" from="restart" to="." method="_on_restart_button_up"]
 [connection signal="button_up" from="continue" to="." method="_on_continue_button_up"]
+
+[node name="Clock" type="Label" parent="."]
+offset_left = 24.0
+offset_top = 16.0
+offset_right = 160.0
+offset_bottom = 59.0
+vertical_alignment = 1
