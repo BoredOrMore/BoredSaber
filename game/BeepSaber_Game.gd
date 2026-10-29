@@ -36,7 +36,7 @@ var current_health := Constants.HEALTH_START
 
 @onready var main_menu := $MainMenu_OQ_UI2DCanvas as OQ_UI2DCanvas
 @onready var pause_menu := $PauseMenu_canvas as OQ_UI2DCanvas
-@onready var pause_countdown := $Pause_countdown as OQ_UI2DLabel
+@onready var pause_countdown := $Pause_countdown as Label3D
 @onready var settings_canvas := $Settings_canvas as OQ_UI2DCanvas
 @onready var settings_panel := settings_canvas.ui_control as SettingsPanel
 @onready var profiles_canvas := $Profiles_canvas as OQ_UI2DCanvas
@@ -597,6 +597,12 @@ const COUNTDOWN_TICK := preload("res://game/data/countdown_tick.wav")
 const COUNTDOWN_GO := preload("res://game/data/countdown_go.wav")
 var _countdown_player := AudioStreamPlayer.new()
 
+## The countdown's digit height in metres, as the old 16 px Roboto digit drawn 4.587 times larger (0.051 m at 0.65 m,
+## about 4.5 degrees); Kanit's digits stand as tall as its capitals (ResultMoment.CAP_SHARE).
+const COUNTDOWN_DIGIT_HEIGHT := 0.051
+const COUNTDOWN_FONT_SIZE := 100
+const COUNTDOWN_OUTLINE_SIZE := 16
+
 const PAUSE_SOUND := preload("res://game/data/pause.wav")
 
 ## Plays the falling notes for the song pausing (resuming has the countdown).
@@ -615,6 +621,13 @@ func _ready() -> void:
 	add_child(cut_flash)
 	_countdown_player.bus = &"SFX"
 	add_child(_countdown_player)
+	# the countdown in the numbers' font (Hud.NUMBER_FONT), outlined in the panel colour to read over the stage
+	pause_countdown.font = Hud.NUMBER_FONT
+	pause_countdown.font_size = COUNTDOWN_FONT_SIZE
+	pause_countdown.pixel_size = COUNTDOWN_DIGIT_HEIGHT / (ResultMoment.CAP_SHARE * COUNTDOWN_FONT_SIZE)
+	pause_countdown.outline_size = COUNTDOWN_OUTLINE_SIZE
+	pause_countdown.modulate = Constants.UI_TEXT
+	pause_countdown.outline_modulate = Constants.UI_PANEL
 	_mistake_player = AudioStreamPlayer3D.new()
 	_mistake_player.attenuation_model = AudioStreamPlayer3D.ATTENUATION_DISABLED
 	_mistake_player.bus = &"SFX"
@@ -1184,7 +1197,7 @@ func _unpause_button() -> void:
 	track.visible = true
 	# a second per number, so "3" means three seconds to get ready
 	for seconds in [3, 2, 1]:
-		pause_countdown.set_label_text(str(seconds))
+		pause_countdown.text = str(seconds)
 		play_countdown(seconds)
 		await get_tree().create_timer(1.0).timeout
 	pause_countdown.visible = false
@@ -1283,6 +1296,11 @@ var _height_held := false
 var _height_notice := Label3D.new()
 var _height_notice_back := MeshInstance3D.new()
 const HEIGHT_NOTICE_PADDING := 0.03
+const HEIGHT_NOTICE_FONT_SIZE := 56
+const HEIGHT_NOTICE_PIXEL_SIZE := 0.001
+## The notice's countdown digit, in the numbers' font on the notice's last line, as tall as the 56 px digit it replaced.
+var _height_digit := Label3D.new()
+const HEIGHT_DIGIT_HEIGHT := 0.04
 ## The current player's Settings.players entry when "Who's playing?" opened (a rename keeps the entry).
 var _height_player := {}
 
@@ -1298,8 +1316,8 @@ func _adjust_height() -> void:
 		_height_held = false
 		return
 	if not _height_notice.is_inside_tree():
-		_height_notice.font_size = 56
-		_height_notice.pixel_size = 0.001
+		_height_notice.font_size = HEIGHT_NOTICE_FONT_SIZE
+		_height_notice.pixel_size = HEIGHT_NOTICE_PIXEL_SIZE
 		_height_notice.outline_size = 12
 		_height_notice.modulate = Constants.UI_TEXT
 		_height_notice.outline_modulate = Constants.UI_PANEL
@@ -1315,11 +1333,24 @@ func _adjust_height() -> void:
 		_height_notice_back.mesh = QuadMesh.new()
 		_height_notice_back.material_override = back_material
 		_height_notice.add_child(_height_notice_back)
+		_height_digit.font = Hud.NUMBER_FONT
+		_height_digit.font_size = COUNTDOWN_FONT_SIZE
+		_height_digit.pixel_size = HEIGHT_DIGIT_HEIGHT / (ResultMoment.CAP_SHARE * COUNTDOWN_FONT_SIZE)
+		_height_digit.outline_size = COUNTDOWN_OUTLINE_SIZE
+		_height_digit.modulate = Constants.UI_TEXT
+		_height_digit.outline_modulate = Constants.UI_PANEL
+		_height_digit.no_depth_test = true
+		_height_digit.render_priority = Material.RENDER_PRIORITY_MAX
+		_height_notice.add_child(_height_digit)
 	_height_notice.visible = true
 	for seconds in [3, 2, 1]:
-		_height_notice.text = ("Measuring height for %s\nStand straight, look ahead\n%d" if measure
-				else "Adjusting height for %s\n%d") % [Settings.player_name, seconds]
+		# the last line is left blank for the digit
+		_height_notice.text = ("Measuring height for %s\nStand straight, look ahead\n " if measure
+				else "Adjusting height for %s\n ") % Settings.player_name
+		_height_digit.text = str(seconds)
 		var font := _height_notice.font if _height_notice.font else ThemeDB.fallback_font
+		var lines := _height_notice.text.count("\n") + 1
+		_height_digit.position.y = -(lines - 1) * 0.5 * font.get_height(_height_notice.font_size) * _height_notice.pixel_size
 		var text_size := font.get_multiline_string_size(_height_notice.text, HORIZONTAL_ALIGNMENT_CENTER, -1,
 				_height_notice.font_size) * _height_notice.pixel_size
 		(_height_notice_back.mesh as QuadMesh).size = text_size + Vector2.ONE * HEIGHT_NOTICE_PADDING * 2.0

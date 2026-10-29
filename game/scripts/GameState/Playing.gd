@@ -56,7 +56,7 @@ func _count_down_lead_in(game: BeepSaber_Game) -> void:
 		_lead_in_shown = seconds
 		game.pause_countdown.visible = seconds > 0
 		if seconds > 0:
-			game.pause_countdown.set_label_text(str(seconds))
+			game.pause_countdown.text = str(seconds)
 			game.play_countdown(seconds)
 	if game.lead_in <= 0.0:
 		game.lead_in = 0.0
