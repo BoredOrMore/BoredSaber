@@ -522,9 +522,9 @@ static func get_rotations_v2(events: Array) -> Array:
 				continue
 			angle += ROTATIONS_V2[index]
 			if angle < 0:
-				angle += TAU
-			elif angle >= TAU:
-				angle -= TAU
+				angle += 360
+			elif angle >= 360:
+				angle -= 360
 			r.append([t, angle])
 	r.sort_custom(compare_times)
 	return r

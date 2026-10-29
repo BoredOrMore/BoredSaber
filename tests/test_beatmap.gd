@@ -186,6 +186,18 @@ func _ready() -> void:
 	if Map.note_stack.size() > 0:
 		check(is_equal_approx(Map.note_stack[-1].rotation, 0.01), "gradual rotation: note at beat 1 turns 0.01 rad (got %s)" % Map.note_stack[-1].rotation)
 
+	# v2 rotation events (numbers as JSON gives them, floats) add up in degrees, kept in 0..360 (they once wrapped at TAU, so 15 + 15 read as 23.7)
+	var turns := Map.get_rotations_v2([{"_time": 1.0, "_type": 14.0, "_value": 4.0}, {"_time": 2.0, "_type": 14.0, "_value": 4.0},
+		{"_time": 3.0, "_type": 15.0, "_value": 7.0}, {"_time": 4.0, "_type": 14.0, "_value": 7.0}, {"_time": 5.0, "_type": 14.0,
+		"_value": 7.0}, {"_time": 6.0, "_type": 14.0, "_value": 7.0}, {"_time": 7.0, "_type": 14.0, "_value": 0.0}])
+	var angles := turns.map(func(t: Array) -> float: return t[1])
+	check(angles == [15.0, 30.0, 90.0, 150.0, 210.0, 270.0, 210.0], "v2 rotations add up in degrees (got %s)" % [angles])
+	check(is_equal_approx(Map.get_rotation(turns, 3.0), 30.0) and is_equal_approx(Map.get_rotation(turns, 3.5), 90.0),
+		"a late rotation event (15) turns just after its beat (%s at 3, %s at 3.5)" % [Map.get_rotation(turns, 3.0),
+		Map.get_rotation(turns, 3.5)])
+	var back := Map.get_rotations_v2([{"_time": 1.0, "_type": 14.0, "_value": 0.0}])
+	check(is_equal_approx(back[0][1], 300.0), "a v2 turn left from 0 is 300 degrees (got %s)" % back[0][1])
+
 	for key: String in saved:
 		Settings.set(key, saved[key])
 	print("%d failure(s)" % failures)
