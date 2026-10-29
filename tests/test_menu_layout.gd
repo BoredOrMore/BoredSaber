@@ -380,6 +380,12 @@ func _check_download_page(page: BeatSaverPanel) -> void:
 	_pointer(row_point, null)
 	await get_tree().process_frame
 	check(page.get_node(^"list_slider").is_mouse_in, "download page: pointing at a song row lets the thumbstick scroll the list")
+	var second_row := row_point + Vector2(0.0, BeatSaverList.ROW_HEIGHT + BeatSaverList.ROW_SEPARATION)
+	_pointer(second_row, null)
+	_pointer(second_row, true)
+	_pointer(second_row, false)
+	await _settle()
+	check(page.item_selected == 1, "download page: pressing a song row picks that song (%d)" % page.item_selected)
 	_pointer(row_point - Vector2(0.0, 300.0), null)
 	check(page.chip_row.get_combined_minimum_size().x <= page.chip_row.size.x,
 			"download page: the search and filter chips fit above the list (%.0f of %.0f px)" % [
