@@ -18,16 +18,16 @@ const ICON_SIZE := 0.14
 const CARD_CORNER := 0.056
 const ICON_CORNER := 0.033
 const ROUNDED_QUAD := preload("res://game/ui/RoundedQuad.gdshader")
-const CARD_WIDTH := 0.95
+const CARD_WIDTH := 1.5
 const CARD_PADDING := 0.04
-## The card hangs CARD_GAP under the icon, reaching left from its right edge: its middle CARD_YAW degrees right, and
-## CARD_RADIUS from the menus' curve axis (the 2 m curve through the eye), so its ends, 0.95 m apart, stay about 1 cm
-## in front of the curved panel (a flat 0.95 m card bows 6 cm off a 2 m curve).
+## The card opens in the empty space above the song menu (owner, 2026-10-29: the warning card must not cover other
+## UI), centred over the centre panel CARD_RADIUS ahead of the eye, its bottom CARD_GAP above the icon (26 degrees up),
+## growing upward: two warnings reach about 31 degrees, inside the 35 degree head-turn zone (vr-ui-design).
 const CARD_GAP := 0.02
-const CARD_YAW := 9.8
-const CARD_RADIUS := 1.93
-## Text 60 px at 0.001 m a pixel: the song menu's 28 px body text at its scale (2.4 / 1024 m a pixel).
-const TEXT_SIZE := 60
+const CARD_RADIUS := 2.0
+## Text 66 px at 0.001 m a pixel: the song menu's 28 px body text at its scale (2.4 / 1024 m a pixel), 1.9 degrees at
+## 2 m (the floor is 1.85).
+const TEXT_SIZE := 66
 const TEXT_PIXEL := 0.001
 const CHECK_SECONDS := 2.0
 
@@ -50,8 +50,6 @@ var _icon_material := ShaderMaterial.new()
 var _card := Node3D.new()
 var _card_back := MeshInstance3D.new()
 var _card_text := Label3D.new()
-## the card's top edge in the icon's frame
-var _card_top := 0.0
 ## A double tick from the icon's place when it appears, so it's noticed without looking for it.
 var _sound := AudioStreamPlayer3D.new()
 var _messages := PackedStringArray()
@@ -87,7 +85,7 @@ func _ready() -> void:
 	collision_layer = CollisionLayerConstants.Ui_mask
 	collision_mask = 0
 
-	# the card: under the icon, reaching left, over the song list
+	# the card: above the song menu, over nothing else
 	_card_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_card_text.width = (CARD_WIDTH - 2.0 * CARD_PADDING) / TEXT_PIXEL
 	_card_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -106,14 +104,10 @@ func _ready() -> void:
 	_card_back.mesh = QuadMesh.new()
 	_card_back.material_override = back_material
 	_card.add_child(_card_back)
-	# flat, so it faces the eye at its own middle and stands in front of the curve (the panel's turn hid its far end)
-	var yaw := deg_to_rad(CARD_YAW)
-	var middle := Vector3(CARD_RADIUS * sin(yaw), ICON_POSITION.y - ICON_SIZE / 2.0 - CARD_GAP,
-		Hud.HUD_EYE.z - CARD_RADIUS * cos(yaw))
-	var top_left := Transform3D(Basis(), middle).looking_at(
-		2.0 * middle - Vector3(0.0, middle.y, Hud.HUD_EYE.z), Vector3.UP).translated_local(Vector3(-CARD_WIDTH / 2.0, 0.0, 0.0))
-	_card.transform = transform.affine_inverse() * top_left
-	_card_top = _card.position.y
+	# its bottom left corner; nothing is behind it, so it stays flat, facing the eye
+	var bottom_left := Transform3D(Basis(), Vector3(-CARD_WIDTH / 2.0, ICON_POSITION.y + ICON_SIZE / 2.0 + CARD_GAP,
+		Hud.HUD_EYE.z - CARD_RADIUS))
+	_card.transform = transform.affine_inverse() * bottom_left
 	_card.visible = false
 	add_child(_card)
 	_sound.stream = preload("res://game/data/warning.wav")
@@ -254,4 +248,3 @@ func _show_card_text() -> void:
 	(_card_back.mesh as QuadMesh).size = Vector2(CARD_WIDTH, height)
 	(_card_back.material_override as ShaderMaterial).set_shader_parameter(&"size", Vector2(CARD_WIDTH, height))
 	_card_back.position = Vector3(CARD_WIDTH / 2.0, height / 2.0, 0.0)
-	_card.position.y = _card_top - height

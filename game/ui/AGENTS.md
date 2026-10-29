@@ -69,8 +69,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
 - `RoundedQuad.gdshader`: a flat colour quad with round corners for UI in 3D (WarningIcon), cut by alpha scissor
   and alpha to coverage like the canvases, never blended.
 - `WarningIcon.gd` (class `WarningIcon`, a `UIRaycastTarget`): red "!" just above the song menu centre panel's top
-  right corner while something may hurt the player or headset; pointing at it opens the list of warnings on a flat card
-  set in front of the curved panel (a flat card tangent at the icon sank into the curve).
+  right corner while something may hurt the player or headset; pointing at it opens the list of warnings on a card
+  in the empty space above the song menu, growing upward, so it covers no other UI (owner, 2026-10-29).
 - `MenuClock.gd` (class `MenuClock`, a `Label3D`): the time of day, 24-hour ("14:05", owner 2026-10-29), just above the
   centre panel's top left corner opposite the warning icon, shown with the song menu; `MenuClock.now_text()` also
   feeds the clock in the Pause panel's top left corner. Not in the HUD: there "time" is the song's.
