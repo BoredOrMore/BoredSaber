@@ -144,6 +144,15 @@ Sources: Nielsen, "10 Usability Heuristics for User Interface Design" (NN/g,
 https://www.nngroup.com/articles/ten-usability-heuristics/); Norman, "The Design of Everyday Things"
 (signifiers, feedback); Krug, "Don't Make Me Think"; Hick-Hyman law (more choices, slower decisions).
 
+## Optimising a page or feature
+
+When fixing a stutter or slowdown (owner, 2026-10-28), look at everything that runs with that page or function, not
+only the line the report points at: its other features (loading, scrolling, filters, downloads, covers), what it
+calls and what calls it, what draws while it is open (its canvas redraws, the stage behind it), and other places
+using the same pattern. Fix them together where they share the cause, and say in the commit what was checked. (The
+Get songs list took a dozen rounds: each patch fixed one path while the page's covers, page loads, filter changes,
+canvas redraws and the stage behind it each kept their own stall; doc/research/get-songs-list-plan.md.)
+
 ## Research before changing game feel
 
 Anything that changes how the game feels to play must be researched before it is implemented or tuned:
