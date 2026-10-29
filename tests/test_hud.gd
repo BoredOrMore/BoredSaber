@@ -1,6 +1,8 @@
 extends Node
 # Headless checks that the HUD's panels are placed from the player's eye (Hud._panel): the same angle and distance
-# for any eye, clear of the lanes on the Wide modifiers, grown so the lines keep their size in view.
+# for any eye, clear of the lanes on the Wide modifiers, grown so the lines keep their size in view; and that a fail's
+# fade (Hud.fade_out, HealthRails.fade_out) fades the panels and the energy strips, hides them and leaves them whole
+# for the next song.
 # Run: godot --headless --path . res://tests/test_hud.tscn
 
 var failures := 0
@@ -49,5 +51,53 @@ func _ready() -> void:
 	check(Hud.shown_grade(1.0, 0) == "F" and Hud.shown_grade(1.0, 4) == "F" and Hud.shown_grade(1.0, 5) == "D"
 			and Hud.shown_grade(1.0, 30) == "SS" and Hud.shown_grade(0.7, 100) == "A" and Hud.shown_grade(0.7, 10) == "C",
 			"the live grade starts at F and climbs a step every 5 notes, never above the accuracy's grade")
+	await check_fade_out()
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
+
+## Builds a HUD from stand-ins for the game's score, combo and accuracy nodes and fades it out.
+func check_fade_out() -> void:
+	var point_label := MeshInstance3D.new()
+	point_label.mesh = TextMesh.new()
+	var text := StandardMaterial3D.new()
+	point_label.material_override = text
+	var combo := ComboHud.new()
+	combo.mesh = TextMesh.new()
+	combo.material_override = text
+	var percent := preload("res://game/hud/PercentIndicator.tscn").instantiate() as PercentIndicator
+	for node: Node in [point_label, combo, percent]:
+		add_child(node)
+	var hud := Hud.new(point_label, combo, percent)
+	add_child(hud)
+	var score := point_label.material_override as BaseMaterial3D
+	var ring := combo.ring.material_override as ShaderMaterial
+	# as the Playing state shows it
+	point_label.visible = false
+	point_label.visible = true
+	check(score != text, "the score has its own material, so a fade leaves the shared text material alone")
+	hud.fade_out(0.4)
+	await get_tree().create_timer(0.2).timeout
+	check(score.albedo_color.a > 0.05 and score.albedo_color.a < 0.95 and float(ring.get_shader_parameter(&"fade")) < 0.95
+			and score.transparency == BaseMaterial3D.TRANSPARENCY_ALPHA,
+			"halfway through the fade the score and the ring are see-through (score %.2f)" % score.albedo_color.a)
+	await get_tree().create_timer(0.4).timeout
+	check(not point_label.visible and not combo.visible and not hud._left.visible and not hud._right.visible,
+			"after the fade both panels are hidden")
+	check(score.albedo_color.a == 1.0 and float(ring.get_shader_parameter(&"fade")) == 1.0
+			and score.transparency == BaseMaterial3D.TRANSPARENCY_DISABLED and text.albedo_color.a == 1.0,
+			"after the fade the materials are whole again for the next song")
+	hud.queue_free()
+	for node: Node in [point_label, combo, percent]:
+		node.queue_free()
+
+	var rails := HealthRails.new()
+	add_child(rails)
+	var bar := rails._bar_material
+	rails.fade_out(0.4)
+	await get_tree().create_timer(0.2).timeout
+	check(float(bar.get_shader_parameter(&"fade")) > 0.05 and float(bar.get_shader_parameter(&"fade")) < 0.95
+			and rails._icon.modulate.a < 0.95, "halfway through the fade the energy strips and bolt are see-through")
+	await get_tree().create_timer(0.4).timeout
+	check(not rails.visible and float(bar.get_shader_parameter(&"fade")) == 1.0 and rails._icon.modulate.a == 1.0,
+			"after the fade the energy strips are hidden and whole again for the next song")
+	rails.queue_free()

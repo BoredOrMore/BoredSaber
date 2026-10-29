@@ -87,6 +87,7 @@ func _ready() -> void:
 	_ring_material.set_shader_parameter(&"segments", _segments)
 	_ring_material.set_shader_parameter(&"filled", 0.0)
 	_ring_material.set_shader_parameter(&"flash", 0.0)
+	_ring_material.set_shader_parameter(&"fade", 1.0)
 	ring.material_override = _ring_material
 	ring.position = RING_OFFSET
 	ring.layers = layers

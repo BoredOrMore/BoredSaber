@@ -49,6 +49,8 @@ const RAIL_SHADER := preload("res://game/hud/HealthRail.gdshader")
 
 var _danger := Color.RED
 var _icon := Sprite3D.new()
+## the strips' and the bolt's opacity while a fail fades them (fade_out)
+var _fade := 1.0
 var _bar_material := _rail_material(Constants.HEALTH_FULL_COLOR)
 var _lit_material := _rail_material(Constants.HEALTH_FULL_COLOR)
 var _lost_material := _rail_material(Color.BLACK)
@@ -103,7 +105,7 @@ func update_health(how_full: float) -> void:
 	if _lives:
 		var lives_left := roundi(_how_full * Constants.FAIL_LIVES)
 		_lit_material.set_shader_parameter(&"color", _health_color(_how_full))
-		_icon.modulate = _health_color(_how_full)
+		_icon.modulate = Color(_health_color(_how_full), _fade)
 		for i in _pips.size():
 			_pips[i].material_override = _lit_material if i % Constants.FAIL_LIVES < lives_left else _lost_material
 
@@ -116,7 +118,23 @@ func _process(delta: float) -> void:
 		bar.scale.z = length / RAIL_LENGTH
 		bar.position.z = _near_z - length / 2
 	_bar_material.set_shader_parameter(&"color", _health_color(_how_full_display))
-	_icon.modulate = _health_color(_how_full_display)
+	_icon.modulate = Color(_health_color(_how_full_display), _fade)
+
+## Fades the strips and the bolt out over `seconds`, then hides them (owner, 2026-10-29: on a fail only FAILED stays in
+## view); the next song shows them whole again.
+func fade_out(seconds: float) -> void:
+	var tween := create_tween()
+	tween.tween_method(_set_fade, 1.0, 0.0, seconds)
+	tween.tween_callback(func() -> void:
+		visible = false
+		_set_fade(1.0))
+
+## The strips' and the bolt's opacity, 0 to 1.
+func _set_fade(share: float) -> void:
+	for material: ShaderMaterial in [_bar_material, _lit_material, _lost_material]:
+		material.set_shader_parameter(&"fade", share)
+	_fade = share
+	_icon.modulate.a = share
 
 ## The full colour while health is high, turning into the song's danger colour as it runs out.
 func _health_color(how_full: float) -> Color:

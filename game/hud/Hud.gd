@@ -67,6 +67,8 @@ const NUMBER_FONT := preload("res://game/ui/fonts/Kanit-SemiBoldItalic.ttf")
 const NUMBER_FONT_SCALE := GRADE_FONT_SCALE
 const GRADE_GLOWS := {"SS": 0.6, "S": 0.4, "A": 0.2}
 const GRADE_GLOW_LAYERS := [[10, 0.6], [22, 0.3], [38, 0.15]]
+## the multiplier ring and its shockwave draw with this; fade_out fades them through its `fade`
+const MULTIPLIER_RING_SHADER := preload("res://game/hud/MultiplierRing.gdshader")
 ## the multiplier ring's scale (its quad is 0.5 m) and centre, the multiplier's height, and the time line
 const HUD_RING_SIZE := 1.5
 const HUD_RING := Vector2(0.0, 0.15)
@@ -101,6 +103,8 @@ func _init(point_label: MeshInstance3D, combo: ComboHud, percent_indicator: Perc
 ## The two panels and the lines the old HUD didn't have, made like the score's text. The panels show and hide
 ## with the score (Playing, Paused, MapComplete... set its visibility).
 func _ready() -> void:
+	# its own copy: the score's material is shared with the debug text, and a fail fades it (fade_out)
+	_point_label.material_override = _point_label.material_override.duplicate()
 	_left = Node3D.new()
 	_right = Node3D.new()
 	add_child(_left)
@@ -159,6 +163,53 @@ static func _panel(eye: Vector3, side: float) -> Transform3D:
 	var at := eye + Vector3(side * sin(yaw) * level, HUD_DISTANCE * sin(pitch), -cos(yaw) * level)
 	var grow := HUD_DISTANCE / HUD_LAID_OUT_DISTANCE
 	return Transform3D(Basis.looking_at(eye - at, Vector3.UP, true).scaled(Vector3.ONE * grow), at)
+
+## Fades both panels out over `seconds`, then hides them (owner, 2026-10-29: on a fail only FAILED stays in view);
+## the next song shows them whole again. Every text, ring and glow on them is faded through its own opacity: the
+## Compatibility renderer ignores GeometryInstance3D.transparency. The fade's tween runs after the HUD's own effects
+## (the broken-combo tint, the grade's rumble), so its opacity wins over theirs while it lasts.
+func fade_out(seconds: float) -> void:
+	var materials := {}
+	var rings := {}
+	var labels := {}
+	for root: Node3D in [_left, _right, _point_label, _combo]:
+		_collect_shown(root, materials, rings, labels)
+	var set_share := func(share: float) -> void:
+		for material: BaseMaterial3D in materials:
+			material.albedo_color.a = materials[material][0] * share
+		for ring: ShaderMaterial in rings:
+			ring.set_shader_parameter(&"fade", rings[ring] * share)
+		for label: Label3D in labels:
+			label.modulate.a = labels[label].x * share
+			label.outline_modulate.a = labels[label].y * share
+	for material: BaseMaterial3D in materials:
+		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	var tween := create_tween()
+	tween.tween_method(set_share, 1.0, 0.0, seconds)
+	tween.tween_callback(func() -> void:
+		_point_label.visible = false
+		_combo.visible = false
+		set_share.call(1.0)
+		for material: BaseMaterial3D in materials:
+			material.transparency = materials[material][1])
+
+## The materials (with [opacity, transparency mode]), the rings' shader materials (with their fade) and the 3D labels
+## (with their fill and outline opacity) of `node` and everything under it that is shown now.
+func _collect_shown(node: Node, materials: Dictionary, rings: Dictionary, labels: Dictionary) -> void:
+	if node is Node3D and not (node as Node3D).visible:
+		return
+	if node is Label3D:
+		labels[node] = Vector2((node as Label3D).modulate.a, (node as Label3D).outline_modulate.a)
+	elif node is MeshInstance3D:
+		var material := (node as MeshInstance3D).material_override
+		if material is BaseMaterial3D:
+			materials[material] = [(material as BaseMaterial3D).albedo_color.a, (material as BaseMaterial3D).transparency]
+		elif material is ShaderMaterial and (material as ShaderMaterial).shader == MULTIPLIER_RING_SHADER:
+			rings[material] = (material as ShaderMaterial).get_shader_parameter(&"fade")
+		else:
+			push_error("Hud: %s has no material the fade knows" % node.name)
+	for child in node.get_children():
+		_collect_shown(child, materials, rings, labels)
 
 ## The score, the time played of the song's length (whole seconds), the accuracy and its grade.
 func show_points(points: int, played: int, length: int, accuracy: float) -> void:
