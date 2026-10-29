@@ -67,6 +67,9 @@ var _milestone_tween: Tween
 var _up_sound: AudioStreamPlayer
 var _milestone_sound: AudioStreamPlayer
 var _break_sound: AudioStreamPlayer
+## no shake, pops or shockwaves (the far HUD of 90/360 maps, Hud: in the middle of the view they'd pull the eye off the
+## notes); the sounds and the broken combo's tint stay
+var calm := false
 
 func _ready() -> void:
 	_base_position = position
@@ -191,8 +194,9 @@ static func is_milestone(combo: int) -> bool:
 
 func _on_combo_hit() -> void:
 	if is_milestone(Scoreboard.combo):
-		_show_milestone(Scoreboard.combo)
-		_send_shockwave(MILESTONE_SHOCKWAVE_GROWTH, MILESTONE_SHOCKWAVE_SECONDS)
+		if not calm:
+			_show_milestone(Scoreboard.combo)
+			_send_shockwave(MILESTONE_SHOCKWAVE_GROWTH, MILESTONE_SHOCKWAVE_SECONDS)
 		_milestone_sound.play()
 		milestone_reached.emit(Scoreboard.combo)
 
@@ -211,6 +215,8 @@ func _show_milestone(combo: int) -> void:
 func _on_multiplier_raised(multiplier: int) -> void:
 	_up_sound.pitch_scale = UP_PITCHES.get(multiplier, 1.0)
 	_up_sound.play()
+	if calm:
+		return
 	if _raise_tween:
 		_raise_tween.kill()
 	_raise_tween = create_tween().set_parallel().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -230,7 +236,8 @@ func _send_shockwave(growth: float, seconds: float) -> void:
 func _on_combo_broken(lost_combo: int) -> void:
 	if lost_combo >= BREAK_SOUND_MIN_COMBO:
 		_break_sound.play()
-	_shake_left = BREAK_SHAKE_SECONDS
+	if not calm:
+		_shake_left = BREAK_SHAKE_SECONDS
 	if _tint_tween:
 		_tint_tween.kill()
 	_tint_tween = create_tween().set_parallel().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)

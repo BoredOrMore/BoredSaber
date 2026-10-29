@@ -18,8 +18,15 @@ arrangement (owner, 2026-10-27).
   (`BeepSaber_Game._fail_song`): both panels and the energy strips fade and hide before FAILED shows (owner, 2026-10-29).
 - `Scoreboard.points_awarded` → `PointsLabelDriver.show_points` (cut numbers and misses at the note).
 - Health: `BeepSaber_Game.tscn` node with `HealthRails.gd`; the game calls `start_map` and updates it on damage.
-- 90/360 maps: `EventDriver.track_turned` turns the HUD (`Hud.turn`, from where `place` put it) and the energy strips
-  (the `HealthRails` node) about the player's standing point with the track (`TrackDeck.turned`).
+- 90/360 maps: the HUD is one far cluster like Beat Saber's 360 HUD (owner, 2026-10-29; `Hud.far`, `far_cluster`):
+  `FAR_DISTANCE` 15 m out over the lane, its lowest line `FAR_MARGIN_DEG` over the map's highest note top
+  (`notes_top`) seen from there, worked out at song start from the real eye. Combo left, score centre, multiplier
+  ring right, energy bar (`show_health`; the `HealthRails` strips are hidden there) and time under the score; accuracy
+  and grade move to Pause (`GameStatePaused`) and the score screen. `ComboHud.calm`: no shake, pops or shockwaves.
+  Drawn over walls (`FAR_RENDER_PRIORITY`, alpha) while notes in front still hide it. `EventDriver.track_turned`
+  turns it (`Hud.turn`) about the player's standing point with the track (`TrackDeck.turned`).
+- Owner exception (Bored, 2026-10-29), the far 90/360 HUD only: text at Beat Saber's sizes (`FAR_SCORE_DEG` 1.1,
+  `FAR_COMBO_DEG` 1.4, `FAR_SMALL_DEG` 1.2 degrees), below the 1.85 degree minimum everywhere else.
 
 ## File map
 

@@ -44,7 +44,9 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
   mode, hits, misses and walls in the bar, Half Damage, 4 Lives, Instant, No Fail's hidden bar, the cap.
 - `test_cut.tscn` / `.gd` - cut judgement (`BeepCube.right_saber`, `angle_accuracy`, `centre_accuracy`,
   `beat_accuracy_at`) and the chain's curve (`ChainLink.curve_points`, `link_place`).
-- `test_hud.tscn` / `.gd` - the HUD's panels placed from the player's eye (`Hud._panel`): the same angle and distance
+- `test_hud.tscn` / `.gd` - the far 90/360 HUD (`Hud.far_cluster`: 15 m over the lane, clear of the highest note at
+  eye 1.5-1.75 m, Beat Saber's text sizes, parts laid out on it; Standard keeps the side panels); the HUD's panels
+  placed from the player's eye (`Hud._panel`): the same angle and distance
   for any eye, facing it, grown by distance, turned out to clear the lanes on Wide 200%; `Hud.turn` takes the panels and
   the score round the player with the track and back.
 - `test_show_intensity.tscn` / `.gd` - checks `EventDriver.intensity_curve` (the build-up of the stage): a calm part

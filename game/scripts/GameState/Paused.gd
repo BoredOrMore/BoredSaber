@@ -13,7 +13,8 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.highscore_canvas._hide()
 	game.multiplier_label.visible = true
 	game.point_label.visible = true
-	game.health_rails.visible = Settings.health_mode
+	# the far HUD of 90/360 maps carries the energy bar instead
+	game.health_rails.visible = Settings.health_mode and not game.hud.far
 	game.track.visible = false
 	game.left_ui_raycast.visible = true
 	game.right_ui_raycast.visible = true
@@ -33,5 +34,12 @@ func _ready(game: BeepSaber_Game) -> void:
 		Map.current_info.song_name,
 		Map.current_info.song_author_name,
 		Map.current_info.level_author_name
-		], MapStats.level_name(Map.current_info, Map.current_difficulty)
+		], MapStats.level_name(Map.current_info, Map.current_difficulty) + _accuracy_line(game)
 	)
+
+## The accuracy and live grade so far, on a line of their own, when the far HUD of 90/360 maps leaves them out.
+func _accuracy_line(game: BeepSaber_Game) -> String:
+	if not game.hud.far:
+		return ""
+	var accuracy := Scoreboard.accuracy()
+	return "\nAccuracy %.1f%%  %s" % [accuracy * 100.0, Hud.shown_grade(accuracy, Scoreboard._notes_scored)]
