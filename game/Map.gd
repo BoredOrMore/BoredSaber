@@ -539,11 +539,6 @@ static func cue_rotation(beat: float) -> float:
 	var i := cue_beats.bsearch(beat, false)
 	return cue_angles[i - 1] if i > 0 else 0.0
 
-## The beat of the first turn after `beat`, INF when there's none.
-static func next_turn_beat(beat: float) -> float:
-	var i := turn_beats.bsearch(beat, false)
-	return turn_beats[i] if i < turn_beats.size() else INF
-
 static func get_last_beat() -> void:
 	current_info.last_beat = 0.
 	for note_info in note_stack:

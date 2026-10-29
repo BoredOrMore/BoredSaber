@@ -222,8 +222,6 @@ func _ready() -> void:
 		"a rotation event at beat 1.5 turns the cue at 1.5 and the track at the next note, 2 (cue %s, track %s at 1.6)" % [
 		Map.cue_rotation(1.6), Map.track_rotation(1.6)])
 	Map.load_beatmap(make_info("3.3.0", 120), make_difficulty(16, 0.0), turning)
-	check(Map.next_turn_beat(2.0) == 4.0 and Map.next_turn_beat(4.0) == INF,
-		"the next turn after beat 2 is at 4, none after 4 (%s, %s)" % [Map.next_turn_beat(2.0), Map.next_turn_beat(4.0)])
 
 	for key: String in saved:
 		Settings.set(key, saved[key])

@@ -13,8 +13,8 @@ Read the root `AGENTS.md` first ("Light", "Colour rules", "Pico 4 constraints").
   (tool scripts, `_ready`) and stays in memory; only visibility changes.
 - The track turns with the notes on 90/360 maps (`EventDriver._turn_track`): `Level/TrackTurn` (the edge light strips,
   the old see-through track `floor` and its `Endpath`) and `TrackDeck.turn` (deck and curbs) turn about the player's
-  standing point (`Constants.PLAYER_Z`) to `Map.track_rotation(show_beat)`, easing over `TRACK_TURN_TIME` (0.3 s,
-  untuned) or until the next turn. The platform, camera and XR origin never turn. `set_background` lays the turning
+  standing point (`Constants.PLAYER_Z`) to `Map.track_rotation(show_beat)`, easing over `TRACK_TURN_TIME` (0.8 s,
+  untuned; a cubic ease in and out that keeps its speed when a new turn comes mid-way). The platform, camera and XR origin never turn. `set_background` lays the turning
   parts out unturned (it writes global transforms), then turns them back.
   The turn cue (`TrackDeck.set_cue`, a chevron on the floor) eases the same way to `Map.cue_rotation(show_beat)`, the
   map's rotation events, so it leads the lanes (inner class `Turn` eases both).

@@ -176,9 +176,12 @@ var show_beat := 0.0
 ## turn cue turn): the deck (TrackDeck.turn), the edge
 ## light strips with the map's left and right lights in them, and the old see-through track with its end piece
 ## (TrackTurn) turn about the player's standing point to where the map's lanes point now (Map.track_rotation), easing in
-## and out over TRACK_TURN_TIME, or until the next turn when that comes sooner. The camera and XR origin never turn.
-## UNTUNED: no official Beat Saber value found; needs a headset playtest on a 90 and a 360 map.
-const TRACK_TURN_TIME := 0.3
+## and out over TRACK_TURN_TIME (Turn). The camera and XR origin never turn. It was 0.3 s, cut short when the next turn
+## came sooner and restarted from rest when one came mid-turn: the owner found the chevron's turn jerky (2026-10-29), so
+## it now takes TRACK_TURN_TIME whatever comes next and a new target carries the speed it had on. Peak speed 1.5 x the
+## turn / TRACK_TURN_TIME: 28 deg/s for a 15 degree turn, 84 for 45 (it was 75 and 225). UNTUNED: no official Beat
+## Saber value found; needs a headset playtest on a 90 and a 360 map.
+const TRACK_TURN_TIME := 0.8
 ## the track has turned to `angle` (track_angle); the HUD and the energy strips turn with it (BeepSaber_Game)
 signal track_turned(angle: float)
 ## where the track points now (radians, as the lanes' rotation) and its turn; the turn cue's (TrackDeck.set_cue), which
@@ -187,27 +190,34 @@ var track_angle := 0.0
 var _track_turn := Turn.new()
 var _cue_turn := Turn.new()
 
-## An angle easing in and out to a new target over TRACK_TURN_TIME (or `until_next` seconds when sooner), the short way
-## round (a 360 map's lanes wrap at 360 degrees).
+## An angle easing in and out to a new target over TRACK_TURN_TIME, the short way round (a 360 map's lanes wrap at 360
+## degrees): a cubic from where it is, at the speed it has, to the target at rest, so a new target mid-turn never jerks.
 class Turn:
 	var angle := 0.0
+	## radians a second now
+	var speed := 0.0
 	var _from := 0.0
+	var _from_speed := 0.0
 	var _to := 0.0
-	var _time := 0.0
-	var _left := 0.0
+	var _done := TRACK_TURN_TIME
 
 	## Moves `delta` seconds on toward `target`; true when the angle changed.
-	func step(target: float, until_next: float, delta: float) -> bool:
+	func step(target: float, delta: float) -> bool:
 		if absf(angle_difference(_to, target)) > Constants.ROTATION_EPS:
 			_from = angle
-			_to = target
-			_time = minf(TRACK_TURN_TIME, until_next)
-			_left = _time
-		if _left <= 0.0 and angle == _to:
+			_from_speed = speed
+			_to = _from + angle_difference(_from, target)
+			_done = 0.0
+		if _done >= TRACK_TURN_TIME:
 			return false
-		_left = maxf(_left - delta, 0.0)
-		var p := 1.0 - _left / _time if _time > 0.0 else 1.0
-		angle = _to if p >= 1.0 else _from + angle_difference(_from, _to) * smoothstep(0.0, 1.0, p)
+		_done = minf(_done + delta, TRACK_TURN_TIME)
+		var t := TRACK_TURN_TIME
+		var s := _done / t
+		# Hermite: start at _from with _from_speed, end at _to at rest
+		angle = (2.0 * s * s * s - 3.0 * s * s + 1.0) * _from + (s * s * s - 2.0 * s * s + s) * t * _from_speed \
+				+ (3.0 * s * s - 2.0 * s * s * s) * _to
+		speed = (6.0 * s * s - 6.0 * s) * _from / t + (3.0 * s * s - 4.0 * s + 1.0) * _from_speed \
+				+ (6.0 * s - 6.0 * s * s) * _to / t
 		return true
 ## the song's tempo, for the Metal Factory's pistons
 var _show_bpm := 0.0
@@ -684,11 +694,10 @@ func _update_haze() -> void:
 ## point (both straight ahead in the menus).
 func _turn_track(delta: float) -> void:
 	var playing := not menu_focus and Map.current_info != null
-	var until_next := (Map.next_turn_beat(show_beat) - show_beat) / Map.beats_per_second() if playing else INF
-	if _track_turn.step(Map.track_rotation(show_beat) if playing else 0.0, until_next, delta):
+	if _track_turn.step(Map.track_rotation(show_beat) if playing else 0.0, delta):
 		track_angle = _track_turn.angle
 		_apply_track_turn()
-	if _cue_turn.step(Map.cue_rotation(show_beat) if playing else 0.0, INF, delta):
+	if _cue_turn.step(Map.cue_rotation(show_beat) if playing else 0.0, delta):
 		track_deck.set_cue(_cue_turn.angle)
 
 ## Turns the track's turning parts to track_angle about the player's standing point, the strips' far fade with them.
