@@ -7,6 +7,9 @@ extends AudioStreamPlayer
 ## Seconds of quiet between the end of a preview and its next loop, and how fast Play fades it out.
 const LOOP_GAP := 0.5
 const PLAY_FADE_SECONDS := 0.3
+## Seconds a preview request must stay the newest before its song is read, so scrolling or clicking through songs (or
+## BeatSaver's list) doesn't decode each one passed (owner, 2026-10-29).
+const START_DELAY_SECONDS := 0.25
 ## how long a preview takes to fade in or out
 var transition_time := 1.0
 ## the game's song player (BeepSaberMainMenu.main_song_player_ref): the preview yields to it
@@ -57,11 +60,15 @@ static func _decode_file(path: String) -> Array:
 		return [null, 0]
 	return [AudioStreamOggVorbis.load_from_file(path), file.get_length()]
 
-## Plays what `decode` returns ([AudioStream or null, size in bytes]) like start(). It runs on a worker thread: read
-## and decoded on the main thread, a song stalled the frame it was picked in (owner, 2026-10-29).
+## Plays what `decode` returns ([AudioStream or null, size in bytes]) like start(), once the request has stayed the
+## newest for START_DELAY_SECONDS. It runs on a worker thread: read and decoded on the main thread, a song stalled the
+## frame it was picked in (owner, 2026-10-29).
 func _start(decode: Callable, start_time: float, volume_db: float) -> void:
 	_generation += 1
 	var generation := _generation
+	await get_tree().create_timer(START_DELAY_SECONDS).timeout
+	if generation != _generation:
+		return
 	var decoded := []
 	var task := WorkerThreadPool.add_task(func() -> void: decoded.append_array(decode.call()))
 	while not WorkerThreadPool.is_task_completed(task):

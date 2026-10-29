@@ -188,7 +188,7 @@ const START_FADE_SECONDS := 0.15
 const START_HOLD_SECONDS := 0.2
 ## Seconds a difficulty must stay picked before _preload reads it, so scrolling through the song list doesn't read
 ## every song it passes (owner, 2026-10-29: scrolling the list froze while each step waited for the last song's read).
-const PRELOAD_DELAY_SECONDS := 0.3
+const PRELOAD_DELAY_SECONDS := 0.25
 var _preload_key := ""
 ## whether the read of _preload_key has started (it waits PRELOAD_DELAY_SECONDS first)
 var _preload_started := false
