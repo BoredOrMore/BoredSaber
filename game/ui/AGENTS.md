@@ -66,7 +66,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   on/off and Speed chips, More modifiers, environment picker and reset, in step with `Settings`; `changed()` names
   the modified ones. Its static `make_row_button` (a button of a given kind) is shared with the difficulty picker.
 - `SongPreview.gd` (class `SongPreview`, on the menu's `song_prev` node): the song menu's preview player: fades between
-  previews, plays from the preview's start to the song's end and loops, yields to the song itself. The menu's
+  previews, plays from the preview's start to the song's end and loops, yields to the song itself. It reads and
+  decodes the audio on a `WorkerThreadPool` task (`start_file` for a song on disk, `start` for BeatSaver's buffer). The menu's
   `play_selected_preview`, `play_preview` and `stop_preview` (used by game states and BeatSaver) go through it.
 - `IconButton.gd` (class `IconButton`): icon just left of a centred label. `ConfirmButton.gd` (extends it): for
   what can't be undone; first press asks in the button, a second within `CONFIRM_SECONDS` does it.

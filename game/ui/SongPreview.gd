@@ -33,8 +33,14 @@ func fade_to(volume_db: float) -> void:
 
 ## Plays a song's audio from start_time to its end, fading out the one playing first; type_hint is 'ogg' or 'mp3'.
 func start(buffer: PackedByteArray, start_time: float = 0.0, type_hint: String = 'ogg', volume_db: float = 0.0) -> void:
-	_generation += 1
-	var generation := _generation
+	_start(_decode_buffer.bind(buffer, type_hint), start_time, volume_db)
+
+## Plays the ogg song file at path like start().
+func start_file(path: String, start_time: float = 0.0, volume_db: float = 0.0) -> void:
+	_start(_decode_file.bind(path), start_time, volume_db)
+
+## The audio in buffer and its size in bytes, as [AudioStream or null, int]; runs on a worker thread.
+static func _decode_buffer(buffer: PackedByteArray, type_hint: String) -> Array:
 	var audio: AudioStream
 	# take song preview data from buffer as-is. trust passed type hint
 	if type_hint == 'ogg':
@@ -42,8 +48,27 @@ func start(buffer: PackedByteArray, start_time: float = 0.0, type_hint: String =
 	elif type_hint == 'mp3':
 		audio = AudioStreamMP3.new()
 		(audio as AudioStreamMP3).data = buffer
+	return [audio, buffer.size()]
 
-	if not audio: return
+## The ogg song file at path and its size in bytes, as [AudioStream or null, int]; runs on a worker thread.
+static func _decode_file(path: String) -> Array:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if not file:
+		return [null, 0]
+	return [AudioStreamOggVorbis.load_from_file(path), file.get_length()]
+
+## Plays what `decode` returns ([AudioStream or null, size in bytes]) like start(). It runs on a worker thread: read
+## and decoded on the main thread, a song stalled the frame it was picked in (owner, 2026-10-29).
+func _start(decode: Callable, start_time: float, volume_db: float) -> void:
+	_generation += 1
+	var generation := _generation
+	var decoded := []
+	var task := WorkerThreadPool.add_task(func() -> void: decoded.append_array(decode.call()))
+	while not WorkerThreadPool.is_task_completed(task):
+		await get_tree().process_frame
+	WorkerThreadPool.wait_for_task_completion(task)
+	var audio: AudioStream = decoded[0]
+	if not audio or generation != _generation: return
 
 	# play on from the preview's start to the end of the song instead of looping the map's short preview
 	# window, which felt repetitive in the menus (the player's choice); _on_ended starts it again
@@ -58,7 +83,7 @@ func start(buffer: PackedByteArray, start_time: float = 0.0, type_hint: String =
 	# start the requested preview, if still on song select
 	if not song_player.playing:
 		stream = audio
-		Loudness.apply(bus, audio, Loudness.key(buffer.size(), audio))
+		Loudness.apply(bus, audio, Loudness.key(decoded[1], audio))
 		var fade_in := create_tween().set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_IN_OUT)
 		@warning_ignore("return_value_discarded")
 		# TODO: is this a good idea with higher speeds?
