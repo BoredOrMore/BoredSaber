@@ -375,6 +375,22 @@ corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 corner_detail = 6
 
+[sub_resource type="StyleBoxFlat" id="text_field"]
+content_margin_left = 20.0
+content_margin_top = 12.0
+content_margin_right = 20.0
+content_margin_bottom = 12.0
+bg_color = Color(0.133, 0.149, 0.18, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.37, 0.78, 0.94, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
 [resource]
 default_font = ExtResource("1")
 default_font_size = 28
@@ -478,6 +494,13 @@ TabContainer/styles/panel = SubResource("tab_panel")
 TabContainer/styles/tab_hovered = SubResource("tab_unselected")
 TabContainer/styles/tab_selected = SubResource("tab_selected")
 TabContainer/styles/tab_unselected = SubResource("tab_unselected")
+TextEdit/colors/caret_color = Color(0.37, 0.78, 0.94, 1)
+TextEdit/colors/font_color = Color(0.894, 0.902, 0.922, 1)
+TextEdit/colors/font_placeholder_color = Color(0.6, 0.63, 0.67, 1)
+TextEdit/constants/caret_width = 3
+TextEdit/styles/focus = SubResource("empty")
+TextEdit/styles/normal = SubResource("text_field")
+TextEdit/styles/read_only = SubResource("text_field")
 TitleLabel/base_type = &"Label"
 TitleLabel/fonts/font = ExtResource("bold")
 VScrollBar/icons/decrement = ExtResource("scroll_up")
