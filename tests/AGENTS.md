@@ -27,7 +27,8 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
   script error stopping it part-way; the particle sword finds its particles.
 - `test_beatmap.tscn` / `.gd` + `data/beatmap/` (small v2, v3, v4 maps) - `Map.load_beatmap`: counts, stack order (popped
   from the back), lanes, layers, colours and cut directions of notes, bombs, walls, arcs, chains and light events in
-  each format, plain and mirrored (`Settings.flip`); `half_jump_beats_for`/`set_note_jump`; gradual rotation; v2 rotation events adding up in degrees; where the track turns (`get_turns`, `track_rotation`); a v4 map
+  each format, plain and mirrored (`Settings.flip`); `half_jump_beats_for`/`set_note_jump`; gradual rotation; v2 rotation events adding up in degrees; where the track turns (`get_turns`, `track_rotation`) and the turn cue (`cue_rotation`); 90/360
+  maps play on Henge (`EventDriver.pick_environment`); a v4 map
   leaves no lights from the last map; a stray non-object v2 note is skipped (it once looped forever).
 - `test_scoreboard.tscn` / `.gd` - `Scoreboard`: multiplier steps (2, 6, 14 hits) and halving, combo, max points and
   accuracy, modifier shares and No Fail, bad cuts, walls, chain links, `restart`. A `FakeGame` stands in for

@@ -77,6 +77,22 @@ Plain boxes in `MetalFactoryRig.gd`, every size a named constant there; detail m
   vent louvers (upper row both walls: diagonal; lower row: the left or right waving group by wall); the square bars
   are the energy rails' strips; the centre and floor lights are unchanged.
 
+## Environment layout (Henge, blockout 2026-10-29)
+Plain boxes in `HengeRig.gd`, every size a named constant there; for 90 and 360 degree maps (GAME_BIBLE.md).
+- The player stands at the centre (z 1), on the round platform; there is no track floor ahead on these maps, only the
+  turn cue chevron 2.6 m out (`TrackDeck`).
+- 24 monoliths in a ring, 15 degrees apart, the first straight ahead: inner faces 150 m from the player, 12 m across,
+  3 m deep, 120 m tall, standing on the floor; gaps about 27 m (10.4 degrees) between them. Black, unlit.
+- A strip up each slab's two inner vertical edges (0.4 x 0.3 m), the left or right lasers' colour by the slab's side
+  of the track's current direction.
+- Floor: a disc 200 m out at y -0.4 (under the platform's base), dark, with the gaps' bands of light in vertex colour
+  (brightest at the slab ring, nothing at the player or the floor's edge); a ring strip on it 140 m out (0.6 m wide)
+  in the floor lights' colour.
+- Beams: the diagonal lasers straight up from slab tops round the circle, the waving lasers on the slabs between.
+- Sky: dark, a neutral glow along the horizon behind the slabs; the sky sphere at 950 m.
+- Note corridor: nothing stands within 140 m in any direction. Notes fly in from up to about 300 m
+  (`Cuttable.FLY_DISTANCE`), so their fly-in crosses the slab ring; not yet checked on the headset.
+
 ## Exclusion zones
 - The note corridor: lanes ±1.2 m (more when wide), y 0 to 2.5, from the player to the far spawn. No scenery,
   particles or bright light inside it.
@@ -89,5 +105,6 @@ Plain boxes in `MetalFactoryRig.gd`, every size a named constant there; detail m
 
 ## Validation
 Metal Factory blockout captures (Godot `tools/capture/stage_capture.tscn`): `captures/metal_factory_blockout_*.png`.
+Henge blockout captures: `captures/henge_blockout_*.png` (front, side, behind, top, a 360 map in play).
 
 Blender render from (0, 1.6, 1) looking down -z before building; headset screenshots in play after.

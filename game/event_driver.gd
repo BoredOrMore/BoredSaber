@@ -89,6 +89,7 @@ const SKY_SHADERS := {
 	"pulse_void": preload("res://game/env/PulseVoidSky.gdshader"),
 	"night_city": preload("res://game/env/NightCitySky.gdshader"),
 	"metal_factory": preload("res://game/env/MetalFactorySky.gdshader"),
+	"henge": preload("res://game/env/HengeSky.gdshader"),
 }
 
 var ring_rot_speed := 0.0
@@ -118,6 +119,10 @@ const STINGER_ROOMS := {
 	"metal_factory": [{&"room_size": 0.6, &"damping": 0.3, &"wet": 0.2},
 			{&"tap1_active": true, &"tap1_delay_ms": 105.0, &"tap1_level_db": -14.0, &"tap1_pan": 0.0,
 			&"tap2_active": false}],
+	# Henge: open ground ringed by stone 150 m out, near dry, one far slap off the slabs (about 0.9 s there and back)
+	"henge": [{&"room_size": 0.2, &"damping": 0.6, &"wet": 0.05},
+			{&"tap1_active": true, &"tap1_delay_ms": 870.0, &"tap1_level_db": -22.0, &"tap1_pan": 0.0,
+			&"tap2_active": false}]
 }
 
 ## The scenery around the track, one of the ids in Settings.ENVIRONMENTS other than "auto".
@@ -278,6 +283,7 @@ const PLATFORM_LIGHTS := preload("res://game/env/platform_lights.tres")
 @onready var neon_grid_rig := $Level/NeonGridRig as NeonGridRig
 @onready var night_city_rig := $Level/NightCityRig as NightCityRig
 @onready var metal_factory_rig := $Level/MetalFactoryRig as MetalFactoryRig
+@onready var henge_rig := $Level/HengeRig as HengeRig
 
 @onready var ring_anim_player := $Level/rings/AnimationPlayer as AnimationPlayer
 @onready var left_laser_anim_player := $Level/LeftWavingLasers/AnimationPlayer as AnimationPlayer
@@ -360,6 +366,10 @@ func set_background_texture() -> void:
 
 ## The environment a map plays in: the player's pick, or with "auto" the one map_environment finds.
 static func pick_environment(map: MapInfo) -> String:
+	# Henge is the stage built for 90 and 360 degree maps; none of the others is ready for them yet, so those maps get
+	# Henge whatever the map or the player names (owner, 2026-10-29)
+	if Map.current_difficulty != null and Map.current_difficulty.characteristic in Map.TURNING_CHARACTERISTICS:
+		return "henge"
 	if Settings.environment != "auto":
 		return Settings.environment
 	return map_environment(map)
@@ -496,6 +506,7 @@ func show_scenery_for_mixed_reality() -> void:
 	neon_grid_rig.visible = environment == "neon_grid" and not Settings.mixed_reality
 	night_city_rig.visible = environment == "night_city" and not Settings.mixed_reality
 	metal_factory_rig.visible = environment == "metal_factory" and not Settings.mixed_reality
+	henge_rig.visible = environment == "henge" and not Settings.mixed_reality
 	stage_smoke.visible = Settings.smoke and not Settings.mixed_reality
 	_dust.visible = not Settings.mixed_reality
 	# Metal Factory has no moving heads: its lights glow in the wall vents
@@ -622,6 +633,13 @@ func _process(delta: float) -> void:
 	_turn_track(delta)
 	if track_deck.visible:
 		track_deck.deck_material.set_shader_parameter(&"light_color", floor_material.albedo_color)
+	if henge_rig.visible:
+		# the slabs' edges in the left and right lasers' colours, by where the track points; the floor ring in the floor
+		# lights'
+		henge_rig.strip_material.set_shader_parameter(&"left_color", left_waving_lasers_material.get_shader_parameter(&"light_color"))
+		henge_rig.strip_material.set_shader_parameter(&"right_color", right_waving_lasers_material.get_shader_parameter(&"light_color"))
+		henge_rig.strip_material.set_shader_parameter(&"track_angle", track_angle)
+		henge_rig.ring_material.set_shader_parameter(&"light_color", track_lights_material.get_shader_parameter(&"light_color"))
 	if environment == "metal_factory":
 		metal_factory_rig.set_vent_colors(diagonal_lasers_material.get_shader_parameter(&"light_color"),
 				left_waving_lasers_material.get_shader_parameter(&"light_color"),

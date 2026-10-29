@@ -19,7 +19,9 @@ Read the root `AGENTS.md` first ("Light", "Colour rules", "Pico 4 constraints").
   The turn cue (`TrackDeck.set_cue`, a chevron on the floor) eases the same way to `Map.cue_rotation(show_beat)`, the
   map's rotation events, so it leads the lanes (inner class `Turn` eases both).
 - Stage choice: `Settings.ENVIRONMENTS` (`Settings.gd:35`, ids `classic`, `neon_grid`, `pulse_void`, `night_city`,
-  `metal_factory`, plus `auto`). `EventDriver.pick_environment(map)` -> `map_environment`:
+  `metal_factory`, `henge`, plus `auto`). `EventDriver.pick_environment(map)`: a 90/360 difficulty
+  (`Map.TURNING_CHARACTERISTICS`) always gets `henge`, the only stage ready for them (owner, 2026-10-29); else the
+  player's pick, else `map_environment`:
   `Constants.MAP_ENVIRONMENTS` (map's Beat Saber env name), then `TAG_ENVIRONMENTS` (genre), then a folder-name hash
   into `AUTO_ENVIRONMENTS` (Metal Factory is never auto-picked). Called from `BeepSaber_Game.gd:173` (song start)
   and `:758` (menu).
@@ -84,6 +86,16 @@ Pulse Void (the giant receiving dish)
 - `PulseVoid.gd` (tool, `PulseVoid`): dish panels, feed cabin, four legs, rim girder and masts, props (glb models); seam strips (`seam_material`,
   `ArchStrip.gdshader`) lit rim-inward; `drop_beam` shown on the drop; `leg_floodlight`/`rim_beacon` place lasers.
 - `PulseVoidSky.gdshader`: dark space with a glow down the track, computed from view direction (no texture).
+
+Henge (24 monoliths round the player, for 90/360 maps; BLOCKOUT 2026-10-29)
+- `HengeRig.gd` (tool, `HengeRig`): `SLAB_COUNT` black slabs (unlit, silhouettes) `RING_RADIUS` out, `QUADRANTS`
+  MultiMeshes of slabs and of inner-edge strips; a floor disc whose vertex colour draws the gaps' light bands
+  (`_floor_mesh`, `_band`); a floor ring strip (`ring_material`, the floor lights' colour, set by EventDriver).
+  `slab_top(i)` places the lasers (`LightRig` "henge": diagonal beams straight up, waving lasers between; no square bars).
+- `HengeStrip.gdshader`: the edge strips, left or right lasers' colour by which side of the track's turned line the
+  slab stands (`track_turn.gdshaderinc`; `strip_material` params set each frame by EventDriver).
+- `HengeFloor.gdshader`: dark ground plus vertex-colour bands of the haze's colour. `HengeSky.gdshader`: dark with a
+  neutral horizon glow (no `bg_<type>`). Picked only in the menu or for 90/360 maps; never by Follow map.
 
 Metal Factory (underground power plant)
 - `MetalFactoryRig.gd` (tool): pistons over anvils, gear rings, energy rails, wall kit with vents, vault, drive gears.
