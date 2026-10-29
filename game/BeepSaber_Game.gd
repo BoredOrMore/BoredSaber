@@ -704,6 +704,10 @@ func _ready() -> void:
 	warnings.name = &"WarningIcon"
 	warnings.game = self
 	add_child(warnings)
+	var clock := MenuClock.new()
+	clock.name = &"MenuClock"
+	clock.game = self
+	add_child(clock)
 	settings_panel.benchmark_requested.connect(func() -> void:
 		_on_settings_Panel_apply()
 		_start_benchmark())
@@ -1052,7 +1056,7 @@ func _display_points() -> void:
 ## eye), so each keeps the angle it was laid out at. The slash note places itself (SlashBlock.set_shown).
 const MENU_NODES: Array[NodePath] = [^"MainMenu_OQ_UI2DCanvas", ^"PauseMenu_canvas", ^"Pause_countdown",
 	^"Settings_canvas", ^"MapSourceDialogs", ^"Keyboard_online_search", ^"Keyboard_highscore", ^"Profiles_canvas",
-	^"EndScore", ^"WarningIcon"]
+	^"EndScore", ^"WarningIcon", ^"MenuClock"]
 ## how far the menus are raised for the player's eye (Hud.HUD_EYE is 0)
 var menu_lift := 0.0
 ## each menu node's laid-out place
