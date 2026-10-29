@@ -29,10 +29,12 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   (`BeepSaber_Game._open_profiles`) on its own canvas 10 cm in front of the menu, which takes no pointer input meanwhile.
   Picks, adds (max `Settings.MAX_PLAYERS`), renames (records too, `Highscores.rename_player`) and deletes players;
   names are typed on the menu's keyboard (`Keyboard_highscore`), which the menu ignores while its `_keyboard_for` is empty.
-- `BeatSaverPanel/`: browse/search/download maps from beatsaver.com (class `BeatSaverPanel`). Its song grid is
-  `CoverGrid.gd` (class `CoverGrid`): a fixed set of recycled cards, each with one cover texture written over in place,
-  the covers kept as images (doc/research/get-songs-list-plan.md). `FrameProbe.gd`: a probe node for its
-  slow-frame log (where the frame's `_process` calls end).
+- `BeatSaverPanel/`: browse/search/download maps from beatsaver.com (class `BeatSaverPanel`). Its song list is
+  `BeatSaverList.gd` (class `BeatSaverList`): the song list's rows (72 px cover, "Artist - Title") with the level strip
+  and length at the end, a fixed set of recycled rows, each with one cover texture written over in place, the 72 px
+  covers kept as images; only the picked map's big cover is fetched (`DetailCoverDownload`)
+  (doc/research/get-songs-list-plan.md). `FrameProbe.gd`: a probe node for its slow-frame log (where the frame's
+  `_process` calls end).
 - Templates (owner, 2026-10-28: build UI as templates, pages only swap content): `menu_panel.tres`, the menus'
   rounded panel frame (24 px corners, about 1.6 degrees at 2 m), the root style of the song menu's three panels
   (`MenuPanel.tscn`, a frame that takes no input), Settings, the Download page and "Who's playing?";
@@ -53,10 +55,13 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
 - `StatPills.gd` (class `StatPills`): a difficulty's short stats as rounded icon pills (get ready, notes per second,
   swing flow, length, workout sets; the `StatPill` kind) in a centred flow; the song menu's stats under the
   difficulty and the Download page's details, whose level names sit in rounded `LevelBar`s.
-  `LevelStrip.gd` draws each card's level strip (Easy..Expert+ slots, the player's level framed, "≈" while estimated)
-  into its cover image.
-  The menu's "Get songs" opens it directly (`BeepSaber_Game._open_beatsaver`), in front of the player in place
-  of the song menu (1536x1046 px at scale 2, curved on the menus' 2 m cylinder). (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
+  `LevelStrip.gd` draws a row's level strip (Easy..Expert+ slots, the player's level framed, "≈" while estimated)
+  into one image, shared by every row with the same strip.
+  The menu's "Get songs" opens it directly (`BeepSaber_Game._open_beatsaver`) in place of the song menu, laid out
+  like it (owner, 2026-10-29, layout A): 1249x745 px at scale 2.4 on the menus' 2 m cylinder, turned 16.9° left so its
+  details panel and list sit where the song menu's left and centre panels are; the right stays empty. Above the list:
+  Search, Filters (opens `FiltersPanel` over the list: Style, Difficulty, Length, Genre), the sort and "My songs" in
+  Get songs' place; under them a chip per filter on (its x takes it off), the search or the "More by" mapper. (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
 - `ModifierChips.gd` (class `ModifierChips`, made by the menu's `_ready`): the Song tab's fail and damage rows,
   on/off and Speed chips, More modifiers, environment picker and reset, in step with `Settings`; `changed()` names
   the modified ones. Its static `make_row_button` (a button of a given kind) is shared with the difficulty picker.
@@ -144,9 +149,10 @@ Above the list one row holds Search (icon), Filters (opens `FiltersPanel` over t
   floor reflection, via `DebugView` bits) and its canvas redraws at most 36 times a second
   (`max_updates_per_second`): dragging it had run the GPU past the frame (10-14 ms of 13.9).
 - Covers: downloaded one after another (`update_next_cover`), the next starting as each arrives; each is decoded and
-  given its level strip on a `WorkerThreadPool` task (`_make_cover`, `LevelStrip.compose_image`); finished covers go
-  onto the list together every `COVER_FLUSH_SECONDS` with one page redraw (`_flush_covers`), and only the 200 px
-  result is uploaded on the main thread; `_cover_list` drops covers finished for an older list.
+  sized to 72 px on a `WorkerThreadPool` task (`_make_cover`); finished covers go onto the list together every
+  `COVER_FLUSH_SECONDS` with one page redraw (`_flush_covers`), and only the 72 px result is uploaded on the main
+  thread; `_cover_list` drops covers finished for an older list. The picked map's cover is fetched again at
+  `DETAIL_COVER` px (`_on_detail_cover_completed`) into the details' one texture.
 - Known gaps (report, don't silently patch in unrelated work): `versions[0]["hash"]` is indexed without checking
   `versions` is non-empty (:234-235, :301).
 - Download (:312): rejects HTML bodies; a `WorkerThreadPool` task (`_save_song`, awaited a frame at a time) writes

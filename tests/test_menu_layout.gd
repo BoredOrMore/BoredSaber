@@ -144,6 +144,7 @@ func _ready() -> void:
 	_port.add_child(beatsaver)
 	await _settle()
 	_check_layout(beatsaver, "download page")
+	await _check_download_page(beatsaver)
 	beatsaver.queue_free()
 	menu.queue_free()
 
@@ -348,6 +349,51 @@ func _check_list_drag(menu: MainMenu) -> void:
 	check(list.scroll_vertical == scrolled, "after a release the list didn't see, the pointer moves without scrolling it (moved %d px)" % (list.scroll_vertical - scrolled))
 
 ## How long a flick keeps going (the song list's vr_slider).
+## The download page with worst-case content: every filter on and a long search as chips, a map with long names and
+## all five levels picked (short details, then Details), downloading, and the filters open.
+func _check_download_page(page: BeatSaverPanel) -> void:
+	page._style_tag = "accuracy"
+	page._genre_tag = "video-game-soundtrack"
+	Settings.beatsaver_filter_reaction = Constants.DIFFICULTY_LEVELS.size()
+	Settings.beatsaver_filter_length = 2
+	page._set_search("the longest search anyone typed")
+	page._sync_filter_controls()
+	page.prev_request = BeatSaverPanel.BeatSaverRequest.new()
+	page.prev_request.type = "text_search"
+	page.prev_request.data = page.search_word
+	var diffs := []
+	for i in 5:
+		diffs.append({"characteristic": "Standard", "njs": 10.0 + i * 3.0, "nps": 1.0 + i * 2.0, "notes": 400 + i * 300,
+			"offset": 0.0, "obstacles": 1234, "paritySummary": {"errors": 2, "warns": 5, "resets": 1}})
+	var map := {"name": LONG_NAME, "description": "%s\n%s\n%s\n%s" % [LONG_NAME, LONG_NAME, LONG_NAME, LONG_NAME],
+		"curatedAt": "2026-10-01", "stats": {"score": 0.87}, "tags": ["accuracy", "video-game-soundtrack", "challenge"],
+		"uploader": {"id": 5}, "metadata": {"songName": LONG_NAME, "songAuthorName": LONG_NAME,
+		"levelAuthorName": "Nixie.Korten and Friends", "duration": 296.0, "bpm": 128.0},
+		"versions": [{"hash": "abc", "coverURL": "", "previewURL": "", "downloadURL": "", "diffs": diffs}]}
+	page._on_HTTPRequest_request_completed(0, 200, PackedStringArray(), JSON.stringify({"docs": [map, map, map]}).to_utf8_buffer())
+	page._on_ItemList_item_selected(0)
+	await _settle()
+	check(page.item_list.item_count == 3, "the download page lists the maps it was sent (%d)" % page.item_list.item_count)
+	check(page.chip_row.get_combined_minimum_size().x <= page.chip_row.size.x,
+			"download page: the search and filter chips fit above the list (%.0f of %.0f px)" % [
+			page.chip_row.get_combined_minimum_size().x, page.chip_row.size.x])
+	_check_layout(page, "download page, map picked")
+	page._details_toggle.button_pressed = true
+	await _settle()
+	_check_layout(page, "download page, Details")
+	page._details_toggle.button_pressed = false
+	page.downloading.append(["map", {"hash": "abc"}, []])
+	page._update_download_button()
+	page.label.text = "Couldn't download %s. Check your Wi-Fi and try again." % LONG_NAME
+	await _settle()
+	_check_layout(page, "download page, downloading")
+	page.downloading.clear()
+	page._set_filters_open(true)
+	await _settle()
+	_check_layout(page, "download page, filters open")
+	Settings.beatsaver_filter_reaction = 0
+	Settings.beatsaver_filter_length = 0
+
 func vr_slider_momentum() -> float:
 	return preload("res://game/ui/vr_slider.gd").MOMENTUM_SECONDS
 

@@ -40,3 +40,20 @@ ItemList kept one GPU texture per song: hundreds made and freed at once stalled 
 - The song menu (songs on the headset, `SongList`) still makes a row per song; the same approach applies if large
   libraries stutter.
 - Pass mark on the headset: dragging past 300 songs and changing a filter with no frame over 25 ms.
+
+## 4. Layout A (owner, 2026-10-29)
+
+The owner picked layout A of the redesign proposal (https://claude.ai/artifact/YS54ZdgvkYuxnp4dcpwQkS), lighter both
+for the GPU and to look at: the page is laid out like the song menu (details left, list in the centre, the right
+empty), and the grid became `BeatSaverList`, the song list's rows with the level strip at their end.
+
+| | Grid (before) | Layout A |
+|---|---|---|
+| Canvas | 1536x1046 px at scale 2 (86° x 54°) | 1249x745 px at scale 2.4 (84° x 47°, two panels) |
+| Pixels redrawn per update | 1.61 M | 0.93 M (-42%) |
+| Covers on the GPU | 24 x 200 px = 3.84 MB | 11 x 72 px = 0.23 MB, a strip texture per kind of strip, one 152 px details cover |
+| Cover per song in CPU memory | 160 KB | 20 KB |
+| Smallest text | 22 px at scale 2 = 1.23° | 22 px at scale 2.4 = 1.43-1.48° (the song menu's) |
+
+Numbers worked out from the layout, not measured on the headset; the GPU time still needs a bench there.
+
