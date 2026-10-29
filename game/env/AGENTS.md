@@ -109,9 +109,9 @@ Shared scenery
   maps during a song (`layout(lane_width, true)` from `EventDriver.set_background`) the platform is a black disc
   (`round_radius()`, as far as the square reaches) with a rim, the deck starting where its corners meet the disc
   (`deck_near()`), so it meets it at any angle; Standard keeps the square pad. There, like Glass Desert (the long deck
-  turning made players dizzy, owner 2026-10-29), the deck is a `STUB_LENGTH` stub fading over `STUB_FADE` (`end_z()`),
-  without curbs, its edge strips flush on it (`strip_position(..., on_stub)`), and the turn cue chevron
-  (`CUE_*`, `Constants.TURN_CUE_COLOR`) shows.
+  turning made players dizzy, owner 2026-10-29; then no lane floor either) there is no deck, curbs or edge strips
+  ahead, no floor reflection; the map's track lights light the platform's ring (`Floor.set_round(radius, lights)`), and
+  the turn cue chevron (`CUE_*`, `Constants.TURN_CUE_COLOR`) shows.
 - `TrackDeck.gdshader`: deck skin per stage (`SKINS`: plates, tread plate, dark glass), lane grooves, `fade_z`.
 - `track_turn.gdshaderinc`: `track_angle` and `track_xz(world)`, a point's place on the unturned track, so the deck's
   grooves and skin and the far fade (`TrackDeck.gdshader`, `EnvSolid.gdshaderinc`'s `fade_z`, `LightStrip.gdshader`) turn

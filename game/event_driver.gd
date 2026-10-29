@@ -172,7 +172,8 @@ const INTENSITY_RISE_SECONDS := 1.0
 const INTENSITY_FALL_SECONDS := 3.0
 ## the song's beat now, set by the Playing state; the curve and the smoothed intensity
 var show_beat := 0.0
-## The track turns with the notes on 90/360 maps (owner, 2026-10-29): the deck's short stub (TrackDeck.turn), the edge
+## The track turns with the notes on 90/360 maps (owner, 2026-10-29; no lane floor there now, only the HUD and the
+## turn cue turn): the deck (TrackDeck.turn), the edge
 ## light strips with the map's left and right lights in them, and the old see-through track with its end piece
 ## (TrackTurn) turn about the player's standing point to where the map's lanes point now (Map.track_rotation), easing in
 ## and out over TRACK_TURN_TIME, or until the next turn when that comes sooner. The camera and XR origin never turn.
@@ -514,7 +515,8 @@ func set_background() -> void:
 	var turning := Map.current_difficulty != null and Map.current_difficulty.characteristic in Map.TURNING_CHARACTERISTICS
 	track_deck.layout(Settings.LANE_DISTANCE_X, turning and not menu_focus and not old_track)
 	if platform:
-		platform.set_round(track_deck.round_radius() - TrackDeck.RIM_WIDTH if track_deck.is_round() else 0.0)
+		platform.set_round(track_deck.round_radius() - TrackDeck.RIM_WIDTH if track_deck.is_round() else 0.0,
+				track_lights_material)
 	# the deck's strips run its whole length, out to where it fades into the haze, and fade with it; the old track's
 	# stop at its end, as they always did
 	var span := track_deck.strip_span()
@@ -522,12 +524,14 @@ func set_background() -> void:
 	track_lights_material.set_shader_parameter(&"min_pixels", 0.0 if old_track else TrackDeck.STRIP_MIN_PIXELS)
 	track_lights_material.set_shader_parameter(&"top_white", 0.0 if old_track else TrackDeck.STRIP_TOP_WHITE)
 	for strip: MeshInstance3D in [track_lights_left, track_lights_right]:
+		# none ahead of the round platform: its ring carries the track lights
+		strip.visible = not track_deck.is_round()
 		var rest: Transform3D = _strip_rest[strip]
 		if old_track:
 			strip.global_transform = Transform3D(rest.basis, Vector3(strip.global_position.x, rest.origin.y, rest.origin.z))
 			continue
 		var side := signf(strip.global_position.x)
-		var place := TrackDeck.strip_position(Settings.LANE_DISTANCE_X, side, strip.get_aabb().size, track_deck.is_round())
+		var place := TrackDeck.strip_position(Settings.LANE_DISTANCE_X, side, strip.get_aabb().size)
 		var stretch := (span.x - span.y) / strip.get_aabb().size.z
 		var thin := TrackDeck.STRIP_WIDTH / strip.get_aabb().size.x
 		strip.global_transform = Transform3D(Basis.from_scale(Vector3(thin, 1.0, stretch)),

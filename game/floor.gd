@@ -68,8 +68,6 @@ func _ready() -> void:
 	ring.rings = RING_SEGMENTS
 	ring.ring_segments = 6
 	_ring.mesh = ring
-	# the square's border bars' material: lit by the map's floor lights as they are
-	_ring.material_override = ($Node3D/Node3D/MeshInstance3D2 as MeshInstance3D).material_override
 	_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	# flattened into a thin band on the platform
 	_ring.scale = Vector3(1.0, 0.1, 1.0)
@@ -80,11 +78,13 @@ func _ready() -> void:
 		sub_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 		is_disabled = true
 		
-## Lays the marks out on the round platform with a ring of border lights `radius` out (0: the square platform's bars).
-func set_round(radius: float) -> void:
+## Lays the marks out on the round platform with a ring of lights `radius` out in `lights` (EventDriver: the map's
+## track lights, which have no track strips there; owner, 2026-10-29), or with the square platform's bars (radius 0).
+func set_round(radius: float, lights: Material) -> void:
 	var round_platform := radius > 0.0
 	($Node3D/Node3D as Node3D).visible = not round_platform
 	_ring.visible = round_platform
+	_ring.material_override = lights
 	if round_platform:
 		(_ring.mesh as TorusMesh).inner_radius = radius - RING_WIDTH
 		(_ring.mesh as TorusMesh).outer_radius = radius

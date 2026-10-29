@@ -67,10 +67,8 @@ const ROUND_TOP := 0.004
 const RIM_WIDTH := 0.12
 const ROUND_SEGMENTS := 96
 ## Like Beat Saber's Glass Desert (owner, 2026-10-29: the long deck sweeping past the feet as it turned made players
-## dizzy): on the round platform's maps the deck is only a short stub from the platform, STUB_LENGTH long, fading into
-## the haze over its last STUB_FADE, without its curbs; the edge strips lie flush on its edges. UNTUNED.
-const STUB_LENGTH := 6.0
-const STUB_FADE := 4.0
+## dizzy; then no lane floor at all, only the turn cue): on the round platform's maps there is no deck, curbs or edge
+## strips ahead; the map's track lights light the platform's ring (Floor.set_round).
 ## The turn cue (set_cue): a small chevron lying on the floor CUE_DISTANCE out from the player, CUE_LIFT up, pointing
 ## where the map's rotation events turn the player next (EventDriver), in Constants.TURN_CUE_COLOR; CUE_POINTS is its
 ## outline in metres (x across, z along, the tip toward -z). UNTUNED.
@@ -210,16 +208,15 @@ func layout(lane_width: float, round_platform := false) -> void:
 	_round = round_platform
 	var half := 2.0 * lane_width
 	var near := deck_near()
-	var far := end_z()
-	var length := near - far
+	var length := near - _far_z
 	_deck.transform = Transform3D(Basis.from_scale(Vector3(half * 2.0, DECK_DEPTH, length)),
-		Vector3(0.0, -DECK_DEPTH * 0.5, (near + far) * 0.5))
+		Vector3(0.0, -DECK_DEPTH * 0.5, (near + _far_z) * 0.5))
 	deck_material.set_shader_parameter(&"lane_width", lane_width)
 	var fade := fade_z()
 	deck_material.set_shader_parameter(&"fade_z", fade)
 	_curb_material.set_shader_parameter(&"fade_z", fade)
-	var edge_length := BACK_Z - far
-	var edge_z := (BACK_Z + far) * 0.5
+	var edge_length := BACK_Z - _far_z
+	var edge_z := (BACK_Z + _far_z) * 0.5
 	_ends.set_instance_transform(0, Transform3D(Basis(Vector3.UP, PI) * Basis.from_scale(Vector3((half + EDGE_REACH) * 2.0, 1.0, 1.0)),
 		Vector3(0.0, 0.0, BACK_Z)))
 	for i in 2:
@@ -243,6 +240,7 @@ func layout(lane_width: float, round_platform := false) -> void:
 	_disc.visible = _round
 	_rim.visible = _round
 	_curb_instance.visible = not _round
+	_deck.visible = not _round
 	_cue.visible = _round
 
 ## Whether the platform is round (layout).
@@ -259,10 +257,6 @@ func deck_near() -> float:
 		return DECK_NEAR
 	var half := 2.0 * _lane_width
 	return PLATFORM_Z - sqrt(round_radius() ** 2 - half * half)
-
-## Where the deck ends (z): the stage's far end, or the stub's on the round platform's maps.
-func end_z() -> float:
-	return deck_near() - STUB_LENGTH if _round else _far_z
 
 ## Points the turn cue `angle` radians round the player (EventDriver's cue, from the map's rotation events).
 func set_cue(angle: float) -> void:
@@ -292,18 +286,14 @@ func set_stage(id: String) -> void:
 
 ## Where the deck fades into the haze: from and to, in metres out along the track (-z).
 func fade_z() -> Vector2:
-	if _round:
-		return Vector2(STUB_LENGTH - STUB_FADE - deck_near(), -end_z())
 	return Vector2(minf(FADE_START, -_far_z * 0.6), -_far_z - FADE_TAIL)
 
 ## The span along the track the edge strips run over: from the deck's near end to its far end (z).
 func strip_span() -> Vector2:
-	return Vector2(deck_near(), end_z())
+	return Vector2(deck_near(), _far_z)
 
 ## Where an edge light strip `strip_size` big sits in the edge's channel on `side` (-1 left, 1 right), its top
 ## STRIP_PROUD above the curb's. Level with it, the two tops fought for depth and the strip vanished a few metres out
-## (desktop capture, 2026-10-25). On the stub (`on_stub`, no curbs) it lies on the deck's edge, its top STRIP_PROUD up.
-static func strip_position(lane_width: float, side: float, strip_size: Vector3, on_stub := false) -> Vector3:
-	if on_stub:
-		return Vector3(side * (2.0 * lane_width - STRIP_WIDTH * 0.5), STRIP_PROUD - strip_size.y * 0.5, 0.0)
+## (desktop capture, 2026-10-25).
+static func strip_position(lane_width: float, side: float, strip_size: Vector3) -> Vector3:
 	return Vector3(side * (2.0 * lane_width + STRIP_OUT), CURB_RISE + STRIP_PROUD - strip_size.y * 0.5, 0.0)
