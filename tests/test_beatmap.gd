@@ -211,6 +211,8 @@ func _ready() -> void:
 		and is_equal_approx(Map.track_rotation(3.9), PI * 0.5) and is_equal_approx(Map.track_rotation(4.0), 0.0),
 		"it points ahead, then 90 degrees from beat 2, then ahead again from beat 4 (%s, %s, %s, %s)" % [
 		Map.track_rotation(1.9), Map.track_rotation(2.0), Map.track_rotation(3.9), Map.track_rotation(4.0)])
+	check(Map.chain_stack.size() == 1 and is_equal_approx(Map.chain_stack[0].rotation, PI * 0.5),
+		"a v3 chain at beat 2 is on the turned lane (%s)" % [Map.chain_stack.map(func(c: ChainInfo) -> float: return c.rotation)])
 	check(Map.next_turn_beat(2.0) == 4.0 and Map.next_turn_beat(4.0) == INF,
 		"the next turn after beat 2 is at 4, none after 4 (%s, %s)" % [Map.next_turn_beat(2.0), Map.next_turn_beat(4.0)])
 

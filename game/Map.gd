@@ -439,8 +439,8 @@ static func load_chain_stack_v3(chain_data: Array, rotations: Array) -> void:
 				@warning_ignore("unsafe_cast")
 				var c := chain_data[i] as Dictionary
 				var beat := Utils.get_float(c, "b", 0.)
-				c["hr"] = Utils.get_float(c, "r", 0.) + get_rotation(rotations, beat)
-				c["tr"] = c["hr"]
+				# ChainInfo.new_v3 reads the lane rotation from "r" (it once got "hr", so chains never turned)
+				c["r"] = Utils.get_float(c, "r", 0.) + get_rotation(rotations, beat)
 				chain_stack[last_index - i] = ChainInfo.new_v3(chain_data[i] as Dictionary)
 			i += 1
 	var midpoint := chain_data.size() >> 1
