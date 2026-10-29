@@ -1,7 +1,8 @@
 extends Node
 # Headless checks that the HUD's panels are placed from the player's eye (Hud._panel): the same angle and distance
 # for any eye, clear of the lanes on the Wide modifiers, grown so the lines keep their size in view; and that a fail's
-# fade (Hud.fade_out) fades the panels, hides them and leaves them whole for the next song.
+# fade (Hud.fade_out, HealthRails.fade_out) fades the panels and the energy strips, hides them and leaves them whole
+# for the next song.
 # Run: godot --headless --path . res://tests/test_hud.tscn
 
 var failures := 0
@@ -88,3 +89,15 @@ func check_fade_out() -> void:
 	hud.queue_free()
 	for node: Node in [point_label, combo, percent]:
 		node.queue_free()
+
+	var rails := HealthRails.new()
+	add_child(rails)
+	var bar := rails._bar_material
+	rails.fade_out(0.4)
+	await get_tree().create_timer(0.2).timeout
+	check(float(bar.get_shader_parameter(&"fade")) > 0.05 and float(bar.get_shader_parameter(&"fade")) < 0.95
+			and rails._icon.modulate.a < 0.95, "halfway through the fade the energy strips and bolt are see-through")
+	await get_tree().create_timer(0.4).timeout
+	check(not rails.visible and float(bar.get_shader_parameter(&"fade")) == 1.0 and rails._icon.modulate.a == 1.0,
+			"after the fade the energy strips are hidden and whole again for the next song")
+	rails.queue_free()

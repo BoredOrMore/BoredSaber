@@ -364,8 +364,9 @@ func _fail_song() -> void:
 	left_saber.set_swingcast_enabled(false)
 	right_saber.set_swingcast_enabled(false)
 	_empty_track()
-	# the score and combo panels are gone by the time FAILED shows (owner, 2026-10-29)
+	# the score and combo panels and the energy strips are gone by the time FAILED shows (owner, 2026-10-29)
 	hud.fade_out(FAIL_WORD_DELAY)
+	health_rails.fade_out(FAIL_WORD_DELAY)
 	var tw := create_tween().set_parallel()
 	# the frozen wall that failed the song would otherwise keep the controllers buzzing
 	_in_wall = false

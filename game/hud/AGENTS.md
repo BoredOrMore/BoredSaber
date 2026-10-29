@@ -14,8 +14,8 @@ arrangement (owner, 2026-10-27).
 - `Scoreboard.score_changed` → `BeepSaber_Game._display_points()` → `hud.show_points(points, played, length,
   accuracy)`. `_physics_process` emits `score_changed` once a second so the clock ticks.
 - Visibility: game states (`game/scripts/GameState/*.gd`) show and hide `Point_Label`; the two panels follow it.
-  A fail calls `hud.fade_out(FAIL_WORD_DELAY)` (`BeepSaber_Game._fail_song`): both panels fade and hide before FAILED
-  shows (owner, 2026-10-29).
+  A fail calls `hud.fade_out(FAIL_WORD_DELAY)` and `health_rails.fade_out(FAIL_WORD_DELAY)`
+  (`BeepSaber_Game._fail_song`): both panels and the energy strips fade and hide before FAILED shows (owner, 2026-10-29).
 - `Scoreboard.points_awarded` → `PointsLabelDriver.show_points` (cut numbers and misses at the note).
 - Health: `BeepSaber_Game.tscn` node with `HealthRails.gd`; the game calls `start_map` and updates it on damage.
 
