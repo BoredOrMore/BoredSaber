@@ -147,7 +147,7 @@ never clicks what it started on (a release far away cancels the press), and a fl
 the top. `scroll_without_pointer = true` scrolls even when not hovered. The song list sets `joystick_scroll = false`:
 there the thumbstick moves the selection instead (`MainMenu._step_with_stick`, centred by `SongList.center_on`;
 each step ticks that hand's controller, `STICK_TICK_*`).
-Above the list one row holds Search (icon), Filters (opens `FiltersPanel` in the right panel over the modifiers, the list staying in view: Favorites, Workout, then Difficulty and Length chips from `FilterChips`), the sort and Get songs. BeatSaver loads the next page past 90% scroll (`BeatSaverPanel.gd:447-465`).
+Above the list one row holds Search (icon), the sort, Get songs and, at its right end, Filters (a toggle: opens and closes `FiltersPanel` in the right panel over the modifiers, the list staying in view, with no Back button: Favorites, Workout, then Difficulty and Length chips from `FilterChips`). BeatSaver loads the next page past 90% scroll (`BeatSaverPanel.gd:447-465`).
 
 ## BeatSaver HTTP flow
 

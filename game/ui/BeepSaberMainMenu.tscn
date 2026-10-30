@@ -68,10 +68,11 @@ script = ExtResource("icon_button")
 
 [node name="Filters_Button" type="Button" parent="."]
 layout_mode = 0
-offset_left = 596.0
+offset_left = 951.0
 offset_top = 8.0
-offset_right = 836.0
+offset_right = 1191.0
 offset_bottom = 68.0
+toggle_mode = true
 theme_override_constants/icon_max_width = 28
 clip_text = true
 text_overrun_behavior = 3
@@ -80,17 +81,17 @@ script = ExtResource("icon_button")
 
 [node name="PlaylistSelector" type="OptionButton" parent="." unique_id=301008456]
 layout_mode = 0
-offset_left = 844.0
+offset_left = 596.0
 offset_top = 8.0
-offset_right = 1016.0
+offset_right = 768.0
 offset_bottom = 68.0
 fit_to_longest_item = false
 
 [node name="GetSongs_Button" type="Button" parent="." unique_id=1531123590]
 layout_mode = 0
-offset_left = 1024.0
+offset_left = 776.0
 offset_top = 8.0
-offset_right = 1191.0
+offset_right = 943.0
 offset_bottom = 68.0
 text = "Get songs"
 
@@ -368,14 +369,6 @@ offset_right = -16.0
 offset_bottom = -16.0
 theme_override_constants/separation = 16
 
-[node name="Back_Button" type="Button" parent="FiltersPanel/Rows"]
-theme_type_variation = &"BackButton"
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
-text = "Back"
-icon = ExtResource("icon_arrow-left")
-script = ExtResource("icon_button")
-
 [node name="FilterStatus" type="Label" parent="FiltersPanel/Rows"]
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
@@ -551,7 +544,6 @@ joystick_scroll = false
 [connection signal="pressed" from="Modifiers/Header/MoreMods_Button" to="." method="_show_more_modifiers" binds= [true]]
 [connection signal="pressed" from="MoreModsPanel/Rows/Back_Button" to="." method="_show_more_modifiers" binds= [false]]
 [connection signal="pressed" from="GetSongs_Button" to="." method="_on_get_songs_pressed"]
-[connection signal="pressed" from="Filters_Button" to="." method="_show_filters" binds= [true]]
-[connection signal="pressed" from="FiltersPanel/Rows/Back_Button" to="." method="_show_filters" binds= [false]]
+[connection signal="toggled" from="Filters_Button" to="." method="_show_filters"]
 [connection signal="pressed" from="LicensePopup/Rows/Back_Button" to="." method="_on_licenses_pressed"]
 [connection signal="pressed" from="EnvironmentPanel/Rows/Back_Button" to="." method="show_environments" binds= [false]]

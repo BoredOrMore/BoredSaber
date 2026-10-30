@@ -1170,9 +1170,10 @@ func _show_environment() -> void:
 		_mods.show_environment()
 
 ## Opens the song filters in the right panel, over the modifiers and beside the list they filter, or goes back to
-## the modifiers.
+## the modifiers (the Filters button toggles them, and stays lit while they are open).
 func _show_filters(open: bool) -> void:
 	$FiltersPanel.visible = open
+	filters_button.set_pressed_no_signal(open)
 
 ## Fills the filters panel with a Difficulty and a Length section of chips (FilterChips), above Clear filters.
 func _build_filter_chips() -> void:
