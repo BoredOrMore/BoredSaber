@@ -208,7 +208,9 @@ func _play_map(stage: EventDriver, args: Dictionary) -> bool:
 		if d.difficulty == args.get("difficulty", ""):
 			difficulty = d
 	var map_data := Utils.binary_to_json(Utils.read_binary_file(info.filepath, difficulty.beatmap_filename))
-	if not Map.load_beatmap(info, difficulty, map_data):
+	var lightshow_data := {} if difficulty.lightshow_filename.is_empty() else \
+			Utils.binary_to_json(Utils.read_binary_file(info.filepath, difficulty.lightshow_filename))
+	if not Map.load_beatmap(info, difficulty, map_data, lightshow_data):
 		push_error("stage_capture: can't read %s of %s" % [difficulty.beatmap_filename, folder])
 		return false
 	if not args.has("env"):

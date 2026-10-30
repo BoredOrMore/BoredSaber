@@ -58,6 +58,9 @@ func _ready() -> void:
 		check(is_equal_approx(v4.beats_per_minute, 128.0), "v4 BPM is read from audio.bpm (got %s)" % v4.beats_per_minute)
 		check(is_equal_approx(v4.preview_start_time, 12.0), "v4 preview start is read")
 		check(v4.difficulty_beatmaps.size() == 1, "v4 difficulty list is read")
+		if v4.difficulty_beatmaps.size() == 1:
+			check(v4.difficulty_beatmaps[0].lightshow_filename == "Lightshow.dat",
+				"v4 lightshow file name is read (got %s)" % v4.difficulty_beatmaps[0].lightshow_filename)
 
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)

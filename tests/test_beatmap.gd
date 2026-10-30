@@ -8,7 +8,8 @@ extends Node
 #   bomb   beat 2.5 x1 y2          wall beat 5 x0 y0 w1 h5 duration 2
 #   arc    left, beat 1 x1 y0 down -> beat 3 x0 y1 up
 #   chain  right, beat 2 x2 y0 right -> beat 2.5 x2 y1, 4 slices, squish 0.5 (v3/v4 only)
-#   events beat 1 type 1 value 3 | beat 2 type 4 value 1 (v2/v3; v4 lights live in a separate lightshow file)
+#   events beat 1 type 1 value 3 | beat 2 type 4 value 1 (v2/v3 in the map; v4 in v4_lightshow.dat, which also
+#          has an event pointing past its data, to be skipped)
 
 const DATA := "res://tests/data/beatmap/"
 const NOTES := [ # beat, x, y, colour, direction
@@ -52,10 +53,11 @@ func make_difficulty(njs: float, offset: float) -> DifficultyInfo:
 	return DifficultyInfo.new("Expert", 7, "Expert.dat", njs, offset, {}, "Expert", "Standard")
 
 ## loads the fixture and checks every stack against the map above, mirrored left-right when mirror is set
-func check_map(tag: String, file: String, version: String, has_chain: bool, has_events: bool, mirror: bool) -> void:
+func check_map(tag: String, file: String, version: String, has_chain: bool, has_events: bool, mirror: bool,
+		lightshow := "") -> void:
 	tag = tag + (" mirrored" if mirror else "")
 	var info := make_info(version, 120.0)
-	var ok := Map.load_beatmap(info, make_difficulty(16.0, 0.0), read_map(file))
+	var ok := Map.load_beatmap(info, make_difficulty(16.0, 0.0), read_map(file), read_map(lightshow) if lightshow else {})
 	check(ok, "%s: load_beatmap returns true" % tag)
 	var mx := func(x: float) -> float: return 3.0 - x if mirror else x
 	var mc := func(c: int) -> int: return 1 - c if mirror else c
@@ -157,9 +159,10 @@ func _ready() -> void:
 		Settings.flip = Constants.FLIP_HORIZONTAL if mirror else 0
 		check_map("v2", "v2.dat", "2.6.0", false, true, mirror)
 		check_map("v3", "v3.dat", "3.3.0", true, true, mirror)
-		# v4 lights live in a lightshow file that isn't read yet: a v4 map must not keep the previous map's lights
-		check_map("v4", "v4.dat", "4.0.0", true, false, mirror)
-		check(Map.event_stack.is_empty(), "v4%s: no light events left over from the previous (v3) map (got %d)"
+		check_map("v4", "v4.dat", "4.0.0", true, true, mirror, "v4_lightshow.dat")
+		# a v4 map without a lightshow file plays dark, not with the previous map's lights
+		check_map("v4 without lightshow", "v4.dat", "4.0.0", true, false, mirror)
+		check(Map.event_stack.is_empty(), "v4%s: no light events left over from the previous map (got %d)"
 			% [" mirrored" if mirror else "", Map.event_stack.size()])
 	Settings.flip = 0
 

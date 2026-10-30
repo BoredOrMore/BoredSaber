@@ -470,6 +470,28 @@ static func load_event_stack_v3(event_data: Array) -> void:
 	load_range.bind(midpoint, event_data.size()).call()
 	Utils.custom_thread_wait_to_finish(event_thread_1)
 	
+## Fills event_stack from a v4 lightshow file's basicEvents (beat, index) and the basicEventsData (type, value,
+## float value) they point to; events pointing past the data are skipped.
+static func load_event_stack_v4(events: Array, meta: Array) -> void:
+	event_stack.clear()
+	for i in range(events.size() - 1, -1, -1):
+		var e: Variant = events[i]
+		if not e is Dictionary:
+			continue
+		@warning_ignore("unsafe_cast")
+		var event := e as Dictionary
+		var index := int(Utils.get_float(event, "i", 0))
+		if index < 0 or index >= meta.size() or not meta[index] is Dictionary:
+			continue
+		@warning_ignore("unsafe_cast")
+		var data := meta[index] as Dictionary
+		event_stack.append(EventInfo.new(
+			Utils.get_float(event, "b", 0.0),
+			int(Utils.get_float(data, "t", 0)),
+			int(Utils.get_float(data, "i", 0)),
+			Utils.get_float(data, "f", -1.0)
+		))
+
 ## Sets how far ahead notes appear and how fast they fly from the map's note jump speed (NJS)
 ## and offset, as Beat Saber does: a note appears half a jump before its beat. Maps without
 ## an NJS keep the old fixed 4 m per beat, 4 beats ahead.
@@ -599,7 +621,10 @@ static func get_rotations_v3(events: Array) -> Array:
 	r.sort_custom(compare_times)
 	return r
 
-static func load_beatmap(info: MapInfo, difficulty: DifficultyInfo, map_data: Dictionary) -> bool:
+## Loads the difficulty's notes, walls, arcs, chains and lights from `map_data` (its beatmap file) into the stacks;
+## a v4 map takes its lights from `lightshow_data` (its lightshow file, {} for none). False for an unknown version.
+static func load_beatmap(info: MapInfo, difficulty: DifficultyInfo, map_data: Dictionary,
+		lightshow_data := {}) -> bool:
 	set_note_jump(info, difficulty)
 	
 	# Ensures the map_data dict has a version (some maps include the version only on info but not in the data)
@@ -672,9 +697,10 @@ static func load_beatmap(info: MapInfo, difficulty: DifficultyInfo, map_data: Di
 					rotations
 					])
 			if v4:
-				# v4 keeps its lights in a separate lightshow file, which isn't read yet: no events rather than the
-				# last map's
-				event_stack.clear()
+				Utils.custom_thread_call(event_thread_0, load_event_stack_v4,
+					[Utils.get_array(lightshow_data, "basicEvents", []),
+					Utils.get_array(lightshow_data, "basicEventsData", [])
+					])
 			else:
 				Utils.custom_thread_call(event_thread_0, load_event_stack_v3, [Utils.get_array(map_data, "basicBeatmapEvents", [])])
 			current_info = info
