@@ -15,7 +15,8 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
   (`ax/by/menu/trigger_*pressed/just_pressed/just_released`), `simple_rumble`, `movement_aabb`.
 - `SongTags.gd` (class `SongTags`) - BeatSaver tags (genre, style) of library songs kept in a file, so "Auto" can
   pick an environment by genre offline (`EventDriver.map_environment`), and the song menu can filter by them; it holds
-  the `STYLES` / `GENRES` both filter panels offer.
+  the `STYLES` / `GENRES` both filter panels offer. An AI-made map (BeatSaver's `automapper`) keeps `AI_TAG` with its
+  tags (`tags_from`, also on download), so both song pages can add `AI_SUFFIX` " (AI)" to its name (`is_ai`).
 - `MixedReality.gd` (autoload) - `set_mixed_reality(mr)`: passthrough on/off plus floor/HUD material tweaks.
 - `PlayCountTable.gd` (autoload `PlayCount`) - play counts, favourite flag, last difficulty per map.
 - `HighscoreTable/HighscoreTable.gd` (autoload `Highscores`) - top-10 records per map + modifier set.

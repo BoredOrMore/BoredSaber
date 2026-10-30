@@ -32,6 +32,10 @@ func _ready() -> void:
 	check(SongSearch.matches("j-pop", odoriko, PackedStringArray(["j-pop", "dance-style"])), "a tag finds the song")
 	check(SongSearch.matches("jpop", odoriko, PackedStringArray(["j-pop"])), "a tag without its dash finds it")
 	check(not SongSearch.matches("anime", odoriko, PackedStringArray(["j-pop"])), "a tag the song lacks doesn't")
+	# an AI-made map keeps the AI mark with its tags, so the song menu can label it
+	check(SongTags.tags_from({"tags": ["anime"], "automapper": true}) == ["anime", SongTags.AI_TAG],
+			"an AI map's saved tags carry the AI mark")
+	check(SongTags.tags_from({"tags": ["anime"], "automapper": false}) == ["anime"], "a person's map's don't")
 	# Get songs: a search that found nothing tries each word cut to its start once
 	var close := {"ussewa": "usse", "yoru ni kakeu": "yoru ni kake", "blindng lights": "blind ligh", "ado": "ado",
 		"senbonzakra": "senbonza", "gurenga": "guren"}

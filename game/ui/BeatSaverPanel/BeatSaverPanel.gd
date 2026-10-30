@@ -86,9 +86,10 @@ class BeatSaverSongInfo extends RefCounted:
 	func get_hash() -> String:
 		return Utils.get_str(versions[0] as Dictionary, "hash", "") if not versions.is_empty() else ""
 
-	## True if the map can be played here: made by a person, with a Standard difficulty that needs no mod.
+	## True if the map can be played here: made by a person (or an AI, with Include AI maps on), with a Standard
+	## difficulty that needs no mod.
 	func is_playable() -> bool:
-		if automapper or versions.is_empty():
+		if (automapper and not Settings.beatsaver_include_ai) or versions.is_empty():
 			return false
 		for diff: Variant in Utils.get_array(versions[0] as Dictionary, "diffs", []):
 			if Utils.get_str(diff as Dictionary, "characteristic", "") == "Standard":
@@ -246,8 +247,9 @@ func _levels(song: BeatSaverSongInfo) -> Array:
 ## A map's row text, as the song menu names its songs: "Artist - Title" (the map's name when it has neither).
 static func _row_text(song: BeatSaverSongInfo) -> String:
 	if song.song_name.is_empty():
-		return song.name
-	return "%s - %s" % [song.song_author_name, song.song_name] if not song.song_author_name.is_empty() else song.song_name
+		return song.name + (SongTags.AI_SUFFIX if song.automapper else "")
+	return ("%s - %s" % [song.song_author_name, song.song_name] if not song.song_author_name.is_empty() else song.song_name) \
+			+ (SongTags.AI_SUFFIX if song.automapper else "")
 
 ## The end of a map's row: how its download is going, else its length, with "✓" once it is in the library.
 func _side_text(song: BeatSaverSongInfo) -> String:
@@ -324,6 +326,12 @@ const DIFFICULTY_TITLE := "Difficulty"
 const LENGTH_TITLE := "Length"
 const GENRE_TITLE := "Genre"
 
+## The Include AI maps chip (Settings.beatsaver_include_ai), its words, and the AI note in a map's details.
+var _include_ai: Button
+const INCLUDE_AI_TEXT := "Include AI maps"
+const AI_CHIP_TEXT := "AI maps"
+const AI_DETAIL := " · Made by AI"
+
 ## Fills the filters panel with a section of chips per filter, under the status and Clear.
 func _build_filter_chips() -> void:
 	var label := func(choice: Array) -> String: return str(choice[0])
@@ -338,6 +346,15 @@ func _build_filter_chips() -> void:
 		_filters_changed()
 	# the same sections as the song menu's, in one scrolling page under the status (FilterChips.add_scroll)
 	var page := FilterChips.add_scroll(filter_rows, 1)
+	# AI-made maps, left out unless this is on (owner, 2026-10-30)
+	_include_ai = ModifierChips.make_row_button(INCLUDE_AI_TEXT, null, func() -> void:
+		Settings.beatsaver_include_ai = _include_ai.button_pressed, &"FilterChip")
+	_include_ai.size_flags_horizontal = Control.SIZE_FILL
+	_include_ai.custom_minimum_size.y = FilterChips.CHIP_HEIGHT
+	UI_AudioEngine.attach_button(_include_ai)
+	var ai_row := HFlowContainer.new()
+	ai_row.add_child(_include_ai)
+	page.add_child(ai_row)
 	_level_chips = FilterChips.add_section(page, DIFFICULTY_TITLE, Constants.DIFFICULTY_LEVELS.map(label), pick_level)
 	_length_chips = FilterChips.add_section(page, LENGTH_TITLE,
 		Constants.LENGTH_FILTERS.slice(1).map(func(choice: Array) -> String: return str(choice[1])), pick_length)
@@ -353,7 +370,8 @@ func _sync_filter_controls() -> void:
 	FilterChips.show_picked(_length_chips, int(MapStats.length_filter(Settings.beatsaver_filter_length)[0]) - 1)
 	FilterChips.show_picked(_genre_chips, tags.call(GENRES).find(_genre_tag))
 	var mapper_list := prev_request != null and prev_request.type == "uploader"
-	for chip: Button in _style_chips + _level_chips + _length_chips + _genre_chips:
+	_include_ai.set_pressed_no_signal(Settings.beatsaver_include_ai)
+	for chip: Button in _style_chips + _level_chips + _length_chips + _genre_chips + [_include_ai]:
 		chip.disabled = mapper_list
 	# greyed out rather than hidden, so the status beside it keeps its width
 	clear_filters_button.disabled = _filter_chips().is_empty() or mapper_list
@@ -420,6 +438,8 @@ func _filter_chips() -> Array:
 	var length := MapStats.length_filter(Settings.beatsaver_filter_length)
 	if int(length[0]) != 0:
 		chips.append([length[1], func() -> void: Settings.beatsaver_filter_length = 0])
+	if Settings.beatsaver_include_ai:
+		chips.append([AI_CHIP_TEXT, func() -> void: Settings.beatsaver_include_ai = false])
 	return chips
 
 ## The row above the list shows what it lists (owner, 2026-10-29, layout A: show which filters are on): the mapper of
@@ -442,6 +462,7 @@ func _on_clear_filters_pressed() -> void:
 	_genre_tag = ""
 	Settings.beatsaver_filter_reaction = 0
 	Settings.beatsaver_filter_length = 0
+	Settings.beatsaver_include_ai = false
 	_filters_changed()
 
 ## Draws the page again (it redraws only on input otherwise).
@@ -459,6 +480,8 @@ func _filter_query() -> String:
 	tags.erase("")
 	if not tags.is_empty():
 		query += "&tags=" + ",".join(tags)
+	if Settings.beatsaver_include_ai:
+		query += "&automapper=true"
 	if float(length[2]) > 0.0:
 		query += "&minDuration=%d" % int(length[2])
 	if float(length[3]) > 0.0:
@@ -473,7 +496,7 @@ func _filter_query() -> String:
 
 ## Follows filter changes and reloads the current list with them.
 func _on_settings_changed(key: StringName) -> void:
-	if key == &"beatsaver_filter_reaction" or key == &"beatsaver_filter_length":
+	if key == &"beatsaver_filter_reaction" or key == &"beatsaver_filter_length" or key == &"beatsaver_include_ai":
 		_filters_changed()
 
 ## Loads the current list or search again from its first page, with the current filters.
@@ -507,7 +530,8 @@ func _show() -> void:
 		self.visible = true
 	_on_BeatSaverPanel_visibility_changed()
 
-## BeatSaver search URL for one page. Leaving out the automapper parameter leaves out AI-made maps.
+## BeatSaver search URL for one page. Without the automapper parameter (Include AI maps, _filter_query) BeatSaver
+## leaves out AI-made maps.
 func _search_url(page: int, query: String, sort_order: String) -> String:
 	return "https://beatsaver.com/api/search/text/%d?q=%s&sortOrder=%s&pageSize=%d%s" % [page, query.uri_encode(), sort_order,
 		PAGE_SIZE, _filter_query()]
@@ -781,7 +805,8 @@ func _on_ItemList_item_selected(index: int) -> void:
 ## the song menu's side panel with five Standard difficulties (tests/test_menu_layout.gd).
 func _details_text(song: BeatSaverSongInfo) -> String:
 	var muted := Constants.UI_TEXT_MUTED.to_html(false)
-	var text := "[color=#%s]%d%% liked%s[/color]" % [muted, roundi(song.score * 100.0), " · ★ Staff pick" if song.curated else ""]
+	var text := "[color=#%s]%d%% liked%s%s[/color]" % [muted, roundi(song.score * 100.0), " · ★ Staff pick" if song.curated else "",
+		AI_DETAIL if song.automapper else ""]
 	var tag_names := PackedStringArray()
 	for tag in song.tags:
 		tag_names.append(_tag_name(tag))
@@ -1037,7 +1062,7 @@ func _on_download_button_up() -> void:
 	if downloading.any(func(entry: Array) -> bool: return Utils.get_str(entry[1] as Dictionary, "hash", "") == hash):
 		return
 	OS.request_permissions()
-	downloading.append([song.name, song.versions[0], song.tags])
+	downloading.append([song.name, song.versions[0], song.tags + (PackedStringArray([SongTags.AI_TAG]) if song.automapper else PackedStringArray())])
 	if downloading.size() == 1:
 		download_next()
 	label.text = ""

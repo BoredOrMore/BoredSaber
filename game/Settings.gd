@@ -417,6 +417,11 @@ var song_filter_genre: String:
 	set(value):
 		song_filter_genre = value
 		set_and_emit(&"song_filter_genre", value)
+## Get songs lists AI-made maps too (owner, 2026-10-30; off: BeatSaver leaves them out).
+var beatsaver_include_ai: bool:
+	set(value):
+		beatsaver_include_ai = value
+		set_and_emit(&"beatsaver_include_ai", value)
 ## Length filter of the BeatSaver page, kept apart from the song menu's so changing one doesn't empty the other.
 var beatsaver_filter_length: int:
 	set(value):
@@ -526,6 +531,7 @@ var default_values = {
 	song_filter_style = "",
 	song_filter_genre = "",
 	beatsaver_filter_length = 0,
+	beatsaver_include_ai = false,
 	beatsaver_filter_reaction = 0,
 	claws = false,
 	preloaded_songs = false,

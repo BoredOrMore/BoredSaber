@@ -76,8 +76,9 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   like it (owner, 2026-10-29, layout A): 1753x745 px at scale 2.4 on the menus' 2 m cylinder, where the song menu is,
   details left and the list in the centre. The right panel holds the filters, always open beside the list (owner,
   2026-10-30): a status line ("Loading songs…", "About 1,234 songs" from BeatSaver's info.total, "No songs match")
-  with Clear (greyed, never hidden, when nothing is on), then one scrolling page (`FilterChips.add_scroll`, as the song menu's) of Difficulty, Length, Style and
-  Genre, all `FilterChip`s; presses wait `FILTER_RELOAD_SECONDS` for more before one reload,
+  with Clear (greyed, never hidden, when nothing is on), then one scrolling page (`FilterChips.add_scroll`, as the song menu's) of Include AI maps
+  (`Settings.beatsaver_include_ai`: `&automapper=true`, AI maps then playable; off by default, Clear turns it off),
+  Difficulty, Length, Style and Genre, all `FilterChip`s; an AI map's row and details say so (" (AI)", "Made by AI"); presses wait `FILTER_RELOAD_SECONDS` for more before one reload,
   and a "More by" list greys them out. Above the list: Search, the sort and "My songs" in Get songs' place; under
   them a chip per filter on (its x takes it off), the search or the "More by" mapper. (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
 - `ModifierChips.gd` (class `ModifierChips`, made by the menu's `_ready`): the Song tab's fail and damage rows,
