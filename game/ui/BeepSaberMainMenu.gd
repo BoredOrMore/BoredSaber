@@ -62,6 +62,7 @@ const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 
 @onready var song_preview := $song_prev as SongPreview
 @onready var practice_panel := $PracticePanel as Panel
+@onready var practice_button := $Practice_Button as Button
 @onready var _practice_time := $PracticePanel/Rows/StartAt/StartTime as Label
 @onready var _practice_slider := $PracticePanel/Rows/StartAt/StartRow/StartSlider as HSlider
 @onready var _practice_earlier := $PracticePanel/Rows/StartAt/StartRow/Earlier_Button as Button
@@ -1281,8 +1282,8 @@ func _show_environment() -> void:
 ## Opens the song filters in the right panel, over the modifiers and beside the list they filter, or goes back to
 ## the modifiers (the Filters button toggles them, and stays lit while they are open).
 func _show_filters(open: bool) -> void:
-	if open:
-		practice_panel.hide()
+	if open and practice_panel.visible:
+		_show_practice(false)
 	$FiltersPanel.visible = open
 	filters_button.set_pressed_no_signal(open)
 
@@ -1338,6 +1339,7 @@ var _practice_song: MapInfo
 ## Wires the Practice view: Back, the start point's slider with − and +, the speed (Settings.practice_speed, 50-200% in
 ## 10% steps) and Start practice.
 func _build_practice() -> void:
+	practice_button.toggled.connect(_show_practice)
 	($PracticePanel/Rows/Back_Button as Button).pressed.connect(_show_practice.bind(false))
 	_practice_slider.step = 1.0
 	_practice_slider.value_changed.connect(func(_value: float) -> void: _show_practice_time())
@@ -1352,12 +1354,14 @@ func _build_practice() -> void:
 		_show_practice_speed())
 	_practice_start_button.pressed.connect(play_selected.bind(true))
 
-## Opens the Practice view in the right panel over the modifiers (closing the filters), or goes back to them.
+## Opens the Practice view in the right panel over the modifiers (closing the filters), or goes back to them (the
+## Practice button at the left panel's bottom toggles it, owner's choice A 2026-10-30, and stays lit while it's open).
 func _show_practice(open: bool) -> void:
 	if open:
 		_show_filters(false)
 		_sync_practice()
 	practice_panel.visible = open
+	practice_button.set_pressed_no_signal(open)
 
 ## Fits the Practice view to the picked song and difficulty: the start point runs to its last note (the length its
 ## stats show) and goes back to the beginning for another song; Start practice greys out when it can't play.

@@ -132,8 +132,10 @@ func _ready() -> void:
 			"a picture card per environment, each %.0f px or more across (3 degrees is 45 px)" % smallest)
 	menu.show_environments(false)
 	# the Practice view over the modifiers: its start point and speed beside the song list, Start practice in reach
-	menu._show_practice(true)
+	menu.practice_button.button_pressed = true
 	await _settle()
+	check(menu.practice_panel.visible and menu.practice_button.button_pressed and menu.practice_button.size.y >= 45.0,
+			"practice: the Practice button (%.0f px tall) opens the view and stays lit" % menu.practice_button.size.y)
 	_check_layout(menu, "practice")
 	menu._practice_slider.value = 90.0
 	Settings.practice_speed = 47
@@ -144,7 +146,8 @@ func _ready() -> void:
 			menu._practice_time.text, menu._practice_speed.get_line_edit().text])
 	Settings.practice_speed = 100
 	menu._show_filters(true)
-	check(not menu.practice_panel.visible, "practice: opening the filters closes the Practice view")
+	check(not menu.practice_panel.visible and not menu.practice_button.button_pressed,
+			"practice: opening the filters closes the Practice view and unlights its button")
 	menu._show_filters(false)
 	menu._show_tab(MainMenu.Tab.MORE)
 	await _settle()
