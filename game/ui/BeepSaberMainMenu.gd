@@ -1249,23 +1249,22 @@ func _build_filter_chips() -> void:
 		Settings.song_filter_reaction = index + 1
 	var pick_length := func(index: int) -> void:
 		Settings.song_filter_length = Constants.LENGTH_FILTERS[index + 1][0]
-	# the same tabs and sections as Get songs' (FilterChips.add_tabs), under the status; Favorites and Workout lead
-	# the Songs tab
-	var pages := FilterChips.add_tabs(filter_rows, 1)
-	var toggle_row := favorites_filter.get_parent()
-	toggle_row.reparent(pages[0])
-	_difficulty_chips = FilterChips.add_section(pages[0], DIFFICULTY_FILTER_TITLE,
+	# the same sections as Get songs', in one scrolling page under the status (FilterChips.add_scroll), Favorites and
+	# Workout first; the thumbstick stays on the song list's selection
+	var page := FilterChips.add_scroll(filter_rows, 1, false)
+	favorites_filter.get_parent().reparent(page)
+	_difficulty_chips = FilterChips.add_section(page, DIFFICULTY_FILTER_TITLE,
 		MapStats.difficulty_filters().slice(1).map(label), pick_difficulty, &"DifficultyButton")
-	_length_chips = FilterChips.add_section(pages[0], LENGTH_FILTER_TITLE,
+	_length_chips = FilterChips.add_section(page, LENGTH_FILTER_TITLE,
 		Constants.LENGTH_FILTERS.slice(1).map(label), pick_length, &"DifficultyButton")
 	var name := func(choice: Array) -> String: return str(choice[0])
 	var pick_style := func(index: int) -> void:
 		Settings.song_filter_style = SongTags.STYLES[index + 1][1] if index >= 0 else ""
 	var pick_genre := func(index: int) -> void:
 		Settings.song_filter_genre = SongTags.GENRES[index + 1][1] if index >= 0 else ""
-	_style_chips = FilterChips.add_section(pages[1], STYLE_FILTER_TITLE,
+	_style_chips = FilterChips.add_section(page, STYLE_FILTER_TITLE,
 		SongTags.STYLES.slice(1).map(name), pick_style, &"DifficultyButton")
-	_genre_chips = FilterChips.add_section(pages[1], GENRE_FILTER_TITLE,
+	_genre_chips = FilterChips.add_section(page, GENRE_FILTER_TITLE,
 		SongTags.GENRES.slice(1).map(name), pick_genre, &"DifficultyButton")
 	_show_picked_filters()
 

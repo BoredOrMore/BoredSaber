@@ -20,11 +20,6 @@ const CLEAR_ICON := preload("res://game/ui/icons/x.svg")
 const CHIP_ICON_SIZE := 24
 const SOME_FILTERS_TEXT := "%d filters"
 const SEARCH_CHIP_LETTERS := 16
-## The filter panels' tabs, the same on both pages (owner, 2026-10-30: six sections didn't fit one panel): Songs
-## (Favorites and Workout on the song menu, Difficulty, Length) and Tags (Style, Genre).
-const TAB_LABELS := ["Songs", "Tags"]
-## Gap between a panel's sections (px), as the panel's own rows.
-const SECTION_GAP := 16
 
 ## Adds a section titled title to parent with a chip per label, in the theme's button kind `kind`. Pressing a chip
 ## calls on_pick with its index, or -1 when it was the picked one (the filter goes off). Returns the chips.
@@ -45,38 +40,34 @@ static func add_section(parent: Container, title: String, labels: Array, on_pick
 		chips.append(chip)
 	return chips
 
-## Adds a TAB_LABELS tab row to rows at index, and under it one page per tab (shown one at a time, the Songs one
-## first) in a scroll container, so a page taller than the panel still scrolls instead of spilling out. Returns the
-## pages, to add the sections to.
-static func add_tabs(rows: VBoxContainer, index: int) -> Array[VBoxContainer]:
-	var tab_row := HBoxContainer.new()
-	rows.add_child(tab_row)
-	rows.move_child(tab_row, index)
+## The scroll container of a filter panel's sections, the same on both pages, all in one page scrolled up and down
+## (owner, 2026-10-30): Favorites and Workout (song menu only), Difficulty, Length, Style, Genre.
+const SCROLL_NAME := &"FilterScroll"
+const VR_SLIDER := preload("res://game/ui/vr_slider.tscn")
+## A drag the scroll container's own touch scrolling needs before it starts (px): never.
+const NO_OWN_DRAG := 100000
+
+## Adds to rows at index a scroll container holding one page for every section, dragged by the pointer like the
+## lists (vr_slider; the thumbstick too when joystick is true). Returns the page, to add the sections to.
+static func add_scroll(rows: VBoxContainer, index: int, joystick: bool) -> VBoxContainer:
 	var scroll := ScrollContainer.new()
+	scroll.name = SCROLL_NAME
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# vr_slider alone drags it: on the headset a ScrollContainer starts its own touch drag from a press between the
+	# chips, and two drags at once would scroll twice as far
+	scroll.scroll_deadzone = NO_OWN_DRAG
 	rows.add_child(scroll)
-	rows.move_child(scroll, index + 1)
-	var stack := VBoxContainer.new()
-	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(stack)
-	var pages: Array[VBoxContainer] = []
-	var group := ButtonGroup.new()
-	for i in TAB_LABELS.size():
-		var page := VBoxContainer.new()
-		page.add_theme_constant_override(&"separation", SECTION_GAP)
-		page.visible = i == 0
-		stack.add_child(page)
-		pages.append(page)
-		var tab := ModifierChips.make_row_button(TAB_LABELS[i], group, func() -> void:
-			for other in pages:
-				other.visible = other == page
-			scroll.scroll_vertical = 0, &"TabButton")
-		tab.custom_minimum_size.y = CHIP_HEIGHT
-		tab.button_pressed = i == 0
-		UI_AudioEngine.attach_button(tab)
-		tab_row.add_child(tab)
-	return pages
+	rows.move_child(scroll, index)
+	var page := VBoxContainer.new()
+	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	MenuSection.section_list(page)
+	scroll.add_child(page)
+	var slider := VR_SLIDER.instantiate()
+	slider.scroll_node_path = NodePath("..")
+	slider.joystick_scroll = joystick
+	scroll.add_child(slider)
+	return page
 
 ## Shows the chip at index as picked and the others not (-1: none), without calling on_pick.
 static func show_picked(chips: Array[Button], index: int) -> void:

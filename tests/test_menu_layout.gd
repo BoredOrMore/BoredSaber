@@ -112,7 +112,7 @@ func _ready() -> void:
 	menu._show_filters(true)
 	await _settle()
 	_check_layout(menu, "filters")
-	await _check_filter_tabs(menu, menu.filter_rows, "song menu")
+	await _check_filter_scroll(menu, menu.filter_rows, "song menu")
 	check(not (menu.get_node(^"FiltersPanel") as Control).get_global_rect().intersects(menu.songs_menu.get_global_rect()),
 		"filters: the open filters leave the song list in view (vr-ui-review)")
 	menu._show_filters(false)
@@ -411,8 +411,8 @@ func _check_download_page(page: BeatSaverPanel) -> void:
 	await _settle()
 	_check_layout(page, "download page, downloading")
 	page.downloading.clear()
-	# the filters sit beside the list, each tab's sections in the right panel unscrolled (owner, 2026-10-30)
-	await _check_filter_tabs(page, page.filter_rows, "download page")
+	# the filters sit beside the list, every section in one scrolling page (owner, 2026-10-30)
+	await _check_filter_scroll(page, page.filter_rows, "download page")
 	check(not page.filter_rows.get_global_rect().intersects(page.item_list.get_global_rect()),
 			"download page: the filters leave the song list in view")
 	await page._on_HTTPRequest_request_completed(0, 200, PackedStringArray(),
@@ -504,19 +504,22 @@ func _settle() -> void:
 
 ## Every visible control stays inside its parent (and the panel), and controls placed with offsets keep
 ## MIN_GAP between them.
-## Shows each filter tab (FilterChips.add_tabs) in turn: its page fits the panel without scrolling and nothing spills
-## out; ends on the first tab.
-func _check_filter_tabs(root: Control, rows: VBoxContainer, page_name: String) -> void:
-	var tabs := rows.get_child(1).get_children()
-	var scroll := rows.get_child(2) as ScrollContainer
-	check(tabs.size() == FilterChips.TAB_LABELS.size(), "%s: the filters have the tabs %s" % [page_name, FilterChips.TAB_LABELS])
-	for i in range(tabs.size() - 1, -1, -1):
-		(tabs[i] as Button).pressed.emit()
-		await _settle()
-		var page_height := (scroll.get_child(0) as Control).get_combined_minimum_size().y
-		check(page_height <= scroll.size.y + 0.5, "%s: the %s filters fit unscrolled (%.0f of %.0f px)" % [
-				page_name, FilterChips.TAB_LABELS[i], page_height, scroll.size.y])
-		_check_layout(root, "%s, %s filters" % [page_name, FilterChips.TAB_LABELS[i]])
+## The filters panel's sections scroll in one page (FilterChips.add_scroll; owner, 2026-10-30): it is there, the
+## pointer drags it (a vr_slider on it), it never scrolls sideways, and at its end nothing spills out.
+func _check_filter_scroll(root: Control, rows: VBoxContainer, page_name: String) -> void:
+	var scroll := rows.get_node_or_null(NodePath(FilterChips.SCROLL_NAME)) as ScrollContainer
+	check(scroll != null, "%s: the filters scroll in one page" % page_name)
+	if scroll == null:
+		return
+	var sliders := scroll.get_children().filter(func(c: Node) -> bool: return c.get_script() == preload("res://game/ui/vr_slider.gd"))
+	check(sliders.size() == 1, "%s: the pointer drags the filters (vr_slider on it)" % page_name)
+	var page := scroll.get_child(0) as Control
+	check(page.get_combined_minimum_size().x <= scroll.size.x + 0.5, "%s: the filters don't scroll sideways (%.0f of %.0f px)" % [
+			page_name, page.get_combined_minimum_size().x, scroll.size.x])
+	scroll.scroll_vertical = int(page.get_combined_minimum_size().y)
+	await _settle()
+	_check_layout(root, "%s, filters scrolled to the end" % page_name)
+	scroll.scroll_vertical = 0
 
 func _check_layout(root: Control, state: String) -> void:
 	var problems := PackedStringArray()
@@ -525,12 +528,12 @@ func _check_layout(root: Control, state: String) -> void:
 	if root is MainMenu:
 		_check_no_scroll(root, state)
 
-## Nothing on the song page but the song list scrolls (owner, 2026-10-28): every other shown scroll container's
-## content fits it.
+## Nothing on the song page but the song list and the filters' page scrolls (owner, 2026-10-28; the filters,
+## 2026-10-30): every other shown scroll container's content fits it.
 func _check_no_scroll(menu: MainMenu, state: String) -> void:
 	var scrolling := PackedStringArray()
 	for scroll: ScrollContainer in menu.find_children("*", "ScrollContainer", true, false):
-		if scroll == menu.songs_menu or not scroll.is_visible_in_tree():
+		if scroll == menu.songs_menu or scroll.name == FilterChips.SCROLL_NAME or not scroll.is_visible_in_tree():
 			continue
 		for content: Control in scroll.get_children().filter(func(c: Node) -> bool: return c is Control and not c is ScrollBar):
 			if content.get_combined_minimum_size().y > scroll.size.y + 0.5 or content.get_combined_minimum_size().x > scroll.size.x + 0.5:

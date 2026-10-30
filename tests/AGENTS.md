@@ -18,7 +18,8 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
   and a long search as chips, a map with long names and five levels, its Details, a download and the open filters) and fails when a visible control
   spills out of its parent or the panel, or two controls placed with offsets are closer than `MIN_GAP` (4 px). A
   control wholly under an open overlay (`OVERLAYS`: More, More modifiers) counts as hidden. Content inside a
-  `ScrollContainer` is allowed to run past it. Run it after any change to these panels or the theme. It also drags the song
+  `ScrollContainer` is allowed to run past it; on the song page only the song list and the filters' page
+  (`FilterChips.SCROLL_NAME`, owner 2026-10-30) may scroll, and the filters are checked scrolled to their end on both pages. Run it after any change to these panels or the theme. It also drags the song
   list with pointer events pushed into a `SubViewport` (as the game's canvases receive them): 1:1, no pick after a
   drag, a short press still picks.
 - `test_swing_rating.tscn` / `.gd` - checks `LightSaber.swept` (swing angles as Beat Saber measures them): a steady
