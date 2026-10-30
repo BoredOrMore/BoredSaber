@@ -798,8 +798,9 @@ func _on_tab_pressed(tab: int) -> void:
 func _on_settings_button_pressed() -> void:
 	settings_requested.emit()
 
-## Shows the tab's panel over the modifiers (Modifiers shows them) and lights up its tab.
+## Shows the tab's panel over the modifiers (Modifiers shows them), closing the filters, and lights up its tab.
 func _show_tab(tab: int) -> void:
+	_show_filters(false)
 	$MorePanel.visible = tab == Tab.MORE
 	$MoreModsPanel.hide()
 	$EnvironmentPanel.hide()
