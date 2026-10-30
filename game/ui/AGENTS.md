@@ -193,6 +193,9 @@ Above the list one row holds Search (icon), the sort, Get songs and, at its righ
   `CheckButton` once had 0 px idle vs 16 px hover margins and its label jumped under the pointer (commit `37ceb03`);
   `toggle_idle` and `list_hover` now both use 16/8. Same rule for `surface*` (20/12) and `tab_*` (28/12).
 - Set colours in the theme, not per-node overrides, so panels stay consistent.
+- The song menu's left panel is locked (owner, 2026-10-30): the characteristic tab row always takes its room (one tab
+  for a one-characteristic song) and all five level slots stay in place, the ones a map lacks greyed out, so nothing
+  moves from song to song (`test_menu_layout` checks every listed song).
 - Text that changes (counts, statuses, chips that come and go) gets its room up front, so nothing around it moves
   (owner, 2026-10-30): fixed rows and widths sized for the longest text, controls greyed out rather than hidden
   (`FilterChips.show_count`'s count room, the chip rows above both lists, the filters' Clear, the filters' scroll bar

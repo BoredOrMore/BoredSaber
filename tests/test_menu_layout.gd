@@ -58,6 +58,7 @@ func _ready() -> void:
 	if menu.songs_menu.item_count > 0:
 		menu.songs_menu.select(0)
 		menu._select_song(0, false)
+		await _check_left_panel_locked(menu)
 
 		# the selected song's preview (SongPreview) starts, and stop_preview fades it out and stops it
 		var preview := menu.song_preview
@@ -553,6 +554,24 @@ func _check_no_scroll(menu: MainMenu, state: String) -> void:
 			if content.get_combined_minimum_size().y > scroll.size.y + 0.5 or content.get_combined_minimum_size().x > scroll.size.x + 0.5:
 				scrolling.append("%s (content %s in %s)" % [menu.get_path_to(scroll), content.get_combined_minimum_size(), scroll.size])
 	check(scrolling.is_empty(), "%s: only the song list scrolls%s" % [state, "" if scrolling.is_empty() else ": " + ", ".join(scrolling)])
+
+## The left panel's sections stay put from song to song (owner, 2026-10-30): the characteristic tabs, each level
+## slot and the stats start at the same place for every listed song.
+func _check_left_panel_locked(menu: MainMenu) -> void:
+	var places := {}
+	for i in menu.songs_menu.item_count:
+		menu.songs_menu.select(i)
+		menu._select_song(i, false)
+		await _settle()
+		var place := [menu.characteristic_row.get_global_rect(), menu.level_stats.global_position]
+		for button: Control in menu.level_row.get_children():
+			place.append(button.get_global_rect() if button.visible else Rect2())
+		places[str(place)] = i
+	check(places.size() == 1, "the left panel's sections stay put across %d songs (%d layouts)" % [
+			menu.songs_menu.item_count, places.size()])
+	menu.songs_menu.select(0)
+	menu._select_song(0, false)
+	await _settle()
 
 ## Ten records on the selected difficulty, the current player's best ninth (in a table of the test's own): the ranks
 ## under the song show the best ones and, last, the player's best with its place.

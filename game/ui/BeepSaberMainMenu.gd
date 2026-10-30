@@ -1109,15 +1109,15 @@ func _sync_difficulty_picker() -> void:
 				_characteristics.append(characteristic)
 	for i in MAX_CHARACTERISTICS:
 		var tab := characteristic_row.get_child(i) as Button
-		tab.visible = i < _characteristics.size() and _characteristics.size() > 1
+		tab.visible = i < _characteristics.size()
 		if tab.visible:
 			tab.text = CHARACTERISTIC_LABELS.get(_characteristics[i], _characteristics[i])
 			tab.set_pressed_no_signal(picked != null and _characteristic_of(picked) == _characteristics[i])
-	# the tab row only takes room when there are tabs; then the stats get one line less, so the picker
-	# never runs into the fail row below it
-	characteristic_row.visible = _characteristics.size() > 1
+	# the tab row keeps its room with one characteristic too (its one tab shown), so the levels and stats under it
+	# stay put from song to song (owner, 2026-10-30: lock the left panel's sections)
 	# each of the map's difficulties keeps the mapper's slot but shows the difficulty it plays at
-	# (MapStats.level_of); slots the map lacks are hidden, and slots that play at the same level
+	# (MapStats.level_of); slots the map lacks stay in place greyed out, so no button moves from song to song, and
+	# slots that play at the same level
 	# are numbered in the map's order ("Hard 1", "Hard 2") so no name shows twice
 	var levels := {}
 	var level_counts := {}
@@ -1142,7 +1142,6 @@ func _sync_difficulty_picker() -> void:
 				button.text += " %d" % level_seen[levels[i]]
 			button.add_theme_color_override(&"font_color", level[1])
 			_set_picked_border(button, level[1])
-		button.visible = index >= 0 or not picked
 		button.disabled = index < 0
 		button.set_pressed_no_signal(picked != null and picked.difficulty == LEVELS[i][0])
 	if _status != "":
