@@ -86,6 +86,11 @@ func set_item_image(index: int, cover: Image) -> void:
 	_covers[index] = cover
 	_place_rows()
 
+## True if a song's row is (even partly) in the view.
+func shows(index: int) -> bool:
+	var step := ROW_HEIGHT + ROW_SEPARATION
+	return index * step < scroll_vertical + size.y and (index + 1) * step > scroll_vertical
+
 ## A song's small cover, shown in the details until the big one arrives.
 func get_item_image(index: int) -> Image:
 	return _covers[index]

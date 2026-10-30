@@ -18,6 +18,12 @@ class BeatSaverSongInfo extends RefCounted:
 	## Picked by BeatSaver's staff.
 	var curated: bool
 	var tags: PackedStringArray
+	## The row's text (BeatSaverPanel._row_text), and estimated_levels() with the Speed modifier it was worked out
+	## at: both made on the page's worker thread (_parse_page), so adding the row does no work per song on the main
+	## thread (owner, 2026-10-30: Get songs still hitched as each page of 50 came in).
+	var row_text: String
+	var _levels: Array = []
+	var _levels_speed := 0.0
 
 	func _init(song_info: Dictionary) -> void:
 		name = Utils.get_str(song_info, "name", "")
@@ -62,16 +68,19 @@ class BeatSaverSongInfo extends RefCounted:
 	## swing gap and swing flow instead (MapStats.level_of). Against them (doc/research/download-level-estimate.md, 195
 	## difficulties of the headset's 53 songs and the Mac's 18) it matches 73%, within one level 95%; BeatSaver's
 	## parity count no longer adds a level (67% with it). Most misses read easier: dense bursts the average hides.
-	func level_of(diff: Dictionary) -> int:
-		var level := MapStats.reaction_level(reaction_seconds(diff))
+	## `speed` is the Speed modifier (the current one by default).
+	func level_of(diff: Dictionary, speed := MapStats._speed()) -> int:
+		var level := MapStats.reaction_level(reaction_seconds(diff, speed))
 		var nps := Utils.get_float(diff, "nps", 0.0)
 		if nps > 0.0:
-			level = maxi(level, MapStats.swing_pace_level(SWING_GAP_PER_NOTE_GAP * 2.0 / nps / MapStats._speed()))
+			level = maxi(level, MapStats.swing_pace_level(SWING_GAP_PER_NOTE_GAP * 2.0 / nps / speed))
 		return mini(level, Constants.DIFFICULTY_LEVELS.size() - 1)
 
-	## Seconds a note of one difficulty (from versions[0].diffs) is visible before reaching the player.
-	func reaction_seconds(diff: Dictionary) -> float:
-		return MapStats.reaction_seconds_for(bpm, Utils.get_float(diff, "njs", 0.0), Utils.get_float(diff, "offset", 0.0))
+	## Seconds a note of one difficulty (from versions[0].diffs) is visible before reaching the player, at the Speed
+	## modifier `speed` (the current one by default).
+	func reaction_seconds(diff: Dictionary, speed := MapStats._speed()) -> float:
+		return MapStats.reaction_seconds_for(bpm, Utils.get_float(diff, "njs", 0.0), Utils.get_float(diff, "offset", 0.0),
+				speed)
 
 	## Hash of the newest version, which is also its folder name once downloaded.
 	func get_hash() -> String:
@@ -92,14 +101,18 @@ class BeatSaverSongInfo extends RefCounted:
 		var level := BeatSaverPanel.picked_level()
 		return level < 0 or estimated_levels().has(level)
 
-	## The levels (indices in Constants.DIFFICULTY_LEVELS) of the newest version's Standard difficulties.
-	func estimated_levels() -> Array:
+	## The levels (indices in Constants.DIFFICULTY_LEVELS) of the newest version's Standard difficulties at the Speed
+	## modifier `speed` (the current one by default); worked out once per speed and kept.
+	func estimated_levels(speed := MapStats._speed()) -> Array:
+		if speed == _levels_speed:
+			return _levels
 		var levels := []
-		if versions.is_empty():
-			return levels
-		for diff: Variant in Utils.get_array(versions[0] as Dictionary, "diffs", []):
-			if diff is Dictionary and Utils.get_str(diff as Dictionary, "characteristic", "Standard") == "Standard":
-				levels.append(level_of(diff as Dictionary))
+		if not versions.is_empty():
+			for diff: Variant in Utils.get_array(versions[0] as Dictionary, "diffs", []):
+				if diff is Dictionary and Utils.get_str(diff as Dictionary, "characteristic", "Standard") == "Standard":
+					levels.append(level_of(diff as Dictionary, speed))
+		_levels = levels
+		_levels_speed = speed
 		return levels
 
 var song_data: Array[BeatSaverSongInfo] = []
@@ -584,7 +597,8 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 		var request := _list_request
 		var parsed := []
 		# low priority: the pool's high-priority threads would compete with the game's own for the cores
-		var task := WorkerThreadPool.add_task(_parse_page.bind(body, parsed), false)
+		# the Speed modifier read here: the worker reads nothing from the scene
+		var task := WorkerThreadPool.add_task(_parse_page.bind(body, MapStats._speed(), parsed), false)
 		# always a frame later, so a request made meanwhile is seen the same way however fast the page parsed
 		await get_tree().process_frame
 		while not WorkerThreadPool.is_task_completed(task):
@@ -626,9 +640,9 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 		elif not _scroll_page_request_pending:
 			_show_empty(NO_MATCH_TEXT)
 
-## Parses a BeatSaver page into `parsed` as [maps playable here], left empty when the page isn't a map list; on a
-## worker thread.
-static func _parse_page(body: PackedByteArray, parsed: Array) -> void:
+## Parses a BeatSaver page into `parsed` as [maps playable here, each with its row text and its levels at the Speed
+## modifier `speed`], left empty when the page isn't a map list; on a worker thread.
+static func _parse_page(body: PackedByteArray, speed: float, parsed: Array) -> void:
 	var json_data: Variant = JSON.parse_string(body.get_string_from_utf8())
 	if not json_data is Dictionary:
 		return
@@ -639,6 +653,8 @@ static func _parse_page(body: PackedByteArray, parsed: Array) -> void:
 			if not i is Dictionary: continue
 			var song := BeatSaverSongInfo.new(i as Dictionary)
 			if song.is_playable():
+				song.row_text = _row_text(song)
+				song.estimated_levels(speed)
 				songs.append(song)
 	parsed.append(songs)
 
@@ -651,7 +667,7 @@ func _add_rows(songs: Array) -> void:
 	for song: BeatSaverSongInfo in songs:
 		if prev_request.type != "uploader" and not song.passes_reaction_filter():
 			continue
-		texts.append(_row_text(song))
+		texts.append(song.row_text)
 		sides.append(_side_text(song))
 		covers.append(_placeholder_row_cover())
 		strips.append(_strip(song))
@@ -1165,12 +1181,17 @@ func _flush_covers(delta: float) -> void:
 	if _finished_covers.is_empty() or _cover_flush_wait > 0.0:
 		return
 	_cover_flush_wait = COVER_FLUSH_SECONDS
+	# the canvas is drawn again only when a cover lands in view: covers for rows below it (most of a new page) cost
+	# no redraw of the whole menu
+	var seen := false
 	for cover: Array in _finished_covers:
 		var index: int = cover[0]
 		if index < song_data.size() and song_data[index] == cover[1]:
 			item_list.set_item_image(index, cover[2])
+			seen = seen or item_list.shows(index)
 	_finished_covers.clear()
-	_redraw()
+	if seen:
+		_redraw()
 
 ## Decodes a cover (JPEG or PNG) and sizes it to size px into `made`; on a worker thread.
 static func _make_cover(body: PackedByteArray, size: int, made: Array) -> void:
