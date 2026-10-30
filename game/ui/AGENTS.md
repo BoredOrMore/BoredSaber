@@ -24,7 +24,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   `UIRaycastButton`s use `set_primary(true)`.
 - `SongList.gd` (class `SongList`): the song menu's list, a `ScrollContainer` of row buttons in the `ItemList` look with
   the ItemList calls the menu uses; every row 76 px with a 72 px cover, 82 px apart (the selected one only changes its background); empty space at both ends lets
-  `center_on` glide any row to the middle (the thumbstick uses it); a pressed row stays under the pointer.
+  `center_on` glide any row to the middle (the thumbstick uses it); a pressed row stays under the pointer. The menu
+  sets `BackgroundImgLoader.focus` to `first_shown()` on scroll, so covers in view load first.
 - `ProfilesPanel.gd/.tscn` (class `ProfilesPanel`): "Who's playing?", opened by the player button beside the menu's gear
   (`BeepSaber_Game._open_profiles`) on its own canvas 10 cm in front of the menu, which takes no pointer input meanwhile.
   Picks, adds (max `Settings.MAX_PLAYERS`), renames (records too, `Highscores.rename_player`) and deletes players;

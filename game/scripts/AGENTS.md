@@ -26,7 +26,8 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
 - `SwingableRayCast/` - `SwingableRayCast`: saber ray plus swept sub-rays, signal `area_collided`.
 - `SongUploader/` - `SongUploader` HTTP server (`prompt.html`, `style.css` are served as-is).
 - `webxr/webxr_initializer.*` - "Enter VR" button for the Web export.
-- `BackgroundImgLoader.gd` - threaded cover loader (`load_texture`), max 10 threads by default.
+- `BackgroundImgLoader.gd` - threaded cover loader (`load_texture`), max 10 threads by default. Requests with a list row
+  wait in `_waiting_rows` and start nearest `focus` first (`_next_request`); ones without a row go first, in order.
 - `HTTPRequestPool.gd/.tscn` - throttled `HTTPRequest`s, signal `request_complete(..., token, user_data)`.
 - `ImageUtils.gd` - `get_img_from_buffer` by magic bytes (jpg/png/bmp/webp); `round_corners` cuts cover art's
   corners round (`COVER_CORNER`), for every cover `BackgroundImgLoader` loads and the Download page's cards.

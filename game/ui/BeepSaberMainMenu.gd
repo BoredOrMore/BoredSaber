@@ -639,6 +639,9 @@ func _delete_map(map: MapInfo) -> void:
 	
 ## Shows the saved modifiers on every chip, and what changed on Reset and More modifiers.
 func _ready() -> void:
+	# list covers load nearest the view first (BackgroundImgLoader.focus)
+	songs_menu.get_v_scroll_bar().value_changed.connect(func(_value: float) -> void:
+		_bg_img_loader.focus = songs_menu.first_shown())
 	DirAccess.make_dir_recursive_absolute(Constants.APPDATA_PATH+"Backgrounds/")
 	DirAccess.make_dir_recursive_absolute(Constants.APPDATA_PATH+"Songs/")
 

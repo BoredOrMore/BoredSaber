@@ -13,6 +13,13 @@ class ImgLoadRequest:
 	var thread := Thread.new()
 
 var _img_load_request_queue := LinkedList.new()
+## List covers waiting (index >= 0), by their row: the next one to load is the waiting row nearest `focus`, the row at
+## the top of the view, so the covers on screen come first wherever the list is scrolled (owner, 2026-10-30). Finding
+## it looks outward from `focus` and stops at the first waiting row. Covers with no row (index < 0, the details'
+## big cover) wait in _img_load_request_queue and go before any row.
+var _waiting_rows := {}
+var _last_row := 0
+var focus := 0
 
 # variable used to keep track of how many threads are currently loading images
 var _img_load_mutex := Mutex.new()
@@ -36,19 +43,38 @@ func load_texture(path: String, file: String, callback_func: Callable, is_main_c
 	new_req.index = index
 	# the loading threads take requests off this queue under the mutex, so adding goes under it too
 	_img_load_mutex.lock()
-	_img_load_request_queue.push_back(new_req)
+	if index >= 0:
+		# a list rebuilt for a filter or search asks again for the same row: the newest asker wins
+		_waiting_rows[index] = new_req
+		_last_row = maxi(_last_row, index)
+	else:
+		_img_load_request_queue.push_back(new_req)
 	_img_load_mutex.unlock()
 	
 	_start_next_img_load()
 
 func _start_next_img_load() -> void:
 	_img_load_mutex.lock()
-	if _img_load_request_queue.size() > 0 and _running_img_load_threads < _max_img_load_threads:
-		var next_req := _img_load_request_queue.pop_front() as ImgLoadRequest
+	if _running_img_load_threads < _max_img_load_threads:
+		var next_req := _next_request()
 		
 		if next_req and Utils.custom_thread_call(next_req.thread, _load_img_threaded, [next_req]) == OK:
 			_running_img_load_threads += 1
 	_img_load_mutex.unlock()
+
+## The request to load next (under the mutex): a cover with no row, else the waiting row nearest focus; null if none.
+func _next_request() -> ImgLoadRequest:
+	if _img_load_request_queue.size() > 0:
+		return _img_load_request_queue.pop_front() as ImgLoadRequest
+	if _waiting_rows.is_empty():
+		return null
+	for step in _last_row + 1:
+		for row: int in [focus + step, focus - step]:
+			if _waiting_rows.has(row):
+				var req: ImgLoadRequest = _waiting_rows[row]
+				_waiting_rows.erase(row)
+				return req
+	return null
 
 func _load_img_threaded(req: ImgLoadRequest) -> void:
 	# read cover image data from file into a buffer
