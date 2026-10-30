@@ -172,10 +172,8 @@ const PLAY_ICON := preload("res://game/ui/icons/play.svg")
 const CLEAR_ICON := preload("res://game/ui/icons/x.svg")
 ## The sort button while a search lists maps by how well they match.
 const BEST_MATCH_TEXT := "Best match"
-## The Filters button, with how many filters are on; the chip that stands for several filters when their chips don't
-## fit above the list; the chip of the mapper list "More by" opened (its x goes back to the list before).
-const FILTERS_TEXT := "Filters"
-const FILTERS_ON_TEXT := "Filters · %d"
+## The chip that stands for several filters when their chips don't fit above the list; the chip of the mapper list
+## "More by" opened (its x goes back to the list before).
 const SOME_FILTERS_TEXT := "%d filters"
 const MAPPER_CHIP_TEXT := "By %s"
 ## Most letters of the search shown on its chip, before "…".
@@ -193,8 +191,6 @@ var _preview_url := ""
 @onready var item_list := $ItemList as BeatSaverList
 @onready var sort_button := $SortButton as OptionButton
 @onready var search_button := $search as Button
-@onready var filters_button := $Filters_Button as Button
-@onready var filters_panel := $FiltersPanel as Panel
 @onready var chip_row := $ChipRow as HBoxContainer
 @onready var source_label := $ChipRow/Source as Label
 @onready var empty_list := $EmptyList as Label
@@ -211,11 +207,9 @@ var _preview_url := ""
 @onready var placeholder_cover := preload("res://game/data/beepsaber_logo.png")
 @onready var goto_maps_by := $gotoMapsBy as Button
 @onready var download_button := $download as Button
-@onready var reaction_filter := $FiltersPanel/Rows/DifficultyRow/ReactionFilter as OptionButton
-@onready var genre_filter := $FiltersPanel/Rows/GenreRow/GenreFilter as OptionButton
-@onready var style_chips := $FiltersPanel/Rows/StyleRow/StyleChips as HFlowContainer
-@onready var length_filter := $FiltersPanel/Rows/LengthRow/LengthFilter as OptionButton
-@onready var clear_filters_button := $FiltersPanel/Rows/ClearFilters_Button as Button
+@onready var filter_rows := $FiltersPanel/Rows as VBoxContainer
+@onready var filter_status := $FiltersPanel/Rows/Status/FilterStatus as Label
+@onready var clear_filters_button := $FiltersPanel/Rows/Status/ClearFilters_Button as Button
 @onready var v_scroll := item_list.get_v_scroll_bar()
 
 const MAX_BACK_STACK_DEPTH := 10
@@ -291,18 +285,7 @@ func _strip(song: BeatSaverSongInfo) -> Texture2D:
 func _ready() -> void:
 	for tab: Array in SORT_TABS:
 		sort_button.add_item(tab[0])
-	var style_group := ButtonGroup.new()
-	for style: Array in STYLES:
-		var chip := Button.new()
-		chip.theme_type_variation = &"ChipButton"
-		chip.text = style[0]
-		chip.toggle_mode = true
-		chip.button_group = style_group
-		chip.pressed.connect(_on_style_pressed.bind(style[1]))
-		style_chips.add_child(chip)
-	(style_chips.get_child(0) as Button).set_pressed_no_signal(true)
-	for genre: Array in GENRES:
-		genre_filter.add_item(genre[0])
+	_build_filter_chips()
 	UI_AudioEngine.attach_children(self)
 	v_scroll.value_changed.connect(_on_ListV_Scroll_value_changed)
 	_detail_texture = ImageTexture.create_from_image(_sized(placeholder_cover.get_image(), DETAIL_COVER))
@@ -329,36 +312,108 @@ func _ready() -> void:
 
 	main_menu_ref.song_list_changed.connect(on_song_list_changed)
 	
-	reaction_filter.add_item(Constants.ANY_DIFFICULTY_LABEL)
-	for level: Array in Constants.DIFFICULTY_LEVELS:
-		reaction_filter.add_item(level[0])
 	LevelStrip.prepare(self)
 	_add_details_toggle()
 	_make_details_box()
-	for filter: Array in Constants.LENGTH_FILTERS:
-		length_filter.add_item(filter[1])
+	_reload_timer.one_shot = true
+	_reload_timer.wait_time = FILTER_RELOAD_SECONDS
+	_reload_timer.timeout.connect(_reload)
+	add_child(_reload_timer)
 	_sync_filter_controls()
 	Settings.changed.connect(_on_settings_changed)
 
-## Shows the filters in their controls, on the Filters button and as chips above the list.
+## The filters in the right panel beside the list (owner, 2026-10-30: the panel over the list showed no result until
+## Back, and dropdowns took two presses): a FilterChips section each, without the "any" choices (the picked chip
+## pressed again turns its filter off). Their chips, in the order of STYLES, Constants.DIFFICULTY_LEVELS,
+## Constants.LENGTH_FILTERS and GENRES without the first, "any", entry.
+var _style_chips: Array[Button] = []
+var _level_chips: Array[Button] = []
+var _length_chips: Array[Button] = []
+var _genre_chips: Array[Button] = []
+const STYLE_TITLE := "Style"
+const DIFFICULTY_TITLE := "Difficulty"
+const LENGTH_TITLE := "Length"
+const GENRE_TITLE := "Genre"
+
+## Fills the filters panel with a section of chips per filter, under the status and Clear.
+func _build_filter_chips() -> void:
+	var label := func(choice: Array) -> String: return str(choice[0])
+	# a chip's index is its choice's less one: the first choice is "any", which no chip picked gives
+	var pick_style := func(index: int) -> void:
+		_style_tag = STYLES[index + 1][1] if index >= 0 else ""
+		_filters_changed()
+	var pick_level := func(index: int) -> void: Settings.beatsaver_filter_reaction = index + 1
+	var pick_length := func(index: int) -> void: Settings.beatsaver_filter_length = Constants.LENGTH_FILTERS[index + 1][0]
+	var pick_genre := func(index: int) -> void:
+		_genre_tag = GENRES[index + 1][1] if index >= 0 else ""
+		_filters_changed()
+	_style_chips = FilterChips.add_section(filter_rows, STYLE_TITLE, STYLES.slice(1).map(label), pick_style)
+	# the song menu's difficulty buttons (their narrower kind keeps the five levels on one row)
+	_level_chips = FilterChips.add_section(filter_rows, DIFFICULTY_TITLE,
+		Constants.DIFFICULTY_LEVELS.map(label), pick_level, &"DifficultyButton")
+	# the same narrow kind keeps the three lengths on one row, so every section fits the panel with none scrolling
+	_length_chips = FilterChips.add_section(filter_rows, LENGTH_TITLE,
+		Constants.LENGTH_FILTERS.slice(1).map(func(choice: Array) -> String: return str(choice[1])), pick_length,
+		&"DifficultyButton")
+	_genre_chips = FilterChips.add_section(filter_rows, GENRE_TITLE, GENRES.slice(1).map(label), pick_genre)
+
+## Shows the filters on their chips and as chips above the list; a mapper's list ("More by") isn't filtered, so its
+## chips are greyed out then.
 func _sync_filter_controls() -> void:
-	reaction_filter.select(picked_level() + 1)
-	length_filter.select(MapStats.length_filter(Settings.beatsaver_filter_length)[0])
-	for i in STYLES.size():
-		(style_chips.get_child(i) as Button).set_pressed_no_signal(STYLES[i][1] == _style_tag)
-	genre_filter.select(GENRES.map(func(genre: Array) -> String: return genre[1]).find(_genre_tag))
-	var on := _filter_chips()
-	filters_button.text = FILTERS_ON_TEXT % on.size() if not on.is_empty() else FILTERS_TEXT
-	clear_filters_button.visible = not on.is_empty()
+	var tags := func(entries: Array) -> Array: return entries.slice(1).map(func(entry: Array) -> String: return entry[1])
+	FilterChips.show_picked(_style_chips, tags.call(STYLES).find(_style_tag))
+	FilterChips.show_picked(_level_chips, picked_level())
+	FilterChips.show_picked(_length_chips, int(MapStats.length_filter(Settings.beatsaver_filter_length)[0]) - 1)
+	FilterChips.show_picked(_genre_chips, tags.call(GENRES).find(_genre_tag))
+	var mapper_list := prev_request != null and prev_request.type == "uploader"
+	for chip: Button in _style_chips + _level_chips + _length_chips + _genre_chips:
+		chip.disabled = mapper_list
+	clear_filters_button.visible = not _filter_chips().is_empty() and not mapper_list
 	_update_chips()
+	_show_filter_status()
+
+## Seconds after the last filter change before the list loads again, so a few presses in a row load it once (owner,
+## 2026-10-30: each change reloaded at once, three tweaks were three loads).
+const FILTER_RELOAD_SECONDS := 0.5
+var _reload_timer := Timer.new()
+## Songs BeatSaver has for the current search and filters (its info.total), or -1 when it didn't say.
+var _total_songs := -1
+## The filters panel's status line: loading, about how many songs match, none, or that a mapper's list isn't filtered.
+const LOADING_STATUS := "Loading songs…"
+const TOTAL_STATUS := "About %s songs"
+const NO_MATCH_STATUS := "No songs match"
+const MAPPER_STATUS := "Showing all songs by %s"
+
+## A filter changed: shows it at once and loads the list again once no other change came for FILTER_RELOAD_SECONDS.
+func _filters_changed() -> void:
+	_reload_timer.start()
+	_sync_filter_controls()
+	_redraw()
+
+## Shows on the filters panel what the list is doing: loading, about how many songs it has, none, or a mapper's list.
+func _show_filter_status() -> void:
+	if prev_request != null and prev_request.type == "uploader":
+		filter_status.text = MAPPER_STATUS % _uploader_name
+	elif not _reload_timer.is_stopped() or (empty_list.visible and empty_list.text == LOADING_TEXT):
+		filter_status.text = LOADING_STATUS
+	elif item_list.item_count == 0:
+		filter_status.text = NO_MATCH_STATUS if empty_list.text == NO_MATCH_TEXT else ""
+	elif _total_songs >= 0:
+		filter_status.text = TOTAL_STATUS % Hud._grouped(_total_songs)
+	else:
+		filter_status.text = ""
 
 ## The filters that are on, as [chip text, what pressing its x does].
 func _filter_chips() -> Array:
 	var chips := []
 	if not _style_tag.is_empty():
-		chips.append([_tag_name(_style_tag), func() -> void: _on_style_pressed("")])
+		chips.append([_tag_name(_style_tag), func() -> void:
+			_style_tag = ""
+			_filters_changed()])
 	if not _genre_tag.is_empty():
-		chips.append([_tag_name(_genre_tag), func() -> void: _on_genre_filter_item_selected(0)])
+		chips.append([_tag_name(_genre_tag), func() -> void:
+			_genre_tag = ""
+			_filters_changed()])
 	if picked_level() >= 0:
 		chips.append([Constants.DIFFICULTY_LEVELS[picked_level()][0], func() -> void: Settings.beatsaver_filter_reaction = 0])
 	var length := MapStats.length_filter(Settings.beatsaver_filter_length)
@@ -402,24 +457,13 @@ func _fill_chips(chips: Array) -> void:
 		chip_row.move_child(chip, chip_row.get_child_count() - 2)
 	source_label.visible = chips.is_empty()
 
-## Opens or closes the filters over the list.
-func _set_filters_open(open: bool) -> void:
-	filters_panel.visible = open
-	_redraw()
-
-## Turns every filter off and lists again once.
+## Turns every filter off; the list loads again once (_filters_changed).
 func _on_clear_filters_pressed() -> void:
 	_style_tag = ""
 	_genre_tag = ""
-	_clearing = true
 	Settings.beatsaver_filter_reaction = 0
 	Settings.beatsaver_filter_length = 0
-	_clearing = false
-	_sync_filter_controls()
-	_reload()
-
-## True while Clear filters changes several settings, so the list loads once.
-var _clearing := false
+	_filters_changed()
 
 ## Draws the page again (it redraws only on input otherwise).
 func _redraw() -> void:
@@ -450,36 +494,14 @@ func _filter_query() -> String:
 
 ## Follows filter changes and reloads the current list with them.
 func _on_settings_changed(key: StringName) -> void:
-	if key != &"beatsaver_filter_reaction" and key != &"beatsaver_filter_length" or _clearing:
-		return
-	_sync_filter_controls()
-	_reload()
+	if key == &"beatsaver_filter_reaction" or key == &"beatsaver_filter_length":
+		_filters_changed()
 
 ## Loads the current list or search again from its first page, with the current filters.
 func _reload() -> void:
 	if prev_request != null and prev_request.type != "uploader":
 		prev_request.page = 0
 		update_list(prev_request)
-
-## Lists only maps of one style (a BeatSaver tag), or any.
-func _on_style_pressed(tag: String) -> void:
-	_style_tag = tag
-	_sync_filter_controls()
-	_reload()
-
-## Lists only maps of one genre (a BeatSaver tag), or any.
-func _on_genre_filter_item_selected(index: int) -> void:
-	_genre_tag = GENRES[index][1]
-	_sync_filter_controls()
-	_reload()
-
-## Stores the picked reaction time filter.
-func _on_reaction_filter_item_selected(index: int) -> void:
-	Settings.beatsaver_filter_reaction = index
-
-## Stores the picked length filter.
-func _on_length_filter_item_selected(index: int) -> void:
-	Settings.beatsaver_filter_length = Constants.LENGTH_FILTERS[index][0]
 
 # override hide() method to handle case where UI is inside a OQ_UI2DCanvas
 func _hide() -> void:
@@ -523,9 +545,12 @@ func update_list(req: BeatSaverRequest) -> void:
 		_cover_list += 1
 		_finished_covers.clear()
 		item_selected = -1
+		_total_songs = -1
+		# this load has the current filters, so a reload still waiting for more filter presses isn't needed
+		_reload_timer.stop()
 		_show_no_song()
 		_update_download_button()
-		_update_chips()
+		_sync_filter_controls()
 	if not httpcoverdownload:
 		return
 	httpcoverdownload.cancel_request()
@@ -608,6 +633,8 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 			return
 		if not parsed.is_empty():
 			var songs: Array = parsed[0]
+			if parsed[1] >= 0:
+				_total_songs = parsed[1]
 			# resume covers a newer page interrupted, rather than skipping them
 			_current_cover_to_download = mini(_current_cover_to_download, song_data.size())
 			for first in range(0, songs.size(), ROWS_PER_FRAME):
@@ -639,9 +666,11 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 			_show_empty("")
 		elif not _scroll_page_request_pending:
 			_show_empty(NO_MATCH_TEXT)
+	_show_filter_status()
 
 ## Parses a BeatSaver page into `parsed` as [maps playable here, each with its row text and its levels at the Speed
-## modifier `speed`], left empty when the page isn't a map list; on a worker thread.
+## modifier `speed`; how many maps match in all (a search's info.total), or -1 when it doesn't say], left empty when
+## the page isn't a map list; on a worker thread.
 static func _parse_page(body: PackedByteArray, speed: float, parsed: Array) -> void:
 	var json_data: Variant = JSON.parse_string(body.get_string_from_utf8())
 	if not json_data is Dictionary:
@@ -656,7 +685,9 @@ static func _parse_page(body: PackedByteArray, speed: float, parsed: Array) -> v
 				song.row_text = _row_text(song)
 				song.estimated_levels(speed)
 				songs.append(song)
-	parsed.append(songs)
+	var info: Variant = (json_data as Dictionary).get("info")
+	var total: Variant = (info as Dictionary).get("total") if info is Dictionary else null
+	parsed.append_array([songs, int(total) if total is float or total is int else -1])
 
 ## Adds the parsed maps that pass the level filter (an uploader's maps all show) to the list.
 func _add_rows(songs: Array) -> void:

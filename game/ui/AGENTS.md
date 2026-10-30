@@ -64,10 +64,13 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   `LevelStrip.gd` draws a row's level strip (Easy..Expert+ slots, the player's level framed, "≈" while estimated)
   into one image, shared by every row with the same strip.
   The menu's "Get songs" opens it directly (`BeepSaber_Game._open_beatsaver`) in place of the song menu, laid out
-  like it (owner, 2026-10-29, layout A): 1249x745 px at scale 2.4 on the menus' 2 m cylinder, turned 16.9° left so its
-  details panel and list sit where the song menu's left and centre panels are; the right stays empty. Above the list:
-  Search, Filters (opens `FiltersPanel` over the list: Style, Difficulty, Length, Genre), the sort and "My songs" in
-  Get songs' place; under them a chip per filter on (its x takes it off), the search or the "More by" mapper. (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
+  like it (owner, 2026-10-29, layout A): 1753x745 px at scale 2.4 on the menus' 2 m cylinder, where the song menu is,
+  details left and the list in the centre. The right panel holds the filters, always open beside the list (owner,
+  2026-10-30): a status line ("Loading songs…", "About 1,234 songs" from BeatSaver's info.total, "No songs match")
+  with Clear, then `FilterChips` sections Style, Difficulty, Length (both in the narrow `DifficultyButton` kind, one
+  row each, so all four fit unscrolled) and Genre; presses wait `FILTER_RELOAD_SECONDS` for more before one reload,
+  and a "More by" list greys them out. Above the list: Search, the sort and "My songs" in Get songs' place; under
+  them a chip per filter on (its x takes it off), the search or the "More by" mapper. (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
 - `ModifierChips.gd` (class `ModifierChips`, made by the menu's `_ready`): the Song tab's fail and damage rows,
   on/off and Speed chips, More modifiers, environment picker and reset, in step with `Settings`; `changed()` names
   the modified ones. Its static `make_row_button` (a button of a given kind) is shared with the difficulty picker.
