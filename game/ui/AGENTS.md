@@ -89,7 +89,10 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   2026-10-30, replacing a Practice view in the song menu that felt cut off from playing): "1:24 of 2:55" over the
   playback timeline (`HSlider`), which follows the song and is dragged to any point, stopped or while playing
   (`scrub_started`/`scrub_ended`; a press without a drag jumps at once); "Start 0:12" beside the start point's own
-  slider, which stays where it was set (owner, 2026-10-30; `start_set`); a one-line hint; Speed − 50-200% +
+  slider, which stays where it was set (owner, 2026-10-30; `start_set`); "End 1:50" with a Repeat toggle and the end
+  point's slider (owner's A-B loop, 2026-10-30; off by default, "End: whole song"; on, the part runs from the start
+  to the end again and again, at least `MIN_PART_SECONDS` long, starting `NEW_PART_SECONDS` long; `end_set`, -1 off);
+  a one-line hint; Speed − 50-200% +
   (`Constants.PRACTICE_SPEED_*`, greyed while playing); the primary Play/Pause (`icons/pause.svg`, Lucide), Restart
   (from the start point) and Exit. It only shows and signals; the game runs the song and places
   it (`BeepSaber_Game.PRACTICE_PANEL_*`). `nudge` moves the timeline for the left thumbstick.

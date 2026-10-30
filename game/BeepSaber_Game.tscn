@@ -362,6 +362,7 @@ main_menu_ref = NodePath("../MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu")
 [connection signal="exit_pressed" from="Practice_canvas/PracticePanel" to="." method="_main_menu_button"]
 [connection signal="restart_pressed" from="Practice_canvas/PracticePanel" to="." method="_on_practice_restart_pressed"]
 [connection signal="start_set" from="Practice_canvas/PracticePanel" to="." method="_on_practice_start_set"]
+[connection signal="end_set" from="Practice_canvas/PracticePanel" to="." method="_on_practice_end_set"]
 [connection signal="scrub_started" from="Practice_canvas/PracticePanel" to="." method="_on_practice_scrub_started"]
 [connection signal="scrub_ended" from="Practice_canvas/PracticePanel" to="." method="_on_practice_scrub_ended"]
 [connection signal="speed_changed" from="Practice_canvas/PracticePanel" to="." method="_on_practice_speed_changed"]

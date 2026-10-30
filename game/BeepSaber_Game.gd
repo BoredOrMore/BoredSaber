@@ -104,12 +104,13 @@ var song_start := 0.0
 const PRACTICE_PRE_ROLL_SECONDS := 1.0
 ## How far before the fail "Practice this part" starts, in song seconds (untuned).
 const PRACTICE_BEFORE_FAIL_SECONDS := 8.0
-## The practice panel (owner's choice 5A, 2026-10-30): 60 degrees to the player's right, 15 below the eye, 1.3 m from
-## it, facing it; in the head-turn-plus-eyes zone's glance range and clear of the note lanes and the walls' reach.
-## Scale 1.6 makes the 28 px text 4.4 cm, 1.9 degrees at 1.3 m (vr-ui-design's 1.85 floor), and its 60 px buttons
-## 4.1 degrees.
+## The practice panel (owner's choice 5A, 2026-10-30): 60 degrees to the player's right, 1.3 m from the eye, facing it;
+## in the head-turn-plus-eyes zone's glance range and clear of the note lanes and the walls' reach. Its centre sits 9
+## degrees below the eye (15 at first; 9 since the Repeat row made it 540 px, 0.84 m, tall), so it spans about 9 up to
+## 27 down, the zone's floor. Scale 1.6 makes the 28 px text 4.4 cm, 1.9 degrees at 1.3 m (vr-ui-design's 1.85
+## floor), and its 52-64 px targets 3.5-4.4 degrees.
 const PRACTICE_PANEL_YAW := 60.0
-const PRACTICE_PANEL_PITCH := -15.0
+const PRACTICE_PANEL_PITCH := -9.0
 const PRACTICE_PANEL_DISTANCE := 1.3
 const PRACTICE_PANEL_SCALE := 1.6
 ## The left thumbstick scrubs practice's timeline (owner's choice 6C, 2026-10-30): past the dead zone, up to
@@ -123,6 +124,8 @@ var _practice_panel_placed := Transform3D()
 var _practice_stacks: Array = []
 ## practice's start point (song seconds): it stays where the player set it; Restart and the song's end go back to it
 var _practice_start_point := 0.0
+## practice's end point (song seconds) with Repeat on: reaching it plays from the start point again; -1 while off
+var _practice_end_point := -1.0
 ## a drag on the timeline began while the song played: letting go plays from there after the countdown
 var _resume_after_scrub := false
 
@@ -300,6 +303,7 @@ func start_practice(info: MapInfo, map_difficulty: DifficultyInfo, start: float,
 	Map.practice = true
 	Map.practice_start = start
 	_practice_start_point = start
+	_practice_end_point = -1.0
 	Map.practice_speed = speed
 	Utils.update_bus_speed(&"Music")
 	endscore.visible = false
@@ -323,7 +327,8 @@ func _practice_hold(at: float) -> void:
 	lead_in = 0.0
 	pause_countdown.visible = false
 	_clear_track()
-	practice_panel.show_state(false, at, _practice_start_point, song_player.stream.get_length(), Map.practice_speed)
+	practice_panel.show_state(false, at, _practice_start_point, _practice_end_point,
+			song_player.stream.get_length(), Map.practice_speed)
 	_transition_game_state(gamestate_practicehold)
 
 ## Plays the practised song from `at` song seconds: the map from there (the passed light events replayed), the usual
@@ -344,7 +349,8 @@ func _practice_play(at: float) -> void:
 	lead_in = maxf(LEAD_IN_MIN_SECONDS, Map.half_jump_beats / Map.beats_per_second() + Cuttable.FLY_SECONDS)
 	Scoreboard.restart()
 	_display_points()
-	practice_panel.show_state(true, at, _practice_start_point, song_player.stream.get_length(), Map.practice_speed)
+	practice_panel.show_state(true, at, _practice_start_point, _practice_end_point,
+			song_player.stream.get_length(), Map.practice_speed)
 	_transition_game_state(gamestate_playing)
 
 ## Where the practised song is now, for the panel: never before the start it was played from (the countdown runs
@@ -364,6 +370,15 @@ func _on_practice_pause_pressed() -> void:
 ## Restart on the practice panel: the song plays from the start point after the countdown.
 func _on_practice_restart_pressed() -> void:
 	_practice_play(_practice_start_point)
+
+## A new end point, or Repeat turned off (-1).
+func _on_practice_end_set(at: float) -> void:
+	_practice_end_point = at
+
+## With Repeat on, reaching the end point plays from the start point again, after the countdown (owner, 2026-10-30).
+func _practice_check_end() -> void:
+	if _practice_end_point >= 0.0 and lead_in <= 0.0 and get_current_time() >= _practice_end_point:
+		_practice_play(_practice_start_point)
 
 ## A new start point: a playing song jumps there, a stopped one waits there.
 func _on_practice_start_set(at: float) -> void:
@@ -406,7 +421,8 @@ func _on_practice_speed_changed(percent: int) -> void:
 	Settings.practice_speed = percent
 	Utils.update_bus_speed(&"Music")
 	song_player.pitch_scale = percent / 100.0
-	practice_panel.show_state(false, practice_panel.seconds(), _practice_start_point, song_player.stream.get_length(),
+	practice_panel.show_state(false, practice_panel.seconds(), _practice_start_point, _practice_end_point,
+			song_player.stream.get_length(),
 			percent)
 
 ## Ends practising (back in the menu, plays go back to normal).

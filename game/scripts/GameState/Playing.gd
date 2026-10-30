@@ -41,6 +41,8 @@ func _physics_process(game: BeepSaber_Game) -> void:
 		return
 	if Map.practice:
 		game._practice_stick(game.get_physics_process_delta_time())
+		if game.gamestate == self:
+			game._practice_check_end()
 		if game.gamestate != self:
 			return
 	for controller: BeepSaberController in [game.left_controller, game.right_controller]:

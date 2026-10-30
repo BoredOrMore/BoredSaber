@@ -12,7 +12,7 @@
 
 [node name="PracticePanel" type="Panel"]
 offset_right = 560.0
-offset_bottom = 470.0
+offset_bottom = 540.0
 theme = ExtResource("menu_theme")
 theme_override_styles/panel = ExtResource("menu_panel")
 script = ExtResource("script")
@@ -26,29 +26,46 @@ offset_left = 24.0
 offset_top = 16.0
 offset_right = -24.0
 offset_bottom = -16.0
-theme_override_constants/separation = 12
+theme_override_constants/separation = 10
 
 [node name="Time" type="Label" parent="Rows"]
-custom_minimum_size = Vector2(0, 44)
+custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 text = "0:00 of 0:00"
-horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="Timeline" type="HSlider" parent="Rows"]
-custom_minimum_size = Vector2(0, 60)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 
 [node name="StartTime" type="Label" parent="Rows"]
 custom_minimum_size = Vector2(0, 36)
 layout_mode = 2
 text = "Start 0:00"
-horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="Start" type="HSlider" parent="Rows"]
-custom_minimum_size = Vector2(0, 60)
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
+
+[node name="EndRow" type="HBoxContainer" parent="Rows"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+
+[node name="EndTime" type="Label" parent="Rows/EndRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "End: whole song"
+vertical_alignment = 1
+
+[node name="Repeat" type="CheckButton" parent="Rows/EndRow"]
+layout_mode = 2
+text = "Repeat"
+
+[node name="End" type="HSlider" parent="Rows"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+editable = false
 
 [node name="Hint" type="Label" parent="Rows"]
 custom_minimum_size = Vector2(0, 30)
@@ -96,7 +113,7 @@ size_flags_vertical = 10
 
 [node name="PlayPause_Button" type="Button" parent="Rows/Buttons"]
 theme_type_variation = &"PrimaryButton"
-custom_minimum_size = Vector2(0, 72)
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Play"
@@ -104,7 +121,7 @@ icon = ExtResource("icon_play")
 script = ExtResource("icon_button")
 
 [node name="Restart_Button" type="Button" parent="Rows/Buttons"]
-custom_minimum_size = Vector2(0, 72)
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Restart"
@@ -112,7 +129,7 @@ icon = ExtResource("icon_rotate-ccw")
 script = ExtResource("icon_button")
 
 [node name="Exit_Button" type="Button" parent="Rows/Buttons"]
-custom_minimum_size = Vector2(0, 72)
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Exit"
