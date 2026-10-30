@@ -40,11 +40,17 @@
 //      on that side of the track (window_left_color, window_right_color) with a warm room tint. Where a room is
 //      smaller than a pixel the windows blend into their average, so far walls don't sparkle. Light, after the haze,
 //      kept well under the notes (Light rule 1)
+//   10. soft far edges (SHELL: Night City's landmark and tower bodies, NightCityRig): a second, see-through copy of a
+//      box, blown up and drawn from inside (only its back faces, so the box itself hides it wherever the box shows), whose
+//      pixels fade out with how far their line of sight passes from the box (silhouette_gap), so a far box's outline
+//      melts into the sky over SHELL_BLUR_ANGLE, as distant things blur in the air, with no read of the screen (rule
+//      10). Its colour is the box's own at the outline (a side face's form). Nothing from SHELL_NEAR in, full at
+//      SHELL_FAR. Axis-aligned boxes only (BoxMesh, scaled, not turned)
 // The scene has no real lights (AGENTS.md "Light", rule 10), so layers 2-4 are faked here. Everything but the edge's
 // falloff is worked out per vertex: the faces are flat, so per pixel would give the same picture. Values untuned.
 // Each stage's shader (EnvSolid*.gdshader) defines only the layers it uses, so the GPU runs none of the others: one
 // shader with them all cost Night City ~4 ms and Metal Factory ~3 ms a frame (bench, 2026-10-26). RING: 4;
-// VENTS: 6; METAL: 8; CANYON: 2b and 5b, with WINDOWS 9. A layer left out is the same as its uniforms at their off values.
+// VENTS: 6; METAL: 8; CANYON: 2b and 5b, with WINDOWS 9; SHELL: 10. A layer left out is the same as its uniforms at their off values.
 
 global uniform vec4 env_haze;
 global uniform vec4 env_light;
@@ -131,6 +137,14 @@ const vec3 WINDOW_ORDER = vec3(0.6, 0.3, 0.1);
 const float WINDOW_REACH = 200.0;
 #endif
 
+#ifdef SHELL
+// 10. soft far edges: how wide the blur is as an angle (radians), and the distances it grows over (untuned)
+const float SHELL_BLUR_ANGLE = 0.007;
+const vec2 SHELL_NEAR_FAR = vec2(60.0, 200.0);
+// the steps of the search for the line of sight's nearest pass to the box
+const int SHELL_STEPS = 12;
+#endif
+
 // 5. haze: per metre
 uniform float fog_density = 0.015;
 // how fast the extra floor haze thins out going up, per metre
@@ -173,6 +187,12 @@ varying vec3 world_pos;
 varying vec3 world_normal;
 // the haze lit from the key light, per vertex (as the sky's)
 varying vec3 haze_v;
+#ifdef SHELL
+// 10. the eye and this point from the box's centre, and the box's half size, in metres
+varying vec3 box_eye;
+varying vec3 box_point;
+varying vec3 box_half;
+#endif
 #ifdef WINDOWS
 // 0 near, where each window is drawn, to 1 far, where the windows' average is
 varying float window_far;
@@ -207,15 +227,63 @@ float fog_at(vec3 world, vec3 cam, float time) {
 	return f;
 }
 
+#ifdef SHELL
+// 10. how wide the blur is (metres) at this many metres from the eye
+float shell_blur(float dist) {
+	return dist * SHELL_BLUR_ANGLE * smoothstep(SHELL_NEAR_FAR.x, SHELL_NEAR_FAR.y, dist);
+}
+
+// 10. how far the line of sight from eye along ray passes outside a box of half size half (metres, the largest of
+// the three axes' gaps; 0 or less where it goes through), up to reach: the deepest point of a convex function, by a
+// three-way split of the stretch where the line runs within reach of the box
+float silhouette_gap(vec3 eye, vec3 ray, vec3 half, float reach) {
+	vec3 inv = 1.0 / ray;
+	vec3 a = (-half - reach - eye) * inv;
+	vec3 b = (half + reach - eye) * inv;
+	vec3 near = min(a, b);
+	vec3 far = max(a, b);
+	float t0 = max(max(near.x, near.y), max(near.z, 0.0));
+	float t1 = min(min(far.x, far.y), far.z);
+	if (t0 > t1) {
+		return reach;
+	}
+	for (int i = 0; i < SHELL_STEPS; i++) {
+		float m0 = mix(t0, t1, 1.0 / 3.0);
+		float m1 = mix(t0, t1, 2.0 / 3.0);
+		vec3 g0 = abs(eye + ray * m0) - half;
+		vec3 g1 = abs(eye + ray * m1) - half;
+		if (max(g0.x, max(g0.y, g0.z)) < max(g1.x, max(g1.y, g1.z))) {
+			t1 = m1;
+		} else {
+			t0 = m0;
+		}
+	}
+	vec3 g = abs(eye + ray * (t0 + t1) * 0.5) - half;
+	return max(g.x, max(g.y, g.z));
+}
+#endif
+
 void vertex() {
 	if ((debug_view & 8) != 0) {
 		VERTEX = vec3(0.0);
 	}
+#ifdef SHELL
+	// 10. blown up by the widest blur any part of it can need, so the fade has room around the outline
+	box_half = abs(vec3(MODEL_MATRIX[0][0], MODEL_MATRIX[1][1], MODEL_MATRIX[2][2])) * 0.5;
+	box_eye = CAMERA_POSITION_WORLD - MODEL_MATRIX[3].xyz;
+	float reach = shell_blur(length(box_eye) + length(box_half));
+	VERTEX *= 1.0 + reach / box_half;
+#endif
 	vec3 world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	vec3 normal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
 
 	// 2. form
 	form = normal.y > 0.0 ? mix(FORM_SIDE, FORM_TOP, normal.y) : mix(FORM_SIDE, FORM_BOTTOM, -normal.y);
+#ifdef SHELL
+	// 10. the faces seen from inside are the box's far ones: shade it as a side face, as most of an outline is
+	form = FORM_SIDE;
+	box_point = world - MODEL_MATRIX[3].xyz;
+#endif
 #ifdef CANYON
 	// 2b. the canyon's shading
 	form *= 1.0 - side_shade * abs(normal.z);
@@ -334,4 +402,13 @@ void fragment() {
 #endif
 		ALBEDO = fog_dither(fog_result(mix(lit, haze, haze_amount) + light * (1.0 - haze_amount) + windows_on, VERTEX), FRAGCOORD.xy);
 	}
+#ifdef SHELL
+	// 10. opaque at the outline, gone a blur's width out
+	float blur = shell_blur(length(box_point - box_eye));
+	if (blur <= 0.0) {
+		discard;
+	}
+	float gap = silhouette_gap(box_eye, normalize(box_point - box_eye), box_half, blur);
+	ALPHA = 1.0 - smoothstep(0.0, blur, gap);
+#endif
 }

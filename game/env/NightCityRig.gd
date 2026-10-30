@@ -14,6 +14,9 @@ class_name NightCityRig
 const ENV_SOLID := preload("res://game/env/EnvSolidCanyon.gdshader")
 ## the same without the windows, for the pieces that never show any: one shader with them cost these pixels for nothing
 const ENV_SOLID_PLAIN := preload("res://game/env/EnvSolidCanyonPlain.gdshader")
+## a see-through copy of the far boxes (the landmark, the towers' bodies) that softens their outlines against the sky
+## (EnvSolid layer 10)
+const ENV_SOLID_SHELL := preload("res://game/env/EnvSolidCanyonShell.gdshader")
 ## How much of the lights' colour the buildings' faces take (EnvSolid light_spill, 1 elsewhere): at 1 the near
 ## buildings read as flat grey boxes, brighter than the skyline (owner, 2026-10-25: too bright), as Metal Factory's
 ## walls did. Untuned.
@@ -176,6 +179,8 @@ var _instance: MultiMeshInstance3D
 ## the boxes near the track, which have no windows (closer than window_min_x)
 var _plain_instance: MultiMeshInstance3D
 var _landmark: MeshInstance3D
+## the soft outlines of the towers' bodies and of the landmark
+var _shells: Array[MultiMeshInstance3D] = []
 var _billboards: MultiMeshInstance3D
 var _props: Array[MultiMeshInstance3D] = []
 ## the billboards' frames and arms, drawn with the props
@@ -237,7 +242,11 @@ func build(classic: bool) -> void:
 	if _sea:
 		_sea.queue_free()
 		_sea = null
-	var boxes := _classic_boxes() if classic else _drawn_boxes(_canyon_boxes())
+	for shell in _shells:
+		shell.queue_free()
+	_shells.clear()
+	var bodies: Array[Transform3D] = []
+	var boxes := _classic_boxes() if classic else _drawn_boxes(_canyon_boxes(bodies))
 	_material.set_shader_parameter(&"windows", 0.0 if classic else 1.0)
 	_material.set_shader_parameter(&"canyon_fog", Vector4.ZERO if classic else CANYON_FOG)
 	_material.set_shader_parameter(&"fog_roll", CANYON_FOG_ROLL)
@@ -268,6 +277,11 @@ func build(classic: bool) -> void:
 		_landmark.material_override = far
 		_landmark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(_landmark)
+		var landmark: Array[Transform3D] = [_landmark.transform]
+		for shell: Array in [[bodies, _material], [landmark, far]]:
+			var shell_material := (shell[1] as ShaderMaterial).duplicate() as ShaderMaterial
+			shell_material.shader = ENV_SOLID_SHELL
+			_shells.append(_box_instance(shell[0], shell_material))
 		_mounts.clear()
 		_add_billboards()
 		_add_props()
@@ -469,8 +483,9 @@ func _box_instance(boxes: Array[Transform3D], material: ShaderMaterial) -> Multi
 static func _span(a: Vector3, b: Vector3) -> Transform3D:
 	return Transform3D(Basis.from_scale((b - a).abs()), (a + b) * 0.5)
 
-## The canyon's boxes: the tower wall, the low roofs and the rooftop's pieces.
-func _canyon_boxes() -> Array[Transform3D]:
+## The canyon's boxes: the tower wall, the low roofs and the rooftop's pieces. The towers' bodies (without their
+## pilasters and ledges) also go into bodies.
+func _canyon_boxes(bodies: Array[Transform3D]) -> Array[Transform3D]:
 	var boxes: Array[Transform3D] = []
 	var w := WALL_SIDE
 	var o := -WALL_SIDE
@@ -479,9 +494,10 @@ func _canyon_boxes() -> Array[Transform3D]:
 		var setback := SETBACKS[i % SETBACKS.size()]
 		var band := FLOOR_HEIGHT * LEDGE_FLOORS
 		var step_y := STREET_Y + roundf((lerpf(STREET_Y, t.w, setback.x) - STREET_Y) / band) * band
-		boxes.append(_span(Vector3(w * t.x, STREET_Y, t.y), Vector3(w * (t.x + TOWER_DEPTH), step_y, t.z)))
-		boxes.append(_span(Vector3(w * (t.x + setback.y), step_y, t.y - setback.y * 0.5),
+		bodies.append(_span(Vector3(w * t.x, STREET_Y, t.y), Vector3(w * (t.x + TOWER_DEPTH), step_y, t.z)))
+		bodies.append(_span(Vector3(w * (t.x + setback.y), step_y, t.y - setback.y * 0.5),
 			Vector3(w * (t.x + TOWER_DEPTH), t.w, t.z + setback.y * 0.5)))
+		boxes.append_array(bodies.slice(-2))
 		# pilasters and ledges on both faces, the lower one and the setback above it
 		for face: Vector4 in [Vector4(t.x, t.y, t.z, STREET_Y), Vector4(t.x + setback.y, t.y - setback.y * 0.5,
 				t.z + setback.y * 0.5, step_y)]:

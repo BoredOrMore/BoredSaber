@@ -78,6 +78,10 @@ Night City (canyon default, classic layout optional)
   rows (`Settings.classic_night_city`); `buildings`/`roof_at`/`wall_*_spot` place lights; `set_windows` feeds layer 9.
 - `EnvSolidCanyon.gdshader`: EnvSolid with `CANYON` + `WINDOWS`. `EnvSolidCanyonPlain.gdshader`: `CANYON` only, for
   near pieces that never show windows (saves the per-pixel window cost).
+- `EnvSolidCanyonShell.gdshader`: EnvSolid with `CANYON` + `SHELL` (layer 10): a blown-up, see-through copy of the
+  towers' bodies and the landmark, drawn from inside, fading out over `SHELL_BLUR_ANGLE` from their outline, so far
+  edges melt into the sky with no screen read; nothing nearer than `SHELL_NEAR_FAR.x`. The sky's own skyline gets the
+  same softness baked in (`tools/bake_night_city_sky.py` `EDGE_BLUR`). Untuned, not measured on the headset.
 - `CityBillboard.gdshader`: procedural shape billboards on the tower wall, square bars' light (`billboard_material`).
 - `CloudSea.gdshader`: opaque heaving cloud plane below the roofs (no blending); EnvSolid's canyon fog meets it.
 - `NightCitySky.gdshader`: tower skyline from `night_city_sky_sharp/soft.png` (`tools/bake_night_city_sky.py`).
