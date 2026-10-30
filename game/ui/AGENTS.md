@@ -40,7 +40,10 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   rounded panel frame (24 px corners, about 1.6 degrees at 2 m), the root style of the song menu's three panels
   (`MenuPanel.tscn`, a frame that takes no input), Settings, the Download page and "Who's playing?";
   `MenuSection.tscn` / `MenuSection.gd` (class `MenuSection`), a titled group of rows: rows `ROW_GAP` apart,
-  sections `SECTION_GAP` apart (`section_list`), used by the modifier and More modifiers sections.
+  sections `SECTION_GAP` apart (`section_list`), used by the modifier and More modifiers sections;
+  `FilterChips.gd` (class `FilterChips`), the filter panels' sections (owner, 2026-10-30: filters sit in the right
+  panel beside the list they filter, never over it, one press per choice): a `MenuSection` per filter with a chip
+  per choice that wraps, its song count on it (greyed at none), the picked chip pressed again turning it off.
   Button kinds are `menu_theme.tres` type variations, so each look and its states (normal, hover, pressed,
   selected, disabled) and rounded corners live in one place; the hover sound is `UI_AudioEngine`'s for every
   button: `Button` (secondary), `PrimaryButton` (the page's main action: Done, Download), `ChipButton` (modifier
@@ -140,7 +143,7 @@ never clicks what it started on (a release far away cancels the press), and a fl
 the top. `scroll_without_pointer = true` scrolls even when not hovered. The song list sets `joystick_scroll = false`:
 there the thumbstick moves the selection instead (`MainMenu._step_with_stick`, centred by `SongList.center_on`;
 each step ticks that hand's controller, `STICK_TICK_*`).
-Above the list one row holds Search (icon), Filters (opens `FiltersPanel` over the list), the sort and Get songs. BeatSaver loads the next page past 90% scroll (`BeatSaverPanel.gd:447-465`).
+Above the list one row holds Search (icon), Filters (opens `FiltersPanel` in the right panel over the modifiers, the list staying in view: Favorites, Workout, then Difficulty and Length chips from `FilterChips`), the sort and Get songs. BeatSaver loads the next page past 90% scroll (`BeatSaverPanel.gd:447-465`).
 
 ## BeatSaver HTTP flow
 
