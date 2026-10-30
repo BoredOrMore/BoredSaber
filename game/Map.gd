@@ -19,6 +19,13 @@ static var arc_stack: Array[ArcInfo]
 static var chain_stack: Array[ChainInfo]
 static var event_stack: Array[EventInfo]
 
+## Practice (owner, 2026-10-30): the map plays from practice_start (song seconds) at practice_speed percent, which
+## slows or speeds the song and everything that follows its beat (notes, walls, lights) as Beat Saber's practice does;
+## nothing fails and nothing is recorded (BeepSaber_Game).
+static var practice := false
+static var practice_start := 0.0
+static var practice_speed := 100
+
 static var _color_left: Color
 ## The danger colour of walls and bombs: the map's wall colour, or Constants.DANGER_COLOR
 static var color_obstacle := Constants.DANGER_COLOR
@@ -515,10 +522,38 @@ static func half_jump_beats_for(bpm: float, njs: float, offset: float) -> float:
 		hjd /= 2.0
 	return maxf(hjd + offset, 0.25)
 
-## Beats that pass per real second: the map's BPM sped up by the Speed modifier.
+## Beats that pass per real second: the map's BPM sped up by the Speed modifier (or the practice speed).
 ## The song's playback position stays in song seconds, which use the plain BPM.
 static func beats_per_second() -> float:
-	return current_info.beats_per_minute * Settings.music_speed / 6000.
+	return current_info.beats_per_minute * speed_percent() / 6000.
+
+## The speed the map plays at, in percent: the practice speed while practising, else the Speed modifier.
+static func speed_percent() -> int:
+	return practice_speed if practice else Settings.music_speed
+
+## Drops what comes before `beat` from the stacks, so a practice run starts there: notes, bombs, arcs and chains
+## starting before it, and walls that end before it (a wall still standing there stays, to come in part-way).
+## Returns the light events before it, oldest first, to set the stage as it would be by then.
+static func skip_before(beat: float) -> Array[EventInfo]:
+	while not note_stack.is_empty() and note_stack[-1].beat < beat:
+		note_stack.pop_back()
+	while not bomb_stack.is_empty() and bomb_stack[-1].beat < beat:
+		bomb_stack.pop_back()
+	while not arc_stack.is_empty() and arc_stack[-1].head_beat < beat:
+		arc_stack.pop_back()
+	while not chain_stack.is_empty() and chain_stack[-1].head_beat < beat:
+		chain_stack.pop_back()
+	var standing: Array[ObstacleInfo] = []
+	while not obstacle_stack.is_empty() and obstacle_stack[-1].beat < beat:
+		var wall: ObstacleInfo = obstacle_stack.pop_back()
+		if wall.beat + wall.duration > beat:
+			standing.append(wall)
+	standing.reverse()
+	obstacle_stack.append_array(standing)
+	var passed: Array[EventInfo] = []
+	while not event_stack.is_empty() and event_stack[-1].beat < beat:
+		passed.append(event_stack.pop_back())
+	return passed
 
 ## Finds where the track turns, from the loaded notes, bombs and walls (a chain starts on a note): the direction changes at the beat of the
 ## first object on a lane turned another way (after the map's rotation events, the Mirror and Gradual rotation

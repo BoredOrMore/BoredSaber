@@ -14,7 +14,7 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.multiplier_label.visible = true
 	game.point_label.visible = true
 	# the far HUD of 90/360 maps carries the energy bar instead
-	game.health_rails.visible = Settings.health_mode and not game.hud.far
+	game.health_rails.visible = Settings.health_mode and not game.hud.far and not Map.practice
 	game.track.visible = true
 	game.left_ui_raycast.visible = false
 	game.right_ui_raycast.visible = false
@@ -44,7 +44,7 @@ func _physics_process(game: BeepSaber_Game) -> void:
 		# 0.5 seconds is a pretty concervative number to use for the audio
 		# resync check. Having this duration be this long might only be an
 		# issue for maps that spawn notes extremely early into the song.
-		if game.song_player.get_playback_position() < 0.5:
+		if game.song_player.get_playback_position() < game.song_start + 0.5:
 			game._audio_synced_after_restart = true
 
 var _lead_in_shown := -1
@@ -61,7 +61,7 @@ func _count_down_lead_in(game: BeepSaber_Game) -> void:
 			game.play_countdown(seconds)
 	if game.lead_in <= 0.0:
 		game.lead_in = 0.0
-		game.song_player.play(0.0)
+		game.song_player.play(game.song_start)
 		game.play_countdown(0)
 
 func _process_map(game: BeepSaber_Game) -> void:

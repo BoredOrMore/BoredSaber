@@ -417,6 +417,11 @@ var song_filter_genre: String:
 	set(value):
 		song_filter_genre = value
 		set_and_emit(&"song_filter_genre", value)
+## The practice speed in percent (Map.practice_speed), kept for the next practice (owner, 2026-10-30: 50-200%).
+var practice_speed: int:
+	set(value):
+		practice_speed = value
+		set_and_emit(&"practice_speed", value)
 ## Get songs lists AI-made maps too (owner, 2026-10-30; off: BeatSaver leaves them out).
 var beatsaver_include_ai: bool:
 	set(value):
@@ -532,6 +537,7 @@ var default_values = {
 	song_filter_genre = "",
 	beatsaver_filter_length = 0,
 	beatsaver_include_ai = false,
+	practice_speed = 100,
 	beatsaver_filter_reaction = 0,
 	claws = false,
 	preloaded_songs = false,

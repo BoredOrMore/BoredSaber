@@ -179,7 +179,8 @@ static func close_angle(angle1: float, angle2: float) -> bool:
 	return abs(angle1-angle2)<1e-5
 	
 static func update_bus_speed(bus_name: String) -> void:
-	var speed := Settings.music_speed / 100.
+	# the song bus follows the practice speed while practising (Map.speed_percent)
+	var speed := (Map.speed_percent() if bus_name == &"Music" else Settings.music_speed) / 100.
 	if (Settings.audio_master == 0. or 
 			(bus_name == &"Music" and Settings.audio_music == 0.) or 
 			(bus_name == &"MusicPreview" and Settings.audio_music == 0.)):

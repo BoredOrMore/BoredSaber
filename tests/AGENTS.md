@@ -34,7 +34,8 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
   each format, plain and mirrored (`Settings.flip`); `half_jump_beats_for`/`set_note_jump`; gradual rotation; v2 rotation events adding up in degrees; where the track turns (`get_turns`, `track_rotation`) and the turn cue (`cue_rotation`); 90/360
   maps play on Henge (`EventDriver.pick_environment`); a v4 map
   takes its lights from its lightshow file (`data/beatmap/v4_lightshow.dat`, skipping an event past its data) and,
-  without one, leaves no lights from the last map; a stray non-object v2 note is skipped (it once looped forever).
+  without one, leaves no lights from the last map; a stray non-object v2 note is skipped (it once looped forever);
+  practice: `Map.skip_before` and the practice speed in `beats_per_second`.
 - `test_scoreboard.tscn` / `.gd` - `Scoreboard`: multiplier steps (2, 6, 14 hits) and halving, combo, max points and
   accuracy, modifier shares and No Fail, bad cuts, walls, chain links, `restart`. A `FakeGame` stands in for
   `GlobalReferences.main_game_scene`. Not covered: `note_cut` (needs a real saber).

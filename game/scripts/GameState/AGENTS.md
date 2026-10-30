@@ -46,6 +46,8 @@ Transitions (callers wired in `BeepSaber_Game.tscn:340-362`):
 
 ## Flows
 
+- Practice: the lead-in counts down the same way and the song plays from `song_start` (not 0); the restart sync
+  waits for a position under `song_start + 0.5` (`Playing.gd`).
 - Lead-in: `start_map` stops the song and sets `lead_in = max(LEAD_IN_MIN_SECONDS, half_jump_beats / beats_per_second)`
   (`BeepSaber_Game.gd:136-138`). `Playing._count_down_lead_in` subtracts physics delta, shows whole seconds on
   `pause_countdown`, then `song_player.play(0.0)` (`Playing.gd:48-58`). Notes spawn during it because

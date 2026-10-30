@@ -95,6 +95,12 @@ const LEAD_IN_MIN_SECONDS := 3.0
 var hud: Hud
 # seconds left before the song starts, so the first notes can fly in; counted down by Playing
 var lead_in := 0.0
+## Where the song plays from, in song seconds: 0, or in practice a little before Map.practice_start.
+var song_start := 0.0
+## Song seconds of music a practice run plays before its first notes fly in, to catch the beat (untuned).
+const PRACTICE_PRE_ROLL_SECONDS := 1.0
+## How far before the fail "Practice this part" starts, in song seconds (untuned).
+const PRACTICE_BEFORE_FAIL_SECONDS := 8.0
 
 ## The fail, in the owner's order (2026-10-28): the sound goes first (the low-pass sweep below) and the play space
 ## empties, every note, chain, bomb, wall and arc falling away over FAIL_CLEAR_SECONDS (nothing can be cut or
@@ -265,6 +271,22 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo, restart := false) 
 		await get_tree().create_timer(START_HOLD_SECONDS).timeout
 		_result_moment.fade_in(START_FADE_SECONDS)
 
+## Practises the map from `start` song seconds at `speed` percent (Map.practice): no fail, no record.
+func start_practice(info: MapInfo, map_difficulty: DifficultyInfo, start: float, speed: int) -> void:
+	Map.practice = true
+	Map.practice_start = start
+	Map.practice_speed = speed
+	Utils.update_bus_speed(&"Music")
+	endscore.visible = false
+	pause_menu.visible = false
+	start_map(info, map_difficulty, gamestate != gamestate_mapselection)
+
+## Ends practising (back in the menu, plays go back to normal).
+func _stop_practice() -> void:
+	if Map.practice:
+		Map.practice = false
+		Utils.update_bus_speed(&"Music")
+
 ## Loads the song and its map (using what _preload read when it's this one), sets the stage up and starts playing.
 func _start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	points_label_driver.visible = true
@@ -283,12 +305,20 @@ func _start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 		menu.show_play_error()
 		return
 	timing.lap("parse")
+	# a practice run starts at its start point, the song a little before so the first notes can fly in on the beat
+	var passed_events: Array[EventInfo] = []
+	song_start = 0.0
+	if Map.practice:
+		passed_events = Map.skip_before(Map.practice_start * info.beats_per_minute / 60.0)
+		song_start = maxf(0.0, Map.practice_start - PRACTICE_PRE_ROLL_SECONDS
+				- Map.half_jump_beats * 60.0 / info.beats_per_minute - Cuttable.FLY_SECONDS * Map.speed_percent() / 100.0)
 		
 	event_driver.set_environment(EventDriver.pick_environment(info))
 	timing.lap("stage")
 	# for reading GPU timings on the headset by environment
 	print("Song starts in environment %s, smoke %s, debug_view %d" % [event_driver.environment, Settings.smoke, DebugView.flags])
-	print("song_info %s | %s | speed %d" % [info.song_name, MapStats.level_name(info, map_difficulty), Settings.music_speed])
+	print("song_info %s | %s | speed %d%s" % [info.song_name, MapStats.level_name(info, map_difficulty), Map.speed_percent(),
+		" | practice from %.1f s" % Map.practice_start if Map.practice else ""])
 	event_driver.set_background_texture()
 	timing.lap("sky")
 	
@@ -302,6 +332,9 @@ func _start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	# stays dark (the owner's choice, doc/world/GAME_BIBLE.md): the notes, sabers and platform light themselves
 	event_driver.set_all_off()
 	event_driver.start_show(Map.event_stack, info.beats_per_minute)
+	# the lights as they'd be by a practice run's start
+	for event in passed_events:
+		event_driver.process_event(event)
 	timing.lap("colours_show")
 	
 	var filename := info.filepath + info.song_filename
@@ -338,7 +371,7 @@ func _start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	# room for the first notes to fly in and jump (Cuttable.FLY_SECONDS)
 	lead_in = maxf(LEAD_IN_MIN_SECONDS, Map.half_jump_beats / Map.beats_per_second() + Cuttable.FLY_SECONDS)
 	song_player.volume_db = 0.0
-	song_player.pitch_scale = Settings.music_speed / 100.
+	song_player.pitch_scale = Map.speed_percent() / 100.
 	_remove_fail_filter()
 	_in_wall = false
 	Scoreboard.restart()
@@ -361,6 +394,9 @@ func _start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 ## Changes health by delta in the health bar mode. mistake is a miss, bad cut, bomb or wall
 ## entry, which costs a life in 4 Lives mode and ends the song in Instant Fail mode.
 func update_health(delta: float, mistake: bool = false) -> void:
+	# practice never fails, and its health doesn't count
+	if Map.practice:
+		return
 	current_health = Health.next_value(current_health, delta, mistake, Settings.health_mode, Settings.fail_mode,
 			Settings.damage_scale)
 	if not Settings.health_mode:
@@ -1136,7 +1172,7 @@ func _on_PlayerHead_area_exited(area: Area3D) -> void:
 func get_current_time() -> float:
 	if lead_in > 0.0:
 		# lead_in counts real seconds, which the Speed modifier stretches
-		return -lead_in * Settings.music_speed / 100.
+		return song_start - lead_in * Map.speed_percent() / 100.
 	return song_player.get_playback_position()
 
 # when the song ended we want to display the current score and
@@ -1144,6 +1180,9 @@ func get_current_time() -> float:
 func _on_song_ended() -> void:
 	song_player.stop()
 	_new_record = {}
+	if Map.practice:
+		_show_practice_result()
+		return
 	PlayCount.increment_play_count(Map.current_info,Map.current_difficulty.difficulty_rank)
 	
 	# a failed song's score stops where it failed, so it isn't a record (it filled the tables with near-zero runs)
@@ -1196,6 +1235,36 @@ func _on_song_ended() -> void:
 		_show_name_card()
 		_transition_game_state(gamestate_mapcomplete)
 
+## The end of a practice run: the score screen says Practice, with the accuracy but no record, play count or name card.
+func _show_practice_result() -> void:
+	event_driver.result_mood(false)
+	_song_end_player.stream = CLEAR_SOUND
+	_song_end_player.play()
+	endscore.show_score(
+		Scoreboard.points,
+		maxi(Highscores.get_highscore(Map.current_info, Map.current_difficulty.difficulty_rank), 0),
+		Scoreboard.accuracy(),
+		"%s By %s\n%s     Practice %d%% from %s" % [
+			Map.current_info.song_name,
+			Map.current_info.song_author_name,
+			MapStats.level_name(Map.current_info, Map.current_difficulty),
+			Map.practice_speed,
+			Hud._clock(int(Map.practice_start))],
+		Scoreboard.full_combo,
+		false,
+		0.0,
+		0.0,
+		true
+	)
+	endscore.hide_name_card()
+	_transition_game_state(gamestate_mapcomplete)
+
+## "Practice this part" on the score screen after a fail: practises from a little before the fail, at the practice
+## speed last picked.
+func _practice_failed_part() -> void:
+	start_practice(Map.current_info, Map.current_difficulty, maxf(0.0, _failed_at - PRACTICE_BEFORE_FAIL_SECONDS),
+			Settings.practice_speed)
+
 ## The saved player name, or "Player" if it was left empty.
 static func _default_player_name() -> String:
 	var player_name := Settings.player_name.strip_edges()
@@ -1207,6 +1276,7 @@ func _restart_button() -> void:
 	pause_menu.visible = false
 
 func _main_menu_button() -> void:
+	_stop_practice()
 	_clear_track()
 	_transition_game_state(gamestate_mapselection)
 

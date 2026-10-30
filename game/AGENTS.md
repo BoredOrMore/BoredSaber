@@ -46,6 +46,16 @@ constraints apply here unchanged.
 - Stage switch: a pick in the song menu (`Settings.environment`) goes through `_switch_stage_in_black` (fade down
   `STAGE_FADE_SECONDS`, `_apply_environment`, hold `STAGE_HOLD_SECONDS`, fade up; the fade is `ResultMoment`'s quad);
   elsewhere `_apply_environment` at once, and `start_map` sets the song's stage.
+- Practice (owner, 2026-10-30): `start_practice(info, difficulty, start, speed)` sets `Map.practice`,
+  `practice_start` (song seconds) and `practice_speed` (percent, 50-200; `Map.speed_percent()` replaces the Speed
+  modifier everywhere the song's pace is read: `beats_per_second`, the song's pitch, the Music bus, the lead-in), then
+  `start_map`. `_start_map` drops what comes before the start (`Map.skip_before`: notes, bombs, arcs and chains before
+  it, walls ended by then; the passed light events replayed at once) and plays the song from `song_start`, the start
+  less `PRACTICE_PRE_ROLL_SECONDS` and the notes' fly-in. Health never changes (no fail; rails hidden), the end
+  shows the score screen with a PRACTICE banner and saves no record or play count (`_show_practice_result`); Restart
+  practises again from the same start; the main menu ends practice (`_stop_practice`). After a fail, the score
+  screen's "Practice this part" (`EndScore.practice_part`) practises from `PRACTICE_BEFORE_FAIL_SECONDS` before the
+  fail at `Settings.practice_speed`.
 - End: `SongPlayer.finished` -> `_on_song_ended()` -> highscore/playcount -> `EndScore.show_score()`
   -> `gamestate_newhighscore` or `gamestate_mapcomplete`.
 
