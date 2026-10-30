@@ -19,7 +19,7 @@ static func new_v2(bomb_dict: Dictionary) -> BombInfo:
 	return BombInfo.new(
 		Utils.get_float(bomb_dict, "_time", 0.0),
 		Utils.precise_measurement(Utils.get_float(bomb_dict, "_lineIndex", 0)),
-		Utils.precise_measurement(Utils.get_float(bomb_dict, "_lineLayer", 0)),
+		Utils.precise_layer(Utils.get_float(bomb_dict, "_lineLayer", 0)),
 		Utils.get_float(bomb_dict, "r", 0)
 	)
 
@@ -27,6 +27,6 @@ static func new_v3(bomb_dict: Dictionary) -> BombInfo:
 	return BombInfo.new(
 		Utils.get_float(bomb_dict, "b", 0.0),
 		Utils.precise_measurement(Utils.get_float(bomb_dict, "x", 0)),
-		Utils.precise_measurement(Utils.get_float(bomb_dict, "y", 0)),
+		Utils.precise_layer(Utils.get_float(bomb_dict, "y", 0)),
 		Utils.get_float(bomb_dict, "r", 0)
 	)

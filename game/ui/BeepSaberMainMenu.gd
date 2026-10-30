@@ -637,13 +637,19 @@ func _select_song(id: int, with_preview: bool = true) -> void:
 	if with_preview and Settings.audio_music_preview > 0 and map.have_song:
 		song_preview.start_file(map.filepath + map.song_filename, map.preview_start_time)
 	
-	# the difficulty last played (its rank), or the first
+	# the difficulty last played (its rank), or the first that plays here (one needing a mod the game lacks only if all do)
 	var rank := PlayCount.get_last_difficulty(map) & Constants.DIFFICULTY_MASK
-	var last := 0
+	var last := -1
 	for i in map.difficulty_beatmaps.size():
 		if map.difficulty_beatmaps[i].difficulty_rank == rank:
 			last = i
 			break
+	if last < 0 or not map.difficulty_beatmaps[last].missing_mod().is_empty():
+		last = 0
+		for i in map.difficulty_beatmaps.size():
+			if map.difficulty_beatmaps[i].missing_mod().is_empty():
+				last = i
+				break
 	_select_difficulty(last)
 
 ## Fades out the playing preview and drops any preview still waiting to start.
@@ -781,7 +787,7 @@ func on_settings_changed(key: StringName) -> void:
 
 ## Plays the selected song (the block in front of the player was slashed).
 func play_selected() -> void:
-	if not has_song_picked():
+	if not can_play():
 		return
 	var map := _currently_selected_songlist_ref[current_selected]
 	Settings.last_map = map.filepath
@@ -802,6 +808,8 @@ func play_selected() -> void:
 ## "Slash to play" line on the panel; the note to slash says it).
 const LOADING_TEXT := "Loading song…"
 const LOAD_ERROR_TEXT := "Can't load this song. Pick another one."
+## In place of the stats when the picked difficulty needs a mod the game doesn't have (DifficultyInfo.missing_mod).
+const NEEDS_MOD_TEXT := "Needs the %s mod, which this game doesn't have"
 ## Seconds the load error stays before the status comes back.
 const LOAD_ERROR_SECONDS := 3.0
 var _loading := false
@@ -829,6 +837,10 @@ func picked_difficulty() -> DifficultyInfo:
 
 func has_song_picked() -> bool:
 	return not _loading and current_selected >= 0 and current_selected < _currently_selected_songlist_ref.size()
+
+## True while the picked song's picked difficulty can be played here (it needs no mod the game lacks).
+func can_play() -> bool:
+	return has_song_picked() and picked_difficulty() != null and picked_difficulty().missing_mod().is_empty()
 
 ## Tells the game whether a song is ready to play (the note to slash shows then).
 func _update_play_status() -> void:
@@ -1144,12 +1156,24 @@ func _sync_difficulty_picker() -> void:
 				button.text += " %d" % level_seen[levels[i]]
 			button.add_theme_color_override(&"font_color", level[1])
 			_set_picked_border(button, level[1])
-		button.disabled = index < 0
+		# a difficulty needing a mod the game lacks is greyed out too, saying which (owner, 2026-10-30)
+		var mod := map.difficulty_beatmaps[index].missing_mod() if index >= 0 else ""
+		button.disabled = index < 0 or (not mod.is_empty() and index != _map_difficulty)
+		button.tooltip_text = NEEDS_MOD_TEXT % mod if not mod.is_empty() else ""
 		button.set_pressed_no_signal(picked != null and picked.difficulty == LEVELS[i][0])
 	if _status != "":
 		var status := Label.new()
 		status.text = _status
 		StatPills.fill(level_stats, [status])
+	elif picked and not picked.missing_mod().is_empty():
+		# in place of the stats, why it can't be played (owner, 2026-10-30)
+		var needs := Label.new()
+		needs.text = NEEDS_MOD_TEXT % picked.missing_mod()
+		# wraps inside the stats' width, so the panel never grows (the left panel stays locked)
+		needs.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		needs.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		needs.custom_minimum_size.x = level_stats.size.x
+		StatPills.fill(level_stats, [needs])
 	elif picked:
 		StatPills.fill(level_stats, stat_pills(map, picked, MapStats.get_stats(map, picked)))
 	else:

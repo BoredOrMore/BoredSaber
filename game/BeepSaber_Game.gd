@@ -1291,7 +1291,7 @@ func _update_slash_block() -> void:
 			left_saber.set_color(colors[0])
 			right_saber.set_color(colors[1])
 	slash_block.set_shown(gamestate == gamestate_mapselection and main_menu.visible and not main_menu.disable_collision
-			and not highscore_keyboard.visible and menu.has_song_picked())
+			and not highscore_keyboard.visible and menu.can_play())
 
 ## Opens "Who's playing?" in front of the song menu; the menu behind takes no pointer input until it closes. The
 ## view keeps its height until the panel closes (_adjust_height).

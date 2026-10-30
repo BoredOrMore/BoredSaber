@@ -184,8 +184,8 @@ Above the list one row holds Search (icon), the sort, Get songs and, at its righ
 - Known gaps (report, don't silently patch in unrelated work): `versions[0]["hash"]` is indexed without checking
   `versions` is non-empty (:234-235, :301).
 - Mods: every list and search asks BeatSaver to leave out maps needing Noodle Extensions (`MOD_FILTER`
-  `&noodle=false`; it takes only one such filter at a time, measured); Mapping Extensions and Vivify difficulties are
-  still cut when a page arrives.
+  `&noodle=false`; it takes only one such filter at a time, measured); Vivify difficulties are still cut when a page
+  arrives; Mapping Extensions ones are listed (the game reads its precise lanes, rows and angles).
 - Search: BeatSaver matches whole words or their start, not typos, and reads Japanese a character at a time (kana
   searches pull in noise; real titles are in kanji, which romaji can't give). A search that finds nothing is tried
   once more with each word cut short (`close_query`), the status saying "No exact match · close to …" (`_close_to`).
@@ -204,6 +204,10 @@ Above the list one row holds Search (icon), the sort, Get songs and, at its righ
   `CheckButton` once had 0 px idle vs 16 px hover margins and its label jumped under the pointer (commit `37ceb03`);
   `toggle_idle` and `list_hover` now both use 16/8. Same rule for `surface*` (20/12) and `tab_*` (28/12).
 - Set colours in the theme, not per-node overrides, so panels stay consistent.
+- A difficulty requiring a mod the game lacks (`DifficultyInfo.missing_mod`: any but `PLAYABLE_MODS`, Mapping
+  Extensions, Chroma, Cinema) is greyed out on the song menu with the reason as its tooltip; a map's first playable
+  difficulty is picked, and if none plays the stats say "Needs the … mod" and the note to slash stays away
+  (`MainMenu.can_play`).
 - The song menu's left panel is locked (owner, 2026-10-30): the characteristic tab row always takes its room (one tab
   for a one-characteristic song) and all five level slots stay in place, the ones a map lacks greyed out, so nothing
   moves from song to song (`test_menu_layout` checks every listed song).
