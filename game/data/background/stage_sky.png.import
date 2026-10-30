@@ -2,18 +2,10 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://hn4qft45dko1"
-path.s3tc="res://.godot/imported/stage_sky.png-8a47ed79bc2745912188802f31eeaf1f.s3tc.ctex"
-path.etc2="res://.godot/imported/stage_sky.png-8a47ed79bc2745912188802f31eeaf1f.etc2.ctex"
-metadata={
-"imported_formats": ["s3tc_bptc", "etc2_astc"],
-"vram_texture": true
-}
 
 [deps]
 
 source_file="res://game/data/background/stage_sky.png"
-dest_files=["res://.godot/imported/stage_sky.png-8a47ed79bc2745912188802f31eeaf1f.s3tc.ctex", "res://.godot/imported/stage_sky.png-8a47ed79bc2745912188802f31eeaf1f.etc2.ctex"]
 
 [params]
 
