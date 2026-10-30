@@ -1182,7 +1182,7 @@ func _build_filter_chips() -> void:
 	_difficulty_chips = FilterChips.add_section(filter_rows, DIFFICULTY_FILTER_TITLE,
 		MapStats.difficulty_filters().slice(1).map(label), pick_difficulty, &"DifficultyButton")
 	_length_chips = FilterChips.add_section(filter_rows, LENGTH_FILTER_TITLE,
-		Constants.LENGTH_FILTERS.slice(1).map(label), pick_length)
+		Constants.LENGTH_FILTERS.slice(1).map(label), pick_length, &"DifficultyButton")
 	filter_rows.move_child(clear_filters_button, -1)
 	_show_picked_filters()
 
