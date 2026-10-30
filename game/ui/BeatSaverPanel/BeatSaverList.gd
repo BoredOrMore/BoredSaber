@@ -91,6 +91,10 @@ func shows(index: int) -> bool:
 	var step := ROW_HEIGHT + ROW_SEPARATION
 	return index * step < scroll_vertical + size.y and (index + 1) * step > scroll_vertical
 
+## The song at the top of the view.
+func first_shown() -> int:
+	return maxi(int(scroll_vertical / (ROW_HEIGHT + ROW_SEPARATION)), 0)
+
 ## A song's small cover, shown in the details until the big one arrives.
 func get_item_image(index: int) -> Image:
 	return _covers[index]

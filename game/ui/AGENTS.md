@@ -160,7 +160,9 @@ Above the list one row holds Search (icon), Filters (opens `FiltersPanel` in the
 - While the page is open the stage goes quiet (`BeepSaber_Game.BEATSAVER_QUIET`: no beams, dust, scenery detail or
   floor reflection, via `DebugView` bits) and its canvas redraws at most 36 times a second
   (`max_updates_per_second`): dragging it had run the GPU past the frame (10-14 ms of 13.9).
-- Covers: downloaded one after another (`update_next_cover`), the next starting as each arrives; each is decoded and
+- Covers: downloaded one at a time (`update_next_cover`), the next starting as each arrives or the list scrolls, picked
+  nearest the top of the view (`BeatSaverList.first_shown`; rows below it first, then above; `_cover_fetched` marks
+  the ones asked for, `_cancel_cover` unmarks one cut off); each is decoded and
   sized to 72 px on a `WorkerThreadPool` task (`_make_cover`); finished covers go onto the list together every
   `COVER_FLUSH_SECONDS` (`_flush_covers`), with one page redraw only if one of them is in view
   (`BeatSaverList.shows`), and only the 72 px result is uploaded on the main
