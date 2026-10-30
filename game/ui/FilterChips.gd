@@ -9,7 +9,7 @@ extends RefCounted
 const CHIP_GAP := MenuSection.ROW_GAP
 ## Chip height (px): the modifier chips' rows.
 const CHIP_HEIGHT := 48
-## A choice with how many songs it would list, e.g. "Up to Hard (18)".
+## A choice with how many songs it would list, e.g. "Hard (18)".
 const COUNT_LABEL := "%s (%d)"
 ## The count a counted chip keeps room for from the start, so its width (and its neighbours) stays put as counts
 ## change (owner, 2026-10-30: leave room for changing text so things don't move about).
