@@ -33,8 +33,6 @@ const NEW_PART_SECONDS := 10.0
 @onready var _time := $Rows/TopRow/Time as Label
 @onready var _repeat := $Rows/TopRow/Repeat as CheckButton
 @onready var _bar := $Rows/Timeline as PracticeTimeline
-@onready var _start_time := $Rows/Marks/StartTime as Label
-@onready var _end_time := $Rows/Marks/EndTime as Label
 @onready var _hint := $Rows/Hint as Label
 @onready var _slower := $Rows/SpeedRow/Slower_Button as Button
 @onready var _speed := $Rows/SpeedRow/Speed as Label
@@ -105,11 +103,9 @@ func seconds() -> float:
 func start_seconds() -> float:
 	return _bar.start
 
-## "1:41 of 2:55" over the bar, "Start 1:24" and "End 1:50" (or "Plays to the end") under it.
+## "1:41 of 2:55" over the bar; the bar draws its markers' labels.
 func _show_time() -> void:
 	_time.text = "%s of %s" % [Hud._clock(int(_bar.playhead)), Hud._clock(int(_bar.length))]
-	_start_time.text = "Start %s" % Hud._clock(int(_bar.start))
-	_end_time.text = "End %s" % Hud._clock(int(_bar.end)) if _bar.end >= 0.0 else "Plays to the end"
 	_bar.queue_redraw()
 
 ## A new start point; with Repeat on, the end moves along when the part would get shorter than MIN_PART_SECONDS.

@@ -88,11 +88,12 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
 - `PracticePanel.gd/.tscn` (class `PracticePanel`, on `BeepSaber_Game`'s `Practice_canvas`; owner's redesign
   2026-10-30, replacing a Practice view in the song menu that felt cut off from playing): "1:41 of 2:55" and the Repeat
   toggle over one bar (`PracticeTimeline.gd`, class `PracticeTimeline`, owner 2026-10-30: one bar, not three sliders),
-  "Start 1:24" and "End 1:50" (or "Plays to the end") under it, a one-line hint, Speed − 50-200% +
+  a one-line hint, Speed − 50-200% +
   (`Constants.PRACTICE_SPEED_*`, greyed while playing), the primary Play/Pause (`icons/pause.svg`, Lucide), Restart
   (from the start) and Exit. The bar draws the song with the playhead (a round knob; a press in its top `BAR_BAND`
   takes it: `scrub_started`/`scrub_ended`), the start point (a triangle hung under the bar) and with Repeat on the end
-  point (a square), the part between them lit; a press in the `MARKER_BAND` under the bar takes the nearer marker
+  point (a square), each with its label under it ("Start 1:24", "End 1:50", 28 px; the start's left of its marker, the
+  end's right of its, pushed apart when they'd meet: `label_rects`), the part between them lit; a press in the `MARKER_BAND` under the bar takes the nearer marker
   (`start_set`/`end_set`). Shapes and labels tell them apart, never colour alone, and no font glyphs. Repeat on starts a
   part `NEW_PART_SECONDS` long, at least `MIN_PART_SECONDS`; a later start pushes the end on; off is -1. The panel
   only shows and signals; the game runs the song and places it (`BeepSaber_Game.PRACTICE_PANEL_*`). `nudge` moves the

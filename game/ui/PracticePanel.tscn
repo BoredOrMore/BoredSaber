@@ -47,20 +47,6 @@ text = "Repeat"
 layout_mode = 2
 script = ExtResource("timeline")
 
-[node name="Marks" type="HBoxContainer" parent="Rows"]
-layout_mode = 2
-
-[node name="StartTime" type="Label" parent="Rows/Marks"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Start 0:00"
-
-[node name="EndTime" type="Label" parent="Rows/Marks"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Plays to the end"
-horizontal_alignment = 2
-
 [node name="Hint" type="Label" parent="Rows"]
 custom_minimum_size = Vector2(0, 30)
 layout_mode = 2

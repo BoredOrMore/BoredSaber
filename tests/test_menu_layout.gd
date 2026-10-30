@@ -184,20 +184,20 @@ func _ready() -> void:
 	await _settle()
 	_check_layout(practice, "practice panel, stopped")
 	var slower := practice.get_node(^"Rows/SpeedRow/Slower_Button") as Button
-	check(practice._time.text == "99:59 of 99:59" and practice._start_time.text == "Start 99:59"
-			and practice._end_time.text == "End 99:59" and practice._speed.text == "50%" and slower.disabled,
+	check(practice._time.text == "99:59 of 99:59" and practice._bar.label_text(true) == "Start 99:59"
+			and practice._bar.label_text(false) == "End 99:59" and practice._speed.text == "50%" and slower.disabled,
 			"practice panel: \"%s\", \"%s\", \"%s\", \"%s\", slower greyed at the slowest" % [practice._time.text,
-			practice._start_time.text, practice._end_time.text, practice._speed.text])
+			practice._bar.label_text(true), practice._bar.label_text(false), practice._speed.text])
 	practice.show_state(true, 30.0, 12.0, -1.0, 100.0, 100)
 	await _settle()
 	_check_layout(practice, "practice panel, playing")
 	check(practice._play.text == "Pause" and slower.disabled and practice._faster.disabled,
 			"practice panel: playing shows Pause and greys the speed (got %s)" % practice._play.text)
 	practice.show_time(95.0)
-	check(practice.start_seconds() == 12.0 and practice._start_time.text == "Start 0:12"
-			and practice._end_time.text == "Plays to the end",
+	check(practice.start_seconds() == 12.0 and practice._bar.label_text(true) == "Start 0:12"
+			and practice._bar.label_rects().size() == 1,
 			"practice panel: the start stays put while the song plays on, no end without Repeat (got %s, %s)" % [
-			practice._start_time.text, practice._end_time.text])
+			practice._bar.label_text(true), practice._bar.label_rects().size()])
 	# one bar: a press on it takes the playhead, a press under it the start marker; Repeat adds the end marker
 	var bar := practice._bar
 	var events: Array = []
@@ -217,7 +217,15 @@ func _ready() -> void:
 			"practice panel: the bar takes the playhead, under it the nearer marker; Repeat on starts a 10 s part, a start "
 			+ "past the end pushes it on, off clears it (got %s)" % [events])
 	check(bar.size.y >= PracticeTimeline.BAR_BAND + PracticeTimeline.MARKER_BAND,
-			"practice panel: the bar and its markers each have a 52 px band (%.0f px)" % bar.size.y)
+			"practice panel: the bar and its markers have their bands (%.0f px)" % bar.size.y)
+	# the markers' labels: inside the bar and apart, even with the two markers at the same second at either end
+	for at: Array in [[0.0, 2.0], [50.0, 52.0], [98.0, 100.0]]:
+		bar.start = at[0]
+		bar.end = at[1]
+		var rects := bar.label_rects()
+		check(rects.size() == 2 and not rects[0].intersects(rects[1]) and rects[0].position.x >= 0.0
+				and rects[1].end.x <= bar.size.x + 0.5,
+				"practice panel: Start and End labels apart and inside the bar with the markers at %s (got %s)" % [at, rects])
 	practice.queue_free()
 
 	# Visuals with the Graphics chips: Low, then one effect changed (Custom)
