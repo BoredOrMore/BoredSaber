@@ -543,6 +543,7 @@ func update_list(req: BeatSaverRequest) -> void:
 		song_data = []
 		_song_index.clear()
 		_cover_list += 1
+		_cover_fetched.clear()
 		_finished_covers.clear()
 		_cover_fetched.clear()
 		item_selected = -1
@@ -554,7 +555,7 @@ func update_list(req: BeatSaverRequest) -> void:
 		_sync_filter_controls()
 	if not httpcoverdownload:
 		return
-	httpcoverdownload.cancel_request()
+	_cancel_cover()
 	httpreq.cancel_request()
 	_list_request += 1
 	prev_page_available = req.page
@@ -1172,7 +1173,7 @@ var _finished_covers := []
 var _cover_flush_wait := 0.0
 
 func _update_all_covers() -> void:
-	httpcoverdownload.cancel_request()
+	_cancel_cover()
 	update_next_cover()
 
 ## Fetches the next missing cover: the rows in view first, then the ones below them, then those above (owner,
@@ -1292,6 +1293,8 @@ func _near_end() -> bool:
 
 ## Fetches the next page once the player scrolls near the end of the list.
 func _on_ListV_Scroll_value_changed(_new_value: float) -> void:
+	# covers newly scrolled into view come next (one is picked at once if none is downloading)
+	update_next_cover()
 	if _near_end():
 		if next_page_available == -1:
 			# no next page to load

@@ -171,6 +171,10 @@ func _row(index: int) -> Button:
 	return _rows.get_child(index) as Button
 
 ## Where a row starts in the scrolled content (every row has the same height).
+## The row at the top of the view (for loading the covers in view first).
+func first_shown() -> int:
+	return maxi(int((scroll_vertical - _top.custom_minimum_size.y) / (ROW_HEIGHT + ROW_SEPARATION)), 0)
+
 func _row_top(index: int) -> float:
 	return _top.custom_minimum_size.y + index * (ROW_HEIGHT + ROW_SEPARATION)
 

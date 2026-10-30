@@ -39,7 +39,12 @@ func load_texture(path: String, file: String, callback_func: Callable, is_main_c
 	new_req.index = index
 	# the loading threads take requests off this queue under the mutex, so adding goes under it too
 	_img_load_mutex.lock()
-	_img_load_request_queue.push_back(new_req)
+	if index >= 0:
+		# a list rebuilt for a filter or search asks again for the same row: the newest asker wins
+		_waiting_rows[index] = new_req
+		_last_row = maxi(_last_row, index)
+	else:
+		_img_load_request_queue.push_back(new_req)
 	_img_load_mutex.unlock()
 	
 	_start_next_img_load()
