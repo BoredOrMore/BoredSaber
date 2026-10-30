@@ -371,6 +371,17 @@ const LOADING_STATUS := "Loading songs…"
 const TOTAL_STATUS := "About %s songs"
 const NO_MATCH_STATUS := "No songs match"
 const MAPPER_STATUS := "Showing all songs by %s"
+const CLOSE_STATUS := "No exact match · close to \"%s\""
+## A search that finds nothing is tried once more with each word cut to its start (owner, 2026-10-30: BeatSaver
+## matches whole words or their start, so one wrong letter found nothing: "ussewa" 0 maps, "usse" Usseewa): a word
+## longer than CLOSE_MATCH_LETTERS loses its last CLOSE_MATCH_CUT letters, keeping at least CLOSE_MATCH_LETTERS and
+## at most CLOSE_MATCH_MOST: BeatSaver matches a word's start only up to 8 letters (measured 2026-10-30: "senbonza"
+## 22 maps, "senbonzak" 0, "senbonzakura" 22).
+const CLOSE_MATCH_LETTERS := 4
+const CLOSE_MATCH_CUT := 2
+const CLOSE_MATCH_MOST := 8
+## The search as typed while the list shows close matches for a shorter one; "" otherwise.
+var _close_to := ""
 
 ## A filter changed: shows it at once and loads the list again once no other change came for FILTER_RELOAD_SECONDS.
 func _filters_changed() -> void:
@@ -386,6 +397,8 @@ func _show_filter_status() -> void:
 		filter_status.text = LOADING_STATUS
 	elif item_list.item_count == 0:
 		filter_status.text = NO_MATCH_STATUS if empty_list.text == NO_MATCH_TEXT else ""
+	elif not _close_to.is_empty():
+		filter_status.text = CLOSE_STATUS % prev_request.data
 	elif _total_songs >= 0:
 		filter_status.text = TOTAL_STATUS % Hud._grouped(_total_songs)
 	else:
@@ -630,8 +643,23 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 		if item_list.item_count > 0:
 			_show_empty("")
 		elif not _scroll_page_request_pending:
+			var close := close_query(prev_request.data) if prev_request.type == "text_search" else ""
+			if _close_to.is_empty() and close != prev_request.data:
+				_close_to = prev_request.data
+				prev_request.data = close
+				update_list(prev_request)
+				return
 			_show_empty(NO_MATCH_TEXT)
 	_show_filter_status()
+
+## The search with each word longer than CLOSE_MATCH_LETTERS cut by CLOSE_MATCH_CUT letters (to between
+## CLOSE_MATCH_LETTERS and CLOSE_MATCH_MOST): what a search that found nothing tries next.
+static func close_query(text: String) -> String:
+	var words := PackedStringArray()
+	for word in text.split(" ", false):
+		var keep := clampi(word.length() - CLOSE_MATCH_CUT, CLOSE_MATCH_LETTERS, CLOSE_MATCH_MOST)
+		words.append(word.left(keep) if word.length() > CLOSE_MATCH_LETTERS else word)
+	return " ".join(words)
 
 ## Parses a BeatSaver page into `parsed` as [maps playable here, each with its row text and its levels at the Speed
 ## modifier `speed`; how many maps match in all (a search's info.total), or -1 when it doesn't say], left empty when
@@ -709,6 +737,7 @@ func _list_sorted(sort_order: String) -> void:
 ## match order.
 func _set_search(text: String) -> void:
 	search_word = text
+	_close_to = ""
 	if not text.is_empty():
 		sort_button.select(-1)
 		sort_button.text = BEST_MATCH_TEXT

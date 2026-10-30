@@ -277,6 +277,8 @@ Found from headset logs on Pico OS 5.12 (OpenXR runtime 2.1.12); don't undo them
 - Map parsing tests: `godot --headless --path . res://tests/test_map_info.tscn` (exits non-zero on failure).
 - Menu layout test: `godot --headless --path . res://tests/test_menu_layout.tscn` (overlaps and overflow in the song
   menu and "Who's playing?" with worst-case content; exits non-zero on failure).
+- Song search test: `godot --headless --path . res://tests/test_song_search.tscn` (kana and romaji, tags, Get songs'
+  close-match retry).
 - `.github/workflows/build-pico4.yml` imports the project, runs the tests and exports the APK on every push.
   Pushes to `pico4-offline` or the default branch also replace the `pico4-latest` release, which the headset
   browser downloads from.

@@ -977,21 +977,21 @@ func _text_input_changed() -> void:
 		return
 	_apply_search(keyboard._text_edit.text)
 
-## Lists the songs whose title, artist or mapper contains the search text, closest title first, like the
-## BeatSaver page's search; the playlist when the text is empty.
+## Lists the songs whose title, artist, mapper or tags hold every word of the search text (SongSearch), closest
+## title first, like the BeatSaver page's search; the playlist when the text is empty.
 func _apply_search(text: String) -> void:
 	_search_text = text
 	if text == "":
 		_clean_search()
 		return
-	text = text.to_upper() # ignore case
 	var songs_sorted_by_similarity: Array[MapInfoWithSort] = []
 	for song in _all_songs:
-		if not (song.song_name + "\n" + song.song_author_name + "\n" + song.level_author_name).to_upper().contains(text):
+		# kana and romaji, case, spaces and long vowels alike, and the song's genre and style tags too (SongSearch)
+		if not SongSearch.matches(text, song, SongTags.tags_of(song)):
 			continue
 		# similarity is between 0.0 and 1.0, MapInfoWithSort takes an int,
 		# gotta make the number larger else it'll just be 0 or 1 later
-		var similarity := song.song_name.to_upper().similarity(text) * 65536.0
+		var similarity := song.song_name.to_upper().similarity(text.to_upper()) * 65536.0
 		songs_sorted_by_similarity.append(MapInfoWithSort.new(int(similarity), song))
 	songs_sorted_by_similarity.sort_custom(compare)
 	var songs_sorted: Array[MapInfo] = []

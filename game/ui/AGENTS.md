@@ -26,6 +26,9 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   the ItemList calls the menu uses; every row 76 px with a 72 px cover, 82 px apart (the selected one only changes its background); empty space at both ends lets
   `center_on` glide any row to the middle (the thumbstick uses it); a pressed row stays under the pointer. The menu
   sets `BackgroundImgLoader.focus` to `first_shown()` on scroll, so covers in view load first.
+- `SongSearch.gd` (class `SongSearch`): the song menu's search match (owner, 2026-10-30): every typed word must be in
+  the song's name, artist, mapper or BeatSaver tags, compared as loose keys (kana read as Hepburn romaji, case,
+  spaces, punctuation, long vowels and doubled letters ignored; kanji stay as they are), cached per song.
 - `ProfilesPanel.gd/.tscn` (class `ProfilesPanel`): "Who's playing?", opened by the player button beside the menu's gear
   (`BeepSaber_Game._open_profiles`) on its own canvas 10 cm in front of the menu, which takes no pointer input meanwhile.
   Picks, adds (max `Settings.MAX_PLAYERS`), renames (records too, `Highscores.rename_player`) and deletes players;
@@ -178,6 +181,9 @@ Above the list one row holds Search (icon), the sort, Get songs and, at its righ
   `DETAIL_COVER` px (`_on_detail_cover_completed`) into the details' one texture.
 - Known gaps (report, don't silently patch in unrelated work): `versions[0]["hash"]` is indexed without checking
   `versions` is non-empty (:234-235, :301).
+- Search: BeatSaver matches whole words or their start, not typos, and reads Japanese a character at a time (kana
+  searches pull in noise; real titles are in kanji, which romaji can't give). A search that finds nothing is tried
+  once more with each word cut short (`close_query`), the status saying "No exact match · close to …" (`_close_to`).
 - Download (:312): rejects HTML bodies; a `WorkerThreadPool` task (`_save_song`, awaited a frame at a time) writes
   the zip to `APPDATA_PATH/temp` and unpacks it to `Songs/<hash>/`; once the queue is empty
   `main_menu_ref.add_downloaded_songs` reads just those folders' info on another task and adds them to the list (no
