@@ -59,6 +59,6 @@ void fragment() {
 		sky += bg_2_tint.rgb * bg_2_intensity * smoothstep(0.2, 1.0, -d.x) * side_fade;
 		sky += bg_3_tint.rgb * bg_3_intensity * smoothstep(0.2, 1.0, d.x) * side_fade;
 		ALBEDO = sky;
-		ALBEDO = fog_dither(ALBEDO, FRAGCOORD.xy);
+		ALBEDO = fog_dither(fog_result(ALBEDO, VERTEX), FRAGCOORD.xy);
 	}
 }

@@ -32,7 +32,7 @@ const NOTE_STYLES := [ ["solid", "Solid"], ["neon", "Neon"] ]
 const NOTE_DARK_VALUE := 0.7
 ## the scenery around the track, picked on the song menu's Song tab; "auto" follows the environment each map was made for
 ## (EventDriver.pick_environment)
-const ENVIRONMENTS := [ ["auto", "Follow map"], ["classic", "Classic"], ["neon_grid", "Neon Grid"], ["pulse_void", "Pulse Void"], ["night_city", "Night City"], ["metal_factory", "Metal Factory"] ]
+const ENVIRONMENTS := [ ["auto", "Follow map"], ["classic", "Classic"], ["neon_grid", "Neon Grid"], ["pulse_void", "Pulse Void"], ["night_city", "Night City"], ["metal_factory", "Metal Factory"], ["henge", "Henge"] ]
 ## Graphics presets in Settings > Visuals: the effects each sets (Settings key: value). Glow was the only one
 ## measured to cost much on the headset (about 6 of a 13.9 ms frame). Both keep the light show (about 0.2 ms) and the
 ## slash note's light (about 0.3 ms): players missed them off.
@@ -262,7 +262,6 @@ var audio_sfx: float:
 	set(value):
 		audio_sfx = value
 		AudioServer.set_bus_volume_db(AudioServer.get_bus_index(&"SFX"), linear_to_db(value))
-		AudioServer.set_bus_volume_db(AudioServer.get_bus_index(&"UI"), linear_to_db(value))
 		set_and_emit(&"audio_sfx", value)
 var spectator_view: bool:
 	set(value):
@@ -409,6 +408,20 @@ var song_filter_workout: bool:
 	set(value):
 		song_filter_workout = value
 		set_and_emit(&"song_filter_workout", value)
+## The song menu's style and genre filters: a BeatSaver tag (SongTags.STYLES, GENRES), "" for any.
+var song_filter_style: String:
+	set(value):
+		song_filter_style = value
+		set_and_emit(&"song_filter_style", value)
+var song_filter_genre: String:
+	set(value):
+		song_filter_genre = value
+		set_and_emit(&"song_filter_genre", value)
+## Get songs lists AI-made maps too (owner, 2026-10-30; off: BeatSaver leaves them out).
+var beatsaver_include_ai: bool:
+	set(value):
+		beatsaver_include_ai = value
+		set_and_emit(&"beatsaver_include_ai", value)
 ## Length filter of the BeatSaver page, kept apart from the song menu's so changing one doesn't empty the other.
 var beatsaver_filter_length: int:
 	set(value):
@@ -438,7 +451,7 @@ func _ready() -> void:
 		player_name = players[0].name
 		_store_current_player()
 	changed.connect(func(key: StringName) -> void:
-		if key == &"player_height_offset" or key == &"left_handed":
+		if key == &"player_height_offset" or key == &"left_handed" or key == &"beatsaver_filter_reaction":
 			_store_current_player())
 
 const platform_default_values = {
@@ -515,7 +528,10 @@ var default_values = {
 	song_filter_reaction = 0,
 	song_filter_favorites = false,
 	song_filter_workout = false,
+	song_filter_style = "",
+	song_filter_genre = "",
 	beatsaver_filter_length = 0,
+	beatsaver_include_ai = false,
 	beatsaver_filter_reaction = 0,
 	claws = false,
 	preloaded_songs = false,
@@ -607,13 +623,14 @@ func find_player(new_name: String) -> Dictionary:
 			return player
 	return {}
 
-## Copies the current height and handedness into the current player's entry, and saves the list.
+## Copies the current height, handedness and Download page level into the current player's entry, and saves the list.
 func _store_current_player() -> void:
 	var player := find_player(player_name)
 	if player.is_empty():
 		return
 	player.player_height_offset = player_height_offset
 	player.left_handed = left_handed
+	player.beatsaver_level = beatsaver_filter_reaction
 	players = players
 
 ## Why new_name can't name a player (empty, or taken by another player than old_name), or "" when it can.
@@ -633,6 +650,7 @@ func switch_player(new_name: String) -> void:
 	player_name = player.name
 	player_height_offset = player.player_height_offset
 	left_handed = player.left_handed
+	beatsaver_filter_reaction = int(player.get("beatsaver_level", 0))
 	save()
 
 ## Adds a player with default height and handedness and makes them the current one.

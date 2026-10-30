@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="StyleBox" path="res://game/ui/menu_panel.tres" id="frame"]
+
+[node name="MenuPanel" type="Panel"]
+offset_right = 480.0
+offset_bottom = 776.0
+mouse_filter = 2
+theme_override_styles/panel = ExtResource("frame")

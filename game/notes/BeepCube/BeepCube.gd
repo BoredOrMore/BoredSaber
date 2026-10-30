@@ -35,7 +35,6 @@ const ROUND_MESH := preload("res://game/notes/BeepCube/note_round.glb")
 static var _round: Mesh
 var _classic: Mesh
 var _mat: ShaderMaterial
-@export var min_speed := 0.5
 
 var piece_left : CutPiece = null
 var piece_right : CutPiece = null
@@ -117,11 +116,7 @@ func spawn(note_info: ColorNoteInfo, current_beat: float) -> void:
 	small_coll_area.set_collision_layer_value(CollisionLayerConstants.LeftNote_bit, not is_left_note)
 	small_coll_area.set_collision_layer_value(CollisionLayerConstants.RightNote_bit, is_left_note)
 	
-	# play the spawn animation when this cube enters the scene
-	var anim := $AnimationPlayer as AnimationPlayer
-	var anim_speed := Map.current_difficulty.note_jump_movement_speed / 9.0
-	anim.speed_scale = maxf(min_speed,anim_speed)
-	anim.play(&"Spawn")
+	start_jump(mi, note_info.cut_angle)
 	
 	slice_particles.reset()
 	mi.visible = true
@@ -193,7 +188,8 @@ func cut(saber: LightSaber, cut_speed: Vector3, cut_plane: Plane, controller: Be
 	var on_cut := global_transform.origin - cut_plane.normal * cut_distance
 	if Settings.cut_flash:
 		GlobalReferences.main_game_scene.cut_flash.flash(on_cut, cut_speed.rotated(Vector3(0, 1, 0), rotation.y),
-				Map.color_right if saber.type == 1 else Map.color_left)
+				Map.color_right if saber.type == 1 else Map.color_left, cut_plane.normal, mi.global_transform,
+				mi.get_aabb())
 	# reset the movement tracking volume for the next cut
 	controller.reset_movement_aabb()
 	

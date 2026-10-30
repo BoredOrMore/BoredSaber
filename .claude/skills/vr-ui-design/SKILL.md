@@ -35,17 +35,27 @@ Positions are metres in the main scene. The player stands at `XROrigin3D` (0, 0,
 scene origin: eyes around (0, 1.6, 1), facing -z. Panels are `OQ_UI2DCanvas` quads: 1024 px = 1 m at scale 1 (`vr.UI_PIXELS_TO_METER`),
 then multiplied by the node `transform` scale.
 
-- Keep reading and pressing within about ±30° left/right, 20° up and 12° down of straight ahead;
-  beyond that the player has to turn the head (comfortable head rotation from Alex Chu's Samsung VR
-  design talk and Mike Alger's "Visual Design Methods for Virtual Reality", 2015; maximum 55° to the
-  side, 60° up, 40° down). Short tasks like typing may sit lower if tilted to face the eye.
+- Two zones, by whether the player turns to use the UI (owner, 2026-10-28):
+  - **No head turn**, for UI looked at while still (HUD, countdown, score): within about ±30°
+    left/right, 20° up and 12° down of straight ahead (comfortable head rotation from Alex Chu's
+    Samsung VR design talk and Mike Alger's "Visual Design Methods for Virtual Reality", 2015;
+    maximum 55° to the side, 60° up, 40° down).
+  - **Head turn plus eyes**, for menus the player turns to use: the head's comfortable turn plus the
+    eyes' comfortable 15° (beyond it the head follows): ±45° left/right, 35° up, 27° down. Past ±45°
+    only for a glance (an occasional control or a look), never past ±70° (the neck's 55° plus the eyes).
+  - Bias content below eye level: the normal line of sight is about 15° down (MIL-STD-1472) and
+    holding the head up strains the neck sooner than looking down (ISO 11226). Short tasks like
+    typing may sit lower if tilted to face the eye.
+  - A panel wider than about 30° curves around the eye, left to right only (a slice of an upright
+    cylinder, `OQ_UI2DCanvas.curve_radius`; owner, 2026-10-28: no curve up and down), so its text
+    keeps the same angle to its left and right edges; its top and bottom rows sit further away.
 - Main panel distance 0.8-2.5 m. Eye strain starts at ~0.5 m and closer (Oculus recommends 0.75 m
   minimum); further shrinks text. Pointer (ray) targets belong 0.8-3 m away, never closer than
   0.8 m [Meta hands UI]; content read for a while at least 1 m away [Apple eyes].
 - Centre important content; content at the sides means turning the head again and again [Apple
   spatial layout, Meta comfort]. Anchor UI in the world, never to the head, and keep the main
   controls on one panel rather than many floating windows [Apple spatial layout, Meta comfort].
-- A side panel must face the player (yaw toward (0, 1.6, 1)) and stay inside the comfort zone. A
+- A side panel must face the player (yaw toward (0, 1.6, 1)) and stay inside the head-turn zone. A
   table 2.3 m left turned 60° was out of sight.
 - **Depth:** two panels at similar depth must not overlap in the view. Compute world positions:
   a child offset is rotated and scaled by every parent transform. (The keyboard's text box sat 5 cm
@@ -55,6 +65,10 @@ then multiplied by the node `transform` scale.
   song menu and on the score screen) must be placed per state, or checked against every state's
   layout. Moving it for one screen once covered the song list in another.
 - Never put UI inside the play lane (x ±1 m, in front of the player) while notes can fly.
+
+- **Templates:** build panels, sections and buttons from the shared scenes and theme (`menu_panel.tres`,
+  `MenuPanel.tscn`, `MenuSection.tscn`; owner, 2026-10-28) so sizes, spacing, corners and states live in one
+  place; a page only swaps content. A new kind of panel, section or button becomes a template first.
 
 ## 3. Size and legibility
 

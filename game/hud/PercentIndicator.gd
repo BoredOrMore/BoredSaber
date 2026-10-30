@@ -10,6 +10,9 @@ func _ready() -> void:
 	shader = material_override as ShaderMaterial
 	var label_instance = $PercentLabel as MeshInstance3D
 	label = label_instance.mesh as TextMesh
+	# the numbers' font (Hud.NUMBER_FONT), grown to keep its size
+	label.font = Hud.NUMBER_FONT
+	label.pixel_size *= Hud.NUMBER_FONT_SCALE
 	label_instance.layers = layers
 	# a target under the ring says what the number is without words
 	# (the spectator window's copy of the ring has no icon)

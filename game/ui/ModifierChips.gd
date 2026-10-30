@@ -9,15 +9,52 @@ var _menu: MainMenu
 func _init(menu: MainMenu) -> void:
 	_menu = menu
 
+func _map_colors_row() -> HBoxContainer:
+	return _menu.get_node(^"Modifiers/Look/MapColorsRow") as HBoxContainer
+
 ## Fills every row with its chips; call once the menu is in the tree (the chips read its theme).
 func build() -> void:
 	_build_rows()
 	_build_chips()
+	_add_heading_icons()
 
-## Chip side padding, and the width of the Damage row's leading label.
-const CHIP_PADDING := 6.0
-## Top and bottom padding of chips, so the theme's 28 px text fits a 48 px row (3.2° at the menu's 2 m).
-const CHIP_VERTICAL_PADDING := 7.0
+## Icons before the Modifiers area's row headings (owner, 2026-10-27: more icons on the song menu), each with its
+## word: a gauge for Speed, a crossed-out bolt for Damage (the bolt is Energy, owner 2026-10-28). ICON_SIZE px, the size of the chips'
+## text. (The Modifiers heading has none: with many changes its Reset fills the row; Environment's dropdown shows
+## the environment's picture.)
+const ICON_SIZE := 28
+const SPEED_ICON := preload("res://game/ui/icons/gauge.svg")
+const DAMAGE_ICON := preload("res://game/ui/icons/zap-off.svg")
+
+func _add_heading_icons() -> void:
+	_prefix_icon(_menu.get_node(^"Modifiers/Speed/Title") as Label, SPEED_ICON)
+	_prefix_icon(_menu.damage_row.get_child(0) as Label, DAMAGE_ICON)
+
+## Puts icon just before label: in its row, the label giving up the icon's room so the columns stay put, or in a
+## new row where the label stood alone.
+func _prefix_icon(label: Label, icon: Texture2D) -> void:
+	var image := TextureRect.new()
+	image.texture = icon
+	image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	image.custom_minimum_size = Vector2.ONE * ICON_SIZE
+	image.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var parent := label.get_parent()
+	if parent is HBoxContainer:
+		parent.add_child(image)
+		parent.move_child(image, label.get_index())
+		if label.custom_minimum_size.x > 0.0:
+			label.custom_minimum_size.x -= ICON_SIZE + (parent as HBoxContainer).get_theme_constant(&"separation")
+		return
+	var row := HBoxContainer.new()
+	parent.add_child(row)
+	parent.move_child(row, label.get_index())
+	label.reparent(row)
+	row.add_child(image)
+	row.move_child(image, 0)
+
+## The width of the Damage row's leading label. (Chips' padding is the ChipButton kind's, menu_theme.tres: 28 px
+## text in a 48 px row, 3.2° at the menu's 2 m.)
 const ROW_LABEL_WIDTH := 110.0
 const MORE_MODS_TEXT := "More modifiers"
 ## On/off chips on the Song tab: [label, Settings key, value of the key while the chip is on].
@@ -42,41 +79,39 @@ func _build_chips() -> void:
 		chip.toggled.connect(func(on: bool) -> void:
 			Settings.set(toggle[1] as StringName, on == toggle[2])
 			_menu.update_view())
-		_menu.toggle_row.add_child(chip)
-		set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
+		# Map colors is a look, above the environment
+		(_map_colors_row() if toggle[1] == &"disable_map_color" else _menu.toggle_row).add_child(chip)
 	_add_option_chips(_menu.speed_row, &"music_speed", Constants.SPEEDS, Constants.SPEEDS.map(func(o: Array) -> String: return "%d%%" % o[0]))
+	MenuSection.section_list(_menu.more_mods_rows)
 	for row: Array in MORE_MOD_ROWS:
-		var title := Label.new()
-		title.text = str(row[0])
-		_menu.more_mods_rows.add_child(title)
+		var section := MenuSection.make(str(row[0]))
+		_menu.more_mods_rows.add_child(section)
 		var grid := GridContainer.new()
 		grid.columns = int(row[4])
 		grid.add_theme_constant_override(&"h_separation", 4)
 		grid.add_theme_constant_override(&"v_separation", 6)
-		_menu.more_mods_rows.add_child(grid)
+		section.add_child(grid)
 		_add_option_chips(grid, row[1] as StringName, row[2] as Array, row[3] as Array)
 	_claws_chip = make_row_button(Constants.CLAWS_LABEL, null, func() -> void: pass)
 	_claws_chip.toggled.connect(func(on: bool) -> void:
 		Settings.claws = on
 		_menu.update_view())
 	_menu.more_mods_rows.add_child(_claws_chip)
-	set_padding(_claws_chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-	environment_picker = OptionButton.new()
-	environment_picker.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	environment_picker.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	environment_picker.add_theme_constant_override(&"icon_max_width", ENVIRONMENT_THUMB_WIDTH_CLOSED)
-	environment_picker.get_popup().add_theme_constant_override(&"icon_max_width", ENVIRONMENT_THUMB_WIDTH)
+	# the closed Environment button, and a card per environment over the modifiers once it's pressed
+	environment_button = EnvironmentCard.make(null, "")
+	environment_button.pressed.connect(_menu.show_environments.bind(true))
+	_menu.environment_row.add_child(environment_button)
+	var group := ButtonGroup.new()
 	for environment: Array in Settings.ENVIRONMENTS:
-		environment_picker.add_item(environment[1])
-		environment_picker.set_item_icon(environment_picker.item_count - 1, environment_thumb(environment[0]))
-	environment_picker.item_selected.connect(func(item: int) -> void: Settings.environment = Settings.ENVIRONMENTS[item][0])
-	_menu.environment_row.add_child(environment_picker)
-	set_padding(environment_picker, CHIP_PADDING, CHIP_VERTICAL_PADDING)
+		var card := EnvironmentCard.make(environment_thumb(environment[0]), environment[1])
+		card.toggle_mode = true
+		card.button_group = group
+		card.custom_minimum_size.y = ENVIRONMENT_CARD_HEIGHT
+		card.pressed.connect(func() -> void:
+			Settings.environment = environment[0]
+			_menu.show_environments(false))
+		_environment_grid().add_child(card)
 	show_environment()
-	set_padding(_menu.reset_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-	set_padding(_menu.more_mods_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
-	# the star and its label in a 48 px button: the theme's 12 px padding would make it 60 px, into the picker
-	set_padding(_menu.favorite_button, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 
 ## Adds one chip per option of an option table to parent, picking the option's value for key when pressed.
 func _add_option_chips(parent: Container, key: StringName, options: Array, labels: Array) -> void:
@@ -89,7 +124,6 @@ func _add_option_chips(parent: Container, key: StringName, options: Array, label
 			Settings.set(key, value)
 			_menu.update_view())
 		parent.add_child(chip)
-		set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 		chips.append(chip)
 	_option_rows.append([chips, key, values])
 
@@ -117,33 +151,42 @@ func changed(rare_only := false) -> PackedStringArray:
 		names.append(Constants.CLAWS_LABEL)
 	return names
 
-## A small picture of each environment, by id, shown in the environment dropdown when the file exists.
+## Each environment's pictures (tools/capture/env_thumbnails.sh): the card, and the wide one for the closed button.
 const ENVIRONMENT_THUMBS := "res://game/env/thumbs/%s.png"
-## how wide the pictures show in the open list, and on the closed dropdown, which must stay one row high
-const ENVIRONMENT_THUMB_WIDTH := 128
-const ENVIRONMENT_THUMB_WIDTH_CLOSED := 36
-## The environment dropdown on the Song tab, under Damage (Settings.ENVIRONMENTS).
-var environment_picker: OptionButton
+const ENVIRONMENT_WIDE_THUMBS := "res://game/env/thumbs/%s_wide.png"
+## The cards' height: four rows of two (six stages and Follow map) fill the right panel under Back, so nothing scrolls
+## (about 10 degrees at 2 m; three rows took 196 px before Henge).
+const ENVIRONMENT_CARD_HEIGHT := 148
+## The closed Environment button in the Look section, showing the pick's picture (Settings.ENVIRONMENTS).
+var environment_button: EnvironmentCard
 
-## "Follow map" with a song selected names the environment that song will get, short enough for the Song tab.
+## "Follow map" with a song selected names the environment that song will get.
 const MAP_ENVIRONMENT_TEXT := "Map's: %s"
 
-## Shows the saved pick; "Follow map" also names the environment the selected song will get.
+func _environment_grid() -> GridContainer:
+	return _menu.get_node(^"EnvironmentPanel/Rows/Grid") as GridContainer
+
+## Shows the saved pick on the button and the cards; "Follow map" shows and names the environment the selected song
+## will get.
 func show_environment() -> void:
-	if not environment_picker:
+	if not environment_button:
 		return
 	var ids: Array = Settings.ENVIRONMENTS.map(func(e: Array) -> String: return e[0])
-	environment_picker.select(maxi(ids.find(Settings.environment), 0))
-	var follow: String = Settings.ENVIRONMENTS[0][1]
+	var picked := maxi(ids.find(Settings.environment), 0)
 	var resolved := EventDriver.map_environment(_menu._shown_map)
+	var follow: String = Settings.ENVIRONMENTS[0][1]
 	if _menu._shown_map:
 		follow = MAP_ENVIRONMENT_TEXT % Settings.ENVIRONMENTS[ids.find(resolved)][1]
-	environment_picker.set_item_text(0, follow)
-	environment_picker.set_item_icon(0, environment_thumb(resolved))
+	var shown: String = resolved if picked == 0 else ids[picked]
+	environment_button.show_card(environment_thumb(shown, true), follow if picked == 0 else Settings.ENVIRONMENTS[picked][1])
+	var cards := _environment_grid().get_children()
+	(cards[0] as EnvironmentCard).show_card(environment_thumb(resolved), follow)
+	for i in cards.size():
+		(cards[i] as EnvironmentCard).set_picked(i == picked)
 
-## The picture of an environment, or null when there is none.
-static func environment_thumb(id: String) -> Texture2D:
-	var path := ENVIRONMENT_THUMBS % id
+## The picture of an environment (its wide one for the closed button), or null when there is none.
+static func environment_thumb(id: String, wide := false) -> Texture2D:
+	var path := (ENVIRONMENT_WIDE_THUMBS if wide else ENVIRONMENT_THUMBS) % id
 	return load(path) as Texture2D if ResourceLoader.exists(path) else null
 
 ## Fills the fail and damage rows with one toggle button per option, so they're a single press away;
@@ -153,7 +196,6 @@ func _build_rows() -> void:
 	for i in Constants.FAIL_OPTIONS.size():
 		var chip := make_row_button(Constants.FAIL_OPTIONS[i][2], fail_group, _on_fail_option_pressed.bind(i))
 		_menu.fail_row.add_child(chip)
-		set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 	var damage_label := Label.new()
 	damage_label.text = "Damage"
 	damage_label.custom_minimum_size.x = ROW_LABEL_WIDTH
@@ -162,7 +204,6 @@ func _build_rows() -> void:
 	for i in Constants.DAMAGE_SCALES.size():
 		var chip := make_row_button(Constants.DAMAGE_SCALES[i][1], damage_group, _on_damage_option_pressed.bind(i))
 		_menu.damage_row.add_child(chip)
-		set_padding(chip, CHIP_PADDING, CHIP_VERTICAL_PADDING)
 	_sync_rows()
 
 ## Shows the saved fail mode and damage scale in the rows; damage only matters for the health bar.
@@ -174,8 +215,8 @@ func _sync_rows() -> void:
 		(_menu.fail_row.get_child(i) as Button).set_pressed_no_signal(option[0] == Settings.health_mode and (not Settings.health_mode or option[1] == Settings.fail_mode))
 	var damage_counts := Settings.health_mode and Settings.fail_mode == Constants.FAIL_MODE_BAR
 	for i in Constants.DAMAGE_SCALES.size():
-		# child 0 is the "Damage" label
-		var button := _menu.damage_row.get_child(i + 1) as Button
+		# the row starts with the "Damage" icon and label
+		var button := _menu.damage_row.get_child(_menu.damage_row.get_child_count() - Constants.DAMAGE_SCALES.size() + i) as Button
 		button.set_pressed_no_signal(is_equal_approx(Constants.DAMAGE_SCALES[i][0], Settings.damage_scale))
 		button.disabled = not damage_counts
 
@@ -192,9 +233,10 @@ func _on_damage_option_pressed(index: int) -> void:
 
 func sync() -> void:
 	_sync_rows()
-	for chip: Button in _menu.toggle_row.get_children():
-		var toggle: Array = TOGGLE_CHIPS[chip.get_index()]
-		chip.set_pressed_no_signal(Settings.get(toggle[1] as StringName) == toggle[2])
+	var toggle_chips := _menu.toggle_row.get_children() + _map_colors_row().get_children()
+	for i in TOGGLE_CHIPS.size():
+		var toggle: Array = TOGGLE_CHIPS[i]
+		(toggle_chips[i] as Button).set_pressed_no_signal(Settings.get(toggle[1] as StringName) == toggle[2])
 	for row: Array in _option_rows:
 		var chips: Array = row[0]
 		for i in chips.size():
@@ -202,7 +244,7 @@ func sync() -> void:
 	_claws_chip.set_pressed_no_signal(Settings.claws)
 	var changed := changed()
 	_menu.reset_button.visible = changed.size() > 0
-	_menu.reset_button.text = "%d changed · Reset" % changed.size()
+	_menu.reset_button.text = "Reset (%d)" % changed.size()
 	var rare := changed(true)
 	_menu.more_mods_button.text = MORE_MODS_TEXT + (HighscorePanel.RUN_PARTS_SEPARATOR + ", ".join(rare) if rare.size() > 0 else "")
 
@@ -224,24 +266,12 @@ func reset() -> void:
 	_menu.update_view()
 
 ## One option of a button row.
-static func make_row_button(text: String, group: ButtonGroup, on_pressed: Callable) -> Button:
+static func make_row_button(text: String, group: ButtonGroup, on_pressed: Callable, kind := &"ChipButton") -> Button:
 	var button := Button.new()
+	button.theme_type_variation = kind
 	button.text = text
 	button.toggle_mode = true
 	button.button_group = group
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.pressed.connect(on_pressed)
 	return button
-
-## Gives button, already in the tree so it reads the menu theme, narrower padding in every state, so a row
-## of chips fits the column; vertical padding changes only when given.
-static func set_padding(button: Button, side: float, vertical := -1.0) -> void:
-	for style: StringName in [&"normal", &"hover", &"pressed", &"hover_pressed", &"disabled", &"focus"]:
-		# the menu theme's Button look, also for an OptionButton (whose own focus style is the engine's)
-		var box := button.get_theme_stylebox(style, &"Button").duplicate() as StyleBox
-		box.content_margin_left = side
-		box.content_margin_right = side
-		if vertical >= 0.0:
-			box.content_margin_top = vertical
-			box.content_margin_bottom = vertical
-		button.add_theme_stylebox_override(style, box)

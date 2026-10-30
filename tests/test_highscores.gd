@@ -107,5 +107,10 @@ func _ready() -> void:
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_FILE))
 	for key: StringName in saved:
 		Settings.set(key, saved[key])
+	hs = table()
+	var graded := hs.add_highscore(a, 1, "Graded", 1000, 0.87)
+	var old := hs.add_highscore(a, 1, "Old", 900)
+	check(is_equal_approx(graded.accuracy, 0.87) and not old.has("accuracy"),
+			"a new record keeps its accuracy for the ranking's grade; one without has none")
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)

@@ -45,8 +45,8 @@ func reposition_ui_elements() -> void:
 func on_scoreboard_update() -> void:
 	if not visible: return
 	
-	(point_label.mesh as TextMesh).text = "Score: %6d" % Scoreboard.points
-	(multiplier_label.mesh as TextMesh).text = "x %d\nCombo %d" % [Scoreboard.multiplier, Scoreboard.combo]
+	(point_label.mesh as TextMesh).text = "Score: %s" % Hud._grouped(Scoreboard.points)
+	(multiplier_label.mesh as TextMesh).text = "x %d\nCombo %s" % [Scoreboard.multiplier, Hud._grouped(Scoreboard.combo)]
 	percent_indicator.update_percent(Scoreboard.accuracy())
 
 func close() -> void:

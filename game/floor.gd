@@ -17,7 +17,17 @@ var C_RIGHT := Color()
 const PLAYER_LIGHT := preload("res://game/env/PlayerLight.gdshader")
 ## metres; the square around the player where the sabers light the floor
 const PLAYER_LIGHT_SIZE := 4.0
+const FOOTPRINTS := preload("res://game/env/Footprints.gdshader")
+## metres; the patch of platform the footprints are drawn on
+const FOOTPRINTS_SIZE := Vector2(0.6, 0.4)
 const mixed_reality_burn_alpha := 0.3
+## On the round platform of 90/360 maps (set_round, TrackDeck.layout) the border lights are a ring RING_WIDTH wide just
+## inside its rim instead of the square's four bars, and the marks, light pools and footprints lift ROUND_LIFT to lie on
+## the disc, which stands TrackDeck.ROUND_TOP above the deck. Untuned.
+const RING_WIDTH := 0.04
+const ROUND_LIFT := 0.006
+const RING_SEGMENTS := 96
+var _ring: MeshInstance3D
 # keep drawing this long after the last mark so it can fade out, then stop
 const FADE_OUT_SECONDS := 1.5
 
@@ -40,11 +50,46 @@ func _ready() -> void:
 	# just above the platform and the burn marks
 	pools.position.y = 0.003
 	add_child(pools)
+	var footprints := MeshInstance3D.new()
+	var footprints_plane := PlaneMesh.new()
+	footprints_plane.size = FOOTPRINTS_SIZE
+	footprints.mesh = footprints_plane
+	var footprints_material := ShaderMaterial.new()
+	footprints_material.shader = FOOTPRINTS
+	footprints_material.set_shader_parameter(&"foot_color", Constants.FOOTPRINT_COLOR)
+	footprints.material_override = footprints_material
+	footprints.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# on the burn marks, under the saber light pools
+	footprints.position.y = 0.002
+	add_child(footprints)
+	
+	_ring = MeshInstance3D.new()
+	var ring := TorusMesh.new()
+	ring.rings = RING_SEGMENTS
+	ring.ring_segments = 6
+	_ring.mesh = ring
+	_ring.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	# flattened into a thin band on the platform
+	_ring.scale = Vector3(1.0, 0.1, 1.0)
+	_ring.visible = false
+	add_child(_ring)
 	
 	if OS.get_name() == &"Web":
 		sub_viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 		is_disabled = true
 		
+## Lays the marks out on the round platform with a ring of lights `radius` out in `lights` (EventDriver: the map's
+## track lights, which have no track strips there; owner, 2026-10-29), or with the square platform's bars (radius 0).
+func set_round(radius: float, lights: Material) -> void:
+	var round_platform := radius > 0.0
+	($Node3D/Node3D as Node3D).visible = not round_platform
+	_ring.visible = round_platform
+	_ring.material_override = lights
+	if round_platform:
+		(_ring.mesh as TorusMesh).inner_radius = radius - RING_WIDTH
+		(_ring.mesh as TorusMesh).outer_radius = radius
+	position.y = ROUND_LIFT if round_platform else 0.0
+
 func update_left_color(color: Color) -> void:
 	C_LEFT = color
 	burn_l.modulate = color*6

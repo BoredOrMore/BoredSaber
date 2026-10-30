@@ -2,6 +2,12 @@ extends Panel
 class_name HighscorePanel
 
 @export var show_song_info := true
+## In the song menu's left panel, under the song (owner, 2026-10-27): no margins or background (the panel draws
+## it), the count of scores as the title (the difficulty is picked right above), and at most COMPACT_ROWS rows, as
+## nothing but the song list scrolls on that page (owner, 2026-10-28): the best ones, the current player's best
+## in the last row when it's further down, its place before the name.
+@export var compact := false
+const COMPACT_ROWS := 6
 
 # keep a copy of the base row for regeneration later
 @onready var _base_row = $Margin/VBox/LeftRight/ScrollContainer/Margin/HighscoresList/BaseRecordRow.duplicate()
@@ -14,13 +20,27 @@ class_name HighscorePanel
 ## modifier titles (they wrap) and long names can't push it off the board (owner on the headset, 2026-10-25).
 const SCORE_WIDTH := 150.0
 
+## The rows read [grade, name, score] (owner, 2026-10-27): the run's grade in the HUD's grade font and its colour, "–"
+## for records from before grades were kept.
+const GRADE_WIDTH := 64.0
+const NO_GRADE := "–"
+
 func _ready() -> void:
+	var grade := _base_row.get_child(0) as Label
+	grade.custom_minimum_size.x = GRADE_WIDTH
+	grade.add_theme_font_override(&"font", Hud.GRADE_FONT)
 	(_base_row.get_child(1) as Label).text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	var score := _base_row.get_child(2) as Label
 	score.custom_minimum_size.x = SCORE_WIDTH
 	score.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	_clear_list()
 	_song_info_panel.visible = show_song_info
+	if compact:
+		add_theme_stylebox_override(&"panel", StyleBoxEmpty.new())
+		_highscore_list.add_theme_constant_override(&"separation", 0)
+		for margin: MarginContainer in [$Margin, $Margin/VBox/LeftRight/ScrollContainer/Margin]:
+			for side in ["left", "top", "right", "bottom"]:
+				margin.add_theme_constant_override("margin_" + side, 0)
 	
 ## Rows stand out in UI_ACCENT: on the score screen only the run just played (latest, the record add_highscore
 ## returned; none when it didn't make the list), elsewhere (latest null) the current player's rows.
@@ -42,21 +62,32 @@ func load_highscores(map_info: MapInfo, diff_rank: int, latest: Variant = null) 
 	# TODO populate song artwork
 	
 	var records := Highscores.get_records(map_info,diff_rank)
-	var idx = 1
-	for record in records:
+	var places := range(records.size())
+	if compact:
+		set_title("No scores yet" if records.is_empty() else "%d %s" % [records.size(), "score" if records.size() == 1 else "scores"])
+		var my_best := records.map(func(r: Dictionary) -> String: return r.player_name).find(Settings.player_name)
+		places = places.slice(0, COMPACT_ROWS)
+		if my_best >= COMPACT_ROWS:
+			places[-1] = my_best
+	for place: int in places:
+		var record: Dictionary = records[place]
 		# build a new row and populate fields from record
 		var new_row = _base_row.duplicate()
-		new_row.get_child(0).text = "%d." % idx
-		new_row.get_child(1).text = record.player_name
-		new_row.get_child(2).text = "%d" % record.score
+		var grade_label := new_row.get_child(0) as Label
+		grade_label.text = EndScore.grade(record.accuracy) if record.has("accuracy") else NO_GRADE
+		grade_label.add_theme_color_override(&"font_color",
+				Constants.RANK_COLORS[grade_label.text] if record.has("accuracy") else Constants.UI_TEXT_MUTED)
+		new_row.get_child(1).text = record.player_name if not compact or place < COMPACT_ROWS else "#%d %s" % [place + 1, record.player_name]
+		new_row.get_child(2).text = Hud._grouped(record.score)
+		(new_row.get_child(2) as Control).add_theme_font_override(&"font", Hud.NUMBER_FONT)
 		var mine: bool = record.player_name == Settings.player_name if latest == null else (
 				not (latest as Dictionary).is_empty() and record.epoch_time == latest.epoch_time and record.score == latest.score)
 		if mine:
-			for label: Label in new_row.get_children():
+			# the grade keeps its own colour
+			for label: Label in new_row.get_children().slice(1):
 				label.add_theme_color_override(&"font_color", Constants.UI_ACCENT)
 		
 		_highscore_list.add_child(new_row)
-		idx += 1
 		
 func set_title(title_text):
 	_title.text = title_text

@@ -5,6 +5,8 @@ var difficulty: String
 var difficulty_rank: int
 var characteristic: String
 var beatmap_filename: String
+## the v4 file holding this difficulty's lights ("" before v4, where the lights are in the beatmap file)
+var lightshow_filename := ""
 var note_jump_movement_speed: float
 var note_jump_start_beat_offset: float
 var custom_data: Dictionary
@@ -70,13 +72,15 @@ static func load_v4(diff_dict: Dictionary) -> DifficultyInfo:
 	if name.is_empty():
 		name = diff
 	
-	return DifficultyInfo.new(
+	var info := DifficultyInfo.new(
 		diff,
 		0, # TODO: difficulty rank
-		Utils.get_str(diff_dict, "beatmapDataFilename", ""), # TODO: lightshow
+		Utils.get_str(diff_dict, "beatmapDataFilename", ""),
 		Utils.get_float(diff_dict, "noteJumpMovementSpeed", 1.0),
 		Utils.get_float(diff_dict, "noteJumpStartBeatOffset", 0.0),
 		data,
 		name,
 		Utils.get_str(diff_dict, "characteristic", "")
 	)
+	info.lightshow_filename = Utils.get_str(diff_dict, "lightshowDataFilename", "")
+	return info

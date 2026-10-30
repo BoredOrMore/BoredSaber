@@ -46,6 +46,32 @@ const HZ90 := "hz90"
 ## so those phases are gone. Each phase sets its state every frame, as the song's start hangs the stage again.
 const FOG := "fog"
 const FOG_SONG_SECONDS := 20.0
+## The flag file's mode for the floor reflection and the build-up sweep (tools/bench.sh --only reflection), in a
+## song on Classic: all on, the reflection left out, each twice, then the sweep held on and all on again.
+const REFLECTION := "reflection"
+## The flag file's mode for the cut sparks (tools/bench.sh --only cuts): in a song on Classic, no cuts against
+## full-swing cuts fired by the benchmark CUTS_PER_SECOND at the hit plane, left and right in turn (nobody swings during
+## a run), twice each.
+const CUTS := "cuts"
+## The flag file's mode for switching stages (tools/bench.sh --only stages): in the song menu, every stage in turn for
+## STAGE_SECONDS, twice (the first pass meets each stage for the first time since launch, the second again), each frame
+## longer than HITCH_SECONDS logged as "BENCH hitch <ms> <phase> +<s into it> process <ms> render cpu <ms> gpu <ms>"
+## (the scripts' time, the render thread's and the GPU's that frame, to tell a slow script from a shader built on first
+## draw), and the switch's own call as "BENCH switch <ms>". Run it right after launching the game.
+const STAGES := "stages"
+const STAGE_SECONDS := 6.0
+const HITCH_SECONDS := 0.025
+var _hitch_phase := ""
+const CUTS_PER_SECOND := 4.0
+const CUTS_SWING := Vector3(0.0, -6.0, 0.0)
+const CUTS_NOTE_HALF := 0.2
+## a blade the benchmark swings side to side through the sparks while it cuts (CutFlash.test_blade), so their cost
+## includes the blades' push: CUTS_BLADE_HZ sweeps a second, CUTS_BLADE_HALF either side of the middle (m)
+const CUTS_BLADE_HZ := 1.0
+const CUTS_BLADE_HALF := 0.8
+var _sim_usec := 0
+var _sim_frames := 0
+var _cuts_fired := 0
 const HZ_SONG_SECONDS := 20.0
 const RENDER_SCALES: Array[float] = [1.0, 1.2, 1.44]
 const RESOLUTION_SONG_SECONDS := 20.0
@@ -126,6 +152,35 @@ func _stage_parts(off: String) -> void:
 	var views := {"scenery": DebugView.RINGS, "shading": DebugView.FLAT_SCENERY}
 	RenderingServer.global_shader_parameter_set(&"debug_view", views.get(off, 0))
 
+## Shows stage `id` in the song menu and logs the phase's long frames under `phase_name` (the stages mode).
+func _show_stage(id: String, phase_name: String) -> void:
+	_hitch_phase = phase_name
+	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), true)
+	var started := Time.get_ticks_usec()
+	Settings.environment = id
+	print("BENCH switch %.1f" % ((Time.get_ticks_usec() - started) / 1000.0))
+
+## Fires full-swing cuts at the hit plane CUTS_PER_SECOND, left and right in turn, up to `t` seconds into the phase,
+## with a blade swinging through their sparks.
+func _fire_cuts(t: float) -> void:
+	var x := sin(TAU * CUTS_BLADE_HZ * t) * CUTS_BLADE_HALF
+	game.cut_flash.test_blade = PackedVector3Array([Vector3(x, 0.9, Constants.HIT_PLANE_Z + 0.2),
+		Vector3(x, 1.8, Constants.HIT_PLANE_Z - 0.4)])
+	var due := int(t * CUTS_PER_SECOND)
+	while _cuts_fired < due:
+		_cuts_fired += 1
+		var side := -1.0 if _cuts_fired % 2 == 0 else 1.0
+		var at := Vector3(side * Settings.LANE_DISTANCE_X * 0.5, Constants.layer_y(1.0), Constants.HIT_PLANE_Z)
+		# a note's box (CUTS_NOTE_HALF) cut straight down, so the sparks leave its faces
+		game.cut_flash.flash(at, CUTS_SWING, Map.color_left if side < 0.0 else Map.color_right, Vector3.RIGHT,
+			Transform3D(Basis(), at), AABB(-Vector3.ONE * CUTS_NOTE_HALF, Vector3.ONE * CUTS_NOTE_HALF * 2.0))
+
+## Sets the benchmark-only DebugView bits to `bits` (the reflection mode), leaving the rest of the flags alone.
+func _set_debug_bits(bits: int) -> void:
+	var mask := DebugView.NO_REFLECTION | DebugView.FORCE_SWEEP
+	if DebugView.flags & mask != bits:
+		DebugView.flags = (DebugView.flags & ~mask) | bits
+
 ## Puts back and saves the settings of a run the game closed in the middle of; call at launch.
 static func restore_interrupted() -> void:
 	var path := Constants.APPDATA_PATH + BACKUP_FILE
@@ -174,6 +229,32 @@ func _phases(mode: String) -> Array:
 				phases.append(["%s_%s_song" % [stage[0], "all_on" if off == "" else "no_" + off],
 					func(_t: float) -> void: _stage_parts(off), stage[1], FOG_SONG_SECONDS, true])
 			phases.append(["%s_all_on_again_song" % stage[0], func(_t: float) -> void: _stage_parts(""), stage[1],
+				FOG_SONG_SECONDS, true])
+		return phases
+	if mode == REFLECTION:
+		var classic := func() -> void: Settings.environment = "classic"
+		var phases := []
+		for step: Array in [["all_on", 0], ["no_reflection", DebugView.NO_REFLECTION], ["all_on_again", 0],
+				["no_reflection_again", DebugView.NO_REFLECTION], ["sweep_held", DebugView.FORCE_SWEEP], ["all_on_last", 0]]:
+			var bits: int = step[1]
+			phases.append(["classic_%s_song" % step[0], func(_t: float) -> void: _set_debug_bits(bits), classic,
+				FOG_SONG_SECONDS, true])
+		return phases
+	if mode == STAGES:
+		var phases := []
+		for pass_name: String in ["first", "again"]:
+			for id: String in ["classic", "neon_grid", "night_city", "pulse_void", "metal_factory"]:
+				var name := "stage_%s_%s" % [id, pass_name]
+				phases.append([name, Callable(), _show_stage.bind(id, name), STAGE_SECONDS, false])
+		return phases
+	if mode == CUTS:
+		var classic := func() -> void:
+			Settings.environment = "classic"
+			_cuts_fired = 0
+		var phases := []
+		for step: Array in [["no_cuts", false], ["cuts", true], ["no_cuts_again", false], ["cuts_again", true]]:
+			var firing: bool = step[1]
+			phases.append(["classic_%s_song" % step[0], func(t: float) -> void: if firing: _fire_cuts(t), classic,
 				FOG_SONG_SECONDS, true])
 		return phases
 	if mode == HZ90:
@@ -270,8 +351,17 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	_elapsed += delta
+	if not _hitch_phase.is_empty() and delta > HITCH_SECONDS:
+		var viewport := get_viewport().get_viewport_rid()
+		print("BENCH hitch %.1f %s +%.2f process %.1f render cpu %.1f gpu %.1f" % [delta * 1000.0, _hitch_phase, _elapsed,
+			Performance.get_monitor(Performance.TIME_PROCESS) * 1000.0,
+			RenderingServer.viewport_get_measured_render_time_cpu(viewport) + RenderingServer.get_frame_setup_time_cpu(),
+			RenderingServer.viewport_get_measured_render_time_gpu(viewport)])
 	if _tick.is_valid():
 		_tick.call(_elapsed)
+	if game.cut_flash.sim_usec > 0:
+		_sim_usec += game.cut_flash.sim_usec
+		_sim_frames += 1
 
 ## Runs every phase of the mode ("" for all) in order, then puts everything back.
 func run(mode := "") -> void:
@@ -338,9 +428,13 @@ func _phase(phase_name: String, tick: Callable, setup: Callable, seconds: float,
 		game.menu.play_selected()
 	print("BENCH start ", phase_name, " eye ", XRServer.primary_interface.get_render_target_size() if XRServer.primary_interface else Vector2.ZERO)
 	_elapsed = 0.0
+	_sim_usec = 0
+	_sim_frames = 0
 	_tick = tick
 	await _wait(seconds)
 	_tick = Callable()
+	if _sim_frames > 0:
+		print("BENCH sparks cpu %.3f ms over %d frames" % [_sim_usec / 1000.0 / _sim_frames, _sim_frames])
 	print("BENCH end ", phase_name)
 	_seconds_left -= seconds
 	if song:
@@ -394,6 +488,10 @@ func _show_status(phase_name: String) -> void:
 ## Puts every setting the benchmark touches back.
 func _restore() -> void:
 	LowResGlow.height = _glow_height
+	_hitch_phase = ""
+	game.cut_flash.test_blade = PackedVector3Array()
+	RenderingServer.viewport_set_measure_render_time(get_viewport().get_viewport_rid(), false)
+	_set_debug_bits(0)
 	for key: StringName in _saved:
 		if Settings.get(key) != _saved[key]:
 			Settings.set(key, _saved[key])

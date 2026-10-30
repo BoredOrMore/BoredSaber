@@ -8,7 +8,8 @@ extends Node
 #   bomb   beat 2.5 x1 y2          wall beat 5 x0 y0 w1 h5 duration 2
 #   arc    left, beat 1 x1 y0 down -> beat 3 x0 y1 up
 #   chain  right, beat 2 x2 y0 right -> beat 2.5 x2 y1, 4 slices, squish 0.5 (v3/v4 only)
-#   events beat 1 type 1 value 3 | beat 2 type 4 value 1 (v2/v3; v4 lights live in a separate lightshow file)
+#   events beat 1 type 1 value 3 | beat 2 type 4 value 1 (v2/v3 in the map; v4 in v4_lightshow.dat, which also
+#          has an event pointing past its data, to be skipped)
 
 const DATA := "res://tests/data/beatmap/"
 const NOTES := [ # beat, x, y, colour, direction
@@ -52,10 +53,11 @@ func make_difficulty(njs: float, offset: float) -> DifficultyInfo:
 	return DifficultyInfo.new("Expert", 7, "Expert.dat", njs, offset, {}, "Expert", "Standard")
 
 ## loads the fixture and checks every stack against the map above, mirrored left-right when mirror is set
-func check_map(tag: String, file: String, version: String, has_chain: bool, has_events: bool, mirror: bool) -> void:
+func check_map(tag: String, file: String, version: String, has_chain: bool, has_events: bool, mirror: bool,
+		lightshow := "") -> void:
 	tag = tag + (" mirrored" if mirror else "")
 	var info := make_info(version, 120.0)
-	var ok := Map.load_beatmap(info, make_difficulty(16.0, 0.0), read_map(file))
+	var ok := Map.load_beatmap(info, make_difficulty(16.0, 0.0), read_map(file), read_map(lightshow) if lightshow else {})
 	check(ok, "%s: load_beatmap returns true" % tag)
 	var mx := func(x: float) -> float: return 3.0 - x if mirror else x
 	var mc := func(c: int) -> int: return 1 - c if mirror else c
@@ -129,7 +131,8 @@ func check_map(tag: String, file: String, version: String, has_chain: bool, has_
 
 func _ready() -> void:
 	var saved := {}
-	for key: String in ["flip", "gradual_rotation", "bombs_enabled", "walls_enabled", "handedness", "disable_map_color"]:
+	for key: String in ["flip", "gradual_rotation", "bombs_enabled", "walls_enabled", "handedness", "disable_map_color",
+			"environment"]:
 		saved[key] = Settings.get(key)
 	Settings.flip = 0
 	Settings.gradual_rotation = 0.0
@@ -156,9 +159,10 @@ func _ready() -> void:
 		Settings.flip = Constants.FLIP_HORIZONTAL if mirror else 0
 		check_map("v2", "v2.dat", "2.6.0", false, true, mirror)
 		check_map("v3", "v3.dat", "3.3.0", true, true, mirror)
-		# v4 lights live in a lightshow file that isn't read yet: a v4 map must not keep the previous map's lights
-		check_map("v4", "v4.dat", "4.0.0", true, false, mirror)
-		check(Map.event_stack.is_empty(), "v4%s: no light events left over from the previous (v3) map (got %d)"
+		check_map("v4", "v4.dat", "4.0.0", true, true, mirror, "v4_lightshow.dat")
+		# a v4 map without a lightshow file plays dark, not with the previous map's lights
+		check_map("v4 without lightshow", "v4.dat", "4.0.0", true, false, mirror)
+		check(Map.event_stack.is_empty(), "v4%s: no light events left over from the previous map (got %d)"
 			% [" mirrored" if mirror else "", Map.event_stack.size()])
 	Settings.flip = 0
 
@@ -185,6 +189,59 @@ func _ready() -> void:
 			"gradual rotation: bomb at beat 2.5 turns 0.025 rad like a note (got %s)" % Map.bomb_stack[0].rotation)
 	if Map.note_stack.size() > 0:
 		check(is_equal_approx(Map.note_stack[-1].rotation, 0.01), "gradual rotation: note at beat 1 turns 0.01 rad (got %s)" % Map.note_stack[-1].rotation)
+
+	# v2 rotation events (numbers as JSON gives them, floats) add up in degrees, kept in 0..360 (they once wrapped at TAU, so 15 + 15 read as 23.7)
+	var turns := Map.get_rotations_v2([{"_time": 1.0, "_type": 14.0, "_value": 4.0}, {"_time": 2.0, "_type": 14.0, "_value": 4.0},
+		{"_time": 3.0, "_type": 15.0, "_value": 7.0}, {"_time": 4.0, "_type": 14.0, "_value": 7.0}, {"_time": 5.0, "_type": 14.0,
+		"_value": 7.0}, {"_time": 6.0, "_type": 14.0, "_value": 7.0}, {"_time": 7.0, "_type": 14.0, "_value": 0.0}])
+	var angles := turns.map(func(t: Array) -> float: return t[1])
+	check(angles == [15.0, 30.0, 90.0, 150.0, 210.0, 270.0, 210.0], "v2 rotations add up in degrees (got %s)" % [angles])
+	check(is_equal_approx(Map.get_rotation(turns, 3.0), 30.0) and is_equal_approx(Map.get_rotation(turns, 3.5), 90.0),
+		"a late rotation event (15) turns just after its beat (%s at 3, %s at 3.5)" % [Map.get_rotation(turns, 3.0),
+		Map.get_rotation(turns, 3.5)])
+	var back := Map.get_rotations_v2([{"_time": 1.0, "_type": 14.0, "_value": 0.0}])
+	check(is_equal_approx(back[0][1], 300.0), "a v2 turn left from 0 is 300 degrees (got %s)" % back[0][1])
+
+	# the track turns at the first object on a turned lane, and points that way until the next turn (Map.get_turns)
+	Settings.gradual_rotation = 0.0
+	Map.load_beatmap(make_info("3.3.0", 120), make_difficulty(16, 0.0), read_map("v3.dat"))
+	check(Map.turn_beats.is_empty() and Map.track_rotation(3.0) == 0.0,
+		"a map without rotation never turns the track (turns at %s)" % Map.turn_beats)
+	var turning := read_map("v3.dat")
+	turning["rotationEvents"] = [{"b": 2.0, "e": 0.0, "r": 90.0}, {"b": 4.0, "e": 0.0, "r": -90.0}]
+	Map.load_beatmap(make_info("3.3.0", 120), make_difficulty(16, 0.0), turning)
+	check(Map.turn_beats == PackedFloat64Array([2.0, 4.0]), "the track turns at beats 2 and 4 (got %s)" % Map.turn_beats)
+	check(Map.track_rotation(1.9) == 0.0 and is_equal_approx(Map.track_rotation(2.0), PI * 0.5)
+		and is_equal_approx(Map.track_rotation(3.9), PI * 0.5) and is_equal_approx(Map.track_rotation(4.0), 0.0),
+		"it points ahead, then 90 degrees from beat 2, then ahead again from beat 4 (%s, %s, %s, %s)" % [
+		Map.track_rotation(1.9), Map.track_rotation(2.0), Map.track_rotation(3.9), Map.track_rotation(4.0)])
+	check(Map.chain_stack.size() == 1 and is_equal_approx(Map.chain_stack[0].rotation, PI * 0.5),
+		"a v3 chain at beat 2 is on the turned lane (%s)" % [Map.chain_stack.map(func(c: ChainInfo) -> float: return c.rotation)])
+	# the turn cue goes by the rotation events, so it leads the lanes when an event comes before its first note
+	var early := read_map("v3.dat")
+	early["rotationEvents"] = [{"b": 1.5, "e": 0.0, "r": 90.0}]
+	Map.load_beatmap(make_info("3.3.0", 120), make_difficulty(16, 0.0), early)
+	check(is_equal_approx(Map.cue_rotation(1.6), PI * 0.5) and Map.track_rotation(1.6) == 0.0
+		and is_equal_approx(Map.track_rotation(2.0), PI * 0.5),
+		"a rotation event at beat 1.5 turns the cue at 1.5 and the track at the next note, 2 (cue %s, track %s at 1.6)" % [
+		Map.cue_rotation(1.6), Map.track_rotation(1.6)])
+	Map.load_beatmap(make_info("3.3.0", 120), make_difficulty(16, 0.0), turning)
+
+	# 90 and 360 degree maps play on Henge, the stage built for them, whatever the map or the player names; Standard
+	# maps go on as before (owner, 2026-10-29)
+	var info := make_info("3.3.0", 120)
+	var saved_difficulty := Map.current_difficulty
+	Settings.environment = "classic"
+	Map.current_difficulty = DifficultyInfo.new("Expert", 7, "Expert.dat", 16.0, 0.0, {}, "Expert", "360Degree")
+	check(EventDriver.pick_environment(info) == "henge", "a 360 map plays on Henge (got %s)" % EventDriver.pick_environment(info))
+	Map.current_difficulty = DifficultyInfo.new("Expert", 7, "Expert.dat", 16.0, 0.0, {}, "Expert", "90Degree")
+	check(EventDriver.pick_environment(info) == "henge", "a 90 map plays on Henge (got %s)" % EventDriver.pick_environment(info))
+	Map.current_difficulty = make_difficulty(16, 0.0)
+	check(EventDriver.pick_environment(info) == "classic", "a Standard map keeps the player's pick (got %s)" %
+		EventDriver.pick_environment(info))
+	Settings.environment = "auto"
+	check(EventDriver.pick_environment(info) != "henge", "Follow map never picks Henge for a Standard map")
+	Map.current_difficulty = saved_difficulty
 
 	for key: String in saved:
 		Settings.set(key, saved[key])

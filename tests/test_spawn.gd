@@ -1,7 +1,9 @@
 extends Node
 # Headless checks for spawning notes, bombs, walls and arcs on the track (Playing.spawn_due's entities): where each one
 # starts for its beat, how it moves, and that one reused from its pool starts where a fresh one would (an arc reused from
-# the pool once started where the previous arc had flown to: Arc.spawn didn't reset its transform).
+# the pool once started where the previous arc had flown to: Arc.spawn didn't reset its transform). On 90/360 maps the
+# lanes turn about the player's standing point (Constants.LANE_PIVOT_Z), so a turned note reaches its hit point beside or
+# behind the player on its beat.
 # Run: godot --headless --path . res://tests/test_spawn.tscn
 
 const EPS := 1e-4
@@ -30,6 +32,11 @@ func pool_of(path: String) -> ScenePool:
 	pool.new_scene_instanced.connect(func(obj: Node3D, _presizing: bool) -> void: track.add_child(obj))
 	add_child(pool)
 	return pool
+
+## Where track-local `place` (on an unturned lane) is on a lane turned `degrees` about the player's standing point.
+func turned(place: Vector3, degrees: float) -> Vector3:
+	var pivot := Vector3(0.0, 0.0, Constants.LANE_PIVOT_Z)
+	return pivot + Basis(Vector3.UP, -deg_to_rad(degrees)) * (place - pivot)
 
 ## Where a note or bomb of lane `index`, row `layer`, beat `beat` sits at `current_beat` with no lane rotation.
 func note_place(index: float, layer: float, beat: float, current_beat: float) -> Vector3:
@@ -62,6 +69,7 @@ func _ready() -> void:
 	test_bombs(speed)
 	test_walls(speed)
 	test_arcs(speed)
+	test_turned_lanes(speed)
 
 	Settings.flip = saved_flip
 	Settings.gradual_rotation = saved_gradual
@@ -91,6 +99,17 @@ func test_notes(speed: float) -> void:
 		cube.position.z - z0, speed * 0.5])
 	check(near(Vector3(cube.position.x, cube.position.y, 0), Vector3(note_place(1, 0, 0, 0).x, note_place(1, 0, 0, 0).y, 0)),
 		"note keeps its lane and row while moving")
+
+	# the jump (Cuttable.start_jump): at the hit plane the note is at its row, full size, in its final direction
+	cube.spawn(ColorNoteInfo.new(5.0, 2, 2, 1, PI * 0.5, 0.0), 5.0)
+	check(near_t(cube.mi.transform, Transform3D.IDENTITY),
+		"a note at the hit plane is at its row, full size, turned (visual %s)" % cube.mi.transform)
+	# where it appears it is already at its row (no rise: the owner's pick), not yet turned
+	cube.spawn(ColorNoteInfo.new(2.0 + Map.half_jump_beats, 2, 1, 1, PI * 0.5, 0.0), 2.0)
+	var start_offset := (cube.mi.global_position - cube.global_position).y
+	check(absf(start_offset) < EPS, "a note where it appears is at its row (%.3f m off)" % start_offset)
+	check(absf(cube.mi.global_basis.x.normalized().dot(Vector3.RIGHT) - 1.0) < 0.01,
+		"a note where it appears hasn't turned yet (visual x %s)" % cube.mi.global_basis.x)
 
 	# reuse: a note spawned on a rotated lane with a cut angle, flown, released, spawned again
 	cube.spawn(ColorNoteInfo.new(10.0, 3, 2, 1, PI * 0.5, 45.0), 4.0)
@@ -238,3 +257,60 @@ func test_arcs(speed: float) -> void:
 	check(near((again.get_node("Path3D") as Path3D).position, (fresh.get_node("Path3D") as Path3D).position),
 		"reused arc's path matches a fresh one's")
 	check(absf(again.despawn_z - fresh.despawn_z) < EPS, "reused arc despawns where a fresh one does")
+
+## Notes, bombs, walls and arcs on lanes turned 90 and 180 degrees: turned about the player's standing point, so a note
+## on its beat is on the hit plane as the player would face it (0.65 m to the side, or behind); rotation 0 unchanged.
+func test_turned_lanes(speed: float) -> void:
+	var pool := pool_of("res://game/notes/BeepCube/BeepCube.tscn")
+	var cube := pool.acquire() as BeepCube
+	cube.spawn(ColorNoteInfo.new(4.0, 1, 1, 0, 0.0, 0.0), 4.0)
+	check(near(cube.position, note_place(1, 1, 4.0, 4.0)), "a note on an unturned lane is where it always was: %s" %
+		cube.position)
+	cube.spawn(ColorNoteInfo.new(4.0, 2, 1, 0, 0.0, 90.0), 4.0)
+	var side := Vector3(Constants.LANE_PIVOT_Z, Constants.layer_y(1.0),
+		Constants.LANE_PIVOT_Z + note_place(2, 1, 4.0, 4.0).x)
+	check(near(cube.position, side), "a note at 90 degrees on its beat is 0.65 m to the player's side: %s, expected %s" % [
+		cube.position, side])
+	cube.spawn(ColorNoteInfo.new(4.0, 2, 1, 0, 0.0, 180.0), 4.0)
+	var behind := Vector3(-note_place(2, 1, 4.0, 4.0).x, Constants.layer_y(1.0), 2.0 * Constants.LANE_PIVOT_Z)
+	check(near(cube.position, behind), "a note at 180 degrees on its beat is 0.65 m behind the player: %s, expected %s" % [
+		cube.position, behind])
+	check(absf(cube.lane_z()) < EPS, "its place along its lane is the hit plane (%.4f)" % cube.lane_z())
+
+	# flown from two beats out it reaches the turned hit point on its beat
+	cube.spawn(ColorNoteInfo.new(6.0, 0, 2, 1, 0.0, 90.0), 4.0)
+	for i in 4:
+		cube._physics_process(0.5 / Map.beats_per_second())
+	var hit := turned(note_place(0, 2, 6.0, 6.0), 90.0)
+	check(near(cube.position, hit), "a 90 degree note flown two beats is on its hit point: %s, expected %s" % [
+		cube.position, hit])
+	check(absf(cube.lane_z()) < EPS, "and on the hit plane along its lane (%.4f)" % cube.lane_z())
+	check(not cube.is_released(), "a 90 degree note on its hit point isn't missed yet")
+
+	var bombs := pool_of("res://game/notes/Bomb/Bomb.tscn")
+	var bomb := bombs.acquire() as Bomb
+	bomb.spawn(BombInfo.new(5.0, 3, 0, -90.0), 2.0)
+	check(near(bomb.position, turned(note_place(3, 0, 5.0, 2.0), -90.0)), "a bomb at -90 degrees is turned about the " +
+		"player: %s, expected %s" % [bomb.position, turned(note_place(3, 0, 5.0, 2.0), -90.0)])
+
+	var walls := pool_of("res://game/notes/Wall/Wall.tscn")
+	var wall := walls.acquire() as Wall
+	var info := ObstacleInfo.new(8.0, 2.0, 1, 0, 2, 5, 90.0)
+	wall.spawn(info, 3.0)
+	var straight := walls.acquire() as Wall
+	straight.spawn(ObstacleInfo.new(8.0, 2.0, 1, 0, 2, 5, 0.0), 3.0)
+	check(near(wall.position, turned(straight.position, 90.0)), "a wall at 90 degrees is turned about the player: %s, " %
+		wall.position + "expected %s" % turned(straight.position, 90.0))
+	wall._physics_process(0.5)
+	straight._physics_process(0.5)
+	check(near(wall.position, turned(straight.position, 90.0)), "and moves down its turned lane: %s" % wall.position)
+
+	var arcs := pool_of("res://game/notes/Arc/Arc.tscn")
+	var arc := arcs.acquire() as Arc
+	var arc_info := ArcInfo.new(1, 8.0, 0, 0, 0.0, 1.0, 10.0, 3, 2, 0.0, 1.0, 1, 90.0, 90.0)
+	arc.spawn(arc_info, 2.0)
+	check(near(arc_point(arc, 0), turned(note_place(0, 0, 8.0, 2.0), 90.0)), "an arc at 90 degrees starts at its " +
+		"turned head note: %s, expected %s" % [arc_point(arc, 0), turned(note_place(0, 0, 8.0, 2.0), 90.0)])
+	arc._process(0.5)
+	check(near(arc_point(arc, 0), turned(note_place(0, 0, 8.0, 2.0) + Vector3(0.0, 0.0, speed * 0.5), 90.0)),
+		"and moves down its turned lane: %s" % arc_point(arc, 0))

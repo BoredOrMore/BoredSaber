@@ -1,5 +1,6 @@
 [gd_scene format=3]
 
+[ext_resource type="StyleBox" path="res://game/ui/menu_panel.tres" id="menu_panel"]
 [ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="theme"]
 [ext_resource type="Script" path="res://game/ui/ProfilesPanel.gd" id="script"]
 [ext_resource type="Script" path="res://game/ui/IconButton.gd" id="icon_button"]
@@ -10,6 +11,7 @@
 offset_right = 760.0
 offset_bottom = 640.0
 theme = ExtResource("theme")
+theme_override_styles/panel = ExtResource("menu_panel")
 script = ExtResource("script")
 
 [node name="Margin" type="MarginContainer" parent="."]
@@ -38,6 +40,7 @@ text = "Who's playing?"
 vertical_alignment = 1
 
 [node name="Close_Button" type="Button" parent="Margin/VBox/Header"]
+theme_type_variation = &"BackButton"
 layout_mode = 2
 text = "Close"
 icon = ExtResource("icon_x")

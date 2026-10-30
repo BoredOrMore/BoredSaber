@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://dqb3ybvpsfcbw"]
 
 [ext_resource type="PackedScene" uid="uid://cs8e62lsifik5" path="res://game/floor.tscn" id="1"]
-[ext_resource type="PackedScene" uid="uid://d04fmtjhjx4oy" path="res://OQ_Toolkit/OQ_UI2D/OQ_UI2DLabel.tscn" id="2"]
 [ext_resource type="PackedScene" uid="uid://crstqa7v6ehg3" path="res://OQ_Toolkit/OQ_UI2D/OQ_UI2DCanvas.tscn" id="3"]
 [ext_resource type="PackedScene" uid="uid://iglrdadxsqw4" path="res://game/notes/Wall/Wall.tscn" id="3_73652"]
 [ext_resource type="PackedScene" uid="uid://iiatb07725bg" path="res://game/SpectatorWindow.tscn" id="6_g42ih"]
@@ -192,7 +191,9 @@ controller = NodePath("../..")
 [node name="event_driver" parent="." unique_id=593257630 instance=ExtResource("13")]
 
 [node name="MainMenu_OQ_UI2DCanvas" parent="." unique_id=2127950165 instance=ExtResource("3")]
-transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 1, 0, 1.6125, -1)
+transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 1, 0, 1.4545, -1)
+curve_radius = 2.0
+round_corners = true
 
 [node name="BeepSaberMainMenu" parent="MainMenu_OQ_UI2DCanvas" unique_id=231069898 node_paths=PackedStringArray("main_song_player_ref", "keyboard", "beepsaber_game", "song_uploader_ref") instance=ExtResource("11")]
 main_song_player_ref = NodePath("../../SongPlayer")
@@ -242,18 +243,20 @@ layers = 3
 
 [node name="PauseMenu_canvas" parent="." unique_id=733509686 instance=ExtResource("3")]
 transform = Transform3D(1.86849, 0, 0, 0, 1.86849, 0, 0, 0, 1.86849, 0, 1.43532, -0.756856)
+round_corners = true
 visible = false
 
 [node name="Pause_Panel" parent="PauseMenu_canvas" unique_id=1084204812 instance=ExtResource("18")]
 
-[node name="Pause_countdown" parent="." unique_id=459181070 instance=ExtResource("2")]
+[node name="Pause_countdown" type="Label3D" parent="." unique_id=459181070]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.49382, -0.649511)
 visible = false
 text = "3"
-font_size_multiplier = 4.587
 
 [node name="Settings_canvas" parent="." unique_id=1444993032 instance=ExtResource("3")]
 transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 2.4, 0, 1.5, -1)
+curve_radius = 2.0
+round_corners = true
 visible = false
 
 [node name="settings_Panel" parent="Settings_canvas" unique_id=1568178862 node_paths=PackedStringArray("beepsaber_game") instance=ExtResource("19")]
@@ -266,7 +269,10 @@ transform = Transform3D(0.373265, 0, 0, 0, 0.323257, 0.186633, 0, -0.186633, 0.3
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.5, -1)
 
 [node name="BeatSaver_Canvas" parent="MapSourceDialogs" unique_id=1832345664 instance=ExtResource("3")]
-transform = Transform3D(2, 0, 0, 0, 2, 0, 0, 0, 2, 0, 0.1125, 0)
+transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 1, 0, -0.0455, 0)
+max_updates_per_second = 36.0
+curve_radius = 2.0
+round_corners = true
 visible = false
 
 [node name="BeatSaverPanel" parent="MapSourceDialogs/BeatSaver_Canvas" unique_id=187967703 node_paths=PackedStringArray("main_menu_ref", "keyboard") instance=ExtResource("20")]
@@ -274,13 +280,14 @@ main_menu_ref = NodePath("../../../MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu")
 keyboard = NodePath("../../../Keyboard_online_search")
 
 [node name="Keyboard_online_search" parent="." unique_id=789403462 instance=ExtResource("21")]
-transform = Transform3D(2.4, 0, 0, 0, 1.96597, 1.37659, 0, -1.37659, 1.96597, 0, 0.95, -0.55)
+transform = Transform3D(2.16, 0, 0, 0, 1.76937, 1.23893, 0, -1.23893, 1.76937, 0, 1.015, -0.395)
 visible = false
 
 [node name="Points_label_driver" parent="." unique_id=1605321739 instance=ExtResource("22")]
 
 [node name="Highscores_Canvas" parent="." unique_id=1636266647 instance=ExtResource("3")]
 transform = Transform3D(1.3486, 0, 1.47691, 0, 2, 0, -1.47691, 0, 1.3486, -1.47691, 1.5, -0.3486)
+round_corners = true
 
 [node name="HighscorePanel" parent="Highscores_Canvas" unique_id=1748596360 instance=ExtResource("23")]
 offset_right = 600.0
@@ -292,6 +299,8 @@ script = ExtResource("41_slash")
 
 [node name="Profiles_canvas" parent="." instance=ExtResource("3")]
 transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 1, 0, 1.6, -0.9)
+curve_radius = 1.9
+round_corners = true
 visible = false
 
 [node name="ProfilesPanel" parent="Profiles_canvas" node_paths=PackedStringArray("keyboard") instance=ExtResource("40_profiles")]
@@ -313,7 +322,7 @@ scene = ExtResource("36_wallp")
 scene = ExtResource("37_arcp")
 
 [node name="Keyboard_highscore" parent="." unique_id=1086552033 instance=ExtResource("21")]
-transform = Transform3D(2.4, 0, 0, 0, 1.96597, 1.37659, 0, -1.37659, 1.96597, 0, 0.95, -0.55)
+transform = Transform3D(2.16, 0, 0, 0, 1.76937, 1.23893, 0, -1.23893, 1.76937, 0, 1.015, -0.395)
 visible = false
 min_chars_to_enable_enter = 1
 is_name_input = true
@@ -322,7 +331,7 @@ is_name_input = true
 script = ExtResource("33_l0uxg")
 main_menu_ref = NodePath("../MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu")
 
-[connection signal="finished" from="SongPlayer" to="." method="_on_song_ended"]
+[connection signal="finished" from="SongPlayer" to="." method="_on_song_finished"]
 [connection signal="area_entered" from="XROrigin3D/XRCamera3D/PlayerHead" to="." method="_on_PlayerHead_area_entered"]
 [connection signal="area_exited" from="XROrigin3D/XRCamera3D/PlayerHead" to="." method="_on_PlayerHead_area_exited"]
 [connection signal="profile_changed" from="XROrigin3D/LeftController" to="." method="_on_left_controller_profile_changed"]
@@ -338,6 +347,7 @@ main_menu_ref = NodePath("../MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu")
 [connection signal="start_map" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="start_map"]
 [connection signal="mainmenu" from="EndScore" to="." method="_main_menu_button"]
 [connection signal="repeat" from="EndScore" to="." method="_restart_button"]
+[connection signal="change_player" from="EndScore" to="." method="_change_record_player"]
 [connection signal="continue_button" from="PauseMenu_canvas/Pause_Panel" to="." method="_unpause_button"]
 [connection signal="mainmenu_button" from="PauseMenu_canvas/Pause_Panel" to="." method="_main_menu_button"]
 [connection signal="restart_button" from="PauseMenu_canvas/Pause_Panel" to="." method="_restart_button"]

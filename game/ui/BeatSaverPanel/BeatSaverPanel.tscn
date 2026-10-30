@@ -1,7 +1,9 @@
 [gd_scene format=3 uid="uid://383dbnh6gxd3"]
 
 [ext_resource type="Script" path="res://game/ui/BeatSaverPanel/BeatSaverPanel.gd" id="2"]
+[ext_resource type="Script" path="res://game/ui/BeatSaverPanel/BeatSaverList.gd" id="beatsaver_list"]
 [ext_resource type="PackedScene" uid="uid://dtipmx5ep1dkk" path="res://game/ui/vr_slider.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://game/ui/MenuPanel.tscn" id="menu_panel"]
 [ext_resource type="Texture2D" uid="uid://cviyxvrpvyr0g" path="res://game/data/beepsaber_logo.png" id="5"]
 [ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="menu_theme"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/arrow-left.svg" id="icon_arrow-left"]
@@ -10,203 +12,227 @@
 [ext_resource type="Texture2D" path="res://game/ui/icons/x.svg" id="icon_x"]
 [ext_resource type="Script" path="res://game/ui/IconButton.gd" id="icon_button"]
 
-[sub_resource type="StyleBoxFlat" id="root"]
-bg_color = Color(0.086, 0.094, 0.114, 1)
-
-[sub_resource type="StyleBoxFlat" id="primary"]
-bg_color = Color(0.2, 0.36, 0.45, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.37, 0.78, 0.94, 0.8)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
-
-[sub_resource type="StyleBoxFlat" id="primary_hover"]
-bg_color = Color(0.25, 0.45, 0.56, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.37, 0.78, 0.94, 1)
-corner_radius_top_left = 14
-corner_radius_top_right = 14
-corner_radius_bottom_right = 14
-corner_radius_bottom_left = 14
+[sub_resource type="StyleBoxEmpty" id="none"]
 
 [node name="BeatSaverPanel" type="Panel"]
-offset_right = 1536.0
-offset_bottom = 1046.0
+offset_right = 1753.0
+offset_bottom = 745.0
 theme = ExtResource("menu_theme")
-theme_override_styles/panel = SubResource("root")
+theme_override_styles/panel = SubResource("none")
 script = ExtResource("2")
 
-[node name="StyleChips" type="HBoxContainer" parent="."]
+[node name="LeftPanel" parent="." instance=ExtResource("menu_panel")]
 layout_mode = 0
-offset_left = 16.0
-offset_top = 92.0
-offset_right = 1000.0
-offset_bottom = 148.0
-theme_override_constants/separation = 6
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 480.0
+offset_bottom = 745.0
 
-[node name="GenreFilter" type="OptionButton" parent="."]
+[node name="CentrePanel" parent="." instance=ExtResource("menu_panel")]
 layout_mode = 0
-offset_left = 16.0
-offset_top = 160.0
-offset_right = 336.0
-offset_bottom = 216.0
-fit_to_longest_item = false
+offset_left = 504.0
+offset_top = 0.0
+offset_right = 1249.0
+offset_bottom = 745.0
 
-[node name="ReactionFilter" type="OptionButton" parent="."]
+[node name="RightPanel" parent="." instance=ExtResource("menu_panel")]
 layout_mode = 0
-offset_left = 348.0
-offset_top = 160.0
-offset_right = 668.0
-offset_bottom = 216.0
-fit_to_longest_item = false
+offset_left = 1273.0
+offset_top = 0.0
+offset_right = 1753.0
+offset_bottom = 745.0
 
-[node name="LengthFilter" type="OptionButton" parent="."]
+[node name="TextureRect" type="TextureRect" parent="."]
 layout_mode = 0
-offset_left = 680.0
-offset_top = 160.0
-offset_right = 1000.0
-offset_bottom = 216.0
+offset_left = 24.0
+offset_top = 24.0
+offset_right = 176.0
+offset_bottom = 176.0
+texture = ExtResource("5")
+expand_mode = 1
+stretch_mode = 6
 
-[node name="ItemList" type="ItemList" parent="."]
+[node name="Head" type="VBoxContainer" parent="."]
 layout_mode = 0
-offset_left = 16.0
-offset_top = 228.0
-offset_right = 1000.0
-offset_bottom = 926.0
-max_text_lines = 3
+offset_left = 192.0
+offset_top = 24.0
+offset_right = 456.0
+offset_bottom = 176.0
+mouse_filter = 2
+theme_override_constants/separation = 2
+
+[node name="Title" type="Label" parent="Head"]
+layout_mode = 2
+theme_type_variation = &"TitleLabel"
+autowrap_mode = 3
+max_lines_visible = 2
+text_overrun_behavior = 3
+text = "Pick a song to see what it plays like."
+
+[node name="Artist" type="Label" parent="Head"]
+layout_mode = 2
 theme_override_font_sizes/font_size = 22
-theme_override_constants/h_separation = 12
-max_columns = 4
-same_column_width = true
-fixed_column_width = 220
-icon_mode = 0
-fixed_icon_size = Vector2i(200, 200)
+text_overrun_behavior = 3
 
-[node name="SortTabs" type="HBoxContainer" parent="."]
+[node name="Mapper" type="Label" parent="Head"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
+theme_override_font_sizes/font_size = 22
+text_overrun_behavior = 3
+
+[node name="song_data" type="RichTextLabel" parent="."]
 layout_mode = 0
-offset_left = 400.0
-offset_top = 16.0
-offset_right = 1000.0
-offset_bottom = 80.0
-theme_override_constants/separation = 6
+offset_left = 24.0
+offset_top = 192.0
+offset_right = 456.0
+offset_bottom = 533.0
+mouse_filter = 2
+theme_override_colors/default_color = Color(0.894, 0.902, 0.922, 1)
+theme_override_font_sizes/normal_font_size = 22
+theme_override_font_sizes/bold_font_size = 28
+bbcode_enabled = true
+scroll_active = false
+
+[node name="Label" type="Label" parent="."]
+layout_mode = 0
+offset_left = 24.0
+offset_top = 541.0
+offset_right = 456.0
+offset_bottom = 585.0
+theme_override_font_sizes/font_size = 22
+vertical_alignment = 1
+text_overrun_behavior = 3
+
+[node name="gotoMapsBy" type="Button" parent="."]
+visible = false
+layout_mode = 0
+offset_left = 24.0
+offset_top = 593.0
+offset_right = 456.0
+offset_bottom = 649.0
+theme_override_font_sizes/font_size = 22
+text = "More by XYZ"
+clip_text = true
+text_overrun_behavior = 3
 
 [node name="download" type="Button" parent="."]
 visible = false
+theme_type_variation = &"PrimaryButton"
 layout_mode = 0
-offset_left = 1024.0
-offset_top = 862.0
-offset_right = 1504.0
-offset_bottom = 934.0
-theme_override_font_sizes/font_size = 30
-theme_override_styles/normal = SubResource("primary")
-theme_override_styles/hover = SubResource("primary_hover")
-theme_override_styles/pressed = SubResource("primary_hover")
+offset_left = 24.0
+offset_top = 657.0
+offset_right = 456.0
+offset_bottom = 729.0
 text = "Download"
 icon = ExtResource("icon_download")
 script = ExtResource("icon_button")
 
 [node name="search" type="Button" parent="."]
 layout_mode = 0
-offset_left = 16.0
-offset_top = 16.0
-offset_right = 316.0
-offset_bottom = 80.0
-text = "Search songs"
+offset_left = 520.0
+offset_top = 8.0
+offset_right = 588.0
+offset_bottom = 68.0
+tooltip_text = "Search"
 icon = ExtResource("icon_search")
-alignment = 0
-clip_text = true
+script = ExtResource("icon_button")
 
-[node name="ClearSearch" type="Button" parent="."]
-visible = false
+[node name="SortButton" type="OptionButton" parent="."]
 layout_mode = 0
-offset_left = 324.0
-offset_top = 16.0
-offset_right = 388.0
-offset_bottom = 80.0
-tooltip_text = "Clear search"
-icon = ExtResource("icon_x")
-icon_alignment = 1
+offset_left = 596.0
+offset_top = 8.0
+offset_right = 1016.0
+offset_bottom = 68.0
+fit_to_longest_item = false
 
-[node name="back" type="Button" parent="."]
+[node name="CloseButton" type="Button" parent="."]
+theme_type_variation = &"BackButton"
 layout_mode = 0
-offset_left = 16.0
-offset_top = 942.0
-offset_right = 316.0
-offset_bottom = 1022.0
-text = "Back to results"
+offset_left = 1024.0
+offset_top = 8.0
+offset_right = 1233.0
+offset_bottom = 68.0
+text = "My songs"
 icon = ExtResource("icon_arrow-left")
 script = ExtResource("icon_button")
 
-[node name="gotoMapsBy" type="Button" parent="."]
-visible = false
+[node name="ChipRow" type="HBoxContainer" parent="."]
 layout_mode = 0
-offset_left = 1024.0
-offset_top = 794.0
-offset_right = 1504.0
-offset_bottom = 850.0
-theme_override_font_sizes/font_size = 22
-text = "More by XYZ"
-clip_text = true
+offset_left = 520.0
+offset_top = 76.0
+offset_right = 1233.0
+offset_bottom = 124.0
+theme_override_constants/separation = 8
 
-[node name="Label" type="Label" parent="."]
+[node name="Source" type="Label" parent="."]
 layout_mode = 0
-offset_left = 332.0
-offset_top = 942.0
-offset_right = 1000.0
-offset_bottom = 1022.0
-theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
-theme_override_font_sizes/font_size = 22
-vertical_alignment = 1
-autowrap_mode = 3
-
-[node name="source" type="Label" parent="."]
-layout_mode = 0
-offset_left = 1024.0
-offset_top = 942.0
-offset_right = 1296.0
-offset_bottom = 1022.0
+offset_left = 520.0
+offset_top = 708.0
+offset_right = 1233.0
+offset_bottom = 740.0
 theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
 theme_override_font_sizes/font_size = 22
 text = "From beatsaver.com"
+horizontal_alignment = 2
 vertical_alignment = 1
+text_overrun_behavior = 3
 
-[node name="TextureRect" type="TextureRect" parent="."]
+[node name="ItemList" type="ScrollContainer" parent="."]
 layout_mode = 0
-offset_left = 1024.0
+offset_left = 520.0
+offset_top = 132.0
+offset_right = 1233.0
+offset_bottom = 700.0
+script = ExtResource("beatsaver_list")
+
+[node name="EmptyList" type="Label" parent="."]
+visible = false
+layout_mode = 0
+offset_left = 520.0
+offset_top = 132.0
+offset_right = 1233.0
+offset_bottom = 700.0
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 3
+
+[node name="FiltersPanel" type="Panel" parent="."]
+layout_mode = 0
+offset_left = 1289.0
+offset_top = 8.0
+offset_right = 1737.0
+offset_bottom = 737.0
+
+[node name="Rows" type="VBoxContainer" parent="FiltersPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
 offset_top = 16.0
-offset_right = 1504.0
-offset_bottom = 216.0
-texture = ExtResource("5")
-expand_mode = 1
-stretch_mode = 5
+offset_right = -16.0
+offset_bottom = -16.0
+theme_override_constants/separation = 16
 
-[node name="song_data" type="RichTextLabel" parent="."]
-layout_mode = 0
-offset_left = 1024.0
-offset_top = 228.0
-offset_right = 1504.0
-offset_bottom = 786.0
-theme_override_colors/default_color = Color(0.894, 0.902, 0.922, 1)
-theme_override_font_sizes/normal_font_size = 22
-theme_override_font_sizes/bold_font_size = 28
-bbcode_enabled = true
-text = "Pick a song to see what it plays like."
+[node name="Status" type="HBoxContainer" parent="FiltersPanel/Rows"]
+layout_mode = 2
 
-[node name="CloseButton" type="Button" parent="."]
-layout_mode = 0
-offset_left = 1312.0
-offset_top = 942.0
-offset_right = 1520.0
-offset_bottom = 1022.0
-text = "Close"
+[node name="FilterStatus" type="Label" parent="FiltersPanel/Rows/Status"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
+theme_override_font_sizes/font_size = 22
+vertical_alignment = 1
+text_overrun_behavior = 3
+
+[node name="ClearFilters_Button" type="Button" parent="FiltersPanel/Rows/Status"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+tooltip_text = "Clear filters"
+text = "Clear"
 icon = ExtResource("icon_x")
 script = ExtResource("icon_button")
 
@@ -219,19 +245,19 @@ scroll_node_path = NodePath("../ItemList")
 
 [node name="CoverDownload" type="HTTPRequest" parent="."]
 
+[node name="DetailCoverDownload" type="HTTPRequest" parent="."]
+
 [node name="PreviewDownload" type="HTTPRequest" parent="."]
 
 [connection signal="item_selected" from="ItemList" to="." method="_on_ItemList_item_selected"]
-[connection signal="pressed" from="ClearSearch" to="." method="_on_clear_search_pressed"]
 [connection signal="button_up" from="download" to="." method="_on_download_button_up"]
 [connection signal="button_up" from="search" to="." method="_on_search_button_up"]
-[connection signal="pressed" from="back" to="." method="_on_back_pressed"]
 [connection signal="pressed" from="gotoMapsBy" to="." method="_on_gotoMapsBy_pressed"]
 [connection signal="pressed" from="CloseButton" to="." method="_on_CloseButton_pressed"]
+[connection signal="item_selected" from="SortButton" to="." method="_on_sort_selected"]
+[connection signal="pressed" from="FiltersPanel/Rows/Status/ClearFilters_Button" to="." method="_on_clear_filters_pressed"]
 [connection signal="request_completed" from="HTTPReq" to="." method="_on_HTTPRequest_request_completed"]
 [connection signal="request_completed" from="HTTPDownload" to="." method="_on_HTTPRequest_download_completed"]
 [connection signal="request_completed" from="CoverDownload" to="." method="_update_cover"]
+[connection signal="request_completed" from="DetailCoverDownload" to="." method="_on_detail_cover_completed"]
 [connection signal="request_completed" from="PreviewDownload" to="." method="_on_preview_download_completed"]
-[connection signal="item_selected" from="ReactionFilter" to="." method="_on_reaction_filter_item_selected"]
-[connection signal="item_selected" from="GenreFilter" to="." method="_on_genre_filter_item_selected"]
-[connection signal="item_selected" from="LengthFilter" to="." method="_on_length_filter_item_selected"]

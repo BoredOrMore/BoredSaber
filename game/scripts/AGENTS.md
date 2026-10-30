@@ -14,7 +14,9 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
 - `BeepSaberController.gd` (`BeepSaberController`, extends `XRController3D`) - per-frame button edges
   (`ax/by/menu/trigger_*pressed/just_pressed/just_released`), `simple_rumble`, `movement_aabb`.
 - `SongTags.gd` (class `SongTags`) - BeatSaver tags (genre, style) of library songs kept in a file, so "Auto" can
-  pick an environment by genre offline (`EventDriver.map_environment`).
+  pick an environment by genre offline (`EventDriver.map_environment`), and the song menu can filter by them; it holds
+  the `STYLES` / `GENRES` both filter panels offer. An AI-made map (BeatSaver's `automapper`) keeps `AI_TAG` with its
+  tags (`tags_from`, also on download), so both song lists put `AI_MARK` "AI · " before its name and the song menu " (AI)" after its mapper (`is_ai`).
 - `MixedReality.gd` (autoload) - `set_mixed_reality(mr)`: passthrough on/off plus floor/HUD material tweaks.
 - `PlayCountTable.gd` (autoload `PlayCount`) - play counts, favourite flag, last difficulty per map.
 - `HighscoreTable/HighscoreTable.gd` (autoload `Highscores`) - top-10 records per map + modifier set.
@@ -26,9 +28,13 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
 - `SwingableRayCast/` - `SwingableRayCast`: saber ray plus swept sub-rays, signal `area_collided`.
 - `SongUploader/` - `SongUploader` HTTP server (`prompt.html`, `style.css` are served as-is).
 - `webxr/webxr_initializer.*` - "Enter VR" button for the Web export.
-- `BackgroundImgLoader.gd` - threaded cover loader (`load_texture`), max 10 threads by default.
+- `BackgroundImgLoader.gd` - threaded cover loader (`load_texture`), max 10 threads by default. Requests with a list row
+  wait in `_waiting_rows` and start nearest `focus` first (`_next_request`); ones without a row go first, in order.
 - `HTTPRequestPool.gd/.tscn` - throttled `HTTPRequest`s, signal `request_complete(..., token, user_data)`.
-- `ImageUtils.gd` - `get_img_from_buffer` by magic bytes (jpg/png/bmp/webp).
+- `ImageUtils.gd` - `get_img_from_buffer` by magic bytes (jpg/png/bmp/webp); `round_corners` cuts cover art's
+  corners round (`COVER_CORNER`), for every cover `BackgroundImgLoader` loads and the Download page's cards.
+- `Loudness.gd` (class `Loudness`, all `static`) - plays songs at -14 LUFS: measures a song's BS.1770 loudness on a
+  worker thread, caches it in `user://loudness.json`, and sets the Music/MusicPreview bus's `AudioEffectAmplify`.
 - `MapStats.gd` - cached note count / length / NPS per difficulty, menu filters, `count_all_async`.
 - `LinkedList.gd` - small deque used by `BackgroundImgLoader` and `SwingableRayCast` debug trail.
 

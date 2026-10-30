@@ -65,6 +65,6 @@ void fragment() {
 				+ bg_1_tint.rgb * (bg_1_intensity * sharp.a * RIM_SCALE)
 				+ bg_0_tint.rgb * (bg_0_intensity * soft.r * BAND_SCALE)
 				+ bg_4_tint.rgb * (bg_4_intensity * soft.g * GLOW_SCALE);
-		ALBEDO = fog_dither(ALBEDO, FRAGCOORD.xy);
+		ALBEDO = fog_dither(fog_result(ALBEDO, VERTEX), FRAGCOORD.xy);
 	}
 }

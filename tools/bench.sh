@@ -8,6 +8,10 @@
 # --only total: the whole look's cost, each setup in a song between no-glow phases (about 6.5 minutes).
 # --only hz90: the menu and a song at 72 and 90 Hz (about 3 minutes).
 # --only fog: Night City then Metal Factory in a song: all on, lighter glow, scenery flat-coloured, scenery off, all on again (about 4 minutes).
+# --only stages: the song menu on each stage in turn, twice, logging frames over 25 ms with where their time went (run right after launch).
+# --only cuts: Classic in a song, no cuts against cuts fired 4 a second with a blade swinging through the sparks (their GPU cost, and their
+# simulation's CPU as "BENCH sparks cpu"), twice (about 1.5 minutes).
+# --only reflection: Classic in a song: the floor reflection on and off (twice), the build-up sweep held on (about 2 minutes).
 set -e
 MODE=
 if [ "$1" = "--only" ]; then MODE=$2; shift 2; fi

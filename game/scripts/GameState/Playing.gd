@@ -13,7 +13,8 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.show_sabers_for_map()
 	game.multiplier_label.visible = true
 	game.point_label.visible = true
-	game.health_rails.visible = Settings.health_mode
+	# the far HUD of 90/360 maps carries the energy bar instead
+	game.health_rails.visible = Settings.health_mode and not game.hud.far
 	game.track.visible = true
 	game.left_ui_raycast.visible = false
 	game.right_ui_raycast.visible = false
@@ -56,7 +57,7 @@ func _count_down_lead_in(game: BeepSaber_Game) -> void:
 		_lead_in_shown = seconds
 		game.pause_countdown.visible = seconds > 0
 		if seconds > 0:
-			game.pause_countdown.set_label_text(str(seconds))
+			game.pause_countdown.text = str(seconds)
 			game.play_countdown(seconds)
 	if game.lead_in <= 0.0:
 		game.lead_in = 0.0
@@ -75,10 +76,12 @@ func _process_map(game: BeepSaber_Game) -> void:
 		game.event_driver.process_event(Map.event_stack.pop_back() as EventInfo)
 
 ## Spawns the map's notes, bombs, walls, arcs and chains that are due by `current_beat` (within the jump's half,
-## Map.half_jump_beats, ahead), from the GlobalReferences pools. Shared with the stage preview
+## Map.half_jump_beats, ahead; all but walls Cuttable.FLY_SECONDS more, to fly in), from the GlobalReferences pools. Shared with the stage preview
 ## (tools/capture/stage_capture.gd --notes).
 static func spawn_due(current_beat: float) -> void:
-	var look_ahead := current_beat + Map.half_jump_beats
+	# notes, bombs, arcs and chains come FLY_SECONDS early to fly in (Cuttable.fly_offset); walls at their jump
+	var wall_ahead := current_beat + Map.half_jump_beats
+	var look_ahead := wall_ahead + Cuttable.FLY_SECONDS * Map.beats_per_second()
 	
 	# chains connect to a regular colornote and modify it, so we have to keep
 	# track of what notes were spawned this frame, in case any become the head
@@ -101,7 +104,7 @@ static func spawn_due(current_beat: float) -> void:
 		bomb.spawn(Map.bomb_stack.pop_back() as BombInfo, current_beat)
 	
 	# spawn obstacles (walls)
-	while not Map.obstacle_stack.is_empty() and Map.obstacle_stack[-1].beat <= look_ahead:
+	while not Map.obstacle_stack.is_empty() and Map.obstacle_stack[-1].beat <= wall_ahead:
 		var wall := GlobalReferences.wall_pool.acquire() as Wall
 		wall.spawn(Map.obstacle_stack.pop_back() as ObstacleInfo, current_beat)
 	

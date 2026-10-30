@@ -39,6 +39,12 @@ const MISS_Z := 2.5
 ## made players push from the shoulder instead of swinging (doc/research/scoring-and-reach.md). Track-local z 0 is
 ## still the beat; game/AGENTS.md lists what to check when this changes.
 const HIT_PLANE_Z := 0.35
+## The player's standing point, XROrigin3D's z in BeepSaber_Game.tscn.
+const PLAYER_Z := 1.0
+## Where a 90/360 map's lane rotation turns the track's things about, in the track's own space: the player's standing
+## point, as Beat Saber's (owner, 2026-10-29), so a note on a lane turned 90 degrees reaches its hit point 0.65 m to the
+## player's side instead of in front.
+const LANE_PIVOT_Z := PLAYER_Z - HIT_PLANE_Z
 const DIRECTION8_OFFSET := 2 * TAU 
 const DIRECTION8_COMPARE := DIRECTION8_OFFSET - .001
 const ROTATION_EPS := 1e-5
@@ -85,7 +91,7 @@ const FAIL_LIVES := 4
 # Modifiers dropdown: [health_mode, fail_mode, label]
 # Health bar damage choices: [scale applied to every health loss, label]
 const DAMAGE_SCALES := [ [0.5, "50%"], [1.0, "100%"], [1.5, "150%"] ]
-const FAIL_OPTIONS := [ [false, FAIL_MODE_BAR, "No Fail"], [true, FAIL_MODE_BAR, "Health"], [true, FAIL_MODE_LIVES, "4 Lives"], [true, FAIL_MODE_INSTANT, "Instant"] ]
+const FAIL_OPTIONS := [ [false, FAIL_MODE_BAR, "No Fail"], [true, FAIL_MODE_BAR, "Energy"], [true, FAIL_MODE_LIVES, "4 Lives"], [true, FAIL_MODE_INSTANT, "Instant"] ]
 const DIFFICULTY_MASK := 0xFF
 const DIFFICULTY_HEALTH := 0x100
 const DIFFICULTY_BOMBS := 0x200
@@ -127,10 +133,8 @@ const FLOW_HIDDEN_PERCENT := 25.0
 ## in sets (doc/research/wall-workout.md).
 const WORKOUT_LEVELS := ["", "Some workout", "Workout"]
 const WORKOUT_SET_SHARE := 0.3
-## Difficulty filter choices: 0 shows every song, n songs with a difficulty at DIFFICULTY_LEVELS[n - 1] or easier.
+## Difficulty filter choices: 0 shows every song, n songs with a difficulty at DIFFICULTY_LEVELS[n - 1].
 const ANY_DIFFICULTY_LABEL := "Any difficulty"
-## Difficulty filter label for a level above Easy, which also lists easier songs.
-const UP_TO_LEVEL_LABEL := "Up to %s"
 const LENGTH_FILTERS := [ [0, "Any length", 0.0, 0.0], [1, "Under 2 min", 0.0, 120.0], [2, "2-4 min", 120.0, 240.0], [3, "Over 4 min", 240.0, 0.0] ]
 const DIFFICULTY_FLIP_SHIFT := 20
 const DIFFICULTY_FLIP_HORIZONTAL := 0x100000
@@ -206,6 +210,12 @@ const UI_TEXT_MUTED := Color(0.6, 0.63, 0.67)
 const UI_DANGER := Color(1.0, 0.45, 0.4)
 ## Health strips when full: the light UI text tinted toward the accent. They shift to the song's danger colour as health drops.
 const HEALTH_FULL_COLOR := Color(0.74, 0.86, 0.93)
+## The footprints on the standing platform (game/floor.gd): a neutral white a little brighter than grey, so they
+## read on every stage without competing with notes (owner, 2026-10-29).
+const FOOTPRINT_COLOR := Color(0.8, 0.8, 0.8)
+## The turn cue on 90/360 maps (TrackDeck.set_cue): the chevron on the floor pointing where the player turns next. A
+## neutral white like the footprints, not a note, accent or danger colour (owner, 2026-10-29: like Glass Desert's).
+const TURN_CUE_COLOR := Color(0.8, 0.8, 0.8)
 # The X shown for a missed note: a softer red than pure red
 const MISS_COLOR := Color("ff4d5e")
 # The combo HUD's multiplier ring (ComboHud.gd): lit and unlit segments. A broken combo tints it MISS_COLOR for a moment.

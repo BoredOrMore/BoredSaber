@@ -8,7 +8,7 @@ static loader in `game/Map.gd` that fills them. Format reference: https://bsmg.w
 - `MapInfo.gd` - song metadata + `difficulty_beatmaps`. `new_v2` (`_version`, `_difficultyBeatmapSets`),
   `new_v4` (`version`, `difficultyBeatmaps`, `song`/`audio` dicts). Lightshow characteristic is skipped.
 - `DifficultyInfo.gd` - difficulty, characteristic, `beatmap_filename`, NJS + offset, `custom_data`,
-  `custom_name` (from `_difficultyLabel`/`difficultyLabel`). v4 has no rank yet (`DifficultyInfo.gd:75`).
+  `custom_name` (from `_difficultyLabel`/`difficultyLabel`), v4 `lightshow_filename`. v4 has no rank yet (`DifficultyInfo.gd:75`).
 - `ColorNoteInfo.gd`, `BombInfo.gd`, `ObstacleInfo.gd`, `ArcInfo.gd`, `ChainInfo.gd`, `EventInfo.gd` - one
   record per object, each with `new_v2`/`new_v3` factories (`ChainInfo` is v3 only). v4 is converted to
   v3-shaped dicts in `Map.gd` before calling `new_v3`.
@@ -59,7 +59,10 @@ static loader in `game/Map.gd` that fills them. Format reference: https://bsmg.w
 
 - Boundary validation (root `AGENTS.md`): map files are untrusted. Read fields only through
   `Utils.get_float/get_str/get_array/get_dict` with a default, and type-check array entries (`is Dictionary`).
-- v4 rotations, v4 events and v4 lightshow files are not loaded (`Map.gd:560,598-599`).
+- v4 lights come from the difficulty's lightshow file (`lightshowDataFilename`, `DifficultyInfo.lightshow_filename`),
+  read next to the beatmap file (`BeepSaber_Game._read_song`/`_read_lightshow`) and passed to `Map.load_beatmap`;
+  only `basicEvents` are played (`load_event_stack_v4`). Colour boosts and the v3/v4 event box groups (newer
+  environments' lights) are not loaded, as in v3. A v4 map without a lightshow file plays dark.
 - `load_note_stack_v2` `continue`s without `i += 1` on a non-Dictionary entry (`Map.gd:150`): that hangs the
   loader thread. Known bug, not fixed here.
 - `BombInfo._init` adds gradual rotation twice (`BombInfo.gd:16-17`). Known bug, not fixed here.

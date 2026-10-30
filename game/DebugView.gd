@@ -20,6 +20,10 @@ const HIDE_CUT_FLASH := 256
 const GLOW_OFF := 512
 const MSAA_OFF := 32768
 const GLOW_SOFT := 65536
+## Not read by shaders, benchmark only (tools/bench.sh --only reflection): the floor reflection left out
+## (FloorReflection), and the build-up sweep held fully on through the song (EventDriver._update_sweep).
+const NO_REFLECTION := 131072
+const FORCE_SWEEP := 262144
 const EXTRAS := HIDE_SABERS | HIDE_CUT_FLASH | GLOW_OFF | MSAA_OFF | GLOW_SOFT
 ## Not read by shaders: while on, a song steps through CYCLE_STEPS by itself (cycle_tick), so one run measures
 ## every part; the log line "debug_view N" marks each step for matching with the headset's GPU timings.
@@ -82,7 +86,6 @@ static func apply(game: BeepSaber_Game) -> void:
 	for saber: LightSaber in [game.left_saber, game.right_saber]:
 		saber.saber_visual.visible = extras & HIDE_SABERS == 0
 	game.cut_flash.visible = extras & HIDE_CUT_FLASH == 0
-	game._sparks.visible = extras & HIDE_CUT_FLASH == 0
 	var quality: Array = LowResGlow.QUALITIES.get(Settings.glow_quality, LowResGlow.QUALITIES["Soft"])
 	LowResGlow.height = LowResGlow.QUALITIES["Soft"][0] if extras & GLOW_SOFT else quality[0]
 	game.glow_override = BeepSaber_Game.Glow.NONE if extras & GLOW_OFF else -1

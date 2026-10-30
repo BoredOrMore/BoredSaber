@@ -15,7 +15,7 @@ const RAIL_TILT_DEGREES := 30.0
 const RAIL_NEAR_Z := -1.0
 ## Worked out from the player's real eye (owner, 2026-10-27: further out, like the HUD, and from the eye): the strips
 ## start where the floor is RAIL_NEAR_DEGREES below it (they began 38 degrees down at 2 m, under a look down the
-## track) and grow with that distance against RAIL_LAID_OUT_DISTANCE, so their width and the heart keep their size
+## track) and grow with that distance against RAIL_LAID_OUT_DISTANCE, so their width and the bolt keep their size
 ## in view.
 const RAIL_NEAR_DEGREES := 22.0
 const RAIL_LAID_OUT_DISTANCE := 2.0
@@ -25,7 +25,7 @@ const RAIL_LENGTH := 5.0
 const RAIL_WIDTH := 0.05
 ## Must match edge_pad in HealthRail.gdshader.
 const EDGE_PAD := 0.01
-## Heart icon at the near end of the left strip, saying what the strips show: its size and how far it floats above
+## Bolt icon (Energy) at the near end of the left strip, saying what the strips show: its size and how far it floats above
 ## the strip's start.
 const ICON_SIZE := 0.1
 const ICON_LIFT := 0.1
@@ -49,6 +49,8 @@ const RAIL_SHADER := preload("res://game/hud/HealthRail.gdshader")
 
 var _danger := Color.RED
 var _icon := Sprite3D.new()
+## the strips' and the bolt's opacity while a fail fades them (fade_out)
+var _fade := 1.0
 var _bar_material := _rail_material(Constants.HEALTH_FULL_COLOR)
 var _lit_material := _rail_material(Constants.HEALTH_FULL_COLOR)
 var _lost_material := _rail_material(Color.BLACK)
@@ -59,7 +61,7 @@ func _ready() -> void:
 		_bars.append(_strip(side, RAIL_LENGTH, RAIL_NEAR_Z - RAIL_LENGTH / 2, _bar_material))
 		for i in Constants.FAIL_LIVES:
 			_pips.append(_strip(side, _pip_length, RAIL_NEAR_Z - _pip_length / 2 - i * (_pip_length + PIP_GAP), _lost_material))
-	_icon.texture = preload("res://game/ui/heart.svg")
+	_icon.texture = preload("res://game/ui/bolt.svg")
 	_icon.pixel_size = ICON_SIZE / _icon.texture.get_width()
 	_icon.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	_icon.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
@@ -103,7 +105,7 @@ func update_health(how_full: float) -> void:
 	if _lives:
 		var lives_left := roundi(_how_full * Constants.FAIL_LIVES)
 		_lit_material.set_shader_parameter(&"color", _health_color(_how_full))
-		_icon.modulate = _health_color(_how_full)
+		_icon.modulate = Color(_health_color(_how_full), _fade)
 		for i in _pips.size():
 			_pips[i].material_override = _lit_material if i % Constants.FAIL_LIVES < lives_left else _lost_material
 
@@ -116,7 +118,23 @@ func _process(delta: float) -> void:
 		bar.scale.z = length / RAIL_LENGTH
 		bar.position.z = _near_z - length / 2
 	_bar_material.set_shader_parameter(&"color", _health_color(_how_full_display))
-	_icon.modulate = _health_color(_how_full_display)
+	_icon.modulate = Color(_health_color(_how_full_display), _fade)
+
+## Fades the strips and the bolt out over `seconds`, then hides them (owner, 2026-10-29: on a fail only FAILED stays in
+## view); the next song shows them whole again.
+func fade_out(seconds: float) -> void:
+	var tween := create_tween()
+	tween.tween_method(_set_fade, 1.0, 0.0, seconds)
+	tween.tween_callback(func() -> void:
+		visible = false
+		_set_fade(1.0))
+
+## The strips' and the bolt's opacity, 0 to 1.
+func _set_fade(share: float) -> void:
+	for material: ShaderMaterial in [_bar_material, _lit_material, _lost_material]:
+		material.set_shader_parameter(&"fade", share)
+	_fade = share
+	_icon.modulate.a = share
 
 ## The full colour while health is high, turning into the song's danger colour as it runs out.
 func _health_color(how_full: float) -> Color:

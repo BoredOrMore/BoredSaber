@@ -105,14 +105,14 @@ static func get_speed_from_rank(diff_rank: int) -> int:
 #
 # return : None
 # return : the stored record, which rename_record() can change later
-func add_highscore(map_info: MapInfo, diff_rank: int, player_name: String, score: int) -> Dictionary:
+func add_highscore(map_info: MapInfo, diff_rank: int, player_name: String, score: int, accuracy := -1.0) -> Dictionary:
 	# get existing records for song + difficulty
 	var hs_key := map_info.get_key()
 	diff_rank = get_rank_key(diff_rank)
 	var records := _get_records(hs_key,diff_rank)
 	
 	# construct a new record and resort the list
-	var record := _make_record(score,player_name)
+	var record := _make_record(score,player_name,accuracy)
 	records.append(record)
 	records.sort_custom(_highest_and_oldest)
 	
@@ -221,12 +221,17 @@ func _is_new_highscore(hs_key: String, diff_rank: int, score: int) -> bool:
 	return _get_insert_index(records,temp_record) < MAX_RECORDS_PER_KEY
 
 # creates a "record" structure for storage in the highscore table
-func _make_record(score: int, player_name: String) -> Dictionary:
-	return {
+## accuracy (0..1, the grade's measure) is kept from 2026-10-27 on, so the ranking panel can show the run's grade;
+## below 0 it is left out (records from before have none).
+func _make_record(score: int, player_name: String, accuracy := -1.0) -> Dictionary:
+	var record := {
 		"score" : score,
 		"player_name" : player_name,
 		"epoch_time" : Time.get_unix_time_from_system()
 	}
+	if accuracy >= 0.0:
+		record["accuracy"] = accuracy
+	return record
 
 # records: the list of records for a given (song + diff_rank)
 # record: the score record to request the insertion index for

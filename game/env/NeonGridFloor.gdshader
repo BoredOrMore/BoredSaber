@@ -92,5 +92,5 @@ void fragment() {
 	vec3 near = mix(haze * GROUND_SHADE, line_col * LINE_GAIN + cut_wave_light(world) * CUT_WAVE_GAIN, line);
 	ALBEDO = mix(haze * HORIZON_HAZE, near, fade) * (1.0 - HILL_SHADE * hill);
 	ALBEDO = mix(ALBEDO, haze * HEIGHT_FOG_GLOW, ground_fog);
-	ALBEDO = fog_dither(ALBEDO, FRAGCOORD.xy);
+	ALBEDO = fog_dither(fog_result(ALBEDO, VERTEX), FRAGCOORD.xy);
 }

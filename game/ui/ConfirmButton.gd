@@ -21,6 +21,8 @@ var _press := 0
 ## Listens for presses on top of IconButton's centring.
 func _ready() -> void:
 	super()
+	if theme_type_variation == &"":
+		theme_type_variation = &"DestructiveButton"
 	pressed.connect(_on_pressed)
 
 ## Asks on the first press, confirms on the second.

@@ -4,16 +4,22 @@ class_name ComboHud
 ## combo feel like something: the ring around the multiplier fills hit by hit as in Beat Saber and flashes when the
 ## multiplier goes up, and a broken combo shakes and turns MISS_COLOR for a moment. The count itself holds still on
 ## ordinary hits: the HUD sits near the edge of view, where steady motion distracts (Apple visionOS: avoid busy
-## motion at the edges), so only multiplier raises and milestones bounce.
+## motion at the edges), so only multiplier raises and milestones flash, and no text grows.
 ## Kept moderate on purpose: too much feedback makes a game feel and play worse, not better (Kao 2020, "The effects
 ## of juiciness in an action RPG"), and big flashes are tiring in a headset.
 
 ## a combo of 50, then every 100: the game also brightens the air and buzzes the controllers
 signal milestone_reached(combo: int)
 
-## how much the multiplier grows when it goes up, and how long it and the ring's flash take to settle (untuned)
-const RAISE_POP := 0.35
-const RAISE_SECONDS := 0.35
+## the ring's glow when the multiplier goes up fades with the chime's ringing tail (tools/make_combo_sounds.py), so
+## sound and light end together. No text grows: only the HUD grade's letter pops (owner, 2026-10-27) (untuned)
+const RAISE_FLASH_SECONDS := 0.8
+## a thin copy of the ring grows out of it and fades as the chime lands: by this much of its size, over this long;
+## bigger and slower for a milestone. It stays on the HUD panel, the view itself never moves (untuned)
+const SHOCKWAVE_GROWTH := 0.6
+const SHOCKWAVE_SECONDS := 0.6
+const MILESTONE_SHOCKWAVE_GROWTH := 1.2
+const MILESTONE_SHOCKWAVE_SECONDS := 1.0
 ## how far (in this node's units) and how long a broken combo shakes, and how long its tint takes to fade (untuned)
 const BREAK_SHAKE := 0.04
 const BREAK_SHAKE_SECONDS := 0.3
@@ -30,8 +36,7 @@ const MILESTONE_STEP := 100
 ## the "100 COMBO" text rises from above the combo count and fades out (this node's units, untuned)
 const MILESTONE_START := Vector3(0, 0.12, 0)
 const MILESTONE_RISE := 0.15
-const MILESTONE_SECONDS := 1.2
-const MILESTONE_POP := 0.3
+const MILESTONE_SECONDS := 1.8
 ## the multiplier chime climbs a major chord, x2 x4 x8 (tools/make_combo_sounds.py makes the sounds)
 const UP_PITCHES := {2: 1.0, 4: 1.26, 8: 1.5}
 ## a break only sounds when it ends a combo at least this long, so early misses stay quiet
@@ -41,11 +46,13 @@ var _base_position: Vector3
 var _text_material: BaseMaterial3D
 var _text_color: Color
 var _ring_material: ShaderMaterial
+var _shockwave: MeshInstance3D
+var _shockwave_material: ShaderMaterial
+var _shockwave_tween: Tween
 ## the multiplier in its filling ring; the game moves it to the right of the view, apart from the combo count
 var ring: MeshInstance3D
 var _multiplier_mesh: TextMesh
 var _multiplier_material: BaseMaterial3D
-var _multiplier_size: float
 var _shown_multiplier := 1
 var _segments := 2.0
 var _filled := 0.0
@@ -56,11 +63,13 @@ var _tint_tween: Tween
 var _milestone_label: MeshInstance3D
 var _milestone_mesh: TextMesh
 var _milestone_material: BaseMaterial3D
-var _milestone_size: float
 var _milestone_tween: Tween
 var _up_sound: AudioStreamPlayer
 var _milestone_sound: AudioStreamPlayer
 var _break_sound: AudioStreamPlayer
+## no shake, pops or shockwaves (the far HUD of 90/360 maps, Hud: in the middle of the view they'd pull the eye off the
+## notes); the sounds and the broken combo's tint stay
+var calm := false
 
 func _ready() -> void:
 	_base_position = position
@@ -81,6 +90,7 @@ func _ready() -> void:
 	_ring_material.set_shader_parameter(&"segments", _segments)
 	_ring_material.set_shader_parameter(&"filled", 0.0)
 	_ring_material.set_shader_parameter(&"flash", 0.0)
+	_ring_material.set_shader_parameter(&"fade", 1.0)
 	ring.material_override = _ring_material
 	ring.position = RING_OFFSET
 	ring.layers = layers
@@ -88,11 +98,10 @@ func _ready() -> void:
 
 	var multiplier_label := MeshInstance3D.new()
 	_multiplier_mesh = TextMesh.new()
-	_multiplier_mesh.font = preload("res://OQ_Toolkit/OQ_UI2D/theme/Roboto-Medium.ttf")
+	_multiplier_mesh.font = Hud.NUMBER_FONT
 	_multiplier_mesh.font_size = 100
-	_multiplier_mesh.pixel_size = 0.001
+	_multiplier_mesh.pixel_size = 0.001 * Hud.NUMBER_FONT_SCALE
 	_multiplier_mesh.depth = 0.0
-	_multiplier_size = _multiplier_mesh.pixel_size
 	multiplier_label.mesh = _multiplier_mesh
 	_multiplier_material = _text_material.duplicate() as BaseMaterial3D
 	multiplier_label.material_override = _multiplier_material
@@ -100,10 +109,23 @@ func _ready() -> void:
 	multiplier_label.layers = layers
 	ring.add_child(multiplier_label)
 
+	# the shockwave: the ring's shape, whole and in the accent colour, behind the multiplier
+	_shockwave = MeshInstance3D.new()
+	_shockwave.mesh = quad
+	_shockwave_material = _ring_material.duplicate() as ShaderMaterial
+	_shockwave_material.set_shader_parameter(&"segments", 1.0)
+	_shockwave_material.set_shader_parameter(&"filled", 1.0)
+	_shockwave_material.set_shader_parameter(&"fill_color", Constants.UI_ACCENT)
+	_shockwave_material.set_shader_parameter(&"fade", 0.0)
+	_shockwave.material_override = _shockwave_material
+	_shockwave.position = Vector3(0, 0, -0.01)
+	_shockwave.layers = layers
+	_shockwave.visible = false
+	ring.add_child(_shockwave)
+
 	_milestone_label = MeshInstance3D.new()
 	_milestone_mesh = _multiplier_mesh.duplicate() as TextMesh
 	_milestone_mesh.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-	_milestone_size = _milestone_mesh.pixel_size
 	_milestone_label.mesh = _milestone_mesh
 	_milestone_material = _text_material.duplicate() as BaseMaterial3D
 	_milestone_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
@@ -116,6 +138,8 @@ func _ready() -> void:
 	_up_sound = _add_sound(preload("res://game/data/combo_up.wav"))
 	_milestone_sound = _add_sound(preload("res://game/data/combo_milestone.wav"))
 	_break_sound = _add_sound(preload("res://game/data/combo_break.wav"))
+	# 3.5 LU under combo_up though it matters more (loudness notes, 2026-10-23)
+	_break_sound.volume_db = 3.0
 
 	Scoreboard.score_changed.connect(refresh)
 	Scoreboard.combo_hit.connect(_on_combo_hit)
@@ -133,7 +157,7 @@ func _add_sound(stream: AudioStream) -> AudioStreamPlayer:
 ## Shows the current combo and multiplier; the ring moves to them over the next frames.
 func refresh() -> void:
 	# the "Combo" caption is the game's HUD label above this count
-	var text := "%d" % Scoreboard.combo
+	var text := Hud._grouped(Scoreboard.combo)
 	if (mesh as TextMesh).text != text:
 		(mesh as TextMesh).text = text
 	_multiplier_mesh.text = "x%d" % Scoreboard.multiplier
@@ -159,7 +183,6 @@ func set_multiplier_height(height: float) -> void:
 	# TextMesh caps font_size at 127, so the size goes through pixel_size
 	_multiplier_mesh.font_size = 100
 	_multiplier_mesh.pixel_size = height / 100.0
-	_multiplier_size = _multiplier_mesh.pixel_size
 
 ## Where the count rests, for the game's HUD layout (the broken-combo shake swings around it).
 func rest_at(at: Vector3) -> void:
@@ -171,18 +194,19 @@ static func is_milestone(combo: int) -> bool:
 
 func _on_combo_hit() -> void:
 	if is_milestone(Scoreboard.combo):
-		_show_milestone(Scoreboard.combo)
+		if not calm:
+			_show_milestone(Scoreboard.combo)
+			_send_shockwave(MILESTONE_SHOCKWAVE_GROWTH, MILESTONE_SHOCKWAVE_SECONDS)
 		_milestone_sound.play()
 		milestone_reached.emit(Scoreboard.combo)
 
 func _show_milestone(combo: int) -> void:
-	_milestone_mesh.text = "%d COMBO" % combo
+	_milestone_mesh.text = "%s COMBO" % Hud._grouped(combo)
 	_milestone_label.visible = true
 	if _milestone_tween:
 		_milestone_tween.kill()
 	_milestone_tween = create_tween().set_parallel()
 	_milestone_tween.tween_property(_milestone_label, ^"position", MILESTONE_START + Vector3(0, MILESTONE_RISE, 0), MILESTONE_SECONDS).from(MILESTONE_START).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_milestone_tween.tween_property(_milestone_mesh, ^"pixel_size", _milestone_size, MILESTONE_SECONDS * 0.25).from(_milestone_size * (1.0 + MILESTONE_POP)).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	var faded := Constants.UI_ACCENT
 	faded.a = 0.0
 	_milestone_tween.tween_property(_milestone_material, ^"albedo_color", faded, MILESTONE_SECONDS * 0.5).from(Constants.UI_ACCENT).set_delay(MILESTONE_SECONDS * 0.5).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
@@ -191,16 +215,29 @@ func _show_milestone(combo: int) -> void:
 func _on_multiplier_raised(multiplier: int) -> void:
 	_up_sound.pitch_scale = UP_PITCHES.get(multiplier, 1.0)
 	_up_sound.play()
+	if calm:
+		return
 	if _raise_tween:
 		_raise_tween.kill()
 	_raise_tween = create_tween().set_parallel().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_raise_tween.tween_property(_multiplier_mesh, ^"pixel_size", _multiplier_size, RAISE_SECONDS).from(_multiplier_size * (1.0 + RAISE_POP))
-	_raise_tween.tween_property(_ring_material, ^"shader_parameter/flash", 0.0, RAISE_SECONDS).from(1.0)
+	_raise_tween.tween_property(_ring_material, ^"shader_parameter/flash", 0.0, RAISE_FLASH_SECONDS).from(1.0)
+	_send_shockwave(SHOCKWAVE_GROWTH, SHOCKWAVE_SECONDS)
+
+## Grows the shockwave out of the ring by growth of its size over seconds, fading it out; a new one restarts it.
+func _send_shockwave(growth: float, seconds: float) -> void:
+	if _shockwave_tween:
+		_shockwave_tween.kill()
+	_shockwave.visible = true
+	_shockwave_tween = create_tween().set_parallel().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_shockwave_tween.tween_property(_shockwave, ^"scale", Vector3.ONE * (1.0 + growth), seconds).from(Vector3.ONE)
+	_shockwave_tween.tween_property(_shockwave_material, ^"shader_parameter/fade", 0.0, seconds).from(1.0)
+	_shockwave_tween.chain().tween_callback(_shockwave.hide)
 
 func _on_combo_broken(lost_combo: int) -> void:
 	if lost_combo >= BREAK_SOUND_MIN_COMBO:
 		_break_sound.play()
-	_shake_left = BREAK_SHAKE_SECONDS
+	if not calm:
+		_shake_left = BREAK_SHAKE_SECONDS
 	if _tint_tween:
 		_tint_tween.kill()
 	_tint_tween = create_tween().set_parallel().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)

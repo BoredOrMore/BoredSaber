@@ -23,5 +23,5 @@ void vertex() {
 void fragment() {
 	// the haze lit from the stage's key light, seen this way (fog_light.gdshaderinc)
 	vec3 haze = haze_v;
-	ALBEDO = (debug_view & 16) != 0 ? vec3(0.0) : fog_dither(haze * SKY_HAZE, FRAGCOORD.xy);
+	ALBEDO = (debug_view & 16) != 0 ? vec3(0.0) : fog_dither(fog_result(haze * SKY_HAZE, VERTEX), FRAGCOORD.xy);
 }

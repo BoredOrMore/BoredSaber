@@ -13,6 +13,9 @@ clear: a rising major chord, slower and lower than the combo milestone so the tw
 ui_hover: a very soft high tick, at most 30 ms, for the laser landing on a button.
 ui_back: two low bell notes falling, for back and close buttons.
 toggle_on / toggle_off: two quick high notes rising / falling, for switches and modifier chips.
+warning: the same high note twice, quick, for the red warning icon appearing by the song menu (a repeat asks for
+attention without the alarm of a rising pitch, Edworthy et al. 1991).
+pause: three bell notes falling C6 G5 C5, the song stopping; resuming already has the countdown ticks.
 
 Rerun after changing a value here (standard library only):
     python3 tools/make_feedback_sounds.py
@@ -136,3 +139,13 @@ off: list[float] = []
 mix_at(off, bell(C6 * 2.0, 0.08, 0.025), 0.0, 0.8)
 mix_at(off, bell(C6 * E, 0.1, 0.03), 0.035, 1.0)
 save("toggle_off.wav", off, -14.0)
+
+warning: list[float] = []
+mix_at(warning, bell(C6 * G, 0.12, 0.04), 0.0, 1.0)
+mix_at(warning, bell(C6 * G, 0.2, 0.06), 0.12, 1.0)
+save("warning.wav", warning, -10.0)
+
+pause: list[float] = []
+for k, ratio in enumerate([1.0, G / 2, 0.5]):
+    mix_at(pause, bell(C6 * ratio, 0.3, 0.09), k * 0.07, 1.0)
+save("pause.wav", pause, -10.0)

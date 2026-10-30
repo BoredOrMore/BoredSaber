@@ -40,6 +40,10 @@ func _process(_delta: float) -> void:
 	if _halo.visible:
 		_halo_mat.set_shader_parameter(&"blade_length", (light_mesh.mesh as CapsuleMesh).height)
 
+## The blade's colour.
+func get_color() -> Color:
+	return _mat.get_shader_parameter(&"color")
+
 func set_color(color: Color) -> void:
 	_mat.set_shader_parameter(&"color", color)
 	_halo_mat.set_shader_parameter(&"color", color)

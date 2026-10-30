@@ -30,6 +30,23 @@ See `SPATIAL_LAYOUT.md` (origin, bounds, corridor, exclusion zones) and the root
   no "industrial" tag). A map that names a Beat Saber environment in `Constants.MAP_ENVIRONMENTS` keeps that one first,
   and of several tags the first the table knows wins.
 
+## 90° and 360° maps (owner, 2026-10-29)
+- The track (deck and its edge strips) turns to where the notes come from; the stage never turns (a rest frame).
+- One new stage, built for 360°, is the default for 90° and 360° maps. A map that names a stage not ready for
+  360° gets the new stage instead. The BeatSaver page keeps hiding maps without a Standard difficulty.
+- The new stage is Henge (concept, not built; GPU 7.5-9 ms estimated by the budget agent, not measured):
+  - Feeling: held breath, then release. Abstract: shape and light, no place to explain it.
+  - Shape: 24 black monoliths in a circle round the player, about 150 m out and 120 m tall, on a dark floor; a faint
+    neutral glow on the horizon behind them. Nothing moves; only light does.
+  - Light on the shapes: strips on the slabs' inner edges, short narrow beams from their tops, a ring strip on the
+    floor. The map's left and right light groups go to the slabs left and right of where the track points at that
+    moment.
+  - Shadow: the slabs stand as silhouettes against the horizon glow; bands of light from the gaps between them,
+    with the slabs' shadows between, rake across the floor toward the player.
+  - Build-up: slab edges light one by one round the circle; drop: every gap floods at once.
+  - Budget notes: draw the floor bands in vertex colour on a wedge mesh, not per pixel; split slabs and strips in
+    four quadrants for culling; keep the drop's floor flood below the notes' brightness.
+
 ## Stage stories (agreed with the owner, 2026-10-24, as a first version)
 - Classic: a steel tunnel where a lighting crew rehearses its show. The rings are calibration gates; the moving
   heads are the crew's rig, waiting for the song to start.

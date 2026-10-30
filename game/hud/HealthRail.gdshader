@@ -9,6 +9,8 @@ uniform vec4 color : source_color = vec4(1.0);
 uniform float far_brightness = 0.45;
 // empty margin the quad has around the capsule, in metres, so the soft edge isn't cut off by the quad's own edge
 uniform float edge_pad = 0.01;
+// 0..1, the whole strip's opacity (HealthRails.fade_out on a fail)
+uniform float fade = 1.0;
 
 varying vec2 pos;
 varying float radius;
@@ -29,5 +31,5 @@ void fragment() {
 	float coverage = 1.0 - smoothstep(-aa, aa, d);
 	float near = clamp(pos.y / max(half_length, 1e-4) * 0.5 + 0.5, 0.0, 1.0);
 	ALBEDO = color.rgb * mix(far_brightness, 1.0, near);
-	ALPHA = color.a * coverage;
+	ALPHA = color.a * coverage * fade;
 }

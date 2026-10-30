@@ -1,18 +1,16 @@
 [gd_scene format=3 uid="uid://cpwxp083qm1jq"]
 
+[ext_resource type="StyleBox" path="res://game/ui/menu_panel.tres" id="menu_panel"]
 [ext_resource type="Script" path="res://game/ui/HighscorePanel.gd" id="2"]
 [ext_resource type="Texture2D" uid="uid://j1wa4gcqkltx" path="res://game/data/maps/Songs/TheFatRat_Timelapse/cover.jpg" id="4"]
 [ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="menu_theme"]
-
-[sub_resource type="StyleBoxFlat" id="menu_root"]
-bg_color = Color(0.086, 0.094, 0.114, 1)
 
 [node name="HighscorePanel" type="Panel"]
 offset_right = 940.0
 offset_bottom = 520.0
 script = ExtResource("2")
 theme = ExtResource("menu_theme")
-theme_override_styles/panel = SubResource("menu_root")
+theme_override_styles/panel = ExtResource("menu_panel")
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 0

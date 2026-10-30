@@ -262,11 +262,11 @@ static func reaction_seconds(info: MapInfo, difficulty: DifficultyInfo) -> float
 	return reaction_seconds_for(info.beats_per_minute, difficulty.note_jump_movement_speed, difficulty.note_jump_start_beat_offset)
 
 ## Seconds a note is visible before it reaches the player for a map's BPM, note speed and offset, at
-## the current Speed modifier; 0 without a BPM.
-static func reaction_seconds_for(bpm: float, njs: float, offset: float) -> float:
+## the Speed modifier `speed` (the current one by default); 0 without a BPM.
+static func reaction_seconds_for(bpm: float, njs: float, offset: float, speed := _speed()) -> float:
 	if bpm <= 0.0:
 		return 0.0
-	return Map.half_jump_beats_for(bpm, njs, offset) * 60.0 / bpm / _speed()
+	return Map.half_jump_beats_for(bpm, njs, offset) * 60.0 / bpm / speed
 
 ## The Speed modifier as a factor.
 static func _speed() -> float:
@@ -315,48 +315,24 @@ static func in_filter(value: float, filter: Array) -> bool:
 static func level_name(info: MapInfo, difficulty: DifficultyInfo) -> String:
 	return Constants.DIFFICULTY_LEVELS[level_of(info, difficulty, get_stats(info, difficulty))][0]
 
-## Formats a difficulty in plain words: "3:24 · Notes 0.72 s ahead · Swings every 0.45 s" (per hand) over
-## "Swing flow: Twisty", and "Workout: 3 sets · 28 side steps · 12 squats" when walls make
-## the player move.
-static func describe(info: MapInfo, difficulty: DifficultyInfo, stats: Dictionary) -> String:
-	var seconds := int(stats.get("seconds", 0.0))
-	# no-break spaces keep each phrase whole when the line wraps (at a " · ")
-	var text := "%d:%02d · Notes\u00A0%.2f\u00A0s\u00A0ahead" % [seconds / 60, seconds % 60, reaction_seconds(info, difficulty)]
-	var gap := float(stats.get("gap", 0.0)) / _speed()
-	if gap > 0.0:
-		text += " · Swings\u00A0every\u00A0%.2f\u00A0s" % gap
-	text += "\n"
-	if stats.has("flow"):
-		text += "Swing\u00A0flow:\u00A0%s" % Constants.FLOW_LEVELS[flow_level(float(stats.flow))][0]
-	var level := workout_level(stats)
-	if level > 0:
-		text += "\n%s: %d %s" % [Constants.WORKOUT_LEVELS[level], stats.sets, "set" if stats.sets == 1 else "sets"]
-		for move: Array in [["side_steps", "side step"], ["squats", "squat"]]:
-			var count := int(stats.get(move[0], 0))
-			if count > 0:
-				text += " · %d\u00A0%s%s" % [count, move[1].replace(" ", "\u00A0"), "" if count == 1 else "s"]
-	return text
-
-## The difficulty filter choices for a dropdown: [id, label], id 0 being any difficulty. Id n lists songs that
-## play at DIFFICULTY_LEVELS[n - 1] or easier, so a player picks the hardest they want ("no harder than this",
-## owner's choice 2026-10-20). The hardest level is left out: it would list the same songs as Any.
+## The difficulty filter choices: [id, label], id 0 being any difficulty. Id n lists songs with a difficulty that
+## plays at DIFFICULTY_LEVELS[n - 1], the same levels as Get songs' filter (owner, 2026-10-30: one meaning on both
+## pages; it was "no harder than this" since 2026-10-20).
 static func difficulty_filters() -> Array:
 	var filters := [[0, Constants.ANY_DIFFICULTY_LABEL]]
-	for i in Constants.DIFFICULTY_LEVELS.size() - 1:
-		var level: String = Constants.DIFFICULTY_LEVELS[i][0]
-		filters.append([i + 1, level if i == 0 else Constants.UP_TO_LEVEL_LABEL % level])
+	for i in Constants.DIFFICULTY_LEVELS.size():
+		filters.append([i + 1, Constants.DIFFICULTY_LEVELS[i][0]])
 	return filters
 
-## A saved difficulty filter id, or 0 (any) when it is not one of difficulty_filters (an older save picked
-## Expert+).
+## A saved difficulty filter id, or 0 (any) when it is not one of difficulty_filters.
 static func difficulty_filter(id: int) -> int:
-	return id if id > 0 and id < Constants.DIFFICULTY_LEVELS.size() else 0
+	return id if id > 0 and id <= Constants.DIFFICULTY_LEVELS.size() else 0
 
-## True if a difficulty that plays at level passes the difficulty filter id: the filter is off or the level is
-## no harder than the picked one.
+## True if a difficulty that plays at level passes the difficulty filter id: the filter is off or the level is the
+## picked one.
 static func passes_difficulty_filter(level: int, id: int) -> bool:
 	id = difficulty_filter(id)
-	return id == 0 or level <= id - 1
+	return id == 0 or level == id - 1
 
 ## Cache key of one difficulty.
 static func _key(info: MapInfo, difficulty: DifficultyInfo) -> String:

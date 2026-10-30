@@ -23,7 +23,8 @@ const COMBO_PULSE_LASER := 0.3
 const COMBO_RISE_SECONDS := 1.0
 const COMBO_FALL_SECONDS := 0.3
 ## In the menus the stage waits like a concert before the show: dim lights in a cool house tone that slowly
-## "breathe" between MENU_BREATH_LOW and MENU_BREATH_HIGH of their colour, thicker haze so beams show, and the
+## "breathe" between MENU_BREATH_LOW and MENU_BREATH_HIGH of their colour (the haze as in play: owner, 2026-10-27, the
+## menus as clear as can be), and the
 ## waving lasers sweeping slowly through it at MENU_LASER_LEVEL from their fixtures at the sides. Slow and dim on
 ## purpose so the menu still holds the eye: no bright or busy motion in the periphery, and nothing oscillating
 ## near 0.2 Hz (Apple visionOS HIG, Spatial layout, Motion). All values untuned.
@@ -39,10 +40,29 @@ const EERIE_HAZE_DIM := 0.7
 const EERIE_HAZE_NEUTRAL := 0.8
 const MENU_LASER_LEVEL := 0.2
 const MENU_LASER_SWEEP_SECONDS := 30.0
-const MENU_HAZE_BOOST := 1.5
 ## The house light colour the menu lights lean toward, and how far (0 = note colours only): a near-neutral
 ## cool grey, like Beat Saber's menu, so the stage doesn't look tinted (saturation about 0.09). Untuned.
 const HOUSE_COLOR := Color(0.62, 0.64, 0.68)
+## The result moment (root AGENTS.md, Colour rules' exception; owner, 2026-10-28, after Beat Saber's red results room):
+## result_mood turns the air to the result's colour, not the screen: the result_air shader global (fog_light.gdshaderinc),
+## a fog of FAIL_AIR_DENSITY / CLEAR_AIR_DENSITY per metre, so the scenery goes deeper into it the farther away it is
+## (the sky most) and near things keep their own colour. A fail kills the stage lights and brings the danger colour in
+## at FAIL_HAZE_LEVEL (about half way at 20 m); a clear warms the air (CLEAR_WARM at CLEAR_HAZE_LEVEL) and bursts
+## CLEAR_SPARKS sparks in the note colours and white over the stage, once. Fades in over RESULT_FADE_IN_SECONDS (never a
+## flash, WCAG 2.3.1), holds RESULT_HOLD_SECONDS (owner: about 4 s), eases back over RESULT_FADE_OUT_SECONDS. Untuned.
+const FAIL_HAZE_LEVEL := 0.35
+const FAIL_AIR_DENSITY := 0.035
+const CLEAR_WARM := Color(1.0, 0.78, 0.5)
+const CLEAR_HAZE_LEVEL := 0.15
+const CLEAR_AIR_DENSITY := 0.02
+const RESULT_FADE_IN_SECONDS := 1.0
+const RESULT_HOLD_SECONDS := 4.0
+const RESULT_FADE_OUT_SECONDS := 3.0
+const CLEAR_SPARKS := 70
+const CLEAR_SPARK_SECONDS := 1.2
+## where the two bursts go off (left and right of the score board, above it) and how fast the sparks fly
+const CLEAR_SPARK_PLACES: Array[Vector3] = [Vector3(-2.5, 4.0, -6.0), Vector3(2.5, 4.3, -6.5)]
+const CLEAR_SPARK_SPEED := Vector2(3.0, 6.0)
 const MENU_HOUSE_MIX := 0.85
 ## Seconds the menu lights take to fade in before they start breathing.
 const MENU_FADE_SECONDS := 1.0
@@ -69,6 +89,7 @@ const SKY_SHADERS := {
 	"pulse_void": preload("res://game/env/PulseVoidSky.gdshader"),
 	"night_city": preload("res://game/env/NightCitySky.gdshader"),
 	"metal_factory": preload("res://game/env/MetalFactorySky.gdshader"),
+	"henge": preload("res://game/env/HengeSky.gdshader"),
 }
 
 var ring_rot_speed := 0.0
@@ -98,6 +119,10 @@ const STINGER_ROOMS := {
 	"metal_factory": [{&"room_size": 0.6, &"damping": 0.3, &"wet": 0.2},
 			{&"tap1_active": true, &"tap1_delay_ms": 105.0, &"tap1_level_db": -14.0, &"tap1_pan": 0.0,
 			&"tap2_active": false}],
+	# Henge: open ground ringed by stone 150 m out, near dry, one far slap off the slabs (about 0.9 s there and back)
+	"henge": [{&"room_size": 0.2, &"damping": 0.6, &"wet": 0.05},
+			{&"tap1_active": true, &"tap1_delay_ms": 870.0, &"tap1_level_db": -22.0, &"tap1_pan": 0.0,
+			&"tap2_active": false}]
 }
 
 ## The scenery around the track, one of the ids in Settings.ENVIRONMENTS other than "auto".
@@ -118,6 +143,10 @@ const CUT_WAVE_SPEED := 30.0
 const CUT_WAVE_REACH := 80.0
 ## a mistake dims the air by this much for a moment
 var _mistake_dip := 0.0
+## the result's air colour and thickness (result_air) and seconds since result_mood (-1: none)
+var _result_color := Color.BLACK
+var _result_density := 0.0
+var _result_time := -1.0
 const MISTAKE_DIP := 0.5
 const MISTAKE_DIP_SECONDS := 0.6
 ## 0 at x1 to 1 at x8, and where it is heading
@@ -148,10 +177,62 @@ const INTENSITY_RISE_SECONDS := 1.0
 const INTENSITY_FALL_SECONDS := 3.0
 ## the song's beat now, set by the Playing state; the curve and the smoothed intensity
 var show_beat := 0.0
+## The track turns with the notes on 90/360 maps (owner, 2026-10-29; no lane floor there now, only the HUD and the
+## turn cue turn): the deck (TrackDeck.turn), the edge
+## light strips with the map's left and right lights in them, and the old see-through track with its end piece
+## (TrackTurn) turn about the player's standing point to where the map's lanes point now (Map.track_rotation), easing in
+## and out over TRACK_TURN_TIME (Turn). The camera and XR origin never turn. It was 0.3 s, cut short when the next turn
+## came sooner and restarted from rest when one came mid-turn: the owner found the chevron's turn jerky (2026-10-29), so
+## it now takes TRACK_TURN_TIME whatever comes next and a new target carries the speed it had on. Peak speed 1.5 x the
+## turn / TRACK_TURN_TIME: 28 deg/s for a 15 degree turn, 84 for 45 (it was 75 and 225). UNTUNED: no official Beat
+## Saber value found; needs a headset playtest on a 90 and a 360 map.
+const TRACK_TURN_TIME := 0.8
+## the track has turned to `angle` (track_angle); the HUD and the energy strips turn with it (BeepSaber_Game)
+signal track_turned(angle: float)
+## where the track points now (radians, as the lanes' rotation) and its turn; the turn cue's (TrackDeck.set_cue), which
+## turns at the map's rotation events (Map.cue_rotation), so it can lead the lanes, easing the same way
+var track_angle := 0.0
+var _track_turn := Turn.new()
+var _cue_turn := Turn.new()
+
+## An angle easing in and out to a new target over TRACK_TURN_TIME, the short way round (a 360 map's lanes wrap at 360
+## degrees): a cubic from where it is, at the speed it has, to the target at rest, so a new target mid-turn never jerks.
+class Turn:
+	var angle := 0.0
+	## radians a second now
+	var speed := 0.0
+	var _from := 0.0
+	var _from_speed := 0.0
+	var _to := 0.0
+	var _done := TRACK_TURN_TIME
+
+	## Moves `delta` seconds on toward `target`; true when the angle changed.
+	func step(target: float, delta: float) -> bool:
+		if absf(angle_difference(_to, target)) > Constants.ROTATION_EPS:
+			_from = angle
+			_from_speed = speed
+			_to = _from + angle_difference(_from, target)
+			_done = 0.0
+		if _done >= TRACK_TURN_TIME:
+			return false
+		_done = minf(_done + delta, TRACK_TURN_TIME)
+		var t := TRACK_TURN_TIME
+		var s := _done / t
+		# Hermite: start at _from with _from_speed, end at _to at rest
+		angle = (2.0 * s * s * s - 3.0 * s * s + 1.0) * _from + (s * s * s - 2.0 * s * s + s) * t * _from_speed \
+				+ (3.0 * s * s - 2.0 * s * s * s) * _to
+		speed = (6.0 * s * s - 6.0 * s) * _from / t + (3.0 * s * s - 4.0 * s + 1.0) * _from_speed \
+				+ (6.0 * s - 6.0 * s * s) * _to / t
+		return true
 ## the song's tempo, for the Metal Factory's pistons
 var _show_bpm := 0.0
 var _intensity_curve := PackedFloat32Array()
 var _intensity := 0.0
+## how far the moving heads have turned to the build-up sweep (0 their own aim), the sweep's phase in sweeps, and the
+## heads' own transforms while they sweep
+var _sweep := 0.0
+var _sweep_phase := 0.0
+var _sweep_rest := {}
 ## the highest the smoothed intensity has been this song: what the crew has built so far (it never comes down)
 var _built := 0.0
 ## whether the square bars were last left lowered with Classic's frames
@@ -174,7 +255,7 @@ var _bars_lowered := false
 @onready var square_lasers_holder := $Level/SquareLasers as Node3D
 @onready var left_waving_lasers_holder := $Level/LeftWavingLasers as Node3D
 @onready var right_waving_lasers_holder := $Level/RightWavingLasers as Node3D
-@onready var track_lights_holder := $Level/TrackLights as Node3D
+@onready var track_lights_holder := $Level/TrackTurn/TrackLights as Node3D
 
 @onready var sphere_material := ($Level/Sphere as MeshInstance3D).material_override as ShaderMaterial
 @onready var classic_sky_material := sphere_material
@@ -184,13 +265,16 @@ var _bars_lowered := false
 @onready var square_lasers_material := ($Level/SquareLasers/Bar7 as MeshInstance3D).material_override as ShaderMaterial
 @onready var left_waving_lasers_material := ($Level/LeftWavingLasers/laser1/Bar7 as MeshInstance3D).material_override as ShaderMaterial
 @onready var right_waving_lasers_material := ($Level/RightWavingLasers/laser1/Bar7 as MeshInstance3D).material_override as ShaderMaterial
-@onready var track_lights_material := ($Level/TrackLights/Bar1 as MeshInstance3D).material_override as ShaderMaterial
-@onready var floor_mesh := ($Level/floor as MeshInstance3D).mesh as PlaneMesh
-@onready var floor_material := ($Level/floor as MeshInstance3D).material_override as StandardMaterial3D
-@onready var track_lights_right := $Level/TrackLights/Bar1 as MeshInstance3D
-@onready var track_lights_left := $Level/TrackLights/Bar2 as MeshInstance3D
-@onready var end_path := $Level/Endpath as MeshInstance3D
+@onready var track_lights_material := ($Level/TrackTurn/TrackLights/Bar1 as MeshInstance3D).material_override as ShaderMaterial
+@onready var floor_mesh := ($Level/TrackTurn/floor as MeshInstance3D).mesh as PlaneMesh
+@onready var floor_material := ($Level/TrackTurn/floor as MeshInstance3D).material_override as StandardMaterial3D
+@onready var track_lights_right := $Level/TrackTurn/TrackLights/Bar1 as MeshInstance3D
+@onready var track_lights_left := $Level/TrackTurn/TrackLights/Bar2 as MeshInstance3D
+@onready var end_path := $Level/TrackTurn/Endpath as MeshInstance3D
 @onready var track_deck := $Level/TrackDeck as TrackDeck
+@onready var track_turn := $Level/TrackTurn as Node3D
+## the player's platform marks (burn marks, border lights, footprints), set by BeepSaber_Game; the stage capture has none
+var platform: Floor
 @onready var stage_smoke := $Level/StageSmoke as StageSmoke
 ## the player's platform border (game/floor.tscn): always lit, white-hot with the right note colour at its edges,
 ## whatever the map's light show does, so the player always sees where they stand
@@ -199,6 +283,7 @@ const PLATFORM_LIGHTS := preload("res://game/env/platform_lights.tres")
 @onready var neon_grid_rig := $Level/NeonGridRig as NeonGridRig
 @onready var night_city_rig := $Level/NightCityRig as NightCityRig
 @onready var metal_factory_rig := $Level/MetalFactoryRig as MetalFactoryRig
+@onready var henge_rig := $Level/HengeRig as HengeRig
 
 @onready var ring_anim_player := $Level/rings/AnimationPlayer as AnimationPlayer
 @onready var left_laser_anim_player := $Level/LeftWavingLasers/AnimationPlayer as AnimationPlayer
@@ -281,6 +366,10 @@ func set_background_texture() -> void:
 
 ## The environment a map plays in: the player's pick, or with "auto" the one map_environment finds.
 static func pick_environment(map: MapInfo) -> String:
+	# Henge is the stage built for 90 and 360 degree maps; none of the others is ready for them yet, so those maps get
+	# Henge whatever the map or the player names (owner, 2026-10-29)
+	if Map.current_difficulty != null and Map.current_difficulty.characteristic in Map.TURNING_CHARACTERISTICS:
+		return "henge"
 	if Settings.environment != "auto":
 		return Settings.environment
 	return map_environment(map)
@@ -323,6 +412,9 @@ func set_environment(id: String) -> void:
 	# the old Classic's rotating rings are retired (its new tunnel's ribs took their place, 2026-10-27)
 	rings_enabled = false
 	_apply_stinger_room(id)
+	# the rig places the heads afresh: no sweep to turn back from
+	_sweep = 0.0
+	_sweep_rest.clear()
 	_rig.apply(id)
 	track_deck.set_stage(id)
 	show_scenery_for_mixed_reality()
@@ -338,6 +430,23 @@ func _apply_stinger_room(id: String) -> void:
 		for property: StringName in room[effect]:
 			target.set(property, room[effect][property])
 
+## Build-up sweep (owner, 2026-10-28, after Beat Saber's beams rushing over the player before a drop, PC version
+## recording): in the BUILD_UP_SECONDS before the show reaches its drop (the intensity curve passing STRIP_DROP), the
+## moving heads turn from their own aim toward a point SWEEP_TARGET over the player's head and pan side to side,
+## SWEEP_HALF_WIDTH either way, faster as the drop nears (SWEEP_PERIOD_START to SWEEP_PERIOD_END seconds a sweep). Each
+## head pans on its own phase (SWEEP_PHASE_STEP), on a sine, so it eases at both ends like a machine; the beams keep
+## their colour and events (no extra flashes). The heads turn back over SWEEP_EASE_SECONDS once the drop hits or the
+## build-up ends. Over the head, not into the note corridor: the heads stand 20 m up (Classic) and the beams come down
+## to SWEEP_TARGET's height. Only on SWEEP_STAGES so far: on Night City the heads on the low roofs stand close, and
+## their beams crossed the view thick and bright (stage_capture --build-up 0.7, 2026-10-28). Untuned.
+const SWEEP_STAGES: Array[String] = ["classic"]
+const BUILD_UP_SECONDS := 8.0
+const SWEEP_TARGET := Vector3(0.0, 4.0, 1.0)
+const SWEEP_HALF_WIDTH := 6.0
+const SWEEP_PERIOD_START := 4.0
+const SWEEP_PERIOD_END := 1.5
+const SWEEP_PHASE_STEP := 0.13
+const SWEEP_EASE_SECONDS := 1.5
 ## The arches' strips climb with the show (owner, 2026-10-26): a strip segment is lit once the show has built up to its
 ## height on the arch (as Night City's windows, _built), at least STRIP_MIN; on the drop (show intensity over STRIP_DROP)
 ## all of arch B lights; when the square bars' light is off they keep STRIP_QUIET of their last colour (dim, never
@@ -397,35 +506,47 @@ func show_scenery_for_mixed_reality() -> void:
 	neon_grid_rig.visible = environment == "neon_grid" and not Settings.mixed_reality
 	night_city_rig.visible = environment == "night_city" and not Settings.mixed_reality
 	metal_factory_rig.visible = environment == "metal_factory" and not Settings.mixed_reality
+	henge_rig.visible = environment == "henge" and not Settings.mixed_reality
 	stage_smoke.visible = Settings.smoke and not Settings.mixed_reality
 	_dust.visible = not Settings.mixed_reality
 	# Metal Factory has no moving heads: its lights glow in the wall vents
 	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple" and environment != "metal_factory"
 
 func set_background() -> void:
+	# laid out unturned, then turned back to where it points
+	track_turn.transform = Transform3D.IDENTITY
 	var track_lights_width := track_lights_right.get_aabb().size.x
 	track_lights_right.global_transform.origin.x = track_lights_width / 2 + 2 * Settings.LANE_DISTANCE_X - .01
 	track_lights_left.global_transform.origin.x = -track_lights_right.transform.origin.x
 	end_path.scale.z = track_lights_right.global_transform.origin.x + track_lights_width / 2 - .01
 	floor_mesh.size.y = 4 * Settings.LANE_DISTANCE_X
-	($Level/floor/line1).global_transform.origin.x = Settings.LANE_DISTANCE_X
-	($Level/floor/line2).global_transform.origin.x = -Settings.LANE_DISTANCE_X
-	($Level/floor/line3).global_transform.origin.x = 2 * Settings.LANE_DISTANCE_X
-	($Level/floor/line4).global_transform.origin.x = -2 * Settings.LANE_DISTANCE_X
-	($Level/floor).scale.z = 1
+	($Level/TrackTurn/floor/line1).global_transform.origin.x = Settings.LANE_DISTANCE_X
+	($Level/TrackTurn/floor/line2).global_transform.origin.x = -Settings.LANE_DISTANCE_X
+	($Level/TrackTurn/floor/line3).global_transform.origin.x = 2 * Settings.LANE_DISTANCE_X
+	($Level/TrackTurn/floor/line4).global_transform.origin.x = -2 * Settings.LANE_DISTANCE_X
+	($Level/TrackTurn/floor).scale.z = 1
 	# the deck with its curbs (TrackDeck), whose curbs house the edge light strips; or the old see-through sheet, with
 	# its strips at its edges, in mixed reality (the room must show through) and with the Old track setting
 	var old_track := Settings.old_track or Settings.mixed_reality
-	($Level/floor as Node3D).visible = old_track
+	($Level/TrackTurn/floor as Node3D).visible = old_track
 	# the old track's far end piece; the deck ends in its own low stop (it rose over the horizon straight ahead)
 	end_path.visible = old_track
 	track_deck.visible = not old_track
-	track_deck.layout(Settings.LANE_DISTANCE_X)
+	# the platform is round on 90/360 maps while a song plays, so the deck turning with the notes meets it at any angle
+	var turning := Map.current_difficulty != null and Map.current_difficulty.characteristic in Map.TURNING_CHARACTERISTICS
+	track_deck.layout(Settings.LANE_DISTANCE_X, turning and not menu_focus and not old_track)
+	if platform:
+		platform.set_round(track_deck.round_radius() - TrackDeck.RIM_WIDTH if track_deck.is_round() else 0.0,
+				track_lights_material)
 	# the deck's strips run its whole length, out to where it fades into the haze, and fade with it; the old track's
 	# stop at its end, as they always did
 	var span := track_deck.strip_span()
 	track_lights_material.set_shader_parameter(&"fade_z", Vector2.ZERO if old_track else track_deck.fade_z())
+	track_lights_material.set_shader_parameter(&"min_pixels", 0.0 if old_track else TrackDeck.STRIP_MIN_PIXELS)
+	track_lights_material.set_shader_parameter(&"top_white", 0.0 if old_track else TrackDeck.STRIP_TOP_WHITE)
 	for strip: MeshInstance3D in [track_lights_left, track_lights_right]:
+		# none ahead of the round platform: its ring carries the track lights
+		strip.visible = not track_deck.is_round()
 		var rest: Transform3D = _strip_rest[strip]
 		if old_track:
 			strip.global_transform = Transform3D(rest.basis, Vector3(strip.global_position.x, rest.origin.y, rest.origin.z))
@@ -433,8 +554,10 @@ func set_background() -> void:
 		var side := signf(strip.global_position.x)
 		var place := TrackDeck.strip_position(Settings.LANE_DISTANCE_X, side, strip.get_aabb().size)
 		var stretch := (span.x - span.y) / strip.get_aabb().size.z
-		strip.global_transform = Transform3D(Basis.from_scale(Vector3(1.0, 1.0, stretch)),
+		var thin := TrackDeck.STRIP_WIDTH / strip.get_aabb().size.x
+		strip.global_transform = Transform3D(Basis.from_scale(Vector3(thin, 1.0, stretch)),
 			Vector3(place.x, place.y, (span.x + span.y) * 0.5))
+	_apply_track_turn()
 	# Metal Factory has no moving heads: its lights glow in the wall vents
 	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple" and environment != "metal_factory"
 	if Settings.background == "simple":
@@ -489,6 +612,10 @@ func set_background() -> void:
 func _process(delta: float) -> void:
 	_combo_pulse = maxf(_combo_pulse - delta / COMBO_PULSE_SECONDS, 0.0)
 	_mistake_dip = maxf(_mistake_dip - delta / MISTAKE_DIP_SECONDS, 0.0)
+	if _result_time >= 0.0:
+		_result_time += delta
+		if _result_time > RESULT_FADE_IN_SECONDS + RESULT_HOLD_SECONDS + RESULT_FADE_OUT_SECONDS:
+			_result_time = -1.0
 	for i in 2:
 		if _cut_waves[i] >= 0.0:
 			_cut_waves[i] += CUT_WAVE_SPEED * delta
@@ -503,13 +630,17 @@ func _process(delta: float) -> void:
 	var quiet := not menu_focus and Settings.atmosphere == "Eerie" and _since_event > QUIET_AFTER_SECONDS
 	_quiet = move_toward(_quiet, 1.0 if quiet else 0.0, delta / (QUIET_FADE_SECONDS if quiet else QUIET_RISE_SECONDS))
 	_update_haze()
+	_turn_track(delta)
 	if track_deck.visible:
 		track_deck.deck_material.set_shader_parameter(&"light_color", floor_material.albedo_color)
+	if henge_rig.visible:
+		_update_henge(delta)
 	if environment == "metal_factory":
 		metal_factory_rig.set_vent_colors(diagonal_lasers_material.get_shader_parameter(&"light_color"),
 				left_waving_lasers_material.get_shader_parameter(&"light_color"),
 				right_waving_lasers_material.get_shader_parameter(&"light_color"))
 	_update_show(delta)
+	_update_sweep(delta)
 	if environment == "night_city" and not Settings.classic_night_city:
 		# the canyon's windows: the rooms the show has built light up (the menu shows a few), dimmer in quiet parts
 		var level := MENU_WINDOWS if menu_focus else _built
@@ -553,8 +684,6 @@ func _update_haze() -> void:
 			* (1.0 - QUIET_DIM * _quiet)
 	haze *= level
 	light *= level
-	if menu_focus:
-		haze *= MENU_HAZE_BOOST
 	var eerie := Settings.atmosphere == "Eerie"
 	if eerie:
 		haze *= EERIE_HAZE_DIM
@@ -565,6 +694,8 @@ func _update_haze() -> void:
 		haze *= Constants.EERIE_HAZE_TINT
 	haze.a = 1.0
 	RenderingServer.global_shader_parameter_set(&"env_haze", haze)
+	var air := _result_density * _result_weight()
+	RenderingServer.global_shader_parameter_set(&"result_air", Vector4(_result_color.r, _result_color.g, _result_color.b, air))
 	light = light.clamp()
 	light.a = 1.0
 	RenderingServer.global_shader_parameter_set(&"env_light", light)
@@ -572,12 +703,85 @@ func _update_haze() -> void:
 			- QUIET_DIM * _quiet)
 
 ## Sets how lit up the scene is for the combo multiplier (1, 2, 4 or 8).
+## Eases the track toward where the map's lanes point at show_beat, and the turn cue toward where its rotation events
+## point (both straight ahead in the menus).
+func _turn_track(delta: float) -> void:
+	var playing := not menu_focus and Map.current_info != null
+	if _track_turn.step(Map.track_rotation(show_beat) if playing else 0.0, delta):
+		track_angle = _track_turn.angle
+		_apply_track_turn()
+	if _cue_turn.step(Map.cue_rotation(show_beat) if playing else 0.0, delta):
+		track_deck.set_cue(_cue_turn.angle)
+
+## Turns the track's turning parts to track_angle about the player's standing point, the strips' far fade with them.
+func _apply_track_turn() -> void:
+	track_turn.transform = TrackDeck.turned(track_angle)
+	track_deck.turn(track_angle)
+	track_lights_material.set_shader_parameter(&"track_angle", track_angle)
+	track_turned.emit(track_angle)
+
 func set_combo_multiplier(multiplier: int) -> void:
 	_combo_target = log(maxf(multiplier, 1)) / log(8.0)
 
 ## Starts a ring of light from the player for a good cut with the saber of this type (0 left, 1 right).
 func cut_wave(saber_type: int) -> void:
 	_cut_waves[saber_type] = 0.0
+
+## Starts the result moment: a fail's dark stage and red air, or a clear's warm air and spark burst (see
+## FAIL_HAZE_LEVEL).
+func result_mood(failed: bool) -> void:
+	_result_time = 0.0
+	if failed:
+		_result_color = Constants.DANGER_COLOR * FAIL_HAZE_LEVEL
+		_result_density = FAIL_AIR_DENSITY
+		set_all_off()
+		return
+	_result_color = CLEAR_WARM * CLEAR_HAZE_LEVEL
+	_result_density = CLEAR_AIR_DENSITY
+	for i in CLEAR_SPARK_PLACES.size():
+		_spark_burst(CLEAR_SPARK_PLACES[i], Map.color_left if i == 0 else Map.color_right)
+
+## How far the air has turned to the result's colour now, 0 to 1.
+func _result_weight() -> float:
+	if _result_time < 0.0:
+		return 0.0
+	var fade_out_from := RESULT_FADE_IN_SECONDS + RESULT_HOLD_SECONDS
+	if _result_time < RESULT_FADE_IN_SECONDS:
+		return smoothstep(0.0, RESULT_FADE_IN_SECONDS, _result_time)
+	return 1.0 - smoothstep(fade_out_from, fade_out_from + RESULT_FADE_OUT_SECONDS, _result_time)
+
+## One burst of CLEAR_SPARKS sparks at `place`, starting white and cooling to `color`, freed when done.
+func _spark_burst(place: Vector3, color: Color) -> void:
+	var sparks := CPUParticles3D.new()
+	var quad := QuadMesh.new()
+	quad.size = Vector2(0.06, 0.06)
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	material.vertex_color_use_as_albedo = true
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+	quad.material = material
+	sparks.mesh = quad
+	sparks.amount = CLEAR_SPARKS
+	sparks.lifetime = CLEAR_SPARK_SECONDS
+	sparks.one_shot = true
+	sparks.explosiveness = 1.0
+	sparks.direction = Vector3.UP
+	sparks.spread = 180.0
+	sparks.initial_velocity_min = CLEAR_SPARK_SPEED.x
+	sparks.initial_velocity_max = CLEAR_SPARK_SPEED.y
+	sparks.gravity = Vector3(0.0, -4.0, 0.0)
+	sparks.damping_min = 2.0
+	sparks.damping_max = 3.0
+	var ramp := Gradient.new()
+	ramp.set_color(0, Color.WHITE)
+	ramp.set_color(1, Color(color, 0.0))
+	sparks.color_ramp = ramp
+	sparks.position = place
+	add_child(sparks)
+	sparks.finished.connect(sparks.queue_free)
+	sparks.emitting = true
 
 ## Dims the air for a moment, for a miss, a bad cut or a bomb.
 func mistake_dip() -> void:
@@ -590,9 +794,12 @@ func combo_pulse() -> void:
 ## A song starts: work out its intensity curve and take the stage down, to be built again as the song builds.
 func start_show(events: Array[EventInfo], bpm: float) -> void:
 	_intensity_curve = intensity_curve(events, bpm)
+	_result_time = -1.0
 	_show_bpm = bpm
 	_intensity = 0.0
 	_built = 0.0
+	_henge_drop = false
+	_henge_flood = 0.0
 	show_beat = 0.0
 	classic_rig.set_built(0.0)
 
@@ -609,6 +816,85 @@ func _update_show(delta: float) -> void:
 		metal_factory_rig.slam(show_beat, _show_bpm, _intensity)
 		metal_factory_rig.turn_gears(delta, _intensity)
 		metal_factory_rig.breathe(show_beat, _show_bpm, _intensity)
+
+## Henge's show (doc/world/GAME_BIBLE.md: held breath, then release), from the show's intensity (intensity_curve, the
+## map's light events): the slabs' edges light one by one round the ring as the show builds (HENGE_BUILT_SHARE of the
+## ring by _built) and all the way round over the run-up to a drop (build_up); on the drop every gap floods
+## (HengeFloor.gdshader's flood), easing in over HENGE_FLOOD_RISE_SECONDS and out over HENGE_FLOOD_FALL_SECONDS, never
+## a flash. The intensity hovers at STRIP_DROP for a while (desktop run over 18 maps: drops of under a second, on and
+## off), so a drop holds on until it falls under HENGE_DROP_RELEASE and has lasted HENGE_DROP_HOLD_SECONDS
+## (henge_drop). A map without light events builds nothing: Henge stays dark (the owner's rule). Untuned.
+const HENGE_BUILT_SHARE := 0.5
+const HENGE_FLOOD_RISE_SECONDS := 0.6
+const HENGE_FLOOD_FALL_SECONDS := 2.5
+const HENGE_DROP_RELEASE := 0.6
+const HENGE_DROP_HOLD_SECONDS := 4.0
+var _henge_drop := false
+var _henge_drop_seconds := 0.0
+var _henge_flood := 0.0
+
+## Lights Henge's slab edges (in the left and right lasers' colours, by where the track points) and the floor ring (in
+## the floor lights'), with its build-up and drop (see HENGE_BUILT_SHARE).
+func _update_henge(delta: float) -> void:
+	_henge_drop_seconds = _henge_drop_seconds + delta if _henge_drop else 0.0
+	_henge_drop = not menu_focus and henge_drop(_henge_drop, _intensity, _henge_drop_seconds)
+	var lit := 1.0
+	if not menu_focus:
+		lit = 1.0 if _henge_drop else maxf(_built * HENGE_BUILT_SHARE, build_up(_intensity_curve, show_beat, _show_bpm))
+	_henge_flood = move_toward(_henge_flood, 1.0 if _henge_drop else 0.0,
+			delta / (HENGE_FLOOD_RISE_SECONDS if _henge_drop else HENGE_FLOOD_FALL_SECONDS))
+	var strips := henge_rig.strip_material
+	strips.set_shader_parameter(&"left_color", left_waving_lasers_material.get_shader_parameter(&"light_color"))
+	strips.set_shader_parameter(&"right_color", right_waving_lasers_material.get_shader_parameter(&"light_color"))
+	strips.set_shader_parameter(&"track_angle", track_angle)
+	strips.set_shader_parameter(&"lit", lit)
+	henge_rig.floor_material.set_shader_parameter(&"flood", _henge_flood)
+	henge_rig.ring_material.set_shader_parameter(&"light_color", track_lights_material.get_shader_parameter(&"light_color"))
+
+## Whether Henge's drop is on: it starts when `intensity` passes STRIP_DROP and, once on (`was`), holds until the
+## intensity falls under HENGE_DROP_RELEASE after HENGE_DROP_HOLD_SECONDS (`held`, seconds it has been on).
+static func henge_drop(was: bool, intensity: float, held: float) -> bool:
+	if intensity > STRIP_DROP:
+		return true
+	return was and (intensity >= HENGE_DROP_RELEASE or held < HENGE_DROP_HOLD_SECONDS)
+
+## How close the drop after `beat` in `curve` (intensity_curve at `bpm`) is: 0 when none comes within BUILD_UP_SECONDS,
+## rising to 1 as it arrives.
+static func build_up(curve: PackedFloat32Array, beat: float, bpm: float) -> float:
+	if curve.is_empty() or bpm <= 0.0:
+		return 0.0
+	var steps := maxi(1, roundi(BUILD_UP_SECONDS * bpm / 60.0 / INTENSITY_STEP))
+	var now := int(beat / INTENSITY_STEP)
+	for k in range(1, steps + 1):
+		if now + k >= curve.size():
+			break
+		if curve[now + k] > STRIP_DROP:
+			return 1.0 - float(k) / steps
+	return 0.0
+
+## Turns the moving heads toward the build-up sweep and back (see BUILD_UP_SECONDS), on SWEEP_STAGES.
+func _update_sweep(delta: float) -> void:
+	var sweeping := environment in SWEEP_STAGES and not menu_focus and _intensity <= STRIP_DROP
+	var target := build_up(_intensity_curve, show_beat, _show_bpm) if sweeping else 0.0
+	if environment in SWEEP_STAGES and DebugView.flags & DebugView.FORCE_SWEEP != 0:
+		target = 1.0
+	_sweep = move_toward(_sweep, target, delta / SWEEP_EASE_SECONDS)
+	if _sweep == 0.0:
+		for laser: Node3D in _sweep_rest:
+			laser.global_transform = _sweep_rest[laser]
+		_sweep_rest.clear()
+		return
+	if _sweep_rest.is_empty():
+		for laser: Node3D in diagonal_lasers:
+			_sweep_rest[laser] = laser.global_transform
+	_sweep_phase = fmod(_sweep_phase + delta / lerpf(SWEEP_PERIOD_START, SWEEP_PERIOD_END, _sweep), 1.0)
+	var turn := smoothstep(0.0, 1.0, _sweep)
+	for i in diagonal_lasers.size():
+		var laser: Node3D = diagonal_lasers[i]
+		var rest: Transform3D = _sweep_rest[laser]
+		var pan := sin(TAU * (_sweep_phase + i * SWEEP_PHASE_STEP)) * SWEEP_HALF_WIDTH
+		var toward := (SWEEP_TARGET + Vector3(pan, 0.0, 0.0) - rest.origin).normalized()
+		LightRig.aim(laser, rest.origin, (-rest.basis.z.normalized()).slerp(toward, turn))
 
 ## In Classic the square light bars hang on the tunnel's frames: a frame that isn't standing yet has no lights on it
 ## (the crew hangs them once it is up), so its bars are hidden until it stands. Lowered bars used to shine up through

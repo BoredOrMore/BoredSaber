@@ -26,6 +26,8 @@ line `@AGENTS.md`, so Claude Code loads the folder's doc when it opens a file th
   `tools/asset_pipeline/` has its own rules.
 - `.github/`: CI build, APK release and how to test a build on the headset with adb.
 - `addons/`: not tracked; CI installs godot_openxr_vendors there.
+- `doc/godot/api-changes.md`: Godot 4.4-4.7 API and breaking changes newer than the models' training data; check it
+  before writing a Godot API call you are unsure of and before an engine upgrade.
 
 ## Rules
 
@@ -65,6 +67,10 @@ Each rule below names its source and a bug it would have caught here.
 
 Everything the player looks at or interacts with is placed and sized from their real eye (the headset's position),
 as angles and distances, never from a fixed eye height (owner, 2026-10-27); `.claude/skills/vr-ui-design/` section 2.
+Two zones (owner, 2026-10-28): UI the player stares at without moving (HUD, countdown, score) stays in the
+no-head-turn zone (±30°, 20° up, 12° down); menus the player turns to use may fill the head-turn-plus-eyes zone
+(±45°, 35° up, 27° down; to ±70° only for a glance), biased below eye level. On the song page nothing but the song
+list scrolls.
 
 Words and choices
 - Speak the player's language, not the code's: no `NJS`, `HJD`, `RT`, `NPS`, `BPM`, `JSON`, `null`,
@@ -119,15 +125,33 @@ Layout and look
   play needs (track, notes, sabers, light beams). (Neon Grid's floor hid the room.)
 
 Process
+- Build UI as templates (owner, 2026-10-28): panel, section and button scenes plus the theme; pages only swap
+  content. Don't hand-build a frame, section or button look per page; a button takes one of the theme's button
+  kinds (`game/ui/AGENTS.md`, Templates).
+- Whenever an environment is added or its look changes, render its picker pictures again with
+  `tools/capture/env_thumbnails.sh` (owner, 2026-10-28), framed tight on the stage's main unique element so the
+  stages tell apart, each filling its whole button.
 - For any menu, panel, HUD or score-screen work, follow `.claude/skills/vr-ui-design/SKILL.md` before
   building (flow, 3D placement, sizes, feedback) and `.claude/skills/vr-ui-review/SKILL.md` before calling
   it done (every game state that shows the node, overlap and depth checks, headset walk-through).
+- To catch the player's eye or make them move (warnings, cues from outside the view, HUD and menu placement, haptics,
+  sound design), follow `doc/research/player-guidance.md`: comfort angles, Pico 4 field of view, what each sense can do,
+  and how far things shift while the player leans, crouches, swings or turns.
 - Fix the class, not the case: when a UX problem is found, search the whole game for the same pattern,
   fix every instance in one change, and add the check to `vr-ui-review` so it doesn't come back.
 
 Sources: Nielsen, "10 Usability Heuristics for User Interface Design" (NN/g,
 https://www.nngroup.com/articles/ten-usability-heuristics/); Norman, "The Design of Everyday Things"
 (signifiers, feedback); Krug, "Don't Make Me Think"; Hick-Hyman law (more choices, slower decisions).
+
+## Optimising a page or feature
+
+When fixing a stutter or slowdown (owner, 2026-10-28), look at everything that runs with that page or function, not
+only the line the report points at: its other features (loading, scrolling, filters, downloads, covers), what it
+calls and what calls it, what draws while it is open (its canvas redraws, the stage behind it), and other places
+using the same pattern. Fix them together where they share the cause, and say in the commit what was checked. (The
+Get songs list took a dozen rounds: each patch fixed one path while the page's covers, page loads, filter changes,
+canvas redraws and the stage behind it each kept their own stall; doc/research/get-songs-list-plan.md.)
 
 ## Research before changing game feel
 
@@ -141,6 +165,9 @@ motion), and HUD placement.
   from real maps. Record the sources and the numbers in the commit message or the folder `AGENTS.md`.
 - If no research exists yet for a value, do it first (or ask the user), and mark any placeholder
   clearly as untuned in code and in the reply.
+- Gameplay that must be seen, heard or felt in time (notes, walls and bombs from outside the view, 90/360 turns,
+  dodges, haptics, sound design) starts from `doc/research/player-guidance.md`: where the player can see, how far
+  ahead a cue must come, and which sense to use.
 - Changes to feel need a playtest on the headset before they are called done.
 
 ## Colour rules
@@ -162,14 +189,22 @@ constant with its role, or reuse one.
   selected song, the Play button. Don't use it for plain decoration or for warnings.
 - Neutrals (`UI_PANEL`, `UI_SURFACE*`, `UI_BORDER`, `UI_TEXT`, `UI_TEXT_MUTED`) for everything else.
 - `DIFFICULTY_COLORS` only label difficulties and reaction-time levels.
-- `RANK_COLORS` only colour the rank letter and the result ring on the score screen.
+- `RANK_COLORS` only colour the rank letter (the HUD, the score screen, the ranking rows) and its glow, and the result
+  ring on the score screen.
 - The environment stays dark, its shadows black (no colour toning of the darks: a navy tint was removed on the
   owner's request, 2026-10-26), and takes its light colours from the note colours, so the scene never competes with notes or danger.
 - Never rely on hue alone (colour-blind players): pair a colour with a shape, pattern or word
-  (the see-through box with a glowing frame for walls, the ✕ for a miss, text on difficulty buttons).
+  (the see-through box with a glowing frame for walls, the word MISS for a miss, text on difficulty buttons).
 - Comfort: no large areas of saturated or pure-white colour, keep flashes short and moderate, and
   keep body text at a 4.5:1 contrast or better against its panel.
 - A new colour role needs the user's agreement first; propose it with where it is used.
+- The result moment is the one exception (owner, 2026-10-28; `doc/research/score-screen-plan.md`): from a song's fail
+  or clear until the score screen closes, the stage may take the result's mood like Beat Saber. On a fail, the danger
+  colour in the haze, deeper the farther away (near things keep their own colour), with the red banner "FAILED" and
+  the word "FAILED" where the notes were; on a clear, a warm house light, the banner in the achieved rank's colour and
+  one short spark burst. The red never flashes: it fades in over at least 1 s, peaks at moderate brightness and eases
+  back to the house light, and it always pairs with the word, so it never relies on hue (WCAG 2.3.1; never a sudden
+  full-field red). Everywhere else the rules above stand.
 
 ## Light
 
@@ -207,6 +242,7 @@ channel), so brightness comes from contrast and the size of bright areas, not fr
    peaks (`EventDriver.FLASH_BOOST`) (WCAG 2.3.1 Three Flashes; Harding flash test).
 9. Dynamics tell the story: dim and slow before the show (menus), the map's light show during it,
    a blackout between; contrast between moments beats constant brightness.
+   The result moment (a fail or a clear) may take its own mood; see the exception in "Colour rules".
 10. Fake it cheaply: no post-processing or screen reads on the Pico (a screen read copies the frame per
     eye); glow, distortion and shadows are drawn in the object's own shader.
 
@@ -218,6 +254,9 @@ For any environment or layout change, follow `.claude/skills/rhythm-world-design
 records in `doc/world/` (game bible, visual style, spatial layout, audio-visual mapping) up to date. Where it
 disagrees with the Light, Colour or playspace rules here, these rules win; suggest a change to the owner when the
 skill's way is clearly better or at least no slower on the headset.
+For a new stage or a new look direction, start with `.claude/skills/creative-director/SKILL.md`: it gets abstract
+concepts (shape and light expressing a feeling) from `.claude/skills/stage-concept/SKILL.md`, each checked by the
+budget agent (`.claude/agents/budget.md`) before it reaches the owner.
 
 Sources: James Gurney, "Color and Light" (luminance and saturation, limited palettes); Richard
 Pilbrow, "Stage Lighting Design" (direction, source and movement of stage light); W3C WCAG 2.2
@@ -238,6 +277,8 @@ Found from headset logs on Pico OS 5.12 (OpenXR runtime 2.1.12); don't undo them
 - Map parsing tests: `godot --headless --path . res://tests/test_map_info.tscn` (exits non-zero on failure).
 - Menu layout test: `godot --headless --path . res://tests/test_menu_layout.tscn` (overlaps and overflow in the song
   menu and "Who's playing?" with worst-case content; exits non-zero on failure).
+- Song search test: `godot --headless --path . res://tests/test_song_search.tscn` (kana and romaji, tags, Get songs'
+  close-match retry).
 - `.github/workflows/build-pico4.yml` imports the project, runs the tests and exports the APK on every push.
   Pushes to `pico4-offline` or the default branch also replace the `pico4-latest` release, which the headset
   browser downloads from.

@@ -44,3 +44,28 @@ static func get_img_from_buffer(data: PackedByteArray) -> Image:
 			img = null
 	
 	return img
+
+## Cover art's share of its shorter side that rounds its corners (owner, 2026-10-28: everything on the menus
+## rounded): a 72 px list cover gets about the chips' 14 px.
+const COVER_CORNER := 0.1
+
+## The image with its corners cut round (radius px, alpha 0 outside, a pixel of soft edge); converts to RGBA8.
+static func round_corners(img: Image, radius: int) -> Image:
+	if img.is_compressed():
+		img.decompress()
+	img.convert(Image.FORMAT_RGBA8)
+	var w := img.get_width()
+	var h := img.get_height()
+	radius = mini(radius, mini(w, h) / 2)
+	for y in radius:
+		for x in radius:
+			# distance from the corner circle's centre, for the top-left corner; mirrored to the others
+			var d := Vector2(radius - x - 0.5, radius - y - 0.5).length() - radius
+			var keep := clampf(0.5 - d, 0.0, 1.0)
+			if keep >= 1.0:
+				continue
+			for p: Vector2i in [Vector2i(x, y), Vector2i(w - 1 - x, y), Vector2i(x, h - 1 - y), Vector2i(w - 1 - x, h - 1 - y)]:
+				var c := img.get_pixelv(p)
+				c.a *= keep
+				img.set_pixelv(p, c)
+	return img

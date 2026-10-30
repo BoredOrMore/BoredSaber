@@ -8,11 +8,20 @@ Read the root `AGENTS.md` first ("Light", "Colour rules", "Pico 4 constraints").
 ## Entry points and flow
 
 - Scene: `game/event_driver.tscn` (`Level/`): the sky `Sphere`, the five light-group holders (`DiagonalLasers`,
-  `SquareLasers`, `Left/RightWavingLasers`, `TrackLights`), the old `rings`, `ClassicRig`, `NeonGridRig`, `NightCityRig`,
-  `MetalFactoryRig`, `PulseVoid`, `NeonGrid` floor, `TrackDeck`, `StageSmoke`. Every rig is built at load (tool
-  scripts, `_ready`) and stays in memory; only visibility changes.
+  `SquareLasers`, `Left/RightWavingLasers`, `TrackTurn/TrackLights`), the old `rings`, `ClassicRig`, `NeonGridRig`,
+  `NightCityRig`, `MetalFactoryRig`, `PulseVoid`, `NeonGrid` floor, `TrackDeck`, `StageSmoke`. Every rig is built at load
+  (tool scripts, `_ready`) and stays in memory; only visibility changes.
+- The track turns with the notes on 90/360 maps (`EventDriver._turn_track`): `Level/TrackTurn` (the edge light strips,
+  the old see-through track `floor` and its `Endpath`) and `TrackDeck.turn` (deck and curbs) turn about the player's
+  standing point (`Constants.PLAYER_Z`) to `Map.track_rotation(show_beat)`, easing over `TRACK_TURN_TIME` (0.8 s,
+  untuned; a cubic ease in and out that keeps its speed when a new turn comes mid-way). The platform, camera and XR origin never turn. `set_background` lays the turning
+  parts out unturned (it writes global transforms), then turns them back.
+  The turn cue (`TrackDeck.set_cue`, a chevron on the floor) eases the same way to `Map.cue_rotation(show_beat)`, the
+  map's rotation events, so it leads the lanes (inner class `Turn` eases both).
 - Stage choice: `Settings.ENVIRONMENTS` (`Settings.gd:35`, ids `classic`, `neon_grid`, `pulse_void`, `night_city`,
-  `metal_factory`, plus `auto`). `EventDriver.pick_environment(map)` -> `map_environment`:
+  `metal_factory`, `henge`, plus `auto`). `EventDriver.pick_environment(map)`: a 90/360 difficulty
+  (`Map.TURNING_CHARACTERISTICS`) always gets `henge`, the only stage ready for them (owner, 2026-10-29); else the
+  player's pick, else `map_environment`:
   `Constants.MAP_ENVIRONMENTS` (map's Beat Saber env name), then `TAG_ENVIRONMENTS` (genre), then a folder-name hash
   into `AUTO_ENVIRONMENTS` (Metal Factory is never auto-picked). Called from `BeepSaber_Game.gd:173` (song start)
   and `:758` (menu).
@@ -34,8 +43,13 @@ Read the root `AGENTS.md` first ("Light", "Colour rules", "Pico 4 constraints").
   4 s window, normalised to the song's own 20th-90th percentile); `_update_show` smooths it into `_intensity` and the
   never-falling `_built`. `_built` drives Classic's scaffolds (`set_built`), Neon Grid/Pulse Void strip `level`,
   canyon windows; `_intensity > STRIP_DROP` is "the drop" (all strips, Pulse Void's `drop_beam`, Classic rib sweep).
+  `build_up(curve, beat, bpm)` looks `BUILD_UP_SECONDS` ahead for the next drop; `_update_sweep` turns the moving
+  heads (`diagonal_lasers`) toward `SWEEP_TARGET` over the player and pans them, on `SWEEP_STAGES` (Classic so far).
+- Result moment: `result_mood(failed)` (from `BeepSaber_Game` at a fail and at a clear): a fail kills the lights and
+  fades the danger colour into `result_air`, a clear a warm air and two spark bursts (`CLEAR_SPARK_PLACES`); fades in
+  over 1 s, holds `RESULT_HOLD_SECONDS`, eases out (root `AGENTS.md`, Colour rules' exception). `stage_capture --result`.
 - Menus: `set_menu_focus(true)`: house-tinted breathing lights, `classic_rig.set_built(1.0)`,
-  pistons rest, smoke refills. `false`: smoke dissipates, all groups off until the map turns them on.
+  pistons rest, no smoke and no extra haze (owner: the menus as clear as can be). `false`: smoke dissipates, all groups off until the map turns them on.
 - Per frame (`EventDriver._process`): decays combo/mistake pulses, writes `cut_waves`,
   `_update_haze()` (sums the four beam materials' `light_color` + floor -> `env_light`, a mostly-grey tint of it ->
   `env_haze`, plus `combo_glow`), track-deck light colour, Metal Factory vents, `_update_show`, canyon windows and
@@ -73,6 +87,20 @@ Pulse Void (the giant receiving dish)
   `ArchStrip.gdshader`) lit rim-inward; `drop_beam` shown on the drop; `leg_floodlight`/`rim_beacon` place lasers.
 - `PulseVoidSky.gdshader`: dark space with a glow down the track, computed from view direction (no texture).
 
+Henge (24 monoliths round the player, for 90/360 maps; BLOCKOUT 2026-10-29)
+- `HengeRig.gd` (tool, `HengeRig`): `SLAB_COUNT` black slabs (unlit, silhouettes) `RING_RADIUS` out, `QUADRANTS`
+  MultiMeshes of slabs and of inner-edge strips; a floor disc whose vertex colour draws the gaps' light bands
+  (`_floor_mesh`, `_band`); a floor ring strip (`ring_material`, the floor lights' colour, set by EventDriver).
+  `slab_top(i)` places the lasers (`LightRig` "henge": diagonal beams straight up, waving lasers between; no square bars).
+- `HengeStrip.gdshader`: the edge strips, left or right lasers' colour by which side of the track's turned line the
+  slab stands (`track_turn.gdshaderinc`; `strip_material` params set each frame by EventDriver); `lit` lights the
+  slabs one by one round the ring from straight ahead (`EventDriver._update_henge`: `_built` x `HENGE_BUILT_SHARE`,
+  all the way over a drop's run-up, `build_up`). Drops come from the show intensity with a hold (`henge_drop`:
+  past `STRIP_DROP`, held `HENGE_DROP_HOLD_SECONDS`, released under `HENGE_DROP_RELEASE`); no light events, dark.
+- `HengeFloor.gdshader`: dark ground plus vertex-colour bands of the haze's colour; `flood` (the drop, eased) brightens
+  the bands and adds `FLOOD_LEVEL` grey, capped at `FLOOR_MAX` below the notes. `HengeSky.gdshader`: dark with a
+  neutral horizon glow (no `bg_<type>`). Picked only in the menu or for 90/360 maps; never by Follow map.
+
 Metal Factory (underground power plant)
 - `MetalFactoryRig.gd` (tool): pistons over anvils, gear rings, energy rails, wall kit with vents, vault, drive gears.
   No beams or moving heads: diagonal/waving light goes to vents (`set_vent_colors`); `slam`/`breathe`/`turn_gears`
@@ -88,11 +116,23 @@ Shared scenery
   lit edge, only on the old `rings` (retired: `rings_enabled = false`).
 - `height_fog.gdshaderinc`: analytic exponential height fog per vertex, coloured by `env_haze`.
 - `fog_light.gdshaderinc`: haze in-scattering toward the stage key light (`fog_key`) plus 8-bit dither
-  (`fog_dither_on`); included by every scenery, sky and track shader.
-- `TrackDeck.gd` (`TrackDeck`): opaque deck (top y 0), curbs housing edge light strips, platform frame, end stops;
+  (`fog_dither_on`), and `fog_result` (the result moment's air, `result_air`, by distance from the eye); included by every
+  scenery, sky and track shader, which pass their colour through `fog_dither(fog_result(colour, VERTEX), FRAGCOORD.xy)`.
+- `TrackDeck.gd` (`TrackDeck`): opaque deck (top y 0), curbs housing the thin edge light strips (`STRIP_*`), platform frame, end stops;
   runs to `FAR_Z` -150 (`FAR_Z_BY_STAGE`), fades into haze. `layout(lane_width)` for Wide modifiers; `set_stage` skin.
   Hidden for `Settings.old_track` and mixed reality (old see-through sheet instead).
+  Its deck and curbs sit under a child that `turn(place)` turns with the notes; the platform pieces don't. On 90/360
+  maps during a song (`layout(lane_width, true)` from `EventDriver.set_background`) the platform is a black disc
+  (`round_radius()`, as far as the square reaches) with a rim, the deck starting where its corners meet the disc
+  (`deck_near()`), so it meets it at any angle; Standard keeps the square pad. There, like Glass Desert (the long deck
+  turning made players dizzy, owner 2026-10-29; then no lane floor either) there is no deck, curbs or edge strips
+  ahead, no floor reflection; the map's track lights light the platform's ring (`Floor.set_round(radius, lights)`), and
+  the turn cue chevron (`CUE_*`, `Constants.TURN_CUE_COLOR`) shows.
 - `TrackDeck.gdshader`: deck skin per stage (`SKINS`: plates, tread plate, dark glass), lane grooves, `fade_z`.
+- `track_turn.gdshaderinc`: `track_angle` and `track_xz(world)`, a point's place on the unturned track, so the deck's
+  grooves and skin and the far fade (`TrackDeck.gdshader`, `EnvSolid.gdshaderinc`'s `fade_z`, `LightStrip.gdshader`) turn
+  with the track on 90/360 maps; set on the deck, curb and edge-strip materials by `TrackDeck.turn` and
+  `EventDriver._apply_track_turn`.
 
 Light carriers
 - `NeonRibbon.gdshader`: the beam/bar ribbon (1 x 32 PlaneMesh) that turns to face the eye, `min_pixels` floor;
@@ -106,12 +146,15 @@ Light carriers
   `FOLLOW_SPOT` via `set_kind`); flare quad in front of the lens; heads rest nose-down after 2 s dark.
 - `LaserFixture.gdshader`: fixture body/yoke, lens lit by per-instance custom colour. `LaserFlare.gdshader`: additive
   eye-facing glow at the lens, white-hot core.
-- `LightStrip.gdshader`: flush strip, white-hot facing the eye, colour on turned faces; materials `floor_lights.tres`
+- `LightStrip.gdshader`: flush strip, white-hot facing the eye (`top_white`: its top too), colour on turned faces,
+  `min_pixels` floor for thin far strips; materials `floor_lights.tres`
   (track edges) and `platform_lights.tres` (platform border, always right colour).
 - `ArchStrip.gdshader`: segmented strips lit by `level` against `INSTANCE_CUSTOM.x` (height/ring), `drop` for all;
   shared by Neon Grid arches, Pulse Void seams, Classic ribs.
 - `PlayerLight.gdshader` + `player_light.gdshaderinc`: saber light pools on the floor (`game/floor.gd`,
   `LightSaber.gd`) and the cut-wave ring (`cut_waves`) that other light shaders add.
+- `Footprints.gdshader`: two solid footprints on the standing platform (`game/floor.gd`), toes toward the track,
+  30 cm apart, `Constants.FOOTPRINT_COLOR`, always shown and never changing (owner, 2026-10-29).
 
 Air
 - `StageSmoke.gd` (`StageSmoke`): floor layer (`FloorSmoke.gdshader`) + three fog sheets (`FogSheet.gdshader`,
@@ -136,10 +179,11 @@ Air
   EventDriver.
 - One MultiMesh per mesh/material (boxes, each glb model, strips, fixtures, bars); a new repeated piece joins one
   instead of adding nodes. Tool scripts build children without owner: never saved into `event_driver.tscn`.
-- Shader globals `env_haze`, `env_light`, `combo_glow`, `cut_waves`, `fog_key`, `fog_dither_on`, `debug_view`,
+- Shader globals `env_haze`, `env_light`, `combo_glow`, `cut_waves`, `fog_key`, `fog_dither_on`, `result_air`, `debug_view`,
   `atmosphere_eerie`, `left/right_saber(_color)` must be declared in `project.godot [shader_globals]`; a new
   `global uniform` needs an entry there or the shader fails to compile.
-- `LaserFixtures`: yoke basis fixed per place (recomputed only when its laser moves), head tilts on one axis only.
+- `LaserFixtures`: yoke basis fixed per place (recomputed when its laser moves, or when its beam leaves the yoke's
+  plane by `YOKE_PAN_SLACK`, as in the build-up sweep), head tilts on one axis only.
   Turning the yoke per frame flipped it when a waving laser swept through vertical. Unused kinds draw at zero scale.
 - Classic: scaffolds start hoisted (`_lift` 1), `start_show` flies them out (`set_built(0)`) and the show brings them
   down; their square bars and moving heads are hidden while `drop_at(z) != 0` (`_follow_frames`), as lowered bars
@@ -156,15 +200,15 @@ Air
 - New stage: id in `Settings.ENVIRONMENTS` (and `Constants.MAP_/TAG_/AUTO_ENVIRONMENTS` if auto-picked), a rig node
   under `Level` in `event_driver.tscn`, sky in `SKY_SHADERS` (+`SKY_TEXTURES`), `STINGER_ROOMS`, `LightRig.FOG_KEYS`, a
   `match` arm in `LightRig.apply`, visibility in `show_scenery_for_mixed_reality`, optional `TrackDeck.SKINS`/
-  `FAR_Z_BY_STAGE`, a thumb `thumbs/<id>.png` (`stage_capture.tscn -- --env <id> --lights on --size 320x180 --seconds 3`; render it again when
-  the stage's look changes, the picker shows it), `stage_capture.gd --env`. Write `doc/world/` entries first.
+  `FAR_Z_BY_STAGE`, its pictures `thumbs/<id>.png` and `thumbs/<id>_wide.png` (`tools/capture/env_thumbnails.sh`, a `FRAMES` line
+  framed on the stage's main unique element; render them again when the stage's look changes, the picker shows them), `stage_capture.gd --env`. Write `doc/world/` entries first.
 - New light carrier: place lights from a static helper on the rig, hang them in `LightRig.apply`; prefer the cheapest
   option in `doc/world/VISUAL_STYLE.md` "Light carriers" (vertex-mask vent < `LightStrip` < fixture < beam).
-- Haze amount/tint: `HAZE_BASE`, `HAZE_LIGHT_WEIGHT`, `HAZE_NEUTRAL`, `MENU_HAZE_BOOST`;
+- Haze amount/tint: `HAZE_BASE`, `HAZE_LIGHT_WEIGHT`, `HAZE_NEUTRAL`;
   height fog in `height_fog.gdshaderinc`; key-light scattering `LightRig.FOG_KEYS`; smoke in `StageSmoke.gd` consts.
 - A rig's layout: the `const` block at the top of its rig script (e.g. `ClassicRig.FRAME_Z`, `NeonGridRig.ARCH_B`,
   `NightCityRig.LEFT/RIGHT`, `PulseVoid` dish consts); then update `doc/world/SPATIAL_LAYOUT.md`.
-- Show build-up timing: `INTENSITY_*`, `STRIP_*`, `RIB_*` in `event_driver.gd`; `FIRST/LAST_FRAME_AT` in `ClassicRig.gd`.
+- Show build-up timing: `INTENSITY_*`, `STRIP_*`, `RIB_*`, the sweep's `BUILD_UP_SECONDS`/`SWEEP_*` in `event_driver.gd`; `FIRST/LAST_FRAME_AT` in `ClassicRig.gd`.
 - A scenery shader layer: the layer list and `#ifdef` blocks in `EnvSolid.gdshaderinc`; a stage-only layer gets a
   new `#define` in a thin variant `.gdshader` rather than a runtime branch.
 

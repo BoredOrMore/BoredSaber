@@ -152,6 +152,7 @@ const float RING_FOG = 0.5;
 // full haze from fade_z.x to fade_z.y metres out along the track (-z), for pieces that run on into the distance (the
 // track's edges, TrackDeck.gd); off (0, 0) for the rest
 uniform vec2 fade_z = vec2(0.0);
+#include "res://game/env/track_turn.gdshaderinc"
 
 varying float fog;
 varying float form;
@@ -201,7 +202,7 @@ float fog_at(vec3 world, vec3 cam, float time) {
 	}
 #endif
 	if (fade_z.y > fade_z.x) {
-		f = max(f, smoothstep(fade_z.x, fade_z.y, -world.z));
+		f = max(f, smoothstep(fade_z.x, fade_z.y, -track_xz(world).y));
 	}
 	return f;
 }
@@ -331,6 +332,6 @@ void fragment() {
 		float haze_amount = fog;
 		vec3 windows_on = vec3(0.0);
 #endif
-		ALBEDO = fog_dither(mix(lit, haze, haze_amount) + light * (1.0 - haze_amount) + windows_on, FRAGCOORD.xy);
+		ALBEDO = fog_dither(fog_result(mix(lit, haze, haze_amount) + light * (1.0 - haze_amount) + windows_on, VERTEX), FRAGCOORD.xy);
 	}
 }

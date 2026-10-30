@@ -3,6 +3,8 @@ class_name EndScore
 
 signal mainmenu
 signal repeat
+## "Not you?" on the name card: the player wants this run's record under someone else (owner, 2026-10-28)
+signal change_player
 
 ## Fewest seconds between two ticks while the score counts up (about 18 a second at most).
 const TICK_MIN_INTERVAL := 0.055
@@ -38,13 +40,34 @@ const TOP_RANK_SPARKLE := 0.8
 ## right padding, the second (level and map author) to just before "New Record!" (NRMesh). Longer lines end in "…"
 ## instead of spilling off the board (owner on the headset, 2026-10-25: the score board's content overflowed).
 const NAME_WIDTHS := [1.8, 1.3]
-## the name card's text, one line, at most this wide
+## the name card's text, one line, at most this wide; less CARD_BUTTON_ROOM when "Not you?" sits at its right end
 const CARD_TEXT_WIDTH := 1.5
+const CARD_BUTTON_ROOM := 0.42
 ## The name card under the score (where this run stands on the map's board, and the button to name it) lights its
 ## border once when the count lands, so the eye goes to it after the score (untuned).
 const CARD_GLOW_SECONDS := 0.8
 
+## The headline across the board under the song's name (owner, 2026-10-28, after Beat Saber's results): "FAILED" in
+## white on a bar of the danger colour, or "SONG CLEARED" in the panel's dark on a bar of the rank's colour, in the
+## grade's font. The board grew BANNER_ROOM upward for it (EndScore.tscn); the song's name moved up with it.
+const BANNER_SIZE := Vector2(1.8, 0.08)
+const BANNER_Y := 0.43
+const BANNER_TEXT_HEIGHT := 0.062
+const BANNER_CORNER := 0.02
+const FAILED_TEXT := "FAILED"
+const CLEARED_TEXT := "SONG CLEARED"
+## After a fail the empty ring and its 0% give way to how far the song got ("Failed at 1:42\nof 3:10"), at the ring's
+## place, PROGRESS_TEXT_HEIGHT letters.
+const PROGRESS_TEXT_HEIGHT := 0.07
+const PROGRESS_Y := 0.06
+## TextMesh sizes go through pixel_size from a 100 px font (font_size is capped at 127)
+const LABEL_FONT_SIZE := 100
 var animated_percent: float = 0.0
+var _banner_material := ShaderMaterial.new()
+var _banner_text := TextMesh.new()
+var _banner_text_material := StandardMaterial3D.new()
+var _progress_text := TextMesh.new()
+var _progress := MeshInstance3D.new()
 var _tick_player := AudioStreamPlayer.new()
 var _ding_player := AudioStreamPlayer.new()
 var _ding_high_player := AudioStreamPlayer.new()
@@ -59,6 +82,8 @@ var _card_material: ShaderMaterial
 
 ## Paints the panel and the percent ring in the menu colours and starts with the buttons off.
 func _ready() -> void:
+	# the grade in the HUD's grade font (owner, 2026-10-27)
+	($GradeViewport/GradeLabel as RichTextLabel).add_theme_font_override(&"normal_font", Hud.GRADE_FONT)
 	var panel := (mesh as QuadMesh).material as ShaderMaterial
 	panel.set_shader_parameter(&"fill_color", Constants.UI_PANEL)
 	panel.set_shader_parameter(&"border_color", Constants.UI_BORDER)
@@ -72,6 +97,11 @@ func _ready() -> void:
 	_card_material.set_shader_parameter(&"hover_color", Constants.UI_SURFACE)
 	_card_material.set_shader_parameter(&"hover_border_color", Constants.UI_ACCENT)
 	(($NameCard/Label as MeshInstance3D).material_override as StandardMaterial3D).albedo_color = Constants.UI_TEXT
+	# "Not you?" reads as a button on the card (owner, 2026-10-28): the board's darker fill and a border
+	var change := ($ChangePlayer as UIRaycastButton).back_shader
+	change.set_shader_parameter(&"fill_color", Constants.UI_PANEL)
+	change.set_shader_parameter(&"border_color", Constants.UI_BORDER)
+	_add_banner()
 	set_buttons_disabled(true)
 	_tick_player.stream = preload("res://game/data/click_002.ogg")
 	_tick_player.bus = &"UI"
@@ -86,6 +116,59 @@ func _ready() -> void:
 	_rank_up_player.stream = _make_ding(RANK_UP_HZ)
 	_rank_up_player.bus = &"UI"
 	add_child(_rank_up_player)
+
+## Builds the headline bar and its word, and the line that says how far a failed song got.
+func _add_banner() -> void:
+	var bar := QuadMesh.new()
+	bar.size = BANNER_SIZE
+	_banner_material.shader = (mesh as QuadMesh).material.shader
+	_banner_material.set_shader_parameter(&"size", BANNER_SIZE)
+	_banner_material.set_shader_parameter(&"corner_radius", BANNER_CORNER)
+	_banner_material.set_shader_parameter(&"border_width", 0.0)
+	bar.material = _banner_material
+	var banner := MeshInstance3D.new()
+	banner.mesh = bar
+	banner.position = Vector3(0.0, BANNER_Y, 0.008)
+	add_child(banner)
+	_banner_text.font = Hud.GRADE_FONT
+	_banner_text.font_size = LABEL_FONT_SIZE
+	_banner_text.pixel_size = BANNER_TEXT_HEIGHT * Hud.GRADE_FONT_SCALE / LABEL_FONT_SIZE
+	_banner_text.depth = 0.0
+	_banner_text_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	_banner_text.material = _banner_text_material
+	var word := MeshInstance3D.new()
+	word.mesh = _banner_text
+	word.position = Vector3(0.0, BANNER_Y, 0.012)
+	add_child(word)
+	# the score and record in the numbers' font (Hud.NUMBER_FONT); the progress line ("Failed at 1:42") with them
+	var details := ($Details as MeshInstance3D).mesh as TextMesh
+	# Kanit's lines run taller than Roboto's: kept at the old size and line height ("Record" ran under the name card)
+	details.line_spacing = int(details.font.get_height(details.font_size) - Hud.NUMBER_FONT.get_height(details.font_size))
+	details.font = Hud.NUMBER_FONT
+	_progress_text.font = details.font
+	_progress_text.font_size = LABEL_FONT_SIZE
+	_progress_text.pixel_size = PROGRESS_TEXT_HEIGHT / LABEL_FONT_SIZE
+	_progress_text.depth = 0.0
+	var progress_material := StandardMaterial3D.new()
+	progress_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	progress_material.albedo_color = Constants.UI_TEXT
+	_progress_text.material = progress_material
+	_progress.mesh = _progress_text
+	_progress.position = Vector3(0.0, PROGRESS_Y, 0.012)
+	add_child(_progress)
+
+## Sets the headline for a fail or a clear at `percent` accuracy, and after a fail how far the song got.
+func _show_result(percent: float, failed_at: float, song_length: float) -> void:
+	var failed := percent < 0
+	var bar_color: Color = Constants.DANGER_COLOR if failed else Constants.RANK_COLORS.get(grade(percent), Constants.UI_TEXT)
+	_banner_material.set_shader_parameter(&"fill_color", bar_color)
+	_banner_material.set_shader_parameter(&"border_color", bar_color)
+	_banner_text.text = FAILED_TEXT if failed else CLEARED_TEXT
+	_banner_text_material.albedo_color = Color.WHITE if failed else Constants.UI_PANEL
+	($PercentIndicator as Node3D).visible = not failed
+	($RankHalo as Node3D).visible = not failed
+	_progress.visible = failed
+	_progress_text.text = "Failed at %s\nof %s" % [Hud._clock(int(failed_at)), Hud._clock(int(song_length))]
 
 ## A short synthesized ding, so the count's end needs no sound file.
 static func _make_ding(hz: float) -> AudioStreamWAV:
@@ -107,6 +190,7 @@ func _show() -> void:
 	collision.disabled = false
 	($Repeat as UIRaycastButton).collision_layer = CollisionLayerConstants.Ui_mask
 	($MainMenu as UIRaycastButton).collision_layer = CollisionLayerConstants.Ui_mask
+	($ChangePlayer as UIRaycastButton).collision_layer = CollisionLayerConstants.Ui_mask
 	show()
 
 func _hide() -> void:
@@ -114,13 +198,16 @@ func _hide() -> void:
 	collision.disabled = true
 	($Repeat as UIRaycastButton).collision_layer = 0
 	($MainMenu as UIRaycastButton).collision_layer = 0
+	($ChangePlayer as UIRaycastButton).collision_layer = 0
 	_tick_player.stop()
 	_ding_player.stop()
 	_ding_high_player.stop()
 	_rank_up_player.stop()
 	hide()
 
-func show_score(score: int, record: int, percent: float, song_string: String, is_full_combo: bool, is_new_record: bool) -> void:
+func show_score(score: int, record: int, percent: float, song_string: String, is_full_combo: bool, is_new_record: bool,
+		failed_at := 0.0, song_length := 0.0) -> void:
+	_show_result(percent, failed_at, song_length)
 	var details_mesh := ($Details as MeshInstance3D).mesh as TextMesh
 	var details_material := ($Details as MeshInstance3D).material_override as StandardMaterial3D
 	var percent_indicator := $PercentIndicator as PercentIndicator
@@ -155,7 +242,7 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 	for i in lines.size():
 		lines[i] = _fit(($NameLabel as MeshInstance3D).mesh as TextMesh, lines[i], NAME_WIDTHS[mini(i, NAME_WIDTHS.size() - 1)])
 	name_label.text = "\n".join(lines)
-	details_mesh.text = "Score\n%d\n\nRecord\n%d" % [score,record]
+	details_mesh.text = "Score\n%s\n\nRecord\n%s" % [Hud._grouped(score), Hud._grouped(record)]
 	# after a fail, trying again is the likely next step
 	var repeat_button := $Repeat as UIRaycastButton
 	repeat_button.text = "Retry" if percent < 0 else "Repeat"
@@ -191,14 +278,14 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 			if counted != shown_score and now - last_tick >= TICK_MIN_INTERVAL:
 				shown_score = counted
 				last_tick = now
-				details_mesh.text = "Score\n%d\n\nRecord\n%d" % [counted, record]
+				details_mesh.text = "Score\n%s\n\nRecord\n%s" % [Hud._grouped(counted), Hud._grouped(record)]
 				_tick_player.pitch_scale = lerpf(TICK_PITCH_FROM, TICK_PITCH_TO, progress)
 				_tick_player.play()
 			await get_tree().process_frame
 		#_on_Tween_tween_completed()
 		
 		percent_indicator.update_percent(animated_percent)
-		details_mesh.text = "Score\n%d\n\nRecord\n%d" % [score, record]
+		details_mesh.text = "Score\n%s\n\nRecord\n%s" % [Hud._grouped(score), Hud._grouped(record)]
 		var final_rank := grade(percent)
 		if final_rank != shown_rank:
 			_show_rank(grade_label, final_rank)
@@ -271,22 +358,29 @@ func _show_rank(label: RichTextLabel, rank: String) -> void:
 func set_buttons_disabled(disabled: bool) -> void:
 	($Repeat/Collision as CollisionShape3D).disabled = disabled
 	($MainMenu/Collision as CollisionShape3D).disabled = disabled
+	($ChangePlayer/Collision as CollisionShape3D).disabled = disabled
 
-## Shows a line on the name card.
-func show_name_card(text: String) -> void:
+## Shows a line on the name card, with "Not you?" at its end when `can_change` (a record this run just saved).
+func show_name_card(text: String, can_change := false) -> void:
 	_name_card.visible = true
+	($ChangePlayer as UIRaycastButton).visible = can_change
 	# one line: the card is one line tall
-	_name_label.text = _fit(_name_label, text.replace("\n", "  ·  "), CARD_TEXT_WIDTH)
+	_name_label.text = _fit(_name_label, text.replace("\n", "  ·  "),
+			CARD_TEXT_WIDTH - (CARD_BUTTON_ROOM if can_change else 0.0))
 	($MainMenu as UIRaycastButton).set_primary(_finished)
 
 func hide_name_card() -> void:
 	_name_card.visible = false
+	($ChangePlayer as UIRaycastButton).visible = false
 
 ## Lights the name card's border once.
 func glow_name_card() -> void:
 	if _name_card.visible:
 		create_tween().set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN) \
 			.tween_property(_card_material, ^"shader_parameter/highlight", 0.0, CARD_GLOW_SECONDS).from(1.0)
+
+func _on_ChangePlayer_button_up() -> void:
+	change_player.emit()
 
 func _on_Repeat_button_up() -> void:
 	repeat.emit()

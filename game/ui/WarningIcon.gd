@@ -4,17 +4,30 @@ class_name WarningIcon
 ## or the headset; pointing the laser at it opens a card listing those warnings in plain words. Warnings: the play
 ## area (the guardian) too small for the saber's reach or the Slash to play note (where the runtime gives it: Pico
 ## doesn't, and an unknown play area isn't warned about); a low battery; a hot
-## headset; 30 minutes of songs this session; Full resolution lowered to Sharp after stuttering. It only warns: it
+## headset; (30 minutes of songs this session: off for now); Full resolution lowered to Sharp after stuttering. It only warns: it
 ## never changes anything. Checked every CHECK_SECONDS while the song menu shows.
 
-## Right of the song menu (its right edge is at x 1.5 m), level with its Damage row, facing the player.
-const ICON_POSITION := Vector3(1.64, 1.094, -1.0)
-## 0.14 m at about 1.9 m: over 4 degrees, above the 3 degree minimum target (vr-ui-design).
+## Just above the song menu centre panel's top right corner (22 degrees right, 22 up, on the menus' 2 m curve), facing
+## the player, opposite the clock (MenuClock). It sat in the top bar, half over "Get songs" and turned so its inner edge
+## sank into the curved panel (owner, 2026-10-29).
+const ICON_POSITION := Vector3(0.7457, 2.4125, -0.8556)
+## 0.14 m at about 2.07 m: about 4 degrees, above the 3 degree minimum target (vr-ui-design).
 const ICON_SIZE := 0.14
-const CARD_WIDTH := 0.95
+## Round corners, as the menus' (owner, 2026-10-28): the card's like a panel's 24 px, the icon's like a chip's 14 px,
+## at the menus' scale (2.4/1024 m per px); RoundedQuad cuts them without blending.
+const CARD_CORNER := 0.056
+const ICON_CORNER := 0.033
+const ROUNDED_QUAD := preload("res://game/ui/RoundedQuad.gdshader")
+const CARD_WIDTH := 1.5
 const CARD_PADDING := 0.04
-## Text 60 px at 0.001 m a pixel: the song menu's 28 px body text at its scale (2.4 / 1024 m a pixel).
-const TEXT_SIZE := 60
+## The card opens in the empty space above the song menu (owner, 2026-10-29: the warning card must not cover other
+## UI), centred over the centre panel CARD_RADIUS ahead of the eye, its bottom CARD_GAP above the icon (26 degrees up),
+## growing upward: two warnings reach about 31 degrees, inside the 35 degree head-turn zone (vr-ui-design).
+const CARD_GAP := 0.02
+const CARD_RADIUS := 2.0
+## Text 66 px at 0.001 m a pixel: the song menu's 28 px body text at its scale (2.4 / 1024 m a pixel), 1.9 degrees at
+## 2 m (the floor is 1.85).
+const TEXT_SIZE := 66
 const TEXT_PIXEL := 0.001
 const CHECK_SECONDS := 2.0
 
@@ -33,10 +46,12 @@ const LOWERED_TEXT := "Lowered to Sharp to stay smooth: Full resolution stuttere
 
 var game: BeepSaber_Game
 var _icon := MeshInstance3D.new()
-var _icon_material := StandardMaterial3D.new()
+var _icon_material := ShaderMaterial.new()
 var _card := Node3D.new()
 var _card_back := MeshInstance3D.new()
 var _card_text := Label3D.new()
+## A double tick from the icon's place when it appears, so it's noticed without looking for it.
+var _sound := AudioStreamPlayer3D.new()
 var _messages := PackedStringArray()
 var _since_check := CHECK_SECONDS
 ## Logged once each: what the device didn't let the game read.
@@ -46,13 +61,15 @@ var _play_area := PackedVector3Array()
 var _play_area_read := false
 
 func _ready() -> void:
-	# facing the player at the middle of the play space
-	look_at_from_position(ICON_POSITION, 2.0 * ICON_POSITION - Vector3(0.0, ICON_POSITION.y, 0.0), Vector3.UP)
+	# facing the player: turned away from the menus' curve axis, through the eye
+	look_at_from_position(ICON_POSITION, 2.0 * ICON_POSITION - Vector3(0.0, ICON_POSITION.y, Hud.HUD_EYE.z), Vector3.UP)
 	var quad := QuadMesh.new()
 	quad.size = Vector2.ONE * ICON_SIZE
 	_icon.mesh = quad
-	_icon_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	_icon_material.albedo_color = Constants.UI_DANGER
+	_icon_material.shader = ROUNDED_QUAD
+	_icon_material.set_shader_parameter(&"color", Constants.UI_DANGER)
+	_icon_material.set_shader_parameter(&"size", quad.size)
+	_icon_material.set_shader_parameter(&"radius", ICON_CORNER)
 	_icon.material_override = _icon_material
 	add_child(_icon)
 	var mark := _label("!", TEXT_SIZE * 2)
@@ -68,7 +85,7 @@ func _ready() -> void:
 	collision_layer = CollisionLayerConstants.Ui_mask
 	collision_mask = 0
 
-	# the card: above the icon, reaching right, over a panel
+	# the card: above the song menu, over nothing else
 	_card_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_card_text.width = (CARD_WIDTH - 2.0 * CARD_PADDING) / TEXT_PIXEL
 	_card_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -80,15 +97,23 @@ func _ready() -> void:
 	# a wrapped, left-aligned Label3D starts its lines at its position
 	_card_text.position = Vector3(CARD_PADDING, CARD_PADDING, 0.002)
 	_card.add_child(_card_text)
-	var back_material := StandardMaterial3D.new()
-	back_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	back_material.albedo_color = Constants.UI_PANEL
+	var back_material := ShaderMaterial.new()
+	back_material.shader = ROUNDED_QUAD
+	back_material.set_shader_parameter(&"color", Constants.UI_PANEL)
+	back_material.set_shader_parameter(&"radius", CARD_CORNER)
 	_card_back.mesh = QuadMesh.new()
 	_card_back.material_override = back_material
 	_card.add_child(_card_back)
-	_card.position = Vector3(-ICON_SIZE / 2.0, ICON_SIZE / 2.0 + 0.02, 0.01)
+	# its bottom left corner; nothing is behind it, so it stays flat, facing the eye
+	var bottom_left := Transform3D(Basis(), Vector3(-CARD_WIDTH / 2.0, ICON_POSITION.y + ICON_SIZE / 2.0 + CARD_GAP,
+		Hud.HUD_EYE.z - CARD_RADIUS))
+	_card.transform = transform.affine_inverse() * bottom_left
 	_card.visible = false
 	add_child(_card)
+	_sound.stream = preload("res://game/data/warning.wav")
+	_sound.attenuation_model = AudioStreamPlayer3D.ATTENUATION_DISABLED
+	_sound.bus = &"UI"
+	add_child(_sound)
 	visible = false
 	vr.pose_recentered.connect(func() -> void: _play_area_read = false)
 
@@ -109,7 +134,10 @@ func _process(delta: float) -> void:
 		return
 	_since_check = 0.0
 	_messages = messages()
+	var was_visible := visible
 	visible = not _messages.is_empty() and game.main_menu.visible and game.gamestate == game.gamestate_mapselection
+	if visible and not was_visible:
+		_sound.play()
 	collision_layer = CollisionLayerConstants.Ui_mask if visible else 0
 	if not visible:
 		_card.visible = false
@@ -126,8 +154,9 @@ func messages() -> PackedStringArray:
 		out.append(BATTERY_TEXT % battery)
 	if _thermal_status() >= HOT_THERMAL_STATUS:
 		out.append(HOT_TEXT)
-	if game.played_seconds >= BREAK_SECONDS:
-		out.append(BREAK_TEXT)
+	# the 30 minute break reminder is off for now (owner, 2026-10-29)
+	#if game.played_seconds >= BREAK_SECONDS:
+	#	out.append(BREAK_TEXT)
 	if not Settings.resolution_cap.is_empty():
 		out.append(LOWERED_TEXT)
 	return out
@@ -203,12 +232,12 @@ func _log_unreadable(what: String, why: String) -> void:
 func ui_raycast_hit_event(_pos: Vector3, _click: bool, _release: bool) -> void:
 	if not _card.visible:
 		_card.visible = true
-		_icon_material.albedo_color = Constants.UI_DANGER.lightened(0.2)
+		_icon_material.set_shader_parameter(&"color", Constants.UI_DANGER.lightened(0.2))
 		_show_card_text()
 
 func ui_raycast_exit() -> void:
 	_card.visible = false
-	_icon_material.albedo_color = Constants.UI_DANGER
+	_icon_material.set_shader_parameter(&"color", Constants.UI_DANGER)
 
 ## Fills the card with the warnings, a bullet each, and sizes its panel to the text.
 func _show_card_text() -> void:
@@ -218,4 +247,5 @@ func _show_card_text() -> void:
 			-1, TextServer.BREAK_MANDATORY | TextServer.BREAK_WORD_BOUND)
 	var height := lines.y * TEXT_PIXEL + 2.0 * CARD_PADDING
 	(_card_back.mesh as QuadMesh).size = Vector2(CARD_WIDTH, height)
+	(_card_back.material_override as ShaderMaterial).set_shader_parameter(&"size", Vector2(CARD_WIDTH, height))
 	_card_back.position = Vector3(CARD_WIDTH / 2.0, height / 2.0, 0.0)

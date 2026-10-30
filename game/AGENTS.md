@@ -18,12 +18,17 @@ constraints apply here unchanged.
   `gamestate._physics_process(self)` each tick. Each state's `_ready` shows/hides every HUD node.
 - Startup (`_ready`): fills `GlobalReferences.*_pool` from `$BeepCubePool` etc. and presizes them
   (cubes 100, links 100, bombs 30, walls 15, arcs 15), inits `vr`, then enters `gamestate_mapselection`.
-- Start: menu signal `start_map` -> `start_map(info, difficulty)` -> `Map.load_beatmap()` (threaded
+- Preload: the menu's `difficulty_changed` -> `_preload` reads the picked difficulty's map file and song on a
+  `WorkerThreadPool` task (`_read_song`) once it stayed picked `PRELOAD_DELAY_SECONDS`; `_start_map` takes them
+  (`_take_preload`, waiting if still reading). Nothing on the main thread waits for the read of a song scrolled past:
+  each step through the list froze for the last song's read (owner, 2026-10-29).
+- Start: menu signal `start_map` -> `start_map(info, difficulty)` (from the menu or a restart behind a black fade, `START_*`) ->
+  `_start_map` -> `Map.load_beatmap()` (threaded
   parsers fill `note_stack`, `bomb_stack`, `obstacle_stack`, `arc_stack`, `chain_stack`,
   `event_stack`, reversed so `pop_back()` is the next item) -> colours, song stream, `lead_in`,
   `Scoreboard.restart()`, `_clear_track()` -> `gamestate_playing`.
 - Spawning: `GameStatePlaying._process_map()` (`scripts/GameState/Playing.gd:60`) pops every item
-  with `beat <= current_beat + Map.half_jump_beats`, `acquire()`s from the pool and calls
+  with `beat <= current_beat + Map.half_jump_beats` (plus `Cuttable.FLY_SECONDS` for all but walls, to fly in), `acquire()`s from the pool and calls
   `spawn(info, current_beat)`. Arcs mark head/tail cubes spawned this tick (`set_arc_head/tail`);
   chains go through `ChainLink.construct_chain()`, which flags the head cube with `make_chain_head()`.
   Events go to `event_driver.process_event()` at `current_beat` (no look-ahead).
@@ -38,6 +43,9 @@ constraints apply here unchanged.
   `bad_cut("miss")`, bombs just release.
 - Walls: `PlayerHead` `area_entered/exited` (group `wall`) -> `_in_wall`, `Scoreboard.enter_wall()`
   / `exit_wall()`; `_check_and_update_saber()` keeps calling `enter_wall()` while walled.
+- Stage switch: a pick in the song menu (`Settings.environment`) goes through `_switch_stage_in_black` (fade down
+  `STAGE_FADE_SECONDS`, `_apply_environment`, hold `STAGE_HOLD_SECONDS`, fade up; the fade is `ResultMoment`'s quad);
+  elsewhere `_apply_environment` at once, and `start_map` sets the song's stage.
 - End: `SongPlayer.finished` -> `_on_song_ended()` -> highscore/playcount -> `EndScore.show_score()`
   -> `gamestate_newhighscore` or `gamestate_mapcomplete`.
 
@@ -66,12 +74,26 @@ constraints apply here unchanged.
   last two columns, `guard` the left and right fist-to-eye distance in `time_ms`/`peak_speed`, `low_stance` the eye
   drop in the eye-drop column; charged rows put the hold in `interval_ms` and ok / no_stance / broke_at_<ms> / missed
   in the last `outcome` column). Thresholds are untuned starting values.
-- `CutFlash.gd` (class `CutFlash`) + `SparkStreak.gdshader` — sparks along the cut line, trails drawn by the shader.
+- `CutFlash.gd` (class `CutFlash`) + `CutSpark.gdshader` — a cut's sparks, as Beat Saber's (measured in
+  doc/research/cut-dust-plan.md section 7): small white-hot streaks with a note-coloured rim, born on the note mesh's
+  faces where the cut crosses them (`flash` takes the cut plane's normal and the mesh's transform and box), out from
+  those faces and along the swing, a strong smooth drag, slight gravity, gone in under a second. The shader moves them
+  in closed form from a `now` clock; the blades (`sabers`, set by `BeepSaber_Game._ready`, plus `test_blade` for the
+  bench) push a burst's sparks only when they pass near it, never into the note lanes ahead (`SPARK_*`, `WAKE_*`,
+  `LANE_*`). The same sparks for everything a saber does (owner, 2026-10-28): `spray` sends a few, rate-capped per
+  source, where the blades touch (`BeepSaber_Game._rumble_on_clash`) and where a blade sinks into the floor or
+  platform (`LightSaber`, with the burn mark). `SparkStreak.gdshader` + the static `spark_mesh()`: Metal Factory's
+  trailed sparks.
+- `FloorReflection.gd` (class `FloorReflection`) + `FloorReflection.gdshader` — the notes and blades faintly mirrored in
+  the deck: two MultiMeshes refilled each frame, drawn at the deck's depth in a depth-only pass then colour, so a lower
+  note's reflection hides an upper one's (no second render, no screen read); fades by depth and distance; off with
+  the deck (old track, mixed reality). Made in `BeepSaber_Game._ready`; `stage_capture --notes 1` shows it too.
 - `LowResGlow.gd` (class `LowResGlow`) — glow without Godot's glow pass (that pass costs ~5 ms on the Pico 4).
 - `Benchmark.gd` (class `Benchmark`) — hands-off GPU benchmark (Settings > Advanced, or `tools/bench.sh`).
 - `DebugView.gd` (class `DebugView`) — Settings > Advanced switches that leave parts of the scene out to measure
   their GPU cost; bits of the `debug_view` shader global, never saved.
-- `event_driver.gd/.tscn` — lighting events and background; `floor.gd/.tscn` — floor and burn marks.
+- `event_driver.gd/.tscn` — lighting events and background; `floor.gd/.tscn` — floor and burn marks; on 90/360 maps
+  `set_round` swaps its square border bars for a ring of lights on the round platform (`TrackDeck`).
 - `SpectatorWindow.gd/.tscn` — desktop spectator camera/HUD.
 - Menus and panels (song menu, settings, end score, highscores, pause, `vr_slider`) live in `ui/`.
 - `vr_goggles.gdshader` + `.glb` (the headset model in `BeepSaber_Game.tscn`), `GodotSplash.tscn`, `BlackWhiteThem.tres`, `background*.tres` — visuals.
@@ -104,7 +126,7 @@ constraints apply here unchanged.
   repeats). Cube/link with `cube_cuts_falloff` release only after both `CutPiece`s die
   (`Cuttable._on_cut_piece_died`). `clear_from_track()` must hide and release if not yet released;
   `_clear_track()` calls it on every `track` child. Hidden entities set `PROCESS_MODE_DISABLED`;
-  cubes/links re-enable in `spawn()` before playing the `Spawn` animation.
+  cubes/links re-enable in `spawn()` before starting their jump (`Cuttable.start_jump`).
 - New pooled scenes go through `_on_ScenePool_new_scene_instanced()` (`BeepSaber_Game.gd:624`):
   added to `track` forever, shown one frame at presize to warm shaders, then hidden via
   `hide_cube()` or `hide_pooled()`. A new entity type needs one of those.
@@ -117,7 +139,9 @@ constraints apply here unchanged.
 - Colours: always read `Map.color_left/right` (handedness-aware getters), not `Settings.color_*`, at spawn.
 - Health: all damage goes through `update_health(delta, mistake)` (`BeepSaber_Game.gd:156`);
   `FAIL_MODE_LIVES`/`INSTANT` only react to `mistake`. Fail is `_fail_song()` (sets `failing`, pauses
-  Scoreboard, fades rumble/pitch, then `_on_song_ended()`); guard new logic with `not failing`.
+  Scoreboard, fades rumble, closes a low-pass on the song and fades it, empties the track (`_empty_track`: notes
+  fall onto the deck, bounce, settle and dissolve, walls and arcs sink into it, then `_clear_track`), shows FAILED after `FAIL_WORD_DELAY`, fades to black, then `_on_song_ended()`;
+  `start_map` takes the filter off); guard new logic with `not failing`.
 - Rumble: `_check_and_update_saber()` only sets rumble when `not controller.is_simple_rumbling()`,
   so cut rumble in `BeepCube.cut` wins for its duration.
 - Timing: song time comes from `get_current_time()` (negative during `lead_in`). After restart,

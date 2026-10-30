@@ -20,11 +20,6 @@ var gamestate_playing := GameStatePlaying.new()
 var gamestate_settings := GameStateSettings.new()
 var gamestate_bodytest := GameStateBodyTest.new()
 
-## Where the record table stands in the song menu: 53 degrees left of the player (eyes at (0, 1.6, 1)), 1.6 m away and
-## facing them, its inner edge just clear of the menu panel's (37 degrees). Scale 1.5: text 1.5 degrees.
-const HIGHSCORES_MENU_TRANSFORM := Transform3D(
-	Basis(Vector3(0.90272, 0, -1.19795), Vector3(0, 1.5, 0), Vector3(1.19795, 0, 0.90272)),
-	Vector3(-1.27782, 1.5, 0.0371))
 var gamestate: GameState = gamestate_bootup
 var current_health := Constants.HEALTH_START
 
@@ -41,7 +36,7 @@ var current_health := Constants.HEALTH_START
 
 @onready var main_menu := $MainMenu_OQ_UI2DCanvas as OQ_UI2DCanvas
 @onready var pause_menu := $PauseMenu_canvas as OQ_UI2DCanvas
-@onready var pause_countdown := $Pause_countdown as OQ_UI2DLabel
+@onready var pause_countdown := $Pause_countdown as Label3D
 @onready var settings_canvas := $Settings_canvas as OQ_UI2DCanvas
 @onready var settings_panel := settings_canvas.ui_control as SettingsPanel
 @onready var profiles_canvas := $Profiles_canvas as OQ_UI2DCanvas
@@ -101,18 +96,66 @@ var hud: Hud
 # seconds left before the song starts, so the first notes can fly in; counted down by Playing
 var lead_in := 0.0
 
-const FAIL_SECONDS := 1.5
+## The fail, in the owner's order (2026-10-28): the sound goes first (the low-pass sweep below) and the play space
+## empties, every note, chain, bomb, wall and arc falling away over FAIL_CLEAR_SECONDS (nothing can be cut or
+## missed after the fail: the track freezes and the sabers stop cutting); then a pause of muffled bass; then at
+## FAIL_WORD_DELAY the big FAILED appears and the red comes into the air; FAIL_WORD_SECONDS later the view fades to
+## black for the score screen. Owner's timing (2026-10-28): shrink 0-0.5 s, an empty track with muffled bass to 1 s,
+## FAILED and the red air at 1 s, the fade to black at 4 s; then (2026-10-28) the track's things fall for the whole
+## second before FAILED instead of shrinking in half of it. Untuned until seen on the headset.
+const FAIL_CLEAR_SECONDS := 1.0
+const FAIL_FALL_GRAVITY := 9.8
+const FAIL_TUMBLE := 3.0
+const FAIL_REST_HEIGHT := 0.22
+const FAIL_BOUNCE := 0.3
+const FAIL_LAND_SPIN := 0.6
+const FAIL_FADE_FROM := 0.65
+## how far notes' dissolve plane travels (their own size, local), and how deep walls and arcs sink into the deck (m)
+const FAIL_DISSOLVE_SPAN := 0.5
+const FAIL_SINK_DEPTH := 6.0
+const FAIL_WORD_DELAY := 1.0
+const FAIL_WORD_SECONDS := 3.0
+## the notes and blades mirrored in the deck, switched off while a fail drops everything through it
+var _floor_reflection: FloorReflection
+## the end of a song: "FAILED" in the play space and the fade to black (ResultMoment)
+var _result_moment: ResultMoment
+## where in the song (seconds) the last fail happened, for the score screen
+var _failed_at := 0.0
+## A fail closes a low-pass on the song like Beat Saber (measured from a recording of its PC version, 2026-10-28,
+## recordings/audio/fail.wav): the top of the spectrum falls from about 10 kHz to 600 Hz in 0.2 s, halving about
+## every 50 ms, then only the bass under 200 Hz is left for about 0.45 s before its fail screen's music. So the
+## cutoff glides exponentially from FAIL_CUTOFF_FROM_HZ to FAIL_CUTOFF_TO_HZ over FAIL_SWEEP_SECONDS, and the
+## muffled song fades to FAIL_SILENT_DB over FAIL_TAIL_SECONDS (longer than Beat Saber's 0.45 s: the owner wanted the
+## bass to carry on until FAILED at 1 s); it stays quiet until the fade to black.
+const FAIL_CUTOFF_FROM_HZ := 20000.0
+const FAIL_CUTOFF_TO_HZ := 150.0
+const FAIL_SWEEP_SECONDS := 0.2
+const FAIL_TAIL_SECONDS := 0.8
+const FAIL_SILENT_DB := -60.0
+## added to the song's bus only while a fail plays out
+var _fail_filter := AudioEffectLowPassFilter.new()
+## A stage picked in the song menu changes behind a short black fade (owner, 2026-10-28, option "ข"): down over
+## STAGE_FADE_SECONDS, the switch, STAGE_HOLD_SECONDS black while the new stage's first frames draw (on the Pico a
+## switch stalls about 70 ms at 0.08 s and 110 ms at about 0.2 s, then two to four 28-40 ms frames to about 0.4 s,
+## first pass or not; stages bench on 4f3f006, 2026-10-28), then back up.
+const STAGE_FADE_SECONDS := 0.15
+const STAGE_HOLD_SECONDS := 0.35
+var _stage_switching := false
 # the high score saved at the end of the last song
 var _new_record := {}
-## The song menu showed the record table when the BeatSaver page opened over it.
-var _menu_highscores_shown := false
 const DANGER_WALL_MATERIAL := preload("res://game/notes/Wall/danger_wall.tres")
 ## Mistake sounds (tools/make_hit_sounds.py): a dull buzz for a bad cut or the wrong saber, a boom for a bomb.
 ## A miss gets a soft swipe (tools/make_feedback_sounds.py), quieter than a bad cut.
 const BAD_CUT_SOUND := preload("res://game/data/bad_cut.wav")
 const BOMB_HIT_SOUND := preload("res://game/data/bomb_hit.wav")
 const MISS_SOUND := preload("res://game/data/miss.wav")
-var _mistake_player: AudioStreamPlayer
+## Raised against the cuts (loudness notes, 2026-10-23): a miss and the low health loop measured about 9 LU under a
+## cut and sank in the music, a bomb a little under. Starting points to try on the headset.
+const MISS_GAIN_DB := 4.0
+const LOW_HEALTH_GAIN_DB := 4.0
+const BOMB_GAIN_DB := 2.0
+## Mistake sounds come from where the note was, so a miss on the left sounds on the left; at full volume wherever.
+var _mistake_player: AudioStreamPlayer3D
 ## Song-end and danger sounds: the saber ignition reversed into a low thump for a fail (tools/make_fail_sound.py),
 ## a rising chord for a cleared song and a heartbeat that loops while health is low (tools/make_feedback_sounds.py).
 const FAIL_SOUND := preload("res://game/data/fail.wav")
@@ -131,21 +174,123 @@ const MILESTONE_RUMBLE_SECONDS := 0.12
 const MILESTONE_RUMBLE_DELAY := 0.12
 # true while the "Failed" moment plays, before the score screen
 var failing := false
+# the last song start's timing, kept while it watches the frames after the start
+var _start_timing: StartTiming
+## Starting a song from the menu (owner, 2026-10-28: slashing Play froze the view). On the Pico a start took 70-90 ms
+## (reading the map 10, parsing it 31-37, loading the song 22-27) and the next frame 30-40 ms (cuts bench, d23b0c6).
+## So the picked difficulty's map file and song are read on a worker thread as soon as they're picked (_preload), and
+## the rest runs behind a short black fade: START_FADE_SECONDS down, the start, START_HOLD_SECONDS while its first
+## frames draw, back up.
+## The fade waits START_SPARK_SECONDS first, so the play block's cut (its sparks and halves) shows before the black
+## (owner, 2026-10-28).
+const START_SPARK_SECONDS := 0.3
+const START_FADE_SECONDS := 0.15
+const START_HOLD_SECONDS := 0.2
+## Seconds a difficulty must stay picked before _preload reads it, so scrolling through the song list doesn't read
+## every song it passes (owner, 2026-10-29: scrolling the list froze while each step waited for the last song's read).
+const PRELOAD_DELAY_SECONDS := 0.25
+var _preload_key := ""
+## whether the read of _preload_key has started (it waits PRELOAD_DELAY_SECONDS first)
+var _preload_started := false
+var _preload_task := -1
+var _preloaded := {}
+## the reads not yet collected (by their task id): the one under way, and those of songs scrolled past
+var _preload_running := {}
 
-func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
-	var map_data := Utils.binary_to_json(Utils.read_binary_file(info.filepath, map_difficulty.beatmap_filename))
+## Reads the map file and the song of `difficulty` of `info` on a worker thread once it has stayed picked for
+## PRELOAD_DELAY_SECONDS, unless that's the one read. Never waits for an earlier read: that one finishes on its own.
+func _preload(info: MapInfo, difficulty: DifficultyInfo) -> void:
+	var key := info.filepath + difficulty.beatmap_filename
+	if key == _preload_key:
+		return
+	_preload_key = key
+	_preload_started = false
+	_preloaded = {}
+	await get_tree().create_timer(PRELOAD_DELAY_SECONDS).timeout
+	if key != _preload_key or _preload_started:
+		return
+	_preload_started = true
+	var task := WorkerThreadPool.add_task(_read_song.bind(info, difficulty, _preloaded))
+	_preload_task = task
+	_preload_running[task] = true
+	while not WorkerThreadPool.is_task_completed(task):
+		await get_tree().process_frame
+	if _preload_running.erase(task):
+		WorkerThreadPool.wait_for_task_completion(task)
+
+## Reads the map file (as "map_data"), its v4 lightshow file (as "lightshow_data", {} without one) and the song (as
+## "stream", with its file's "size") into `into`; on a worker.
+static func _read_song(info: MapInfo, difficulty: DifficultyInfo, into: Dictionary) -> void:
+	into["map_data"] = Utils.binary_to_json(Utils.read_binary_file(info.filepath, difficulty.beatmap_filename))
+	into["lightshow_data"] = _read_lightshow(info, difficulty)
+	var filename := info.filepath + info.song_filename
+	if FileAccess.file_exists(filename):
+		into["stream"] = AudioStreamOggVorbis.load_from_file(filename)
+		into["size"] = FileAccess.open(filename, FileAccess.READ).get_length()
+
+## The v4 lightshow file of `difficulty` of `info`, {} when it names none or it can't be read (the map then plays
+## without lights).
+static func _read_lightshow(info: MapInfo, difficulty: DifficultyInfo) -> Dictionary:
+	if difficulty.lightshow_filename.is_empty():
+		return {}
+	var data := Utils.binary_to_json(Utils.read_binary_file(info.filepath, difficulty.lightshow_filename))
+	if data.is_empty():
+		push_warning("Could not read the lightshow " + info.filepath + "/" + difficulty.lightshow_filename)
+	return data
+
+## What was read for `difficulty` of `info` (waiting for it if it's still being read, reading it now if it was picked
+## too recently to have started), {} if something else was. It stays, so a restart of the song finds it in memory.
+func _take_preload(info: MapInfo, difficulty: DifficultyInfo) -> Dictionary:
+	if _preload_key != info.filepath + difficulty.beatmap_filename:
+		return {}
+	if not _preload_started:
+		# behind the start's black fade, like the rest of the start
+		_preload_started = true
+		_read_song(info, difficulty, _preloaded)
+	elif _preload_running.erase(_preload_task):
+		WorkerThreadPool.wait_for_task_completion(_preload_task)
+	return _preloaded
+
+## Starts a song behind a short black fade (START_*): from the song menu after the play block's sparks, on a restart
+## (`restart`, owner, 2026-10-28) at once.
+func start_map(info: MapInfo, map_difficulty: DifficultyInfo, restart := false) -> void:
+	var from_menu := gamestate == gamestate_mapselection
+	var faded := (from_menu or restart) and _result_moment != null
+	if faded:
+		if from_menu:
+			await get_tree().create_timer(START_SPARK_SECONDS).timeout
+		await _result_moment.fade_out(START_FADE_SECONDS)
+	_start_map(info, map_difficulty)
+	if faded:
+		await get_tree().create_timer(START_HOLD_SECONDS).timeout
+		_result_moment.fade_in(START_FADE_SECONDS)
+
+## Loads the song and its map (using what _preload read when it's this one), sets the stage up and starts playing.
+func _start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
+	points_label_driver.visible = true
+	var timing := StartTiming.new()
+	_start_timing = timing
+	var preloaded := _take_preload(info, map_difficulty)
+	var map_data: Dictionary = preloaded["map_data"] if preloaded.has("map_data") else \
+			Utils.binary_to_json(Utils.read_binary_file(info.filepath, map_difficulty.beatmap_filename))
 	
 	if (map_data.is_empty()):
 		vr.log_error("Could not read map data from " + info.filepath + "/" + map_difficulty.beatmap_filename)
-	if not Map.load_beatmap(info, map_difficulty, map_data):
+	timing.lap("read")
+	var lightshow_data: Dictionary = preloaded["lightshow_data"] if preloaded.has("lightshow_data") else \
+			_read_lightshow(info, map_difficulty)
+	if not Map.load_beatmap(info, map_difficulty, map_data, lightshow_data):
 		menu.show_play_error()
 		return
+	timing.lap("parse")
 		
 	event_driver.set_environment(EventDriver.pick_environment(info))
+	timing.lap("stage")
 	# for reading GPU timings on the headset by environment
 	print("Song starts in environment %s, smoke %s, debug_view %d" % [event_driver.environment, Settings.smoke, DebugView.flags])
 	print("song_info %s | %s | speed %d" % [info.song_name, MapStats.level_name(info, map_difficulty), Settings.music_speed])
 	event_driver.set_background_texture()
+	timing.lap("sky")
 	
 	event_driver.set_menu_focus(false)
 	update_left_color(Map.color_left)
@@ -157,16 +302,23 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	# stays dark (the owner's choice, doc/world/GAME_BIBLE.md): the notes, sabers and platform light themselves
 	event_driver.set_all_off()
 	event_driver.start_show(Map.event_stack, info.beats_per_minute)
+	timing.lap("colours_show")
 	
 	var filename := info.filepath + info.song_filename
 	vr.log_info("loading: " + filename)
-	if FileAccess.file_exists(filename):
+	if preloaded.has("stream"):
+		song_player.stream = preloaded["stream"]
+		Loudness.apply(song_player.bus, song_player.stream, Loudness.key(preloaded["size"], song_player.stream))
+	elif FileAccess.file_exists(filename):
 		song_player.stream = AudioStreamOggVorbis.load_from_file(filename)
+		Loudness.apply(song_player.bus, song_player.stream, Loudness.key(FileAccess.open(filename, FileAccess.READ).get_length(),
+				song_player.stream))
 	else:
 		var audio_data : PackedByteArray
 		audio_data = Utils.read_binary_file(info.filepath, info.song_filename)
 		if len(audio_data) > 0:
 			song_player.stream = AudioStreamOggVorbis.load_from_buffer(audio_data)
+			Loudness.apply(song_player.bus, song_player.stream, Loudness.key(audio_data.size(), song_player.stream))
 		else:
 			vr.log_info("playing silence")
 			var wav := AudioStreamWAV.new()
@@ -180,11 +332,14 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 			wav.set_data(data)
 			song_player.stream = wav
 	
+	timing.lap("audio")
 	_audio_synced_after_restart = false
 	song_player.stop()
-	lead_in = maxf(LEAD_IN_MIN_SECONDS, Map.half_jump_beats / Map.beats_per_second())
+	# room for the first notes to fly in and jump (Cuttable.FLY_SECONDS)
+	lead_in = maxf(LEAD_IN_MIN_SECONDS, Map.half_jump_beats / Map.beats_per_second() + Cuttable.FLY_SECONDS)
 	song_player.volume_db = 0.0
 	song_player.pitch_scale = Settings.music_speed / 100.
+	_remove_fail_filter()
 	_in_wall = false
 	Scoreboard.restart()
 	
@@ -195,10 +350,13 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	current_health = Health.start_value(Settings.health_mode, Settings.fail_mode)
 	if Settings.health_mode:
 		health_rails.start_map(Settings.fail_mode == Constants.FAIL_MODE_LIVES, current_health / Constants.HEALTH_MAX, _eye())
+		hud.show_health(current_health / Constants.HEALTH_MAX)
 	
 	_clear_track()
 	_lowered_resolution = false
 	_transition_game_state(gamestate_playing)
+	timing.lap("rest")
+	timing.report()
 
 ## Changes health by delta in the health bar mode. mistake is a miss, bad cut, bomb or wall
 ## entry, which costs a life in 4 Lives mode and ends the song in Instant Fail mode.
@@ -211,6 +369,7 @@ func update_health(delta: float, mistake: bool = false) -> void:
 		return
 	if Settings.health_mode:
 		health_rails.update_health(current_health / Constants.HEALTH_MAX)
+		hud.show_health(current_health / Constants.HEALTH_MAX)
 		if current_health <= 0 and gamestate == gamestate_playing and not failing:
 			_fail_song()
 		_update_low_health_sound()
@@ -224,17 +383,22 @@ func _update_low_health_sound() -> void:
 	elif not low and _low_health_player.playing:
 		_low_health_player.stop()
 
-## Shows "Failed" while the song winds down and the track freezes, then the score screen.
+## Shows "FAILED" in the play space while the song winds down and the track freezes, fades to black, then the score
+## screen fades up.
 func _fail_song() -> void:
 	failing = true
+	_failed_at = get_current_time()
+	event_driver.set_all_off()
 	Scoreboard.paused = true
 	_update_low_health_sound()
 	_song_end_player.stream = FAIL_SOUND
 	_song_end_player.play()
 	left_saber.set_swingcast_enabled(false)
 	right_saber.set_swingcast_enabled(false)
-	pause_countdown.set_label_text("Failed")
-	pause_countdown.visible = true
+	_empty_track()
+	# the score and combo panels and the energy strips are gone by the time FAILED shows (owner, 2026-10-29)
+	hud.fade_out(FAIL_WORD_DELAY)
+	health_rails.fade_out(FAIL_WORD_DELAY)
 	var tw := create_tween().set_parallel()
 	# the frozen wall that failed the song would otherwise keep the controllers buzzing
 	_in_wall = false
@@ -242,12 +406,101 @@ func _fail_song() -> void:
 		var from := controller.get_rumble_intensity()
 		if from > 0.0:
 			tw.tween_method(func(amount: float) -> void: controller.simple_rumble(amount, 0.05), from, 0.0, FAIL_RUMBLE_FADE_SECONDS)
-	tw.tween_property(song_player, ^"pitch_scale", 0.3, FAIL_SECONDS)
-	tw.tween_property(song_player, ^"volume_db", -30.0, FAIL_SECONDS)
+	_fail_filter.cutoff_hz = FAIL_CUTOFF_FROM_HZ
+	AudioServer.add_bus_effect(AudioServer.get_bus_index(song_player.bus), _fail_filter)
+	tw.tween_method(func(octaves: float) -> void: _fail_filter.cutoff_hz = FAIL_CUTOFF_FROM_HZ * pow(2.0, -octaves),
+			0.0, log(FAIL_CUTOFF_FROM_HZ / FAIL_CUTOFF_TO_HZ) / log(2.0), FAIL_SWEEP_SECONDS)
+	tw.tween_property(song_player, ^"volume_db", FAIL_SILENT_DB, FAIL_TAIL_SECONDS).set_delay(FAIL_SWEEP_SECONDS)
+	var show_word := func() -> void:
+		event_driver.result_mood(true)
+		_result_moment.show_failed(_eye())
+	tw.tween_callback(show_word).set_delay(FAIL_WORD_DELAY)
+	tw.tween_interval(FAIL_WORD_DELAY + FAIL_WORD_SECONDS)
 	await tw.finished
-	pause_countdown.visible = false
+	await _result_moment.fade_out()
+	_result_moment.hide_failed()
 	failing = false
 	_on_song_ended()
+	_result_moment.fade_in()
+
+## The song played to its end: a short fade to black, then the score screen fades up.
+func _on_song_finished() -> void:
+	await _result_moment.fade_out()
+	_on_song_ended()
+	_result_moment.fade_in()
+
+## The track empties over FAIL_CLEAR_SECONDS (owner, 2026-10-28: things should fall, land and fade, not shrink). Notes,
+## chain links and bombs fall under FAIL_FALL_GRAVITY with a little tumble (up to FAIL_TUMBLE rad/s round a random
+## axis), land on the floor (y 0, FAIL_REST_HEIGHT their half height), bounce with FAIL_BOUNCE of their speed and lose
+## FAIL_LAND_SPIN of their tumble on each landing, then from FAIL_FADE_FROM of the window notes and links dissolve from
+## the top down (their cut shader's vanish) and bombs shrink away. Walls and arcs, long and fixed to the track, sink into
+## the deck instead. Cheap per-object maths, no physics bodies. The cut numbers go at once; the floor reflection goes
+## when the fading starts (it mirrors the landed notes until then). Then the track is cleared, the pooled ones released
+## with their transforms and shader state put back, so the play space is empty before FAILED.
+func _empty_track() -> void:
+	points_label_driver.visible = false
+	var rests := {}
+	var falling := []
+	for c: Node in track.get_children():
+		if not (c is Node3D and (c as Node3D).visible):
+			continue
+		var node := c as Node3D
+		rests[node] = node.transform
+		if node is Wall or node is Arc:
+			falling.append({node = node, sink = true})
+		else:
+			falling.append({node = node, sink = false, velocity = 0.0, angle = 0.0,
+				axis = Vector3(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)).normalized(),
+				spin = randf_range(-FAIL_TUMBLE, FAIL_TUMBLE)})
+	var t := 0.0
+	while t < FAIL_CLEAR_SECONDS and not falling.is_empty():
+		await get_tree().process_frame
+		var dt := get_process_delta_time()
+		t += dt
+		var fade := clampf((t / FAIL_CLEAR_SECONDS - FAIL_FADE_FROM) / (1.0 - FAIL_FADE_FROM), 0.0, 1.0)
+		if fade > 0.0:
+			_floor_reflection.enabled = false
+		for body: Dictionary in falling:
+			var node: Node3D = body.node
+			var rest: Transform3D = rests[node]
+			if not is_instance_valid(node):
+				continue
+			if body.sink:
+				node.position.y = rest.origin.y - FAIL_SINK_DEPTH * ease(t / FAIL_CLEAR_SECONDS, 2.0)
+				continue
+			body.velocity -= FAIL_FALL_GRAVITY * dt
+			var y: float = node.position.y + body.velocity * dt
+			if y < FAIL_REST_HEIGHT and body.velocity < 0.0:
+				y = FAIL_REST_HEIGHT
+				body.velocity = -body.velocity * FAIL_BOUNCE
+				body.spin *= 1.0 - FAIL_LAND_SPIN
+			body.angle += body.spin * dt
+			node.transform = Transform3D(rest.basis.rotated(body.axis, body.angle), Vector3(node.position.x, y, node.position.z))
+			if node is BeepCube or node is ChainLink:
+				var material: ShaderMaterial = node._mat
+				material.set_shader_parameter(&"cutted", fade > 0.0)
+				material.set_shader_parameter(&"cut_plane_normal", Vector3.DOWN)
+				material.set_shader_parameter(&"cut_plane_dist", -FAIL_DISSOLVE_SPAN)
+				material.set_shader_parameter(&"cut_vanish", fade * 2.0 * FAIL_DISSOLVE_SPAN)
+			elif fade > 0.0:
+				node.scale = rest.basis.get_scale() * (1.0 - fade)
+	_clear_track()
+	_floor_reflection.enabled = true
+	for c: Node3D in rests:
+		if is_instance_valid(c):
+			c.transform = rests[c]
+			if c is BeepCube or c is ChainLink:
+				var material: ShaderMaterial = c._mat
+				material.set_shader_parameter(&"cutted", false)
+				material.set_shader_parameter(&"cut_vanish", 0.0)
+
+## Takes the fail's low-pass off the song's bus, if a fail left it there.
+func _remove_fail_filter() -> void:
+	var bus := AudioServer.get_bus_index(song_player.bus)
+	for i in AudioServer.get_bus_effect_count(bus):
+		if AudioServer.get_bus_effect(bus, i) == _fail_filter:
+			AudioServer.remove_bus_effect(bus, i)
+			return
 			
 # This function will transitioning the game from it's current state into
 # the provided 'next_state'.
@@ -279,21 +532,28 @@ func show_MapSourceDialogs(showing: bool = true) -> void:
 			(c as OQ_UI2DCanvas)._hide()
 
 ## Opens the BeatSaver page where the song menu was; closing it brings the menu back.
+## While Get songs is open the stage behind it goes quiet (owner, 2026-10-28, option ก): no beams, dust, scenery detail
+## or floor reflection, through DebugView's bits, so the page's GPU headroom stops running out while it is dragged
+## (GPU 10-14 ms of the 13.9 ms frame there, headset 1073fc0). Only the bits this turned on are turned off again.
+const BEATSAVER_QUIET := DebugView.LASERS | DebugView.DUST | DebugView.FLAT_SCENERY | DebugView.NO_REFLECTION
+var _quieted := 0
+
 func _open_beatsaver() -> void:
-	_menu_highscores_shown = highscore_canvas.visible
+	_quieted = BEATSAVER_QUIET & ~DebugView.flags
+	DebugView.flags |= _quieted
 	main_menu._hide()
-	highscore_canvas._hide()
 	# the song menu's keyboard sits where the BeatSaver one opens
 	highscore_keyboard._hide()
 	beatsaver_canvas._show()
 
 ## Brings the song menu back once the BeatSaver page closes in the song menu.
 func _on_beatsaver_visibility_changed() -> void:
+	if not beatsaver_canvas.visible and _quieted:
+		DebugView.flags &= ~_quieted
+		_quieted = 0
 	if not beatsaver_canvas.visible and gamestate == gamestate_mapselection:
 		online_search_keyboard._hide()
 		main_menu._show()
-		if _menu_highscores_shown:
-			highscore_canvas._show()
 		# the BeatSaver preview stops; the selected song's preview comes back
 		menu.play_selected_preview(0.0, true)
 
@@ -302,9 +562,9 @@ func _show_name_card() -> void:
 	var records := Highscores.get_records(Map.current_info,
 		HighscoreTable.get_rank_key(Map.current_difficulty.difficulty_rank))
 	if not _new_record.is_empty():
-		endscore.show_name_card("Saved as %s" % _new_record.player_name)
+		endscore.show_name_card("Saved as %s" % _new_record.player_name, true)
 	elif not records.is_empty():
-		endscore.show_name_card("Best on this map: %d by %s" % [records[0].score, records[0].player_name])
+		endscore.show_name_card("Best on this map: %s by %s" % [Hud._grouped(records[0].score), records[0].player_name])
 	else:
 		endscore.hide_name_card()
 	if _lowered_resolution:
@@ -372,6 +632,19 @@ const COUNTDOWN_TICK := preload("res://game/data/countdown_tick.wav")
 const COUNTDOWN_GO := preload("res://game/data/countdown_go.wav")
 var _countdown_player := AudioStreamPlayer.new()
 
+## The countdown's digit height in metres, as the old 16 px Roboto digit drawn 4.587 times larger (0.051 m at 0.65 m,
+## about 4.5 degrees); Kanit's digits stand as tall as its capitals (ResultMoment.CAP_SHARE).
+const COUNTDOWN_DIGIT_HEIGHT := 0.051
+const COUNTDOWN_FONT_SIZE := 100
+const COUNTDOWN_OUTLINE_SIZE := 16
+
+const PAUSE_SOUND := preload("res://game/data/pause.wav")
+
+## Plays the falling notes for the song pausing (resuming has the countdown).
+func play_pause_sound() -> void:
+	_countdown_player.stream = PAUSE_SOUND
+	_countdown_player.play()
+
 ## Plays the countdown sound for seconds left (0: go).
 func play_countdown(seconds: int) -> void:
 	_countdown_player.stream = COUNTDOWN_TICK if seconds > 0 else COUNTDOWN_GO
@@ -379,11 +652,19 @@ func play_countdown(seconds: int) -> void:
 
 func _ready() -> void:
 	track.position.z = Constants.HIT_PLANE_Z
+	cut_flash.sabers = [left_saber, right_saber]
 	add_child(cut_flash)
-	_make_sparks()
 	_countdown_player.bus = &"SFX"
 	add_child(_countdown_player)
-	_mistake_player = AudioStreamPlayer.new()
+	# the countdown in the numbers' font (Hud.NUMBER_FONT), outlined in the panel colour to read over the stage
+	pause_countdown.font = Hud.NUMBER_FONT
+	pause_countdown.font_size = COUNTDOWN_FONT_SIZE
+	pause_countdown.pixel_size = COUNTDOWN_DIGIT_HEIGHT / (ResultMoment.CAP_SHARE * COUNTDOWN_FONT_SIZE)
+	pause_countdown.outline_size = COUNTDOWN_OUTLINE_SIZE
+	pause_countdown.modulate = Constants.UI_TEXT
+	pause_countdown.outline_modulate = Constants.UI_PANEL
+	_mistake_player = AudioStreamPlayer3D.new()
+	_mistake_player.attenuation_model = AudioStreamPlayer3D.ATTENUATION_DISABLED
 	_mistake_player.bus = &"SFX"
 	_mistake_player.max_polyphony = 2
 	add_child(_mistake_player)
@@ -394,6 +675,7 @@ func _ready() -> void:
 	_low_health_player = AudioStreamPlayer.new()
 	_low_health_player.bus = &"SFX"
 	_low_health_player.stream = LOW_HEALTH_SOUND
+	_low_health_player.volume_db = LOW_HEALTH_GAIN_DB
 	add_child(_low_health_player)
 	# pre-allocate scenes in our scene pools
 	GlobalReferences.cube_pool = $BeepCubePool
@@ -454,6 +736,10 @@ func _ready() -> void:
 	warnings.name = &"WarningIcon"
 	warnings.game = self
 	add_child(warnings)
+	var clock := MenuClock.new()
+	clock.name = &"MenuClock"
+	clock.game = self
+	add_child(clock)
 	settings_panel.benchmark_requested.connect(func() -> void:
 		_on_settings_Panel_apply()
 		_start_benchmark())
@@ -476,6 +762,15 @@ func _ready() -> void:
 	(multiplier_label as ComboHud).milestone_reached.connect(_on_combo_milestone)
 	hud = Hud.new(point_label, multiplier_label as ComboHud, percent_indicator)
 	add_child(hud)
+	_floor_reflection = FloorReflection.new(track, [left_saber, right_saber], event_driver.track_deck)
+	event_driver.platform = standing_ground
+	# the HUD and the energy strips beside the track turn with it on 90/360 maps
+	event_driver.track_turned.connect(func(angle: float) -> void:
+		hud.turn(angle)
+		health_rails.transform = TrackDeck.turned(angle))
+	add_child(_floor_reflection)
+	_result_moment = ResultMoment.new($XROrigin3D/XRCamera3D as Node3D)
+	add_child(_result_moment)
 	@warning_ignore("return_value_discarded")
 	Scoreboard.points_awarded.connect(points_label_driver.show_points)
 	
@@ -592,29 +887,8 @@ var _lowered_resolution := false
 ## Seconds of songs played this session (WarningIcon suggests a break after 30 minutes).
 var played_seconds := 0.0
 
-## Buzzes both controllers while the two blades touch.
-## Sparks fly from where the blades touch: short glowing streaks on CPU particles, hot white cooling to orange
-## as they fall. Untuned.
-var _sparks := CPUParticles3D.new()
-const SPARKS_AMOUNT := 24
-
-func _make_sparks() -> void:
-	_sparks.mesh = CutFlash.spark_mesh()
-	_sparks.particle_flag_align_y = true
-	_sparks.amount = SPARKS_AMOUNT
-	_sparks.lifetime = 0.35
-	_sparks.local_coords = false
-	_sparks.emitting = false
-	_sparks.direction = Vector3.UP
-	_sparks.spread = 180.0
-	_sparks.initial_velocity_min = 0.6
-	_sparks.initial_velocity_max = 1.6
-	_sparks.gravity = Vector3(0.0, -4.0, 0.0)
-	var ramp := Gradient.new()
-	ramp.set_color(0, Color(1.0, 0.95, 0.85))
-	ramp.set_color(1, Color(1.0, 0.45, 0.1, 0.0))
-	_sparks.color_ramp = ramp
-	add_child(_sparks)
+# whether the blades touched last frame (logged when it changes, for matching GPU timings on the headset)
+var _clashing := false
 
 ## Sparks and a buzz in both controllers while the two blades touch.
 func _rumble_on_clash() -> void:
@@ -627,10 +901,12 @@ func _rumble_on_clash() -> void:
 	if touching:
 		left_controller.simple_rumble(CLASH_RUMBLE, 0.05)
 		right_controller.simple_rumble(CLASH_RUMBLE, 0.05)
-		_sparks.global_position = (closest[0] + closest[1]) * 0.5
-	if touching != _sparks.emitting:
-		_sparks.emitting = touching
-		# for matching GPU timings on the headset
+		# the cut sparks (CutFlash.spray), in either blade's colour in turn
+		var saber := left_saber if randi() % 2 == 0 else right_saber
+		cut_flash.spray(CutFlash.SPRAY_CLASH, (closest[0] + closest[1]) * 0.5, Vector3.UP,
+				saber.saber_visual.get_color())
+	if touching != _clashing:
+		_clashing = touching
 		print("saber_clash ", touching)
 
 func _process(delta: float) -> void:
@@ -677,8 +953,10 @@ func on_settings_changed(key: StringName) -> void:
 				right_ui_raycast.active = true
 		&"color_left":
 			update_left_color(Settings.color_left)
+			_update_slash_block()
 		&"color_right":
 			update_right_color(Settings.color_right)
+			_update_slash_block()
 		&"width":
 			event_driver.set_background()
 		&"background", &"smoke", &"old_track":
@@ -699,7 +977,10 @@ func on_settings_changed(key: StringName) -> void:
 		&"note_style", &"darker_notes", &"classic_notes":
 			_apply_note_style()
 		&"environment":
-			_apply_environment()
+			if gamestate == gamestate_mapselection and _result_moment:
+				_switch_stage_in_black()
+			else:
+				_apply_environment()
 		&"player_height_offset":
 			if not _height_held:
 				xr_origin.transform.origin.y = Constants.view_shift(Settings.player_height_offset)
@@ -717,6 +998,18 @@ func _apply_note_style() -> void:
 func _apply_environment() -> void:
 	event_driver.set_environment(EventDriver.pick_environment(Map.current_info))
 
+## Changes the stage behind a short black fade (STAGE_*), following the latest pick if it changes meanwhile.
+func _switch_stage_in_black() -> void:
+	if _stage_switching:
+		return
+	_stage_switching = true
+	await _result_moment.fade_out(STAGE_FADE_SECONDS)
+	while event_driver.environment != EventDriver.pick_environment(Map.current_info):
+		_apply_environment()
+		await get_tree().create_timer(STAGE_HOLD_SECONDS).timeout
+	_stage_switching = false
+	_result_moment.fade_in(STAGE_FADE_SECONDS)
+
 func set_colors_from_settings() -> void:
 	# only the menus use the settings' colours: dim the scene so the menu holds the eye
 	event_driver.set_menu_focus(true)
@@ -724,14 +1017,18 @@ func set_colors_from_settings() -> void:
 	update_right_color(Settings.color_right)
 	event_driver.set_background()
 
-## Plays the sound for a bad cut or wrong saber, or for a bomb hit.
-func play_mistake_sound(bomb: bool) -> void:
+## Plays the sound for a bad cut or wrong saber, or for a bomb hit, from where it happened.
+func play_mistake_sound(bomb: bool, at: Vector3) -> void:
+	_mistake_player.position = at
 	_mistake_player.stream = BOMB_HIT_SOUND if bomb else BAD_CUT_SOUND
+	_mistake_player.volume_db = BOMB_GAIN_DB if bomb else 0.0
 	_mistake_player.play()
 
-## Plays the soft sound for a note that flew past uncut.
-func play_miss_sound() -> void:
+## Plays the soft sound for a note that flew past uncut, from where it was.
+func play_miss_sound(at: Vector3) -> void:
+	_mistake_player.position = at
 	_mistake_player.stream = MISS_SOUND
+	_mistake_player.volume_db = MISS_GAIN_DB
 	_mistake_player.play()
 
 ## Colours walls and bombs with the song's danger colour.
@@ -791,7 +1088,7 @@ func _display_points() -> void:
 ## eye), so each keeps the angle it was laid out at. The slash note places itself (SlashBlock.set_shown).
 const MENU_NODES: Array[NodePath] = [^"MainMenu_OQ_UI2DCanvas", ^"PauseMenu_canvas", ^"Pause_countdown",
 	^"Settings_canvas", ^"MapSourceDialogs", ^"Keyboard_online_search", ^"Keyboard_highscore", ^"Profiles_canvas",
-	^"EndScore", ^"WarningIcon"]
+	^"EndScore", ^"WarningIcon", ^"MenuClock"]
 ## how far the menus are raised for the player's eye (Hud.HUD_EYE is 0)
 var menu_lift := 0.0
 ## each menu node's laid-out place
@@ -866,6 +1163,7 @@ func _on_song_ended() -> void:
 		current_percent = -1
 	else:
 		current_percent = Scoreboard.accuracy()
+		event_driver.result_mood(false)
 		_song_end_player.stream = CLEAR_SOUND
 		_song_end_player.play()
 	print(Scoreboard.summary())
@@ -879,7 +1177,9 @@ func _on_song_ended() -> void:
 			MapStats.level_name(Map.current_info, Map.current_difficulty),
 			Map.current_info.level_author_name],
 		Scoreboard.full_combo,
-		new_record
+		new_record,
+		_failed_at,
+		song_player.stream.get_length() if song_player.stream else 0.0
 	)
 	
 	if not failed and Highscores.is_new_highscore(Map.current_info,Map.current_difficulty.difficulty_rank,Scoreboard.points):
@@ -888,7 +1188,8 @@ func _on_song_ended() -> void:
 			Map.current_info,
 			Map.current_difficulty.difficulty_rank,
 			_default_player_name(),
-			Scoreboard.points)
+			Scoreboard.points,
+			Scoreboard.accuracy())
 		_show_name_card()
 		_transition_game_state(gamestate_newhighscore)
 	else:
@@ -901,7 +1202,7 @@ static func _default_player_name() -> String:
 	return player_name if not player_name.is_empty() else "Player"
 
 func _restart_button() -> void:
-	start_map(Map.current_info, Map.current_difficulty)
+	start_map(Map.current_info, Map.current_difficulty, true)
 	endscore.visible = false
 	pause_menu.visible = false
 
@@ -938,10 +1239,11 @@ func _unpause_button() -> void:
 	show_sabers_for_map()
 	pause_countdown.visible = true
 	track.visible = true
+	# a second per number, so "3" means three seconds to get ready
 	for seconds in [3, 2, 1]:
-		pause_countdown.set_label_text(str(seconds))
+		pause_countdown.text = str(seconds)
 		play_countdown(seconds)
-		await get_tree().create_timer(0.5).timeout
+		await get_tree().create_timer(1.0).timeout
 	pause_countdown.visible = false
 	play_countdown(0)
 	
@@ -951,18 +1253,17 @@ func _unpause_button() -> void:
 	_transition_game_state(gamestate_playing)
 
 func _on_BeepSaberMainMenu_difficulty_changed(map_info: MapInfo, diff_rank: int) -> void:
-	if diff_rank < 0:
-		if highscore_canvas:
-			highscore_canvas.hide()
-		return
-		
-	# menu loads playlist in _ready(), must yield until scene is loaded
-	if not highscore_canvas:
-		await self.ready
-	
-	highscore_canvas.transform = lifted(HIGHSCORES_MENU_TRANSFORM)
-	highscore_canvas._show()
-	highscore_panel.load_highscores(map_info,diff_rank)
+	# the menu loads its playlist in its _ready(), before this node's
+	if not menu:
+		await ready
+	# the ranks sit in the song menu's left panel, under the song
+	var ranks := menu.get_node(^"Ranks") as HighscorePanel
+	ranks.visible = diff_rank >= 0
+	if diff_rank >= 0:
+		ranks.load_highscores(map_info, diff_rank)
+	var difficulty := menu.picked_difficulty()
+	if map_info and difficulty and map_info.have_song:
+		_preload(map_info, difficulty)
 
 ## Shows the note to slash, in the selected song's colours, while the song menu is open with a song picked and
 ## nothing (keyboard, "Who's playing?") in front of it.
@@ -982,7 +1283,13 @@ func _update_slash_block() -> void:
 		return
 	var difficulty := menu.selected_difficulty()
 	if difficulty:
-		slash_block.set_note(Map.note_colors(menu.selected_map(), difficulty))
+		# the map's colours, or the player's while the Map colors chip is off (Map.note_colors)
+		var colors := Map.note_colors(menu.selected_map(), difficulty)
+		slash_block.set_note(colors)
+		# the sabers take them too, so the player holds the colours the song will play in (owner, 2026-10-27)
+		if gamestate == gamestate_mapselection:
+			left_saber.set_color(colors[0])
+			right_saber.set_color(colors[1])
 	slash_block.set_shown(gamestate == gamestate_mapselection and main_menu.visible and not main_menu.disable_collision
 			and not highscore_keyboard.visible and menu.has_song_picked())
 
@@ -996,9 +1303,30 @@ func _open_profiles() -> void:
 	main_menu.disable_collision = true
 	_update_slash_block()
 
-## Closes "Who's playing?" and shows the (maybe new) current player's records in the menu.
+## "Not you?" on the score screen (owner, 2026-10-28): "Who's playing?" opens in its place; whoever is picked (or added)
+## when it closes becomes the current player and gets this run's record (_close_profiles). A better record that player
+## already has on the map stays too: the table keeps both rows.
+var _naming_record := false
+
+func _change_record_player() -> void:
+	_naming_record = true
+	# the score screen and its records stood in front of the list (owner, 2026-10-28): out of the way meanwhile
+	endscore._hide()
+	highscore_canvas._hide()
+	_open_profiles()
+
+## Closes "Who's playing?" and shows the (maybe new) current player's records in the menu, or, opened from the score
+## screen, moves this run's record to them.
 func _close_profiles() -> void:
 	profiles_canvas._hide()
+	if _naming_record:
+		_naming_record = false
+		endscore._show()
+		highscore_canvas._show()
+		if not _new_record.is_empty() and _new_record.player_name != Settings.player_name:
+			Highscores.rename_record(_new_record, Settings.player_name)
+		highscore_panel.load_highscores(Map.current_info, Map.current_difficulty.difficulty_rank, _new_record)
+		_show_name_card()
 	main_menu.disable_collision = false
 	menu.update_view()
 	_update_slash_block()
@@ -1012,6 +1340,11 @@ var _height_held := false
 var _height_notice := Label3D.new()
 var _height_notice_back := MeshInstance3D.new()
 const HEIGHT_NOTICE_PADDING := 0.03
+const HEIGHT_NOTICE_FONT_SIZE := 56
+const HEIGHT_NOTICE_PIXEL_SIZE := 0.001
+## The notice's countdown digit, in the numbers' font on the notice's last line, as tall as the 56 px digit it replaced.
+var _height_digit := Label3D.new()
+const HEIGHT_DIGIT_HEIGHT := 0.04
 ## The current player's Settings.players entry when "Who's playing?" opened (a rename keeps the entry).
 var _height_player := {}
 
@@ -1027,8 +1360,8 @@ func _adjust_height() -> void:
 		_height_held = false
 		return
 	if not _height_notice.is_inside_tree():
-		_height_notice.font_size = 56
-		_height_notice.pixel_size = 0.001
+		_height_notice.font_size = HEIGHT_NOTICE_FONT_SIZE
+		_height_notice.pixel_size = HEIGHT_NOTICE_PIXEL_SIZE
 		_height_notice.outline_size = 12
 		_height_notice.modulate = Constants.UI_TEXT
 		_height_notice.outline_modulate = Constants.UI_PANEL
@@ -1044,11 +1377,24 @@ func _adjust_height() -> void:
 		_height_notice_back.mesh = QuadMesh.new()
 		_height_notice_back.material_override = back_material
 		_height_notice.add_child(_height_notice_back)
+		_height_digit.font = Hud.NUMBER_FONT
+		_height_digit.font_size = COUNTDOWN_FONT_SIZE
+		_height_digit.pixel_size = HEIGHT_DIGIT_HEIGHT / (ResultMoment.CAP_SHARE * COUNTDOWN_FONT_SIZE)
+		_height_digit.outline_size = COUNTDOWN_OUTLINE_SIZE
+		_height_digit.modulate = Constants.UI_TEXT
+		_height_digit.outline_modulate = Constants.UI_PANEL
+		_height_digit.no_depth_test = true
+		_height_digit.render_priority = Material.RENDER_PRIORITY_MAX
+		_height_notice.add_child(_height_digit)
 	_height_notice.visible = true
 	for seconds in [3, 2, 1]:
-		_height_notice.text = ("Measuring height for %s\nStand straight, look ahead\n%d" if measure
-				else "Adjusting height for %s\n%d") % [Settings.player_name, seconds]
+		# the last line is left blank for the digit
+		_height_notice.text = ("Measuring height for %s\nStand straight, look ahead\n " if measure
+				else "Adjusting height for %s\n ") % Settings.player_name
+		_height_digit.text = str(seconds)
 		var font := _height_notice.font if _height_notice.font else ThemeDB.fallback_font
+		var lines := _height_notice.text.count("\n") + 1
+		_height_digit.position.y = -(lines - 1) * 0.5 * font.get_height(_height_notice.font_size) * _height_notice.pixel_size
 		var text_size := font.get_multiline_string_size(_height_notice.text, HORIZONTAL_ALIGNMENT_CENTER, -1,
 				_height_notice.font_size) * _height_notice.pixel_size
 		(_height_notice_back.mesh as QuadMesh).size = text_size + Vector2.ONE * HEIGHT_NOTICE_PADDING * 2.0
@@ -1139,3 +1485,31 @@ func _on_left_controller_profile_changed(role: String) -> void:
 		_set_hand(false, true)
 	else:
 		_set_hand(false, false)
+
+## How long each step of starting a song took, logged once as "START <step> <ms> ... total <ms>" to find what
+## freezes the view when a song starts (owner, 2026-10-28), and the frames after it as "START frame <ms>" while
+## they run over START_SLOW_FRAME seconds, for START_WATCH_FRAMES frames.
+class StartTiming:
+	const START_SLOW_FRAME := 0.025
+	const START_WATCH_FRAMES := 90
+	var _started := Time.get_ticks_usec()
+	var _last := _started
+	var _line := "START"
+
+	## Notes the time since the last step under `step`.
+	func lap(step: String) -> void:
+		var now := Time.get_ticks_usec()
+		_line += " %s %.1f" % [step, (now - _last) / 1000.0]
+		_last = now
+
+	## Prints the steps, then watches the next frames for slow ones.
+	func report() -> void:
+		print(_line + " total %.1f" % ((_last - _started) / 1000.0))
+		var tree := Engine.get_main_loop() as SceneTree
+		var before := Time.get_ticks_usec()
+		for frame in START_WATCH_FRAMES:
+			await tree.process_frame
+			var now := Time.get_ticks_usec()
+			if now - before > START_SLOW_FRAME * 1e6:
+				print("START frame %d %.1f" % [frame, (now - before) / 1000.0])
+			before = now

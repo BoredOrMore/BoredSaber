@@ -14,7 +14,8 @@ in `game/` point into it, and the canvas behaviour below is tuned for Pico 4 per
 - `OQ_UI2D/OQ_UI2DLabel.tscn` + `scripts/OQ_UI2DLabel.gd`: text on a quad, auto-sized, redraws once per change.
 - `OQ_UI2D/OQ_UI2DLogWindow.tscn`: shows the `vr` log ring buffer; mounted under `Settings_canvas`.
 - `OQ_UI2D/theme/`: Roboto fonts (used by `game/ui/menu_theme.tres`, `BlackWhiteThem.tres`, `EndScore.tscn`, and
-  served by `song_uploader.gd:93`), `oq_ui2d_standard.theme` (keyboard `TextEdit` only), `godot_splash_512.png`.
+  served by `song_uploader.gd:93`), `oq_ui2d_standard.theme` (label, log and notification windows; the keyboard's `TextEdit`
+  takes its field style from `game/ui/menu_theme.tres`), `godot_splash_512.png`.
 - `OQ_ARVROrigin/Feature_VRSimulator.tscn`: desktop keyboard/mouse stand-in, added when `!vr.inVR`
   (`game/BeepSaber_Game.gd:307-308`).
 
@@ -64,7 +65,8 @@ The Web branch (`vr_autoload.gd:189-193`) loads `res://game/scripts/webxr/webxr_
 - XR start-up, refresh rate, recenter: `vr_autoload.gd` `initialize`. OpenXR settings themselves live in
   `project.godot`; see the Pico constraints in the root `AGENTS.md`.
 - Pointer-to-2D mapping (click/motion events): `OQ_UI2D/scripts/helper_UIArea.gd`.
-- Redraw policy of a menu: the canvas instance's `update_only_on_input` in `game/BeepSaber_Game.tscn`.
+- Redraw policy of a menu: the canvas instance's `update_only_on_input` in `game/BeepSaber_Game.tscn`, and
+  `max_updates_per_second` (one frame at most that often instead of 3 per input; BeatSaver's page: 36).
 - Keyboard layout or keys: `controls/VirtualKeyboard.gd` (`BUTTON_LAYOUT_*`, `B_SIZE`).
 - Panel look: not here; `game/ui/menu_theme.tres` (see `game/ui/AGENTS.md`).
 

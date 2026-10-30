@@ -8,14 +8,12 @@ class_name SlashBlock
 signal slashed()
 
 ## Where it floats, from the player's spot (z = PLAYER_Z, facing -z): YAW to the dominant hand's side, HORIZONTAL
-## metres away, BELOW_EYES under the eyes (1.1 m high for 1.6 m eyes): 23.5 degrees down, as low as the song
-## menu's bottom corner (-22 degrees) and 24 degrees right of it (37 degrees), 1.25 m from the eyes and about 1.1 m
-## from the shoulder for a relaxed swing with the arm out. That is as close to the corner as it gets while no saber
-## reaches it during menu use (blades 1.25 m long from hands 0.3-0.5 m in front of the body, pointed anywhere on
-## the menu, flicked 25 degrees up or down: 0.19 m clear). Right at the corner a saber pointing there runs through
-## it (no clearance). 61 degrees is past the 55 degree comfortable head turn: a short turn for one swing. Mirrored
-## for left-handed players (beside the menu's left corner).
-const YAW_DEGREES := 61.0
+## metres away, BELOW_EYES under the eyes (1.1 m high for 1.6 m eyes): 23.5 degrees down, 1.25 m from the eyes and
+## about 1.1 m from the shoulder for a relaxed swing with the arm out. 67 degrees (owner, 2026-10-28: about 65): just
+## past the curved song menu's modifiers panel (its outer edge at 59 degrees, its bottom 12 degrees down), so a saber
+## pointed at the modifiers doesn't swing through it; past the 55 degree comfortable head turn, a short turn for one
+## swing. Mirrored for left-handed players (beside the menu's left panel).
+const YAW_DEGREES := 67.0
 const HORIZONTAL := 1.15
 const BELOW_EYES := 0.5
 const PLAYER_Z := 1.0
@@ -40,10 +38,18 @@ const WRONG_RUMBLE_STRENGTH := 0.3
 const WRONG_RUMBLE_SECONDS := 0.2
 const CUT_SOUND := preload("res://game/data/cut_1.wav")
 const WRONG_SOUND := preload("res://game/data/bad_cut.wav")
-## The small note of the other colour: its edge in metres (40% of the big one), and the big note's corner its
-## centre sits on, seen from the player (x -1 left / 1 right, y 1 top / -1 bottom, mirrored for left-handed players).
+## The small note of the other colour: its edge in metres (40% of the big one), beside the big one on the side away
+## from the menu (right as seen from the player, mirrored for left-handed players), so the sabers' clearance from the
+## menu (above) holds; tops level, OTHER_NOTE_GAP apart so the two never touch.
 const OTHER_NOTE_SIZE := 0.12
-const OTHER_NOTE_CORNER := Vector2(-1.0, 1.0)
+const OTHER_NOTE_GAP := 0.05
+## Both notes float up and down, each on its own: the big one (and its words and light) BOB_METRES either way every
+## 1 / BOB_HZ seconds, the small one OTHER_BOB_METRES more on its own slower beat. Slow and small, so it reads as
+## floating and the big note stays easy to hit. Untuned.
+const BOB_METRES := 0.03
+const BOB_HZ := 0.25
+const OTHER_BOB_METRES := 0.02
+const OTHER_BOB_HZ := 0.19
 ## The words over the note: what to do, in the arrow's direction. A strip above it, so the arrow stays clear; the
 ## theme's Roboto Medium at 72 px with 1 mm per px is a 5 cm cap height, 2.3 degrees at 1.25 m (the menu's 28 px
 ## rule is 1.9 degrees), white with a dark outline.
@@ -56,18 +62,24 @@ const TEXT_PIXEL := 0.001
 const TEXT_GAP := 0.07
 ## Light from the note (root AGENTS.md "Light": it comes from the note's surface, hot core and coloured falloff,
 ## no screen reads, no real light): the note's own glow (its shader's emission) breathes GLOW_PULSE_HZ (well away
-## from 0.2 Hz) between EMISSION_MIN and EMISSION_MAX; one additive halo HALO_SIZE across behind it; RAY_COUNT
-## faint short rays from its edges, RAY_LENGTH long, still. All of it breathes together between LIGHT_MIN and full.
-## A cut flashes it all to full for FLASH_SECONDS, then it fades with the halves over FADE_SECONDS.
+## from 0.2 Hz) between EMISSION_MIN and EMISSION_MAX; additive glow behind it in two layers, a bright core HALO_SIZE
+## across and a soft wide falloff OUTER_SIZE across (in place of the short straight rays, which read as sticks); the
+## small note its own small glow in its colour; and a soft pool of the note's colour on the floor under it, so it
+## lights the room. All of it breathes together between LIGHT_MIN and full. A cut flashes the note's glow to full
+## for FLASH_SECONDS, then it fades with the halves over FADE_SECONDS.
 const GLOW_PULSE_HZ := 1.0
 const EMISSION_MIN := 0.18
 const EMISSION_MAX := 0.45
-const HALO_SIZE := 0.55
+const HALO_SIZE := 0.7
 const HALO_ALPHA := 0.8
-const RAY_COUNT := 6
-const RAY_LENGTH := 0.16
-const RAY_WIDTH := 0.025
-const RAY_ALPHA := 0.35
+const OUTER_SIZE := 1.4
+const OUTER_ALPHA := 0.45
+const OTHER_HALO_SIZE := 0.3
+const OTHER_HALO_ALPHA := 0.7
+const POOL_SIZE := 1.0
+const POOL_ALPHA := 0.45
+## Just above the floor, so the pool isn't hidden in it.
+const POOL_Y := 0.01
 const LIGHT_MIN := 0.6
 const FLASH_SECONDS := 0.1
 const FADE_SECONDS := 0.3
@@ -89,7 +101,12 @@ var _label := Label3D.new()
 ## The light: halo and rays, with their materials, and the time for the breathing.
 var _light := Node3D.new()
 var _halo_material := StandardMaterial3D.new()
-var _ray_material := StandardMaterial3D.new()
+var _outer_material := StandardMaterial3D.new()
+var _other_halo := MeshInstance3D.new()
+var _other_halo_material := StandardMaterial3D.new()
+var _other_color := Color.WHITE
+var _pool := MeshInstance3D.new()
+var _pool_material := StandardMaterial3D.new()
 var _light_time := 0.0
 var _flash: Tween
 ## The halves a cut note breaks into (the game's CutPiece).
@@ -97,6 +114,9 @@ var _pieces: Array[CutPiece] = []
 var _half_size := Vector3.ONE * 0.15
 var _sound := AudioStreamPlayer3D.new()
 var _shown := false
+## Where it floats around, set when it shows, and the small note's spot beside it.
+var _base_position := Vector3.ZERO
+var _other_base := Vector3.ZERO
 ## The note was near the middle of the view at the last check (for the log marker).
 var _in_view := false
 ## Within this cosine of straight ahead counts as looking at the note (about 40 degrees).
@@ -133,45 +153,38 @@ func _ready() -> void:
 	add_child(_sound)
 	set_shown(false)
 
-## The halo (a radial gradient on a camera-facing quad behind the note) and the rays (linear gradients fading
-## outward from the note's edges, in its plane), all additive and unshaded.
+## The glow: radial gradients on camera-facing quads behind the note (a bright core and a soft wide falloff) and
+## behind the small note, and one flat on the floor under the note; all additive and unshaded.
 func _add_light() -> void:
 	add_child(_light)
-	var halo_gradient := Gradient.new()
-	halo_gradient.offsets = PackedFloat32Array([0.0, 0.3, 1.0])
-	halo_gradient.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0.4), Color(1, 1, 1, 0)])
-	var halo_texture := GradientTexture2D.new()
-	halo_texture.gradient = halo_gradient
-	halo_texture.fill = GradientTexture2D.FILL_RADIAL
-	halo_texture.fill_from = Vector2(0.5, 0.5)
-	halo_texture.fill_to = Vector2(1.0, 0.5)
-	_setup_additive(_halo_material, halo_texture)
-	_halo_material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
-	var halo := MeshInstance3D.new()
-	var halo_quad := QuadMesh.new()
-	halo_quad.size = Vector2.ONE * HALO_SIZE
-	halo.mesh = halo_quad
-	halo.material_override = _halo_material
-	_light.add_child(halo)
-	var ray_gradient := Gradient.new()
-	ray_gradient.colors = PackedColorArray([Color(1, 1, 1, 1), Color(1, 1, 1, 0)])
-	var ray_texture := GradientTexture2D.new()
-	ray_texture.gradient = ray_gradient
-	ray_texture.fill_from = Vector2(0.5, 1.0)
-	ray_texture.fill_to = Vector2(0.5, 0.0)
-	_setup_additive(_ray_material, ray_texture)
-	var ray_quad := QuadMesh.new()
-	ray_quad.size = Vector2(RAY_WIDTH, RAY_LENGTH)
-	for i in RAY_COUNT:
-		# evenly round the note, none straight up into the words
-		var angle := TAU * i / RAY_COUNT
-		var outward := Vector3(cos(angle), sin(angle), 0.0)
-		var ray := MeshInstance3D.new()
-		ray.mesh = ray_quad
-		ray.material_override = _ray_material
-		ray.position = outward * (NOTE_SIZE * 0.55 + RAY_LENGTH / 2.0)
-		ray.rotation.z = angle - PI / 2.0
-		_light.add_child(ray)
+	_light.add_child(_glow_quad(_halo_material, HALO_SIZE, [0.0, 0.45, 1.0], [1.0, 0.7, 0.0], true))
+	_light.add_child(_glow_quad(_outer_material, OUTER_SIZE, [0.0, 0.25, 1.0], [1.0, 0.45, 0.0], true))
+	_other_halo = _glow_quad(_other_halo_material, OTHER_HALO_SIZE, [0.0, 0.45, 1.0], [1.0, 0.7, 0.0], true)
+	add_child(_other_halo)
+	_pool = _glow_quad(_pool_material, POOL_SIZE, [0.0, 0.4, 1.0], [1.0, 0.45, 0.0], false)
+	_pool.rotation.x = -PI / 2.0
+	add_child(_pool)
+
+## A quad size across with a radial gradient (alpha at each offset) in material, facing the camera or lying flat.
+func _glow_quad(material: StandardMaterial3D, size: float, offsets: Array, alphas: Array, billboard: bool) -> MeshInstance3D:
+	var gradient := Gradient.new()
+	gradient.offsets = PackedFloat32Array(offsets)
+	gradient.colors = PackedColorArray(alphas.map(func(alpha: float) -> Color: return Color(1, 1, 1, alpha)))
+	var texture := GradientTexture2D.new()
+	texture.gradient = gradient
+	texture.fill = GradientTexture2D.FILL_RADIAL
+	texture.fill_from = Vector2(0.5, 0.5)
+	texture.fill_to = Vector2(1.0, 0.5)
+	_setup_additive(material, texture)
+	if billboard:
+		material.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+	var quad := QuadMesh.new()
+	quad.size = Vector2.ONE * size
+	var glow := MeshInstance3D.new()
+	glow.mesh = quad
+	glow.material_override = material
+	glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return glow
 
 static func _setup_additive(material: StandardMaterial3D, texture: Texture2D) -> void:
 	material.albedo_texture = texture
@@ -186,6 +199,7 @@ func _process(delta: float) -> void:
 		return
 	_light_time += delta
 	_set_light(lerpf(LIGHT_MIN, 1.0, 0.5 + 0.5 * sin(TAU * GLOW_PULSE_HZ * _light_time)))
+	_float(_light_time)
 	# a marker in the log, to line performance measurements up with looking at the note
 	if vr.vrCamera:
 		var to_note := (global_position - vr.vrCamera.global_position).normalized()
@@ -194,11 +208,21 @@ func _process(delta: float) -> void:
 			_in_view = in_view
 			print("Slash note %s" % ("in view" if in_view else "out of view"))
 
+## Floats the note (with its words, light and hit area) and the small note on their own beats, t seconds in.
+func _float(t: float) -> void:
+	position = _base_position + Vector3.UP * BOB_METRES * sin(TAU * BOB_HZ * t)
+	_other_mesh.position = _other_base + Vector3.UP * OTHER_BOB_METRES * sin(TAU * OTHER_BOB_HZ * t + 2.0)
+	# a little behind the small note, like the big one's glow
+	_other_halo.position = _other_mesh.position + Vector3(0.0, 0.0, -0.05)
+	_pool.global_position = Vector3(global_position.x, POOL_Y, global_position.z)
+
 ## Light strength 0..1 (1: brightest breath; above 1 only in the cut's flash).
 func _set_light(strength: float) -> void:
 	_material.set_shader_parameter(&"sub_emission_energy", lerpf(EMISSION_MIN, EMISSION_MAX, strength))
 	_halo_material.albedo_color = Color(_color, HALO_ALPHA * minf(strength, 1.0))
-	_ray_material.albedo_color = Color(_color, RAY_ALPHA * minf(strength, 1.0))
+	_outer_material.albedo_color = Color(_color, OUTER_ALPHA * minf(strength, 1.0))
+	_other_halo_material.albedo_color = Color(_other_color, OTHER_HALO_ALPHA * minf(strength, 1.0))
+	_pool_material.albedo_color = Color(_color, POOL_ALPHA * minf(strength, 1.0))
 
 ## A copy of the game's note model (with its own material) at the given edge length, added under this node.
 func _add_note_mesh(edge: float) -> MeshInstance3D:
@@ -219,7 +243,8 @@ func set_note(colors: Array[Color]) -> void:
 	_material.set_shader_parameter(&"color", _color)
 	_material.set_shader_parameter(&"is_dot", not Settings.arrows_enabled)
 	_material.set_shader_parameter(&"arrows_enabled", Settings.arrows_enabled)
-	_other_material.set_shader_parameter(&"color", colors[1 - _note_saber])
+	_other_color = colors[1 - _note_saber]
+	_other_material.set_shader_parameter(&"color", _other_color)
 	_other_material.set_shader_parameter(&"is_dot", not Settings.arrows_enabled)
 	_other_material.set_shader_parameter(&"arrows_enabled", Settings.arrows_enabled)
 	_label.text = SLASH_DOWN_TEXT if Settings.arrows_enabled else SLASH_TEXT
@@ -231,14 +256,22 @@ func set_shown(shown: bool) -> void:
 		var side := -1.0 if Settings.left_handed else 1.0
 		var yaw := deg_to_rad(YAW_DEGREES) * side
 		global_position = Vector3(HORIZONTAL * sin(yaw), eyes - BELOW_EYES, PLAYER_Z - HORIZONTAL * cos(yaw))
+		_base_position = position
 		# its front (+z) toward the player, arrow still pointing straight down
 		rotation = Vector3(0.0, -yaw, 0.0)
-		_other_mesh.position = Vector3(OTHER_NOTE_CORNER.x * side, OTHER_NOTE_CORNER.y, 0.0) * NOTE_SIZE / 2.0
+		_other_base = Vector3(side * ((NOTE_SIZE + OTHER_NOTE_SIZE) / 2.0 + OTHER_NOTE_GAP),
+				(NOTE_SIZE - OTHER_NOTE_SIZE) / 2.0, 0.0)
+		# the words start at the note's inner edge and run outward, clear of the song menu's side panel
+		_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if side > 0.0 else HORIZONTAL_ALIGNMENT_RIGHT
+		_label.position.x = -side * NOTE_SIZE / 2.0
+		_float(_light_time)
 		_touching.clear()
 	_shown = shown
 	# the node stays visible so the cut halves (its children) can fly off
 	_note_mesh.visible = shown
 	_other_mesh.visible = shown
+	_other_halo.visible = shown
+	_pool.visible = shown
 	_label.visible = shown
 	if shown:
 		if _flash:
@@ -318,13 +351,13 @@ func _slash(controller: BeepSaberController, cut_normal: Vector3) -> void:
 	# the light flashes, then fades out with the halves
 	_light.visible = true
 	_halo_material.albedo_color = Color(_color, 1.0)
-	_ray_material.albedo_color = Color(_color, 1.0)
+	_outer_material.albedo_color = Color(_color, OUTER_ALPHA / HALO_ALPHA)
 	_flash = create_tween()
 	_flash.tween_property(_light, ^"scale", Vector3.ONE * 1.5, FLASH_SECONDS)
 	_flash.set_parallel(false)
 	_flash.tween_method(func(fade: float) -> void:
 		_halo_material.albedo_color = Color(_color, fade)
-		_ray_material.albedo_color = Color(_color, fade * RAY_ALPHA / HALO_ALPHA), 1.0, 0.0, FADE_SECONDS)
+		_outer_material.albedo_color = Color(_color, fade * OUTER_ALPHA / HALO_ALPHA), 1.0, 0.0, FADE_SECONDS)
 	_flash.tween_callback(func() -> void: _light.visible = false)
 
 	_sound.stream = CUT_SOUND

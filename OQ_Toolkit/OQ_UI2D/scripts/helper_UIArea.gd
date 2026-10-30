@@ -1,6 +1,9 @@
 # A Helper to make UIs work on a Area object
 extends UIRaycastTarget
 
+## Where the pointer is said to go when it leaves the panel: off every control.
+const OFF_PANEL := Vector2(-100000.0, -100000.0)
+
 # Member variables
 @onready var parent := get_parent() as OQ_UI2DCanvas
 @onready var viewport := parent.get_node("SubViewport") as SubViewport
@@ -13,12 +16,14 @@ var _last_hovered: Control
 
 
 func ui_raycast_hit_event(pos: Vector3, click: bool, release: bool) -> void:
-	# note: this transform assumes that the unscaled area is [-0.5, -0.5] to [0.5, 0.5] in size
+	# note: this transform assumes that the unscaled area is [-0.5, -0.5] to [0.5, 0.5] in size (a flat panel)
 	var local_position := to_local(pos)
 	var pos2d := Vector2(local_position.x, -local_position.y)
 	pos2d = pos2d + Vector2(0.5, 0.5)
 	pos2d.x *= viewport.size.x
 	pos2d.y *= viewport.size.y
+	if parent.curve_radius > 0.0:
+		pos2d = parent.curve_pixel(local_position)
 	
 	if (click || release):
 		var e := InputEventMouseButton.new()
@@ -65,4 +70,12 @@ func ui_raycast_exit() -> void:
 		viewport.push_input(e)
 		parent._input_update()
 		_held = false
+	if last_pos2d != Vector2(INF, INF):
+		# a last move far off the panel, so what was under the pointer sees it leave (hover looks, the lists'
+		# thumbstick scrolling)
+		var away := InputEventMouseMotion.new()
+		away.position = OFF_PANEL
+		away.global_position = OFF_PANEL
+		viewport.push_input(away)
+		parent._input_update()
 	last_pos2d = Vector2(INF, INF)

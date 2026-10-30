@@ -5,12 +5,16 @@ extends Node
 ## Smallest gap, in px, between two controls placed side by side with offsets (not by a container).
 const MIN_GAP := 4.0
 ## Panels that open over others: whatever lies wholly under a visible one is hidden, not overlapped.
-const OVERLAYS := ["MorePanel", "MoreModsPanel", "FiltersPanel"]
-## Rows the song list must show at once at its original 76 px row size.
-const MIN_VISIBLE_ROWS := 9
-## The download page's canvas is at scale 2 and the song menu's at 2.4, so the same world size takes 1.2 times the px.
-const MENU_TO_BEATSAVER_PX := 1.2
+const OVERLAYS := ["MorePanel", "MoreModsPanel", "FiltersPanel", "EnvironmentPanel"]
+## The song menu's three panel backgrounds: what lies wholly on one is on it, not overlapping it.
+const BACKGROUNDS := ["LeftPanel", "CentrePanel", "RightPanel"]
+## Rows the song list must show at once at its original 76 px row size (owner, 2026-10-28: the curved menu in the
+## 32 degree comfort zone, about 5 rows).
+const MIN_VISIBLE_ROWS := 5
+const TEST_HIGHSCORES := "user://test_menu_highscores.json"
 const LONG_NAME := "Wolfgang Amadeus Mozart and the Very Long Band Name"
+## Seconds a test song preview may take to decode once its START_DELAY_SECONDS have passed, before it counts as not playing.
+const PREVIEW_DECODE_SECONDS := 2.0
 
 var failures := 0
 
@@ -54,13 +58,17 @@ func _ready() -> void:
 	if menu.songs_menu.item_count > 0:
 		menu.songs_menu.select(0)
 		menu._select_song(0, false)
+		await _check_left_panel_locked(menu)
 
 		# the selected song's preview (SongPreview) starts, and stop_preview fades it out and stops it
 		var preview := menu.song_preview
 		preview.transition_time = 0.05
 		Settings.audio_music_preview = maxf(Settings.audio_music_preview, 1.0)
 		menu.play_selected_preview(0.0, true)
-		await get_tree().create_timer(0.3).timeout
+		# it waits START_DELAY_SECONDS, then decodes the song on a worker thread
+		var give_up := Time.get_ticks_msec() + int((SongPreview.START_DELAY_SECONDS + PREVIEW_DECODE_SECONDS) * 1000.0)
+		while not preview.playing and Time.get_ticks_msec() < give_up:
+			await get_tree().process_frame
 		check(preview.playing and preview.stream != null, "the selected song's preview plays")
 		await menu.stop_preview()
 		check(not preview.playing, "stop_preview stops the preview")
@@ -95,6 +103,8 @@ func _ready() -> void:
 	Settings.player_name = LONG_NAME
 	menu.update_view()
 	_fill_worst_details(menu)
+	var saved_highscores := Highscores.HIGHSCORES_FILEPATH
+	await _fill_ranks(menu)
 	await _settle()
 	_check_layout(menu, "song tab")
 
@@ -103,20 +113,47 @@ func _ready() -> void:
 	menu._show_filters(true)
 	await _settle()
 	_check_layout(menu, "filters")
+	await _check_filter_scroll(menu, menu.filter_rows, "song menu")
+	check(not (menu.get_node(^"FiltersPanel") as Control).get_global_rect().intersects(menu.songs_menu.get_global_rect()),
+		"filters: the open filters leave the song list in view (vr-ui-review)")
 	menu._show_filters(false)
 	menu._show_more_modifiers(true)
 	await _settle()
 	_check_layout(menu, "more modifiers")
+	menu._show_more_modifiers(false)
+	menu.show_environments(true)
+	await _settle()
+	_check_layout(menu, "environments")
+	var env_cards := menu.get_node(^"EnvironmentPanel/Rows/Grid").get_children()
+	var smallest := 1e9
+	for card: Control in env_cards:
+		smallest = minf(smallest, minf(card.size.x, card.size.y))
+	check(env_cards.size() == Settings.ENVIRONMENTS.size() and smallest >= 45.0,
+			"a picture card per environment, each %.0f px or more across (3 degrees is 45 px)" % smallest)
+	menu.show_environments(false)
 	menu._show_tab(MainMenu.Tab.MORE)
 	await _settle()
 	_check_layout(menu, "more tab")
+	# the licenses open over the right panel with a Back button above their scrolling text, 3 degrees or more tall
+	var licenses := menu.get_node(^"LicensePopup") as Window
+	menu._on_licenses_pressed()
+	await _settle()
+	var back := menu.get_node(^"LicensePopup/Rows/Back_Button") as Button
+	var back_shown := licenses.visible and back.is_visible_in_tree() and back.size.y >= 45.0
+	back.pressed.emit()
+	await _settle()
+	check(back_shown and not licenses.visible, "the licenses show a Back button (%.0f px tall) that closes them" % back.size.y)
+	Highscores.HIGHSCORES_FILEPATH = TEST_HIGHSCORES
+	Highscores.clear_table()
+	Highscores.HIGHSCORES_FILEPATH = saved_highscores
+	Highscores.load_hs_table()
 	var beatsaver := (load("res://game/ui/BeatSaverPanel/BeatSaverPanel.tscn") as PackedScene).instantiate() as BeatSaverPanel
 	beatsaver.main_menu_ref = menu
 	beatsaver.keyboard = keyboard
 	_port.add_child(beatsaver)
 	await _settle()
-	check((beatsaver.size - menu.size * MENU_TO_BEATSAVER_PX).abs().x < 1.0 and (beatsaver.size - menu.size * MENU_TO_BEATSAVER_PX).abs().y < 1.0, "the download page is the song menu's size in the world (got %s px)" % beatsaver.size)
 	_check_layout(beatsaver, "download page")
+	await _check_download_page(beatsaver)
 	beatsaver.queue_free()
 	menu.queue_free()
 
@@ -197,6 +234,67 @@ func _ready() -> void:
 	check(is_equal_approx(WarningIcon._distance_to_edge(Vector2.ZERO, square), 1.0) and WarningIcon._distance_to_edge(Vector2(0.5, 0), square) < WarningIcon.REACH,
 			"the play area check measures the way to the guardian's nearest edge")
 
+	# the hover sound: once per button moved onto, not for a pointer shaking on the line between two, and not
+	# faster than HOVER_MIN_GAP_MS when sweeping a list
+	var audio: Variant = (load("res://game/ui/UI_AudioEngine/UI_AudioEngine.gd") as GDScript).new()
+	var a := Button.new()
+	var b := Button.new()
+	var c := Button.new()
+	var d := Button.new()
+	var heard := [audio.hover_sounds(a, 1000), audio.hover_sounds(b, 1300), audio.hover_sounds(a, 1330),
+			audio.hover_sounds(b, 1360), audio.hover_sounds(a, 1390), audio.hover_sounds(c, 1420), audio.hover_sounds(d, 1440),
+			audio.hover_sounds(a, 1800)]
+	check(heard == [true, true, false, false, false, true, false, true],
+			"the hover sound plays per button, not while the pointer shakes between two or faster than 70 ms (%s)" % [heard])
+	for node: Node in [audio, a, b, c, d]:
+		node.free()
+
+	# song loudness: a 997 Hz sine at 0.5 in both channels is -6.0 LUFS (BS.1770: full scale in one channel is -3.01);
+	# decoding at a quarter rate reads about 0.3 LU low, as on the songs against ffmpeg
+	var tone := AudioStreamWAV.new()
+	tone.format = AudioStreamWAV.FORMAT_16_BITS
+	tone.stereo = true
+	tone.mix_rate = 44100
+	var pcm := PackedByteArray()
+	pcm.resize(44100 * 10 * 4)
+	for i in 44100 * 10:
+		var sample := int(0.5 * 32767.0 * sin(TAU * 997.0 * i / 44100.0))
+		pcm.encode_s16(i * 4, sample)
+		pcm.encode_s16(i * 4 + 2, sample)
+	tone.data = pcm
+	var lufs := Loudness.measure(tone)
+	check(absf(lufs + 6.0) < 0.5 and is_equal_approx(Loudness.gain_db(lufs), Loudness.TARGET_LUFS - lufs)
+			and Loudness.gain_db(-40.0) == Loudness.MAX_BOOST_DB,
+			"song loudness measures a -6 LUFS tone as %.2f, and quiet songs are raised at most %d dB" % [lufs, Loudness.MAX_BOOST_DB])
+	var limiter: Variant = AudioServer.get_bus_effect(0, 0) if AudioServer.get_bus_effect_count(0) > 0 else null
+	check(limiter is AudioEffectHardLimiter and is_equal_approx(limiter.ceiling_db, -1.0),
+			"the Master bus ends in a limiter at -1 dB, so music and effects together don't clip")
+
+	# a curved panel (OQ_UI2DCanvas.curve_radius): a pixel's point on the cylinder maps back to that pixel (centre,
+	# edges and corners), its width kept as arc, its height straight
+	var curved := (load("res://OQ_Toolkit/OQ_UI2D/OQ_UI2DCanvas.tscn") as PackedScene).instantiate() as OQ_UI2DCanvas
+	curved.curve_radius = 2.0
+	curved.scale = Vector3(2.4, 2.4, 1.0)
+	var page := Control.new()
+	page.size = Vector2(1000, 500)
+	curved.add_child(page)
+	add_child(curved)
+	await get_tree().process_frame
+	var arc_worst := 0.0
+	var on_cylinder := 0.0
+	for u: float in [0.0, 0.02, 0.5, 0.98, 1.0]:
+		for v: float in [0.0, 0.03, 0.5, 0.97, 1.0]:
+			var want := Vector2(u * 1000.0, v * 500.0)
+			var point := curved.curve_point(want)
+			on_cylinder = maxf(on_cylinder, absf(Vector2(point.x, point.z - 2.0).length() - 2.0))
+			# through the world and back, as a pointer hit is
+			var hit := curved.ui_area.to_local(curved.ui_area.to_global(point))
+			arc_worst = maxf(arc_worst, curved.curve_pixel(hit).distance_to(want))
+	var span := curved.curve_size() / curved.curve_radius
+	check(arc_worst < 0.01 and on_cylinder < 1e-5 and is_equal_approx(span.x, 1000.0 * 2.4 / 1024.0 / 2.0),
+			"a curved panel maps its points back to its pixels, corners included (worst %.3f px), width kept as arc" % arc_worst)
+	curved.queue_free()
+
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
 
@@ -210,8 +308,8 @@ func _fill_worst_details(menu: MainMenu) -> void:
 	for level: Button in menu.level_row.get_children():
 		level.visible = true
 		level.text = "Expert+ 3"
-	menu.level_stats.max_lines_visible = 2
-	menu.level_stats.text = "13:44 · Notes 1.00 s ahead · Swings every 0.93 s\nSwing flow: Tangled · Workout"
+	StatPills.fill(menu.level_stats, [StatPills.length(824.0, 24)] + StatPills.difficulty(1.0, 12.3, 24.0, 24)
+			+ [StatPills.workout(12, 24)])
 	(menu.get_node("SongInfo_Label") as Label).text = "%s\n%s\nMapped by %s\nPlayed 999 times" % [LONG_NAME, LONG_NAME, LONG_NAME]
 
 ## Counts the song list's whole rows in view, filling it with sample rows first (the test has one song).
@@ -260,6 +358,124 @@ func _check_list_drag(menu: MainMenu) -> void:
 	check(list.scroll_vertical == scrolled, "after a release the list didn't see, the pointer moves without scrolling it (moved %d px)" % (list.scroll_vertical - scrolled))
 
 ## How long a flick keeps going (the song list's vr_slider).
+## The download page with worst-case content: every filter on and a long search as chips, a map with long names and
+## all five levels picked (short details, then Details), downloading, and the filters open.
+func _check_download_page(page: BeatSaverPanel) -> void:
+	page._style_tag = "accuracy"
+	page._genre_tag = "video-game-soundtrack"
+	Settings.beatsaver_filter_reaction = Constants.DIFFICULTY_LEVELS.size()
+	Settings.beatsaver_filter_length = 2
+	page._set_search("the longest search anyone typed")
+	page._sync_filter_controls()
+	# the filter changes above wait to reload the list; the test feeds it pages itself
+	page._reload_timer.stop()
+	page.prev_request = BeatSaverPanel.BeatSaverRequest.new()
+	page.prev_request.type = "text_search"
+	page.prev_request.data = page.search_word
+	var diffs := []
+	for i in 5:
+		diffs.append({"characteristic": "Standard", "njs": 10.0 + i * 3.0, "nps": 1.0 + i * 2.0, "notes": 400 + i * 300,
+			"offset": 0.0, "obstacles": 1234, "paritySummary": {"errors": 2, "warns": 5, "resets": 1}})
+	var map := {"name": LONG_NAME, "description": "%s\n%s\n%s\n%s" % [LONG_NAME, LONG_NAME, LONG_NAME, LONG_NAME],
+		"curatedAt": "2026-10-01", "stats": {"score": 0.87}, "tags": ["accuracy", "video-game-soundtrack", "challenge"],
+		"uploader": {"id": 5}, "metadata": {"songName": LONG_NAME, "songAuthorName": LONG_NAME,
+		"levelAuthorName": "Nixie.Korten and Friends", "duration": 296.0, "bpm": 128.0},
+		"versions": [{"hash": "abc", "coverURL": "", "previewURL": "", "downloadURL": "", "diffs": diffs}]}
+	await page._on_HTTPRequest_request_completed(0, 200, PackedStringArray(), JSON.stringify({"docs": [map, map, map]}).to_utf8_buffer())
+	page._on_ItemList_item_selected(0)
+	await _settle()
+	check(page.item_list.item_count == 3, "the download page lists the maps it was sent (%d)" % page.item_list.item_count)
+	# the pointer coming onto a row (not the gap between rows) lets the thumbstick scroll the list
+	var row_point := page.item_list.get_global_rect().position + Vector2(200.0, BeatSaverList.ROW_HEIGHT / 2.0)
+	_pointer(row_point - Vector2(0.0, 300.0), null)
+	_pointer(row_point, null)
+	await get_tree().process_frame
+	check(page.get_node(^"list_slider").is_mouse_in, "download page: pointing at a song row lets the thumbstick scroll the list")
+	var second_row := row_point + Vector2(0.0, BeatSaverList.ROW_HEIGHT + BeatSaverList.ROW_SEPARATION)
+	_pointer(second_row, null)
+	_pointer(second_row, true)
+	_pointer(second_row, false)
+	await _settle()
+	check(page.item_selected == 1, "download page: pressing a song row picks that song (%d)" % page.item_selected)
+	_pointer(row_point - Vector2(0.0, 300.0), null)
+	check(page.chip_row.get_combined_minimum_size().x <= page.chip_row.size.x,
+			"download page: the search and filter chips fit above the list (%.0f of %.0f px)" % [
+			page.chip_row.get_combined_minimum_size().x, page.chip_row.size.x])
+	_check_layout(page, "download page, map picked")
+	page._details_toggle.button_pressed = true
+	await _settle()
+	_check_layout(page, "download page, Details")
+	page._details_toggle.button_pressed = false
+	page.downloading.append(["map", {"hash": "abc"}, []])
+	page._update_download_button()
+	page.label.text = "Couldn't download %s. Check your Wi-Fi and try again." % LONG_NAME
+	await _settle()
+	_check_layout(page, "download page, downloading")
+	page.downloading.clear()
+	# the filters sit beside the list, every section in one scrolling page (owner, 2026-10-30)
+	await _check_filter_scroll(page, page.filter_rows, "download page")
+	check(not page.filter_rows.get_global_rect().intersects(page.item_list.get_global_rect()),
+			"download page: the filters leave the song list in view")
+	await page._on_HTTPRequest_request_completed(0, 200, PackedStringArray(),
+			JSON.stringify({"docs": [map], "info": {"total": 12345}}).to_utf8_buffer())
+	check(page.filter_status.text == BeatSaverPanel.TOTAL_STATUS % "12,345",
+			"download page: the filters say about how many songs match (%s)" % page.filter_status.text)
+	await _settle()
+	_check_layout(page, "download page, filters on")
+	# a few presses in a row load the list once, after the last
+	var requests := page._list_request
+	page._style_chips[0].button_pressed = true
+	page._genre_chips[0].button_pressed = true
+	page._level_chips[0].button_pressed = true
+	check(page._list_request == requests and page.filter_status.text == BeatSaverPanel.LOADING_STATUS,
+			"download page: a filter press shows Loading and waits for more presses (%d loads)" % (page._list_request - requests))
+	page._reload_timer.stop()
+	page._reload_timer.timeout.emit()
+	check(page._list_request == requests + 1, "download page: three filter presses load the list once (%d)" % (
+			page._list_request - requests))
+	page.httpreq.cancel_request()
+	Settings.beatsaver_filter_reaction = 0
+	Settings.beatsaver_filter_length = 0
+	page._reload_timer.stop()
+	# no level filter and a page too short to scroll (owner, 2026-10-29: the first page showed no scroll bar and never grew)
+	page.prev_request.page = 0
+	await page._on_HTTPRequest_request_completed(0, 200, PackedStringArray(), JSON.stringify({"docs": [map, map, map]}).to_utf8_buffer())
+	check(page._scroll_page_request_pending and page.prev_request.page == 1,
+			"download page: a first page too short to scroll fetches the next one on its own (page %d)" % page.prev_request.page)
+	page.httpreq.cancel_request()
+	page._scroll_page_request_pending = false
+	# a page that comes in after a newer request is dropped
+	page.prev_request.page = 0
+	var late_page := page._on_HTTPRequest_request_completed.bind(0, 200, PackedStringArray(),
+			JSON.stringify({"docs": [map]}).to_utf8_buffer())
+	late_page.call()
+	page.update_list(page.prev_request)
+	page.httpreq.cancel_request()
+	await _settle()
+	check(page.item_list.item_count == 0, "download page: a page that comes after a newer request is left out (%d rows)" %
+			page.item_list.item_count)
+	check(page._search_url(0, "", "Latest").contains("pageSize=%d" % BeatSaverPanel.PAGE_SIZE),
+			"download page: a list asks BeatSaver for %d songs a page" % BeatSaverPanel.PAGE_SIZE)
+	# a page of PAGE_SIZE songs; the next is fetched once FETCH_ROWS_LEFT songs or fewer are below the view
+	var full_page := []
+	for i in BeatSaverPanel.PAGE_SIZE:
+		full_page.append(map)
+	page.prev_request.page = 0
+	page.update_list(page.prev_request)
+	page.httpreq.cancel_request()
+	await page._on_HTTPRequest_request_completed(0, 200, PackedStringArray(), JSON.stringify({"docs": full_page}).to_utf8_buffer())
+	await _settle()
+	var row_step := BeatSaverList.ROW_HEIGHT + BeatSaverList.ROW_SEPARATION
+	var rows_in_view := ceili(page.item_list.size.y / row_step)
+	page.v_scroll.value = (BeatSaverPanel.PAGE_SIZE - BeatSaverPanel.FETCH_ROWS_LEFT - rows_in_view - 1) * row_step
+	var early := page.prev_request.page
+	page.v_scroll.value += row_step
+	check(early == 0 and page.prev_request.page == 1 and page._scroll_page_request_pending,
+			"download page: the next page loads once %d songs are left below the view (page %d, then %d)" % [
+			BeatSaverPanel.FETCH_ROWS_LEFT, early, page.prev_request.page])
+	page.httpreq.cancel_request()
+	page._scroll_page_request_pending = false
+
 func vr_slider_momentum() -> float:
 	return preload("res://game/ui/vr_slider.gd").MOMENTUM_SECONDS
 
@@ -289,10 +505,92 @@ func _settle() -> void:
 
 ## Every visible control stays inside its parent (and the panel), and controls placed with offsets keep
 ## MIN_GAP between them.
+## The filters panel's sections scroll in one page (FilterChips.add_scroll; owner, 2026-10-30): it is there, the
+## pointer drags it (a vr_slider on it), it never scrolls sideways, and at its end nothing spills out.
+func _check_filter_scroll(root: Control, rows: VBoxContainer, page_name: String) -> void:
+	var scroll := rows.get_node_or_null(NodePath(FilterChips.SCROLL_NAME)) as ScrollContainer
+	check(scroll != null, "%s: the filters scroll in one page" % page_name)
+	if scroll == null:
+		return
+	var sliders := scroll.get_children().filter(func(c: Node) -> bool: return c.get_script() == preload("res://game/ui/vr_slider.gd"))
+	check(sliders.size() == 1, "%s: the pointer drags the filters (vr_slider on it)" % page_name)
+	if sliders.size() == 1:
+		# the thumbstick goes to the filters only while the pointer is on them (owner, 2026-10-30)
+		sliders[0].is_mouse_in = true
+		var on := FilterChips.pointed_at(rows)
+		sliders[0].is_mouse_in = false
+		check(on and not FilterChips.pointed_at(rows), "%s: the filters take the thumbstick only while pointed at" % page_name)
+		# the pointer onto a chip, then off the filters altogether: the stick goes back (owner, 2026-10-30: after a chip
+		# press the song list no longer scrolled)
+		var chip := scroll.find_children("*", "Button", true, false)[0] as Button
+		_pointer(chip.get_global_rect().get_center(), null)
+		var on_chip := FilterChips.pointed_at(rows)
+		_pointer(scroll.get_global_rect().position - Vector2(40.0, 0.0), null)
+		check(on_chip and not FilterChips.pointed_at(rows),
+				"%s: pointing off the filters from a chip gives the thumbstick back" % page_name)
+	var page := scroll.get_child(0) as Control
+	check(page.get_combined_minimum_size().x <= scroll.size.x + 0.5, "%s: the filters don't scroll sideways (%.0f of %.0f px)" % [
+			page_name, page.get_combined_minimum_size().x, scroll.size.x])
+	scroll.scroll_vertical = int(page.get_combined_minimum_size().y)
+	await _settle()
+	_check_layout(root, "%s, filters scrolled to the end" % page_name)
+	scroll.scroll_vertical = 0
+
 func _check_layout(root: Control, state: String) -> void:
 	var problems := PackedStringArray()
 	_check_children(root, root.get_global_rect(), problems)
 	check(problems.is_empty(), "%s: nothing overlaps or spills out%s" % [state, "" if problems.is_empty() else "\n  " + "\n  ".join(problems)])
+	if root is MainMenu:
+		_check_no_scroll(root, state)
+
+## Nothing on the song page but the song list and the filters' page scrolls (owner, 2026-10-28; the filters,
+## 2026-10-30): every other shown scroll container's content fits it.
+func _check_no_scroll(menu: MainMenu, state: String) -> void:
+	var scrolling := PackedStringArray()
+	for scroll: ScrollContainer in menu.find_children("*", "ScrollContainer", true, false):
+		if scroll == menu.songs_menu or scroll.name == FilterChips.SCROLL_NAME or not scroll.is_visible_in_tree():
+			continue
+		for content: Control in scroll.get_children().filter(func(c: Node) -> bool: return c is Control and not c is ScrollBar):
+			if content.get_combined_minimum_size().y > scroll.size.y + 0.5 or content.get_combined_minimum_size().x > scroll.size.x + 0.5:
+				scrolling.append("%s (content %s in %s)" % [menu.get_path_to(scroll), content.get_combined_minimum_size(), scroll.size])
+	check(scrolling.is_empty(), "%s: only the song list scrolls%s" % [state, "" if scrolling.is_empty() else ": " + ", ".join(scrolling)])
+
+## The left panel's sections stay put from song to song (owner, 2026-10-30): the characteristic tabs, each level
+## slot and the stats start at the same place for every listed song.
+func _check_left_panel_locked(menu: MainMenu) -> void:
+	var places := {}
+	for i in menu.songs_menu.item_count:
+		menu.songs_menu.select(i)
+		menu._select_song(i, false)
+		await _settle()
+		var place := [menu.characteristic_row.get_global_rect(), menu.level_stats.global_position]
+		for button: Control in menu.level_row.get_children():
+			place.append(button.get_global_rect() if button.visible else Rect2())
+		places[str(place)] = i
+	check(places.size() == 1, "the left panel's sections stay put across %d songs (%d layouts)" % [
+			menu.songs_menu.item_count, places.size()])
+	menu.songs_menu.select(0)
+	menu._select_song(0, false)
+	await _settle()
+
+## Ten records on the selected difficulty, the current player's best ninth (in a table of the test's own): the ranks
+## under the song show the best ones and, last, the player's best with its place.
+func _fill_ranks(menu: MainMenu) -> void:
+	Highscores.HIGHSCORES_FILEPATH = TEST_HIGHSCORES
+	Highscores.clear_table()
+	var info := MapInfo.new("2.0.0", "Ranks", "", "Artist", "Mapper", 120.0, 0.0, 10.0, "song.ogg", "cover.jpg", "",
+		0.0, {}, "user://no_such_song/", [] as Array[DifficultyInfo])
+	for i in 10:
+		Highscores.add_highscore(info, 1, Settings.player_name if i == 8 else "Rival %d" % i, 900000 - i * 1000, 0.95)
+	var ranks := menu.get_node(^"Ranks") as HighscorePanel
+	ranks.show()
+	ranks.load_highscores(info, 1)
+	await _settle()
+	var rows := ranks._highscore_list.get_children().filter(func(row: Node) -> bool: return not row.is_queued_for_deletion())
+	check(rows.size() == HighscorePanel.COMPACT_ROWS and ((rows[-1] as Node).get_child(1) as Label).text == "#9 " + Settings.player_name
+			and ranks._title.text == "10 scores",
+			"ten ranks under the song: %d rows, the last \"%s\", titled \"%s\"" % [rows.size(),
+			((rows[-1] as Node).get_child(1) as Label).text if rows.size() > 0 else "", ranks._title.text])
 
 func _check_children(parent: Control, bounds: Rect2, problems: PackedStringArray) -> void:
 	var placed: Array[Control] = []
@@ -305,8 +603,8 @@ func _check_children(parent: Control, bounds: Rect2, problems: PackedStringArray
 			problems.append("%s %s spills out of %s %s" % [child.name, rect, parent.name, bounds])
 		if not parent is Container:
 			placed.append(child)
-		# a scroll container's content is meant to run past it
-		if not child is ScrollContainer:
+		# a scroll container's content is meant to run past it; a picture card's layers sit on each other
+		if not child is ScrollContainer and not child is EnvironmentCard:
 			_check_children(child, rect, problems)
 	for i in placed.size():
 		for j in range(i + 1, placed.size()):
@@ -317,6 +615,7 @@ func _check_children(parent: Control, bounds: Rect2, problems: PackedStringArray
 			if a.grow(MIN_GAP - 0.5).intersects(b):
 				problems.append("%s %s and %s %s are closer than %d px" % [placed[i].name, a, placed[j].name, b, MIN_GAP])
 
-## True when one of the two is an open overlay panel that wholly covers the other.
+## True when one of the two is an open overlay panel or a panel background that wholly covers the other.
 func _hidden_under_overlay(a: Control, a_rect: Rect2, b: Control, b_rect: Rect2) -> bool:
-	return (String(a.name) in OVERLAYS and a_rect.encloses(b_rect)) or (String(b.name) in OVERLAYS and b_rect.encloses(a_rect))
+	var covers := OVERLAYS + BACKGROUNDS
+	return (String(a.name) in covers and a_rect.encloses(b_rect)) or (String(b.name) in covers and b_rect.encloses(a_rect))
