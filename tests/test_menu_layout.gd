@@ -365,6 +365,8 @@ func _check_download_page(page: BeatSaverPanel) -> void:
 	Settings.beatsaver_filter_length = 2
 	page._set_search("the longest search anyone typed")
 	page._sync_filter_controls()
+	# the filter changes above wait to reload the list; the test feeds it pages itself
+	page._reload_timer.stop()
 	page.prev_request = BeatSaverPanel.BeatSaverRequest.new()
 	page.prev_request.type = "text_search"
 	page.prev_request.data = page.search_word
@@ -408,11 +410,34 @@ func _check_download_page(page: BeatSaverPanel) -> void:
 	await _settle()
 	_check_layout(page, "download page, downloading")
 	page.downloading.clear()
-	page._set_filters_open(true)
+	# the filters sit beside the list, every section's chips in the right panel at once (owner, 2026-10-30)
+	var filter_room := page.filter_rows.get_parent_control().size.y + page.filter_rows.offset_bottom - page.filter_rows.offset_top
+	check(page.filter_rows.get_combined_minimum_size().y <= filter_room,
+			"download page: every filter fits in the right panel (%.0f of %.0f px)" % [
+			page.filter_rows.get_combined_minimum_size().y, filter_room])
+	check(not page.filter_rows.get_global_rect().intersects(page.item_list.get_global_rect()),
+			"download page: the filters leave the song list in view")
+	await page._on_HTTPRequest_request_completed(0, 200, PackedStringArray(),
+			JSON.stringify({"docs": [map], "info": {"total": 12345}}).to_utf8_buffer())
+	check(page.filter_status.text == BeatSaverPanel.TOTAL_STATUS % "12,345",
+			"download page: the filters say about how many songs match (%s)" % page.filter_status.text)
 	await _settle()
-	_check_layout(page, "download page, filters open")
+	_check_layout(page, "download page, filters on")
+	# a few presses in a row load the list once, after the last
+	var requests := page._list_request
+	page._style_chips[0].button_pressed = true
+	page._genre_chips[0].button_pressed = true
+	page._level_chips[0].button_pressed = true
+	check(page._list_request == requests and page.filter_status.text == BeatSaverPanel.LOADING_STATUS,
+			"download page: a filter press shows Loading and waits for more presses (%d loads)" % (page._list_request - requests))
+	page._reload_timer.stop()
+	page._reload_timer.timeout.emit()
+	check(page._list_request == requests + 1, "download page: three filter presses load the list once (%d)" % (
+			page._list_request - requests))
+	page.httpreq.cancel_request()
 	Settings.beatsaver_filter_reaction = 0
 	Settings.beatsaver_filter_length = 0
+	page._reload_timer.stop()
 	# no level filter and a page too short to scroll (owner, 2026-10-29: the first page showed no scroll bar and never grew)
 	page.prev_request.page = 0
 	await page._on_HTTPRequest_request_completed(0, 200, PackedStringArray(), JSON.stringify({"docs": [map, map, map]}).to_utf8_buffer())

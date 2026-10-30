@@ -8,7 +8,6 @@
 [ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="menu_theme"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/arrow-left.svg" id="icon_arrow-left"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/download.svg" id="icon_download"]
-[ext_resource type="Texture2D" path="res://game/ui/icons/list-filter.svg" id="icon_list-filter"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/search.svg" id="icon_search"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/x.svg" id="icon_x"]
 [ext_resource type="Script" path="res://game/ui/IconButton.gd" id="icon_button"]
@@ -16,7 +15,7 @@
 [sub_resource type="StyleBoxEmpty" id="none"]
 
 [node name="BeatSaverPanel" type="Panel"]
-offset_right = 1249.0
+offset_right = 1753.0
 offset_bottom = 745.0
 theme = ExtResource("menu_theme")
 theme_override_styles/panel = SubResource("none")
@@ -34,6 +33,13 @@ layout_mode = 0
 offset_left = 504.0
 offset_top = 0.0
 offset_right = 1249.0
+offset_bottom = 745.0
+
+[node name="RightPanel" parent="." instance=ExtResource("menu_panel")]
+layout_mode = 0
+offset_left = 1273.0
+offset_top = 0.0
+offset_right = 1753.0
 offset_bottom = 745.0
 
 [node name="TextureRect" type="TextureRect" parent="."]
@@ -131,22 +137,9 @@ tooltip_text = "Search"
 icon = ExtResource("icon_search")
 script = ExtResource("icon_button")
 
-[node name="Filters_Button" type="Button" parent="."]
-layout_mode = 0
-offset_left = 596.0
-offset_top = 8.0
-offset_right = 796.0
-offset_bottom = 68.0
-theme_override_constants/icon_max_width = 28
-text = "Filters"
-clip_text = true
-text_overrun_behavior = 3
-icon = ExtResource("icon_list-filter")
-script = ExtResource("icon_button")
-
 [node name="SortButton" type="OptionButton" parent="."]
 layout_mode = 0
-offset_left = 804.0
+offset_left = 596.0
 offset_top = 8.0
 offset_right = 1016.0
 offset_bottom = 68.0
@@ -203,12 +196,11 @@ vertical_alignment = 1
 autowrap_mode = 3
 
 [node name="FiltersPanel" type="Panel" parent="."]
-visible = false
 layout_mode = 0
-offset_left = 520.0
-offset_top = 74.0
-offset_right = 1233.0
-offset_bottom = 740.0
+offset_left = 1289.0
+offset_top = 8.0
+offset_right = 1737.0
+offset_bottom = 737.0
 
 [node name="Rows" type="VBoxContainer" parent="FiltersPanel"]
 layout_mode = 1
@@ -219,77 +211,25 @@ offset_left = 16.0
 offset_top = 16.0
 offset_right = -16.0
 offset_bottom = -16.0
-theme_override_constants/separation = 12
+theme_override_constants/separation = 16
 
-[node name="Back_Button" type="Button" parent="FiltersPanel/Rows"]
-custom_minimum_size = Vector2(0, 56)
-layout_mode = 2
-theme_type_variation = &"BackButton"
-text = "Back"
-icon = ExtResource("icon_arrow-left")
-script = ExtResource("icon_button")
-
-[node name="StyleRow" type="HBoxContainer" parent="FiltersPanel/Rows"]
+[node name="Status" type="HBoxContainer" parent="FiltersPanel/Rows"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="FiltersPanel/Rows/StyleRow"]
-custom_minimum_size = Vector2(160, 0)
-layout_mode = 2
-size_flags_vertical = 0
-text = "Style"
-
-[node name="StyleChips" type="HFlowContainer" parent="FiltersPanel/Rows/StyleRow"]
+[node name="FilterStatus" type="Label" parent="FiltersPanel/Rows/Status"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/h_separation = 8
-theme_override_constants/v_separation = 8
+theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
+theme_override_font_sizes/font_size = 22
+vertical_alignment = 1
+text_overrun_behavior = 3
 
-[node name="DifficultyRow" type="HBoxContainer" parent="FiltersPanel/Rows"]
+[node name="ClearFilters_Button" type="Button" parent="FiltersPanel/Rows/Status"]
+custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-
-[node name="Label" type="Label" parent="FiltersPanel/Rows/DifficultyRow"]
-custom_minimum_size = Vector2(160, 0)
-layout_mode = 2
-text = "Difficulty"
-
-[node name="ReactionFilter" type="OptionButton" parent="FiltersPanel/Rows/DifficultyRow"]
-custom_minimum_size = Vector2(0, 56)
-layout_mode = 2
-size_flags_horizontal = 3
-fit_to_longest_item = false
-
-[node name="LengthRow" type="HBoxContainer" parent="FiltersPanel/Rows"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="FiltersPanel/Rows/LengthRow"]
-custom_minimum_size = Vector2(160, 0)
-layout_mode = 2
-text = "Length"
-
-[node name="LengthFilter" type="OptionButton" parent="FiltersPanel/Rows/LengthRow"]
-custom_minimum_size = Vector2(0, 56)
-layout_mode = 2
-size_flags_horizontal = 3
-fit_to_longest_item = false
-
-[node name="GenreRow" type="HBoxContainer" parent="FiltersPanel/Rows"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="FiltersPanel/Rows/GenreRow"]
-custom_minimum_size = Vector2(160, 0)
-layout_mode = 2
-text = "Genre"
-
-[node name="GenreFilter" type="OptionButton" parent="FiltersPanel/Rows/GenreRow"]
-custom_minimum_size = Vector2(0, 56)
-layout_mode = 2
-size_flags_horizontal = 3
-fit_to_longest_item = false
-
-[node name="ClearFilters_Button" type="Button" parent="FiltersPanel/Rows"]
-custom_minimum_size = Vector2(0, 56)
-layout_mode = 2
-text = "Clear filters"
+tooltip_text = "Clear filters"
+text = "Clear"
 icon = ExtResource("icon_x")
 script = ExtResource("icon_button")
 
@@ -312,14 +252,9 @@ scroll_node_path = NodePath("../ItemList")
 [connection signal="pressed" from="gotoMapsBy" to="." method="_on_gotoMapsBy_pressed"]
 [connection signal="pressed" from="CloseButton" to="." method="_on_CloseButton_pressed"]
 [connection signal="item_selected" from="SortButton" to="." method="_on_sort_selected"]
-[connection signal="pressed" from="Filters_Button" to="." method="_set_filters_open" binds= [true]]
-[connection signal="pressed" from="FiltersPanel/Rows/Back_Button" to="." method="_set_filters_open" binds= [false]]
-[connection signal="pressed" from="FiltersPanel/Rows/ClearFilters_Button" to="." method="_on_clear_filters_pressed"]
+[connection signal="pressed" from="FiltersPanel/Rows/Status/ClearFilters_Button" to="." method="_on_clear_filters_pressed"]
 [connection signal="request_completed" from="HTTPReq" to="." method="_on_HTTPRequest_request_completed"]
 [connection signal="request_completed" from="HTTPDownload" to="." method="_on_HTTPRequest_download_completed"]
 [connection signal="request_completed" from="CoverDownload" to="." method="_update_cover"]
 [connection signal="request_completed" from="DetailCoverDownload" to="." method="_on_detail_cover_completed"]
 [connection signal="request_completed" from="PreviewDownload" to="." method="_on_preview_download_completed"]
-[connection signal="item_selected" from="FiltersPanel/Rows/DifficultyRow/ReactionFilter" to="." method="_on_reaction_filter_item_selected"]
-[connection signal="item_selected" from="FiltersPanel/Rows/GenreRow/GenreFilter" to="." method="_on_genre_filter_item_selected"]
-[connection signal="item_selected" from="FiltersPanel/Rows/LengthRow/LengthFilter" to="." method="_on_length_filter_item_selected"]
