@@ -377,7 +377,7 @@ class SongFilter:
 		return reaction == 0 and length == 0 and not favorites and not workout
 
 	## False for non-favorites when only favorites are shown. Otherwise true if any difficulty of the map is
-	## playable (MapStats.is_unplayable), at the picked level or easier (MapStats.level_of), inside the length
+	## playable (MapStats.is_unplayable), at the picked level (MapStats.level_of), inside the length
 	## filter and, when only workouts are shown, has a set of wall moves (MapStats.workout_level). Maps that
 	## haven't been counted yet pass, so the list never hides songs it knows nothing about.
 	func passes(map: MapInfo) -> bool:
@@ -423,7 +423,7 @@ const SONG_NOUNS := ["song", "songs"]
 ## Status while searching, shorter so the search text fits: shown of total, then the text.
 const SEARCH_FILTER_STATUS_TEXT := "%d of %d %s"
 const SEARCH_STATUS_TEXT := " · \"%s\""
-const NO_MATCH_TEXT := "No songs match these filters."
+const NO_MATCH_TEXT := "No songs match. Try fewer filters."
 const NO_SONGS_TEXT := "No songs yet.\nGet more songs below."
 
 ## Puts next to each filter choice how many of the songs (the playlist, or the search matches) it would list with
