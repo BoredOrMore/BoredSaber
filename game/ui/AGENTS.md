@@ -33,8 +33,9 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   `BeatSaverList.gd` (class `BeatSaverList`): the song list's rows (72 px cover, "Artist - Title") with the level strip
   and length at the end, a fixed set of recycled rows, each with one cover texture written over in place, the 72 px
   covers kept as images; only the picked map's big cover is fetched (`DetailCoverDownload`)
-  (doc/research/get-songs-list-plan.md). A page of maps is parsed on a worker thread and its rows added
-  `ROWS_PER_FRAME` a frame.
+  (doc/research/get-songs-list-plan.md). A page of maps is parsed on a worker thread (`_parse_page`), which also
+  works out each map's row text and estimated levels (`BeatSaverSongInfo.row_text`, `estimated_levels` kept per Speed
+  modifier, which the main thread reads and passes in), and its rows are added `ROWS_PER_FRAME` a frame.
 - Templates (owner, 2026-10-28: build UI as templates, pages only swap content): `menu_panel.tres`, the menus'
   rounded panel frame (24 px corners, about 1.6 degrees at 2 m), the root style of the song menu's three panels
   (`MenuPanel.tscn`, a frame that takes no input), Settings, the Download page and "Who's playing?";
@@ -154,7 +155,8 @@ Above the list one row holds Search (icon), Filters (opens `FiltersPanel` over t
   (`max_updates_per_second`): dragging it had run the GPU past the frame (10-14 ms of 13.9).
 - Covers: downloaded one after another (`update_next_cover`), the next starting as each arrives; each is decoded and
   sized to 72 px on a `WorkerThreadPool` task (`_make_cover`); finished covers go onto the list together every
-  `COVER_FLUSH_SECONDS` with one page redraw (`_flush_covers`), and only the 72 px result is uploaded on the main
+  `COVER_FLUSH_SECONDS` (`_flush_covers`), with one page redraw only if one of them is in view
+  (`BeatSaverList.shows`), and only the 72 px result is uploaded on the main
   thread; `_cover_list` drops covers finished for an older list. The picked map's cover is fetched again at
   `DETAIL_COVER` px (`_on_detail_cover_completed`) into the details' one texture.
 - Known gaps (report, don't silently patch in unrelated work): `versions[0]["hash"]` is indexed without checking

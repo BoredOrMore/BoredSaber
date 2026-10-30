@@ -262,11 +262,11 @@ static func reaction_seconds(info: MapInfo, difficulty: DifficultyInfo) -> float
 	return reaction_seconds_for(info.beats_per_minute, difficulty.note_jump_movement_speed, difficulty.note_jump_start_beat_offset)
 
 ## Seconds a note is visible before it reaches the player for a map's BPM, note speed and offset, at
-## the current Speed modifier; 0 without a BPM.
-static func reaction_seconds_for(bpm: float, njs: float, offset: float) -> float:
+## the Speed modifier `speed` (the current one by default); 0 without a BPM.
+static func reaction_seconds_for(bpm: float, njs: float, offset: float, speed := _speed()) -> float:
 	if bpm <= 0.0:
 		return 0.0
-	return Map.half_jump_beats_for(bpm, njs, offset) * 60.0 / bpm / _speed()
+	return Map.half_jump_beats_for(bpm, njs, offset) * 60.0 / bpm / speed
 
 ## The Speed modifier as a factor.
 static func _speed() -> float:
