@@ -364,8 +364,9 @@ func _collect_shown(node: Node, materials: Dictionary, rings: Dictionary, labels
 func show_points(points: int, played: int, length: int, accuracy: float) -> void:
 	_set_text(_point_label, "" if Map.practice else _grouped(points))
 	_set_text(_time_label, "%s / %s" % [_clock(clampi(played, 0, length)), _clock(length)])
-	# the percent climbs from 0 through the song (Scoreboard.song_progress); the grade still follows the accuracy
-	_set_text(_accuracy_label, "%.1f%%" % (Scoreboard.song_progress() * 100.0))
+	# the percent climbs from 0 through the song (Scoreboard.song_progress); the grade still follows the accuracy.
+	# Practice shows the accuracy itself (owner's choice 3A, 2026-10-30): its runs are parts, never the whole song
+	_set_text(_accuracy_label, "%.1f%%" % ((accuracy if Map.practice else Scoreboard.song_progress()) * 100.0))
 	var grade := shown_grade(accuracy, Scoreboard._notes_scored)
 	_set_text(_grade_label, grade)
 	var material := _grade_label.material_override as BaseMaterial3D

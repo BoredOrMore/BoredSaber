@@ -36,6 +36,9 @@ arrangement (owner, 2026-10-27).
   Italic, owner 2026-10-28); `_grouped` puts commas in every score and count ("236,336"); `show_points` formats score,
   time as played / length, the percent "%.1f%%" from `Scoreboard.song_progress()` (points over the whole song's best,
   climbing from 0%; owner 2026-10-30), grade from the accuracy via `EndScore.grade` in `Constants.RANK_COLORS`.
+  Practice (`Map.practice`, `_set_practice`): the accuracy alone, as "%.1f%%" at the score's place and size (owner's
+  choice 3A, 2026-10-30; a part, so the accuracy and not the climbing percent); score, combo, ring, grade, caption,
+  time and the far energy bar hidden.
 - `ComboHud.gd` (class `ComboHud`, on `Multiplier_Label`): combo count, the multiplier ring (`ring`, reparented onto
   the right panel by `Hud`), raise flash, broken-combo shake and tint, `milestone_reached` (50, then every 100).
   `rest_at(at)` sets where the shake returns; `set_multiplier_height(h)` sizes the multiplier in the ring.
