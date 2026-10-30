@@ -122,12 +122,9 @@ var song_data: Array[BeatSaverSongInfo] = []
 # not requestable (ie. reached end of the list)
 var prev_page_available := -1
 var next_page_available := -1
-## Style chips and genres: [label, BeatSaver tag], "" meaning any.
-const STYLES := [["Any", ""], ["Dance", "dance-style"], ["Fitness", "fitness"], ["Accuracy", "accuracy"],
-	["Tech", "tech"], ["Speed", "speed"], ["Challenge", "challenge"]]
-const GENRES := [["Any genre", ""], ["Pop", "pop"], ["J-Pop", "j-pop"], ["K-Pop", "k-pop"], ["Anime", "anime"],
-	["Electronic", "electronic"], ["Rock", "rock"], ["Game music", "video-game-soundtrack"], ["Metal", "metal"],
-	["Classical", "classical-orchestral"], ["Hip-hop", "hip-hop-rap"], ["Vocaloid", "vocaloid"]]
+## Style chips and genres (SongTags', shared with the song menu): [label, BeatSaver tag], "" meaning any.
+const STYLES := SongTags.STYLES
+const GENRES := SongTags.GENRES
 ## Tags of the picked style and genre.
 var _style_tag := ""
 var _genre_tag := ""
@@ -339,15 +336,19 @@ func _build_filter_chips() -> void:
 	var pick_genre := func(index: int) -> void:
 		_genre_tag = GENRES[index + 1][1] if index >= 0 else ""
 		_filters_changed()
-	_style_chips = FilterChips.add_section(filter_rows, STYLE_TITLE, STYLES.slice(1).map(label), pick_style)
+	# the same tabs and sections as the song menu's (FilterChips.add_tabs), under the status
+	var pages := FilterChips.add_tabs(filter_rows, 1)
 	# the song menu's difficulty buttons (their narrower kind keeps the five levels on one row)
-	_level_chips = FilterChips.add_section(filter_rows, DIFFICULTY_TITLE,
+	_level_chips = FilterChips.add_section(pages[0], DIFFICULTY_TITLE,
 		Constants.DIFFICULTY_LEVELS.map(label), pick_level, &"DifficultyButton")
-	# the same narrow kind keeps the three lengths on one row, so every section fits the panel with none scrolling
-	_length_chips = FilterChips.add_section(filter_rows, LENGTH_TITLE,
+	# the same narrow kind keeps the three lengths on one row
+	_length_chips = FilterChips.add_section(pages[0], LENGTH_TITLE,
 		Constants.LENGTH_FILTERS.slice(1).map(func(choice: Array) -> String: return str(choice[1])), pick_length,
 		&"DifficultyButton")
-	_genre_chips = FilterChips.add_section(filter_rows, GENRE_TITLE, GENRES.slice(1).map(label), pick_genre)
+	_style_chips = FilterChips.add_section(pages[1], STYLE_TITLE, STYLES.slice(1).map(label), pick_style,
+		&"DifficultyButton")
+	_genre_chips = FilterChips.add_section(pages[1], GENRE_TITLE, GENRES.slice(1).map(label), pick_genre,
+		&"DifficultyButton")
 
 ## Shows the filters on their chips and as chips above the list; a mapper's list ("More by") isn't filtered, so its
 ## chips are greyed out then.

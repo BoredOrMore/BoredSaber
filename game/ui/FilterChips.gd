@@ -13,13 +13,18 @@ const CHIP_HEIGHT := 48
 const COUNT_LABEL := "%s (%d)"
 ## The count a counted chip keeps room for from the start, so its width (and its neighbours) stays put as counts
 ## change (owner, 2026-10-30: leave room for changing text so things don't move about).
-const COUNT_ROOM := 9999
+const COUNT_ROOM := 999
 ## The row above a list: the x on each chip (px), the chip that stands for all the filters when theirs don't fit, and
 ## most letters of a search shown on its chip before "…".
 const CLEAR_ICON := preload("res://game/ui/icons/x.svg")
 const CHIP_ICON_SIZE := 24
 const SOME_FILTERS_TEXT := "%d filters"
 const SEARCH_CHIP_LETTERS := 16
+## The filter panels' tabs, the same on both pages (owner, 2026-10-30: six sections didn't fit one panel): Songs
+## (Favorites and Workout on the song menu, Difficulty, Length) and Tags (Style, Genre).
+const TAB_LABELS := ["Songs", "Tags"]
+## Gap between a panel's sections (px), as the panel's own rows.
+const SECTION_GAP := 16
 
 ## Adds a section titled title to parent with a chip per label, in the theme's button kind `kind`. Pressing a chip
 ## calls on_pick with its index, or -1 when it was the picked one (the filter goes off). Returns the chips.
@@ -39,6 +44,39 @@ static func add_section(parent: Container, title: String, labels: Array, on_pick
 		flow.add_child(chip)
 		chips.append(chip)
 	return chips
+
+## Adds a TAB_LABELS tab row to rows at index, and under it one page per tab (shown one at a time, the Songs one
+## first) in a scroll container, so a page taller than the panel still scrolls instead of spilling out. Returns the
+## pages, to add the sections to.
+static func add_tabs(rows: VBoxContainer, index: int) -> Array[VBoxContainer]:
+	var tab_row := HBoxContainer.new()
+	rows.add_child(tab_row)
+	rows.move_child(tab_row, index)
+	var scroll := ScrollContainer.new()
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	rows.add_child(scroll)
+	rows.move_child(scroll, index + 1)
+	var stack := VBoxContainer.new()
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(stack)
+	var pages: Array[VBoxContainer] = []
+	var group := ButtonGroup.new()
+	for i in TAB_LABELS.size():
+		var page := VBoxContainer.new()
+		page.add_theme_constant_override(&"separation", SECTION_GAP)
+		page.visible = i == 0
+		stack.add_child(page)
+		pages.append(page)
+		var tab := ModifierChips.make_row_button(TAB_LABELS[i], group, func() -> void:
+			for other in pages:
+				other.visible = other == page
+			scroll.scroll_vertical = 0, &"TabButton")
+		tab.custom_minimum_size.y = CHIP_HEIGHT
+		tab.button_pressed = i == 0
+		UI_AudioEngine.attach_button(tab)
+		tab_row.add_child(tab)
+	return pages
 
 ## Shows the chip at index as picked and the others not (-1: none), without calling on_pick.
 static func show_picked(chips: Array[Button], index: int) -> void:

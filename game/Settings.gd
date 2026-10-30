@@ -408,6 +408,15 @@ var song_filter_workout: bool:
 	set(value):
 		song_filter_workout = value
 		set_and_emit(&"song_filter_workout", value)
+## The song menu's style and genre filters: a BeatSaver tag (SongTags.STYLES, GENRES), "" for any.
+var song_filter_style: String:
+	set(value):
+		song_filter_style = value
+		set_and_emit(&"song_filter_style", value)
+var song_filter_genre: String:
+	set(value):
+		song_filter_genre = value
+		set_and_emit(&"song_filter_genre", value)
 ## Length filter of the BeatSaver page, kept apart from the song menu's so changing one doesn't empty the other.
 var beatsaver_filter_length: int:
 	set(value):
@@ -514,6 +523,8 @@ var default_values = {
 	song_filter_reaction = 0,
 	song_filter_favorites = false,
 	song_filter_workout = false,
+	song_filter_style = "",
+	song_filter_genre = "",
 	beatsaver_filter_length = 0,
 	beatsaver_filter_reaction = 0,
 	claws = false,

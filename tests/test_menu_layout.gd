@@ -112,6 +112,7 @@ func _ready() -> void:
 	menu._show_filters(true)
 	await _settle()
 	_check_layout(menu, "filters")
+	await _check_filter_tabs(menu, menu.filter_rows, "song menu")
 	check(not (menu.get_node(^"FiltersPanel") as Control).get_global_rect().intersects(menu.songs_menu.get_global_rect()),
 		"filters: the open filters leave the song list in view (vr-ui-review)")
 	menu._show_filters(false)
@@ -410,11 +411,8 @@ func _check_download_page(page: BeatSaverPanel) -> void:
 	await _settle()
 	_check_layout(page, "download page, downloading")
 	page.downloading.clear()
-	# the filters sit beside the list, every section's chips in the right panel at once (owner, 2026-10-30)
-	var filter_room := page.filter_rows.get_parent_control().size.y + page.filter_rows.offset_bottom - page.filter_rows.offset_top
-	check(page.filter_rows.get_combined_minimum_size().y <= filter_room,
-			"download page: every filter fits in the right panel (%.0f of %.0f px)" % [
-			page.filter_rows.get_combined_minimum_size().y, filter_room])
+	# the filters sit beside the list, each tab's sections in the right panel unscrolled (owner, 2026-10-30)
+	await _check_filter_tabs(page, page.filter_rows, "download page")
 	check(not page.filter_rows.get_global_rect().intersects(page.item_list.get_global_rect()),
 			"download page: the filters leave the song list in view")
 	await page._on_HTTPRequest_request_completed(0, 200, PackedStringArray(),
@@ -506,6 +504,20 @@ func _settle() -> void:
 
 ## Every visible control stays inside its parent (and the panel), and controls placed with offsets keep
 ## MIN_GAP between them.
+## Shows each filter tab (FilterChips.add_tabs) in turn: its page fits the panel without scrolling and nothing spills
+## out; ends on the first tab.
+func _check_filter_tabs(root: Control, rows: VBoxContainer, page_name: String) -> void:
+	var tabs := rows.get_child(1).get_children()
+	var scroll := rows.get_child(2) as ScrollContainer
+	check(tabs.size() == FilterChips.TAB_LABELS.size(), "%s: the filters have the tabs %s" % [page_name, FilterChips.TAB_LABELS])
+	for i in range(tabs.size() - 1, -1, -1):
+		(tabs[i] as Button).pressed.emit()
+		await _settle()
+		var page_height := (scroll.get_child(0) as Control).get_combined_minimum_size().y
+		check(page_height <= scroll.size.y + 0.5, "%s: the %s filters fit unscrolled (%.0f of %.0f px)" % [
+				page_name, FilterChips.TAB_LABELS[i], page_height, scroll.size.y])
+		_check_layout(root, "%s, %s filters" % [page_name, FilterChips.TAB_LABELS[i]])
+
 func _check_layout(root: Control, state: String) -> void:
 	var problems := PackedStringArray()
 	_check_children(root, root.get_global_rect(), problems)

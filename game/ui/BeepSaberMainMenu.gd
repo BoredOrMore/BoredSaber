@@ -353,6 +353,9 @@ class SongFilter:
 	var length := 0
 	var favorites := false
 	var workout := false
+	## BeatSaver tags (SongTags.STYLES, GENRES), "" for any.
+	var style := ""
+	var genre := ""
 
 	## The filters as saved in Settings.
 	static func saved() -> SongFilter:
@@ -361,6 +364,8 @@ class SongFilter:
 		filter.length = Settings.song_filter_length
 		filter.favorites = Settings.song_filter_favorites
 		filter.workout = Settings.song_filter_workout
+		filter.style = Settings.song_filter_style
+		filter.genre = Settings.song_filter_genre
 		return filter
 
 	## A copy to change one choice of.
@@ -370,19 +375,26 @@ class SongFilter:
 		filter.length = length
 		filter.favorites = favorites
 		filter.workout = workout
+		filter.style = style
+		filter.genre = genre
 		return filter
 
 	## True when every filter is off.
 	func is_off() -> bool:
-		return reaction == 0 and length == 0 and not favorites and not workout
+		return reaction == 0 and length == 0 and not favorites and not workout and style.is_empty() and genre.is_empty()
 
-	## False for non-favorites when only favorites are shown. Otherwise true if any difficulty of the map is
+	## False for non-favorites when only favorites are shown, and for songs without the picked style or genre tag
+	## (SongTags; a song not looked up yet has none). Otherwise true if any difficulty of the map is
 	## playable (MapStats.is_unplayable), at the picked level (MapStats.level_of), inside the length
 	## filter and, when only workouts are shown, has a set of wall moves (MapStats.workout_level). Maps that
 	## haven't been counted yet pass, so the list never hides songs it knows nothing about.
 	func passes(map: MapInfo) -> bool:
 		if favorites and not PlayCount.is_favorite(map):
 			return false
+		if not style.is_empty() or not genre.is_empty():
+			var tags := SongTags.tags_of(map)
+			if (not style.is_empty() and not tags.has(style)) or (not genre.is_empty() and not tags.has(genre)):
+				return false
 		var length_range := MapStats.length_filter(length)
 		for diff in map.difficulty_beatmaps:
 			var stats := MapStats.get_cached(map, diff)
@@ -411,10 +423,15 @@ const FAVORITES_LABEL := "Favorites"
 const WORKOUT_LABEL := "Workout"
 const DIFFICULTY_FILTER_TITLE := "Difficulty"
 const LENGTH_FILTER_TITLE := "Length"
+const STYLE_FILTER_TITLE := "Style"
+const GENRE_FILTER_TITLE := "Genre"
 ## The filters' chips (FilterChips), in the order of MapStats.difficulty_filters and Constants.LENGTH_FILTERS
 ## without their first, "any", choice
 var _difficulty_chips: Array[Button] = []
 var _length_chips: Array[Button] = []
+## The style and genre chips (owner, 2026-10-30: more filters), in the order of SongTags.STYLES and GENRES without "any".
+var _style_chips: Array[Button] = []
+var _genre_chips: Array[Button] = []
 ## Status above the list while filters hide songs; with none it only gives the total (SONG_TOTAL_TEXT).
 ## The %s is "song" or "songs" (SONG_NOUNS), following the total.
 const FILTER_STATUS_TEXT := "Showing %d of %d %s"
@@ -442,6 +459,14 @@ func _show_filter_counts(filter: SongFilter, songs: Array[MapInfo], shown: int) 
 		var choice := filter.copy()
 		choice.length = Constants.LENGTH_FILTERS[i + 1][0]
 		FilterChips.show_count(_length_chips[i], Constants.LENGTH_FILTERS[i + 1][1], choice.count(songs))
+	for i in _style_chips.size():
+		var choice := filter.copy()
+		choice.style = SongTags.STYLES[i + 1][1]
+		FilterChips.show_count(_style_chips[i], SongTags.STYLES[i + 1][0], choice.count(songs))
+	for i in _genre_chips.size():
+		var choice := filter.copy()
+		choice.genre = SongTags.GENRES[i + 1][1]
+		FilterChips.show_count(_genre_chips[i], SongTags.GENRES[i + 1][0], choice.count(songs))
 	var favorites := filter.copy()
 	favorites.favorites = true
 	FilterChips.show_count(favorites_filter, FAVORITES_LABEL, favorites.count(songs))
@@ -459,7 +484,8 @@ func _show_filter_counts(filter: SongFilter, songs: Array[MapInfo], shown: int) 
 	filter_status.text = status
 	filters_button.text = FILTERS_TEXT % [total, noun]
 	if not filter.is_off() or not _search_text.is_empty():
-		var on := int(filter.reaction != 0) + int(filter.length != 0) + int(filter.favorites) + int(filter.workout)
+		var on := int(filter.reaction != 0) + int(filter.length != 0) + int(filter.favorites) + int(filter.workout) \
+				+ int(not filter.style.is_empty()) + int(not filter.genre.is_empty())
 		var what: String = (FILTERS_ON_TEXT[0 if on == 1 else 1] % on) if _search_text.is_empty() else ("\"%s\"" % _search_text)
 		filters_button.text = FILTERS_SHOWN_TEXT % [shown, total, what]
 	# greyed out rather than hidden, so the status beside it keeps its width
@@ -484,7 +510,18 @@ func _update_chips(filter: SongFilter) -> void:
 	var length := MapStats.length_filter(filter.length)
 	if int(length[0]) != 0:
 		filters.append([length[1], func() -> void: Settings.song_filter_length = 0])
+	if not filter.style.is_empty():
+		filters.append([_tag_label(SongTags.STYLES, filter.style), func() -> void: Settings.song_filter_style = ""])
+	if not filter.genre.is_empty():
+		filters.append([_tag_label(SongTags.GENRES, filter.genre), func() -> void: Settings.song_filter_genre = ""])
 	FilterChips.fill_row(chip_row, chips, filters, _clear_only_filters)
+
+## A tag's label in entries ([label, tag]).
+static func _tag_label(entries: Array, tag: String) -> String:
+	for entry: Array in entries:
+		if entry[1] == tag:
+			return entry[0]
+	return tag
 
 ## Turns every filter off and clears the search, from the status row's Clear.
 func _clear_filters() -> void:
@@ -497,6 +534,8 @@ func _clear_only_filters() -> void:
 	Settings.song_filter_length = 0
 	Settings.song_filter_favorites = false
 	Settings.song_filter_workout = false
+	Settings.song_filter_style = ""
+	Settings.song_filter_genre = ""
 
 ## Rebuilds the shown song list with the current search text and filters.
 func _refilter() -> void:
@@ -726,7 +765,7 @@ func on_settings_changed(key: StringName) -> void:
 			# reaction times depend on the Speed modifier
 			if MapStats.difficulty_filter(Settings.song_filter_reaction) != 0:
 				_refilter()
-		&"song_filter_reaction", &"song_filter_length":
+		&"song_filter_reaction", &"song_filter_length", &"song_filter_style", &"song_filter_genre":
 			_show_picked_filters()
 			_refilter()
 		&"song_filter_favorites":
@@ -1201,7 +1240,8 @@ func _show_filters(open: bool) -> void:
 	$FiltersPanel.visible = open
 	filters_button.set_pressed_no_signal(open)
 
-## Fills the filters panel with a Difficulty and a Length section of chips (FilterChips), under the status and Clear.
+## Fills the filters panel with Difficulty, Length, Style and Genre sections of chips (FilterChips), under the status
+## and Clear.
 func _build_filter_chips() -> void:
 	var label := func(choice: Array) -> String: return str(choice[1])
 	# a chip's index is its choice's less one: the first choice is "any", which no chip picked gives
@@ -1209,16 +1249,33 @@ func _build_filter_chips() -> void:
 		Settings.song_filter_reaction = index + 1
 	var pick_length := func(index: int) -> void:
 		Settings.song_filter_length = Constants.LENGTH_FILTERS[index + 1][0]
-	_difficulty_chips = FilterChips.add_section(filter_rows, DIFFICULTY_FILTER_TITLE,
+	# the same tabs and sections as Get songs' (FilterChips.add_tabs), under the status; Favorites and Workout lead
+	# the Songs tab
+	var pages := FilterChips.add_tabs(filter_rows, 1)
+	var toggle_row := favorites_filter.get_parent()
+	toggle_row.reparent(pages[0])
+	_difficulty_chips = FilterChips.add_section(pages[0], DIFFICULTY_FILTER_TITLE,
 		MapStats.difficulty_filters().slice(1).map(label), pick_difficulty, &"DifficultyButton")
-	_length_chips = FilterChips.add_section(filter_rows, LENGTH_FILTER_TITLE,
+	_length_chips = FilterChips.add_section(pages[0], LENGTH_FILTER_TITLE,
 		Constants.LENGTH_FILTERS.slice(1).map(label), pick_length, &"DifficultyButton")
+	var name := func(choice: Array) -> String: return str(choice[0])
+	var pick_style := func(index: int) -> void:
+		Settings.song_filter_style = SongTags.STYLES[index + 1][1] if index >= 0 else ""
+	var pick_genre := func(index: int) -> void:
+		Settings.song_filter_genre = SongTags.GENRES[index + 1][1] if index >= 0 else ""
+	_style_chips = FilterChips.add_section(pages[1], STYLE_FILTER_TITLE,
+		SongTags.STYLES.slice(1).map(name), pick_style, &"DifficultyButton")
+	_genre_chips = FilterChips.add_section(pages[1], GENRE_FILTER_TITLE,
+		SongTags.GENRES.slice(1).map(name), pick_genre, &"DifficultyButton")
 	_show_picked_filters()
 
-## Shows the saved difficulty and length filters on their chips.
+## Shows the saved difficulty, length, style and genre filters on their chips.
 func _show_picked_filters() -> void:
+	var tags := func(entries: Array) -> Array: return entries.slice(1).map(func(entry: Array) -> String: return entry[1])
 	FilterChips.show_picked(_difficulty_chips, MapStats.difficulty_filter(Settings.song_filter_reaction) - 1)
 	FilterChips.show_picked(_length_chips, MapStats.length_filter(Settings.song_filter_length)[0] - 1)
+	FilterChips.show_picked(_style_chips, tags.call(SongTags.STYLES).find(Settings.song_filter_style))
+	FilterChips.show_picked(_genre_chips, tags.call(SongTags.GENRES).find(Settings.song_filter_genre))
 
 ## Opens More modifiers over the song details, or goes back to them.
 ## Opens or closes the environment cards over the modifiers (the Environment button, Back, or a pick).

@@ -14,7 +14,8 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
 - `BeepSaberController.gd` (`BeepSaberController`, extends `XRController3D`) - per-frame button edges
   (`ax/by/menu/trigger_*pressed/just_pressed/just_released`), `simple_rumble`, `movement_aabb`.
 - `SongTags.gd` (class `SongTags`) - BeatSaver tags (genre, style) of library songs kept in a file, so "Auto" can
-  pick an environment by genre offline (`EventDriver.map_environment`).
+  pick an environment by genre offline (`EventDriver.map_environment`), and the song menu can filter by them; it holds
+  the `STYLES` / `GENRES` both filter panels offer.
 - `MixedReality.gd` (autoload) - `set_mixed_reality(mr)`: passthrough on/off plus floor/HUD material tweaks.
 - `PlayCountTable.gd` (autoload `PlayCount`) - play counts, favourite flag, last difficulty per map.
 - `HighscoreTable/HighscoreTable.gd` (autoload `Highscores`) - top-10 records per map + modifier set.

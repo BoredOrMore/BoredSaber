@@ -4,6 +4,13 @@ extends RefCounted
 ## by genre offline (EventDriver.map_environment). Map files have no tags: they are saved when a song is
 ## downloaded, and songs already in the library are looked up on BeatSaver once, the first time the game is online.
 
+## The styles and genres both song lists filter by: [label, BeatSaver tag], "" meaning any.
+const STYLES := [["Any", ""], ["Dance", "dance-style"], ["Fitness", "fitness"], ["Accuracy", "accuracy"],
+	["Tech", "tech"], ["Speed", "speed"], ["Challenge", "challenge"]]
+const GENRES := [["Any genre", ""], ["Pop", "pop"], ["J-Pop", "j-pop"], ["K-Pop", "k-pop"], ["Anime", "anime"],
+	["Electronic", "electronic"], ["Rock", "rock"], ["Game music", "video-game-soundtrack"], ["Metal", "metal"],
+	["Classical", "classical-orchestral"], ["Hip-hop", "hip-hop-rap"], ["Vocaloid", "vocaloid"]]
+
 ## Saved tags, keyed by song folder name; an empty list means looked up and BeatSaver had none.
 const CACHE_FILE := "song_tags.json"
 ## Songs looked up per request, BeatSaver's limit for /maps/hash.

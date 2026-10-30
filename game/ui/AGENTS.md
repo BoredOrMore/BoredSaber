@@ -47,7 +47,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   panel beside the list they filter, never over it, one press per choice): a `MenuSection` per filter with a chip
   per choice that wraps, its song count on it (greyed at none, its width set for `COUNT_ROOM` from the start), the
   picked chip pressed again turning it off; and the chip row above both lists (`fill_row`: a chip per filter on, x
-  takes it off, folding into one "N filters" chip when they don't fit).
+  takes it off, folding into one "N filters" chip when they don't fit); and `add_tabs`, the Songs / Tags tabs of both
+  panels (owner, 2026-10-30: six sections didn't fit one panel).
   Button kinds are `menu_theme.tres` type variations, so each look and its states (normal, hover, pressed,
   selected, disabled) and rounded corners live in one place; the hover sound is `UI_AudioEngine`'s for every
   button: `Button` (secondary), `PrimaryButton` (the page's main action: Done, Download), `ChipButton` (modifier
@@ -71,8 +72,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   like it (owner, 2026-10-29, layout A): 1753x745 px at scale 2.4 on the menus' 2 m cylinder, where the song menu is,
   details left and the list in the centre. The right panel holds the filters, always open beside the list (owner,
   2026-10-30): a status line ("Loading songs…", "About 1,234 songs" from BeatSaver's info.total, "No songs match")
-  with Clear (greyed, never hidden, when nothing is on), then `FilterChips` sections Style, Difficulty, Length (both in the narrow `DifficultyButton` kind, one
-  row each, so all four fit unscrolled) and Genre; presses wait `FILTER_RELOAD_SECONDS` for more before one reload,
+  with Clear (greyed, never hidden, when nothing is on), then the `FilterChips` tabs (`add_tabs`, the same as the song menu's): Songs with Difficulty and Length,
+  Tags with Style and Genre, all in the narrow `DifficultyButton` kind; presses wait `FILTER_RELOAD_SECONDS` for more before one reload,
   and a "More by" list greys them out. Above the list: Search, the sort and "My songs" in Get songs' place; under
   them a chip per filter on (its x takes it off), the search or the "More by" mapper. (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
 - `ModifierChips.gd` (class `ModifierChips`, made by the menu's `_ready`): the Song tab's fail and damage rows,
@@ -150,7 +151,7 @@ never clicks what it started on (a release far away cancels the press), and a fl
 the top. `scroll_without_pointer = true` scrolls even when not hovered. The song list sets `joystick_scroll = false`:
 there the thumbstick moves the selection instead (`MainMenu._step_with_stick`, centred by `SongList.center_on`;
 each step ticks that hand's controller, `STICK_TICK_*`).
-Above the list one row holds Search (icon), the sort, Get songs and, at its right end, Filters (a toggle: opens and closes `FiltersPanel` in the right panel over the modifiers, the list staying in view, with no Back button: the status line with Clear, then Favorites, Workout, Difficulty and Length chips from `FilterChips`, laid out as on Get songs). Under the row, as on Get songs, a chip per filter on and the search (`_update_chips`). BeatSaver loads the next page past 90% scroll (`BeatSaverPanel.gd:447-465`).
+Above the list one row holds Search (icon), the sort, Get songs and, at its right end, Filters (a toggle: opens and closes `FiltersPanel` in the right panel over the modifiers, the list staying in view, with no Back button: the status line with Clear, then the `FilterChips` tabs as on Get songs: Songs (Favorites, Workout, Difficulty, Length) and Tags (Style, Genre from `SongTags`; a song without the tag is hidden while one is on), each tab's page fitting unscrolled, its scroll container only for a page that grows past the panel). Under the row, as on Get songs, a chip per filter on and the search (`_update_chips`). BeatSaver loads the next page past 90% scroll (`BeatSaverPanel.gd:447-465`).
 
 ## BeatSaver HTTP flow
 
