@@ -172,7 +172,8 @@ func _make_rows() -> void:
 ## Song i always goes on row i % the row count, so scrolling moves only the rows that leave the view (and uploads
 ## only their covers).
 func _place_rows(texts := false) -> void:
-	var width := size.x - (get_v_scroll_bar().size.x if get_v_scroll_bar().visible else 0.0)
+	# the rows stop a scroll bar's width short of the scroll bar, so they don't touch it (owner, 2026-10-30)
+	var width := size.x - (2.0 * get_v_scroll_bar().size.x if get_v_scroll_bar().visible else 0.0)
 	var first := maxi(int(scroll_vertical / (ROW_HEIGHT + ROW_SEPARATION)) - SPARE_ROWS, 0)
 	for index in range(first, first + _rows.size()):
 		var slot := index % _rows.size()
