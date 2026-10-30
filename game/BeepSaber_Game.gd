@@ -121,6 +121,8 @@ var _stick_scrubbing := false
 var _practice_panel_placed := Transform3D()
 ## the practised map's stacks as loaded (Map.snapshot), so it can jump back and forth without reading it again
 var _practice_stacks: Array = []
+## practice's start point (song seconds): it stays where the player set it; Restart and the song's end go back to it
+var _practice_start_point := 0.0
 ## a drag on the timeline began while the song played: letting go plays from there after the countdown
 var _resume_after_scrub := false
 
@@ -297,6 +299,7 @@ func start_map(info: MapInfo, map_difficulty: DifficultyInfo, restart := false) 
 func start_practice(info: MapInfo, map_difficulty: DifficultyInfo, start: float, speed: int) -> void:
 	Map.practice = true
 	Map.practice_start = start
+	_practice_start_point = start
 	Map.practice_speed = speed
 	Utils.update_bus_speed(&"Music")
 	endscore.visible = false
@@ -320,7 +323,7 @@ func _practice_hold(at: float) -> void:
 	lead_in = 0.0
 	pause_countdown.visible = false
 	_clear_track()
-	practice_panel.show_state(false, at, song_player.stream.get_length(), Map.practice_speed)
+	practice_panel.show_state(false, at, _practice_start_point, song_player.stream.get_length(), Map.practice_speed)
 	_transition_game_state(gamestate_practicehold)
 
 ## Plays the practised song from `at` song seconds: the map from there (the passed light events replayed), the usual
@@ -341,7 +344,7 @@ func _practice_play(at: float) -> void:
 	lead_in = maxf(LEAD_IN_MIN_SECONDS, Map.half_jump_beats / Map.beats_per_second() + Cuttable.FLY_SECONDS)
 	Scoreboard.restart()
 	_display_points()
-	practice_panel.show_state(true, at, song_player.stream.get_length(), Map.practice_speed)
+	practice_panel.show_state(true, at, _practice_start_point, song_player.stream.get_length(), Map.practice_speed)
 	_transition_game_state(gamestate_playing)
 
 ## Where the practised song is now, for the panel: never before the start it was played from (the countdown runs
@@ -357,6 +360,18 @@ func _on_practice_play_pressed() -> void:
 func _on_practice_pause_pressed() -> void:
 	if gamestate == gamestate_playing:
 		_practice_hold(_practice_time())
+
+## Restart on the practice panel: the song plays from the start point after the countdown.
+func _on_practice_restart_pressed() -> void:
+	_practice_play(_practice_start_point)
+
+## A new start point: a playing song jumps there, a stopped one waits there.
+func _on_practice_start_set(at: float) -> void:
+	_practice_start_point = at
+	if gamestate == gamestate_playing:
+		_practice_play(at)
+	else:
+		_practice_hold(at)
 
 ## The timeline was grabbed: a playing song stops (mute, track emptied) until it's let go.
 func _on_practice_scrub_started() -> void:
@@ -391,7 +406,8 @@ func _on_practice_speed_changed(percent: int) -> void:
 	Settings.practice_speed = percent
 	Utils.update_bus_speed(&"Music")
 	song_player.pitch_scale = percent / 100.0
-	practice_panel.show_state(false, practice_panel.seconds(), song_player.stream.get_length(), percent)
+	practice_panel.show_state(false, practice_panel.seconds(), _practice_start_point, song_player.stream.get_length(),
+			percent)
 
 ## Ends practising (back in the menu, plays go back to normal).
 func _stop_practice() -> void:
@@ -579,9 +595,9 @@ func _fail_song() -> void:
 
 ## The song played to its end: a short fade to black, then the score screen fades up.
 func _on_song_finished() -> void:
-	# practice has no score screen (owner's choice 2A, 2026-10-30): it waits at the song's end with the panel
+	# practice has no score screen (owner's choice 2A, 2026-10-30): it waits at its start point with the panel
 	if Map.practice:
-		_practice_hold(song_player.stream.get_length())
+		_practice_hold(_practice_start_point)
 		return
 	await _result_moment.fade_out()
 	_on_song_ended()

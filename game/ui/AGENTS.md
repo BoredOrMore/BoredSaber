@@ -86,10 +86,12 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   choice A, 2026-10-30; the records show `HighscorePanel.COMPACT_ROWS` 5 rows since): `play_selected(true)` -> signal
   `start_practice` -> `BeepSaber_Game.start_practice`, which waits at the song's start with the practice panel.
 - `PracticePanel.gd/.tscn` (class `PracticePanel`, on `BeepSaber_Game`'s `Practice_canvas`; owner's redesign
-  2026-10-30, replacing a Practice view in the song menu that felt cut off from playing): "1:24 of 2:55", a timeline
-  (`HSlider`) that is dragged to any point, stopped or while playing (`scrub_started`/`scrub_ended`; a press without a
-  drag jumps at once), a one-line hint, Speed − 50-200% + (`Constants.PRACTICE_SPEED_*`, greyed while playing), the
-  primary Play/Pause (`icons/pause.svg`, Lucide) and Exit. It only shows and signals; the game runs the song and places
+  2026-10-30, replacing a Practice view in the song menu that felt cut off from playing): "1:24 of 2:55" over the
+  playback timeline (`HSlider`), which follows the song and is dragged to any point, stopped or while playing
+  (`scrub_started`/`scrub_ended`; a press without a drag jumps at once); "Start 0:12" beside the start point's own
+  slider, which stays where it was set (owner, 2026-10-30; `start_set`); a one-line hint; Speed − 50-200% +
+  (`Constants.PRACTICE_SPEED_*`, greyed while playing); the primary Play/Pause (`icons/pause.svg`, Lucide), Restart
+  (from the start point) and Exit. It only shows and signals; the game runs the song and places
   it (`BeepSaber_Game.PRACTICE_PANEL_*`). `nudge` moves the timeline for the left thumbstick.
 - `ModifierChips.gd` (class `ModifierChips`, made by the menu's `_ready`): the Song tab's fail and damage rows,
   on/off and Speed chips, More modifiers, environment picker and reset, in step with `Settings`; `changed()` names

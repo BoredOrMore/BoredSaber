@@ -1,37 +1,48 @@
 extends Panel
 class_name PracticePanel
-## The practice panel beside the player (owner, 2026-10-30): where the song is on a timeline that can be dragged to any
-## point (stopped or while playing), the speed (changed only while stopped), Play/Pause and Exit. The game
-## (BeepSaber_Game) runs the song and places the panel; this one only shows the state and passes the presses on.
+## The practice panel beside the player (owner, 2026-10-30): where the song is on a playback timeline that follows it
+## and can be dragged to any point (stopped or while playing), the start point on a slider of its own that stays where
+## it was set (Restart and the song's end go back to it; owner, 2026-10-30), the speed (changed only while stopped),
+## Play/Pause, Restart and Exit. The game (BeepSaber_Game) runs the song and places the panel; this one only shows the
+## state and passes the presses on.
 
 signal play_pressed
 signal pause_pressed
+signal restart_pressed
 signal exit_pressed
-## The timeline was grabbed (pointer press or a drag starting).
+## The playback timeline was grabbed (pointer press or a drag starting).
 signal scrub_started
-## The timeline was let go at `seconds` of the song.
+## The playback timeline was let go at `seconds` of the song.
 signal scrub_ended(seconds: float)
+## The start point was set to `seconds` of the song (let go, or pressed on its track).
+signal start_set(seconds: float)
 signal speed_changed(percent: int)
 
 const PLAY_ICON := preload("res://game/ui/icons/play.svg")
 const PAUSE_ICON := preload("res://game/ui/icons/pause.svg")
 ## One line under the timeline saying what dragging does now (help in place).
-const HINT_STOPPED := "Drag to where you want to play from."
+const HINT_STOPPED := "The start stays put; Restart goes back to it."
 const HINT_PLAYING := "Drag to jump. Pause to change the speed."
 ## Fine steps, so the thumbstick moves the timeline smoothly (BeepSaber_Game._practice_stick).
 const TIMELINE_STEP_SECONDS := 0.01
+## The start point moves in whole seconds.
+const START_STEP_SECONDS := 1.0
 
 @onready var _time := $Rows/Time as Label
 @onready var _timeline := $Rows/Timeline as HSlider
+@onready var _start_time := $Rows/StartTime as Label
+@onready var _start := $Rows/Start as HSlider
 @onready var _hint := $Rows/Hint as Label
 @onready var _slower := $Rows/SpeedRow/Slower_Button as Button
 @onready var _speed := $Rows/SpeedRow/Speed as Label
 @onready var _faster := $Rows/SpeedRow/Faster_Button as Button
 @onready var _play := $Rows/Buttons/PlayPause_Button as Button
+@onready var _restart := $Rows/Buttons/Restart_Button as Button
 @onready var _exit := $Rows/Buttons/Exit_Button as Button
 
 var _playing := false
 var _dragging := false
+var _setting_start := false
 var _speed_percent := 100
 
 func _ready() -> void:
@@ -44,6 +55,16 @@ func _ready() -> void:
 		_dragging = false
 		scrub_ended.emit(_timeline.value))
 	_timeline.value_changed.connect(_on_timeline_changed)
+	_start.step = START_STEP_SECONDS
+	_start.drag_started.connect(func() -> void: _setting_start = true)
+	_start.drag_ended.connect(func(_changed: bool) -> void:
+		_setting_start = false
+		start_set.emit(_start.value))
+	_start.value_changed.connect(func(value: float) -> void:
+		_show_start()
+		if not _setting_start:
+			start_set.emit(value))
+	_restart.pressed.connect(restart_pressed.emit)
 	_slower.pressed.connect(_step_speed.bind(-1))
 	_faster.pressed.connect(_step_speed.bind(1))
 	_play.pressed.connect(func() -> void:
@@ -53,13 +74,17 @@ func _ready() -> void:
 			play_pressed.emit())
 	_exit.pressed.connect(exit_pressed.emit)
 
-## Shows the song at `seconds` of `length`, playing or stopped, at `speed` percent; the speed can change only while
-## stopped.
-func show_state(playing: bool, seconds: float, length: float, speed: int) -> void:
+## Shows the song at `seconds` of `length` with its start point at `start`, playing or stopped, at `speed` percent;
+## the speed can change only while stopped.
+func show_state(playing: bool, seconds: float, start: float, length: float, speed: int) -> void:
 	_playing = playing
 	_timeline.max_value = length
 	if not _dragging:
 		_timeline.set_value_no_signal(seconds)
+	_start.max_value = length
+	if not _setting_start:
+		_start.set_value_no_signal(start)
+	_show_start()
 	_speed_percent = speed
 	_speed.text = "%d%%" % speed
 	_slower.disabled = playing or speed <= Constants.PRACTICE_SPEED_MIN
@@ -81,9 +106,17 @@ func nudge(by: float) -> void:
 	_timeline.set_value_no_signal(_timeline.value + by)
 	_show_time()
 
-## Where the timeline is, in song seconds.
+## Where the playback timeline is, in song seconds.
 func seconds() -> float:
 	return _timeline.value
+
+## The start point, in song seconds.
+func start_seconds() -> float:
+	return _start.value
+
+## "Start 1:24"
+func _show_start() -> void:
+	_start_time.text = "Start %s" % Hud._clock(int(_start.value))
 
 ## "1:24 of 2:55"
 func _show_time() -> void:

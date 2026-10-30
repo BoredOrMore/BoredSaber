@@ -5,13 +5,14 @@
 [ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="menu_theme"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/play.svg" id="icon_play"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/log-out.svg" id="icon_log-out"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/rotate-ccw.svg" id="icon_rotate-ccw"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/minus.svg" id="icon_minus"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/plus.svg" id="icon_plus"]
 [ext_resource type="Script" path="res://game/ui/IconButton.gd" id="icon_button"]
 
 [node name="PracticePanel" type="Panel"]
 offset_right = 560.0
-offset_bottom = 380.0
+offset_bottom = 470.0
 theme = ExtResource("menu_theme")
 theme_override_styles/panel = ExtResource("menu_panel")
 script = ExtResource("script")
@@ -38,12 +39,23 @@ vertical_alignment = 1
 custom_minimum_size = Vector2(0, 60)
 layout_mode = 2
 
+[node name="StartTime" type="Label" parent="Rows"]
+custom_minimum_size = Vector2(0, 36)
+layout_mode = 2
+text = "Start 0:00"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Start" type="HSlider" parent="Rows"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+
 [node name="Hint" type="Label" parent="Rows"]
 custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
 theme_override_font_sizes/font_size = 22
-text = "Drag to where you want to play from."
+text = "The start stays put; Restart goes back to it."
 horizontal_alignment = 1
 vertical_alignment = 1
 text_overrun_behavior = 3
@@ -87,9 +99,16 @@ theme_type_variation = &"PrimaryButton"
 custom_minimum_size = Vector2(0, 72)
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_stretch_ratio = 2.0
 text = "Play"
 icon = ExtResource("icon_play")
+script = ExtResource("icon_button")
+
+[node name="Restart_Button" type="Button" parent="Rows/Buttons"]
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Restart"
+icon = ExtResource("icon_rotate-ccw")
 script = ExtResource("icon_button")
 
 [node name="Exit_Button" type="Button" parent="Rows/Buttons"]

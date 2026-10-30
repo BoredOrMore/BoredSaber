@@ -180,13 +180,18 @@ func _ready() -> void:
 	var practice := (load("res://game/ui/PracticePanel.tscn") as PackedScene).instantiate() as PracticePanel
 	_port.add_child(practice)
 	await _settle()
-	practice.show_state(false, 5999.0, 5999.0, Constants.PRACTICE_SPEED_MIN)
+	practice.show_state(false, 5999.0, 5999.0, 5999.0, Constants.PRACTICE_SPEED_MIN)
 	await _settle()
 	_check_layout(practice, "practice panel, stopped")
 	var slower := practice.get_node(^"Rows/SpeedRow/Slower_Button") as Button
-	check(practice._time.text == "99:59 of 99:59" and practice._speed.text == "50%" and slower.disabled,
-			"practice panel: \"%s\", \"%s\", slower greyed at the slowest" % [practice._time.text, practice._speed.text])
-	practice.show_state(true, 30.0, 5999.0, 100)
+	check(practice._time.text == "99:59 of 99:59" and practice._start_time.text == "Start 99:59"
+			and practice._speed.text == "50%" and slower.disabled,
+			"practice panel: \"%s\", \"%s\", \"%s\", slower greyed at the slowest" % [practice._time.text,
+			practice._start_time.text, practice._speed.text])
+	practice.show_state(true, 30.0, 12.0, 5999.0, 100)
+	practice.show_time(95.0)
+	check(practice.start_seconds() == 12.0 and practice._start_time.text == "Start 0:12",
+			"practice panel: the start point stays put while the song plays on (got %s)" % practice._start_time.text)
 	await _settle()
 	_check_layout(practice, "practice panel, playing")
 	check(practice._play.text == "Pause" and slower.disabled and practice._faster.disabled,
