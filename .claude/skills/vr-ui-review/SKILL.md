@@ -38,6 +38,8 @@ Check:
       default settings, mixed reality on, left-handed. Each one shows a message and a way on.
 - [ ] Destructive actions name what is lost and confirm (or can be undone); filters show what is on,
       how many results remain and how to clear them.
+- [ ] Filters never cover the list they filter, so each press shows its result at once, and each choice is one press
+      (chips, `FilterChips`), not a dropdown (owner, 2026-10-30: the Filters panels hid the list until Back).
 - [ ] Mixed reality on: nothing opaque covers the room beyond what play needs.
 - [ ] Recognition over recall: what is set (modifiers, filters, difficulty, the stage) shows where the player
       decides, not only on another tab.

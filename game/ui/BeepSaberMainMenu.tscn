@@ -114,89 +114,6 @@ horizontal_alignment = 1
 vertical_alignment = 1
 autowrap_mode = 3
 
-[node name="FiltersPanel" type="Panel" parent="."]
-visible = false
-layout_mode = 0
-offset_left = 520.0
-offset_top = 74.0
-offset_right = 1233.0
-offset_bottom = 740.0
-
-[node name="Rows" type="VBoxContainer" parent="FiltersPanel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 16.0
-offset_top = 16.0
-offset_right = -16.0
-offset_bottom = -16.0
-theme_override_constants/separation = 12
-
-[node name="Back_Button" type="Button" parent="FiltersPanel/Rows"]
-theme_type_variation = &"BackButton"
-custom_minimum_size = Vector2(0, 56)
-layout_mode = 2
-text = "Back"
-icon = ExtResource("icon_arrow-left")
-script = ExtResource("icon_button")
-
-[node name="FilterStatus" type="Label" parent="FiltersPanel/Rows"]
-custom_minimum_size = Vector2(0, 48)
-layout_mode = 2
-theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
-vertical_alignment = 1
-text_overrun_behavior = 3
-
-[node name="FavoritesFilter" type="Button" parent="FiltersPanel/Rows"]
-custom_minimum_size = Vector2(0, 56)
-layout_mode = 2
-toggle_mode = true
-text = "Favorites"
-icon = ExtResource("icon_star")
-script = ExtResource("icon_button")
-
-[node name="DifficultyRow" type="HBoxContainer" parent="FiltersPanel/Rows"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="FiltersPanel/Rows/DifficultyRow"]
-custom_minimum_size = Vector2(160, 0)
-layout_mode = 2
-text = "Difficulty"
-
-[node name="ReactionFilter" type="OptionButton" parent="FiltersPanel/Rows/DifficultyRow" unique_id=1730492215]
-custom_minimum_size = Vector2(0, 56)
-layout_mode = 2
-size_flags_horizontal = 3
-fit_to_longest_item = false
-
-[node name="LengthRow" type="HBoxContainer" parent="FiltersPanel/Rows"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="FiltersPanel/Rows/LengthRow"]
-custom_minimum_size = Vector2(160, 0)
-layout_mode = 2
-text = "Length"
-
-[node name="LengthFilter" type="OptionButton" parent="FiltersPanel/Rows/LengthRow" unique_id=1730492216]
-custom_minimum_size = Vector2(0, 56)
-layout_mode = 2
-size_flags_horizontal = 3
-fit_to_longest_item = false
-
-[node name="WorkoutFilter" type="Button" parent="FiltersPanel/Rows"]
-custom_minimum_size = Vector2(0, 56)
-layout_mode = 2
-toggle_mode = true
-text = "Workout"
-
-[node name="ClearFilters_Button" type="Button" parent="FiltersPanel/Rows"]
-custom_minimum_size = Vector2(0, 56)
-layout_mode = 2
-text = "Clear filters"
-icon = ExtResource("icon_x")
-script = ExtResource("icon_button")
-
 [node name="cover" type="TextureRect" parent="." unique_id=925358881]
 layout_mode = 0
 offset_left = 16.0
@@ -432,6 +349,70 @@ theme_override_constants/h_separation = 8
 theme_override_constants/v_separation = 8
 columns = 2
 
+[node name="FiltersPanel" type="Panel" parent="."]
+visible = false
+layout_mode = 0
+offset_left = 1289.0
+offset_top = 8.0
+offset_right = 1737.0
+offset_bottom = 737.0
+
+[node name="Rows" type="VBoxContainer" parent="FiltersPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+theme_override_constants/separation = 16
+
+[node name="Back_Button" type="Button" parent="FiltersPanel/Rows"]
+theme_type_variation = &"BackButton"
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Back"
+icon = ExtResource("icon_arrow-left")
+script = ExtResource("icon_button")
+
+[node name="FilterStatus" type="Label" parent="FiltersPanel/Rows"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
+vertical_alignment = 1
+text_overrun_behavior = 3
+
+[node name="ToggleRow" type="HFlowContainer" parent="FiltersPanel/Rows"]
+layout_mode = 2
+theme_override_constants/h_separation = 6
+theme_override_constants/v_separation = 6
+
+[node name="FavoritesFilter" type="Button" parent="FiltersPanel/Rows/ToggleRow"]
+theme_type_variation = &"ChipButton"
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "Favorites"
+icon = ExtResource("icon_star")
+script = ExtResource("icon_button")
+
+[node name="WorkoutFilter" type="Button" parent="FiltersPanel/Rows/ToggleRow"]
+theme_type_variation = &"ChipButton"
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+text = "Workout"
+
+[node name="ClearFilters_Button" type="Button" parent="FiltersPanel/Rows"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "Clear filters"
+icon = ExtResource("icon_x")
+script = ExtResource("icon_button")
+
 [node name="MorePanel" type="Panel" parent="."]
 visible = false
 layout_mode = 0
@@ -562,12 +543,10 @@ joystick_scroll = false
 [connection signal="pressed" from="Profile_Button" to="." method="_on_profile_button_pressed"]
 [connection signal="item_selected" from="SongsMenu" to="." method="_select_song"]
 [connection signal="item_selected" from="PlaylistSelector" to="." method="_on_PlaylistSelector_item_selected"]
-[connection signal="item_selected" from="FiltersPanel/Rows/DifficultyRow/ReactionFilter" to="." method="_on_reaction_filter_item_selected"]
-[connection signal="item_selected" from="FiltersPanel/Rows/LengthRow/LengthFilter" to="." method="_on_length_filter_item_selected"]
 [connection signal="pressed" from="MorePanel/LoadPlaylists_Button" to="." method="_on_LoadPlaylists_Button_pressed"]
 [connection signal="pressed" from="Favorite_Button" to="." method="_on_favorite_button_pressed"]
-[connection signal="toggled" from="FiltersPanel/Rows/FavoritesFilter" to="." method="_on_favorites_filter_toggled"]
-[connection signal="toggled" from="FiltersPanel/Rows/WorkoutFilter" to="." method="_on_workout_filter_toggled"]
+[connection signal="toggled" from="FiltersPanel/Rows/ToggleRow/FavoritesFilter" to="." method="_on_favorites_filter_toggled"]
+[connection signal="toggled" from="FiltersPanel/Rows/ToggleRow/WorkoutFilter" to="." method="_on_workout_filter_toggled"]
 [connection signal="pressed" from="Modifiers/Header/Reset_Button" to="." method="_on_reset_button_pressed"]
 [connection signal="pressed" from="Modifiers/Header/MoreMods_Button" to="." method="_show_more_modifiers" binds= [true]]
 [connection signal="pressed" from="MoreModsPanel/Rows/Back_Button" to="." method="_show_more_modifiers" binds= [false]]

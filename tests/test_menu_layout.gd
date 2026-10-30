@@ -112,6 +112,8 @@ func _ready() -> void:
 	menu._show_filters(true)
 	await _settle()
 	_check_layout(menu, "filters")
+	check(not (menu.get_node(^"FiltersPanel") as Control).get_global_rect().intersects(menu.songs_menu.get_global_rect()),
+		"filters: the open filters leave the song list in view (vr-ui-review)")
 	menu._show_filters(false)
 	menu._show_more_modifiers(true)
 	await _settle()

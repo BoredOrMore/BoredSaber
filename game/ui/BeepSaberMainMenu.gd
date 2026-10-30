@@ -31,10 +31,9 @@ const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 
 @onready var playlist_selector := $PlaylistSelector as OptionButton
 @onready var filters_button := $Filters_Button as Button
-@onready var reaction_filter := $FiltersPanel/Rows/DifficultyRow/ReactionFilter as OptionButton
-@onready var favorites_filter := $FiltersPanel/Rows/FavoritesFilter as Button
-@onready var workout_filter := $FiltersPanel/Rows/WorkoutFilter as Button
-@onready var length_filter := $FiltersPanel/Rows/LengthRow/LengthFilter as OptionButton
+@onready var favorites_filter := $FiltersPanel/Rows/ToggleRow/FavoritesFilter as Button
+@onready var workout_filter := $FiltersPanel/Rows/ToggleRow/WorkoutFilter as Button
+@onready var filter_rows := $FiltersPanel/Rows as VBoxContainer
 @onready var filter_status := $FiltersPanel/Rows/FilterStatus as Label
 @onready var clear_filters_button := $FiltersPanel/Rows/ClearFilters_Button as Button
 @onready var empty_list_label := $EmptyList as Label
@@ -403,14 +402,18 @@ class SongFilter:
 
 ## After the name of a song whose music file is missing (it plays without sound).
 const NO_MUSIC_SUFFIX := " (no music)"
-## A filter choice with how many songs it would list, e.g. "Up to Hard (18)".
-const FILTER_COUNT_LABEL := "%s (%d)"
 ## The Filters button above the list: the song count, or with filters or a search on how many show and why.
 const FILTERS_TEXT := "Filters · %d %s"
 const FILTERS_SHOWN_TEXT := "%d of %d · %s"
 const FILTERS_ON_TEXT := ["%d filter", "%d filters"]
 const FAVORITES_LABEL := "Favorites"
 const WORKOUT_LABEL := "Workout"
+const DIFFICULTY_FILTER_TITLE := "Difficulty"
+const LENGTH_FILTER_TITLE := "Length"
+## The filters' chips (FilterChips), in the order of MapStats.difficulty_filters and Constants.LENGTH_FILTERS
+## without their first, "any", choice
+var _difficulty_chips: Array[Button] = []
+var _length_chips: Array[Button] = []
 ## Status above the list while filters hide songs; with none it only gives the total (SONG_TOTAL_TEXT).
 ## The %s is "song" or "songs" (SONG_NOUNS), following the total.
 const FILTER_STATUS_TEXT := "Showing %d of %d %s"
@@ -430,23 +433,20 @@ const NO_SONGS_TEXT := "No songs yet.\nGet more songs below."
 ## Baymard Institute, product list filtering).
 func _show_filter_counts(filter: SongFilter, songs: Array[MapInfo], shown: int) -> void:
 	var difficulties := MapStats.difficulty_filters()
-	for i in reaction_filter.item_count:
+	for i in _difficulty_chips.size():
 		var choice := filter.copy()
-		choice.reaction = difficulties[i][0]
-		_show_choice_count(reaction_filter, i, difficulties[i][1], choice.count(songs))
-	for i in length_filter.item_count:
+		choice.reaction = difficulties[i + 1][0]
+		FilterChips.show_count(_difficulty_chips[i], difficulties[i + 1][1], choice.count(songs))
+	for i in _length_chips.size():
 		var choice := filter.copy()
-		choice.length = Constants.LENGTH_FILTERS[i][0]
-		_show_choice_count(length_filter, i, Constants.LENGTH_FILTERS[i][1], choice.count(songs))
-	# the dropdown shows the picked choice without its count, which the status row gives
-	reaction_filter.text = difficulties[reaction_filter.selected][1]
-	length_filter.text = Constants.LENGTH_FILTERS[length_filter.selected][1]
+		choice.length = Constants.LENGTH_FILTERS[i + 1][0]
+		FilterChips.show_count(_length_chips[i], Constants.LENGTH_FILTERS[i + 1][1], choice.count(songs))
 	var favorites := filter.copy()
 	favorites.favorites = true
-	_show_toggle_count(favorites_filter, FAVORITES_LABEL, favorites.count(songs))
+	FilterChips.show_count(favorites_filter, FAVORITES_LABEL, favorites.count(songs))
 	var workout := filter.copy()
 	workout.workout = true
-	_show_toggle_count(workout_filter, WORKOUT_LABEL, workout.count(songs))
+	FilterChips.show_count(workout_filter, WORKOUT_LABEL, workout.count(songs))
 
 	var total := _all_songs.size()
 	var noun: String = SONG_NOUNS[0] if total == 1 else SONG_NOUNS[1]
@@ -464,16 +464,6 @@ func _show_filter_counts(filter: SongFilter, songs: Array[MapInfo], shown: int) 
 	clear_filters_button.visible = not filter.is_off() or not _search_text.is_empty()
 	empty_list_label.visible = shown == 0
 	empty_list_label.text = NO_SONGS_TEXT if total == 0 else NO_MATCH_TEXT
-
-## Shows a dropdown choice with its song count, greyed out at none unless it is the picked one.
-func _show_choice_count(control: OptionButton, index: int, label: String, count: int) -> void:
-	control.set_item_text(index, FILTER_COUNT_LABEL % [label, count])
-	control.set_item_disabled(index, count == 0 and index != control.selected)
-
-## Shows a filter toggle with how many songs it lists when on, greyed out at none unless it is on.
-func _show_toggle_count(toggle: Button, label: String, count: int) -> void:
-	toggle.text = FILTER_COUNT_LABEL % [label, count]
-	toggle.disabled = count == 0 and not toggle.button_pressed
 
 ## Turns every filter off and clears the search, from the status row's Clear filters.
 func _clear_filters() -> void:
@@ -495,10 +485,6 @@ func _on_map_stats_counted() -> void:
 	# unplayable difficulties are left out whatever the filters
 	_refilter()
 
-## Stores the picked reaction time filter; on_settings_changed rebuilds the list.
-func _on_reaction_filter_item_selected(index: int) -> void:
-	Settings.song_filter_reaction = index
-
 ## Stores whether only favorite songs are listed; on_settings_changed rebuilds the list.
 func _on_favorites_filter_toggled(on: bool) -> void:
 	Settings.song_filter_favorites = on
@@ -506,10 +492,6 @@ func _on_favorites_filter_toggled(on: bool) -> void:
 ## Stores whether only songs with a wall workout are listed; on_settings_changed rebuilds the list.
 func _on_workout_filter_toggled(on: bool) -> void:
 	Settings.song_filter_workout = on
-
-## Stores the picked length filter; on_settings_changed rebuilds the list.
-func _on_length_filter_item_selected(index: int) -> void:
-	Settings.song_filter_length = Constants.LENGTH_FILTERS[index][0]
 
 var default_song_icon := preload("res://game/data/beepsaber_logo.png")
 
@@ -655,15 +637,6 @@ func _delete_map(map: MapInfo) -> void:
 			favorite_button.hide()
 	_on_LoadPlaylists_Button_pressed()
 	
-func _drop_down(control: OptionButton, list: Array, value: Variant, defaultIndex: int) -> void:
-	control.clear()
-	var index := defaultIndex
-	for i in range(list.size()):
-		control.add_item(list[i][1])
-		if list[i][0] == value:
-			index = i
-	control.selected = index
-	
 ## Shows the saved modifiers on every chip, and what changed on Reset and More modifiers.
 func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(Constants.APPDATA_PATH+"Backgrounds/")
@@ -676,6 +649,7 @@ func _ready() -> void:
 	_mods.build()
 	_build_difficulty_picker()
 	_build_tabs()
+	_build_filter_chips()
 	_show_player_name()
 	_update_mod_controls()
 	favorite_button.hide()
@@ -686,8 +660,6 @@ func _ready() -> void:
 	playlist_selector.add_item("All songs")
 	playlist_selector.add_item("Newest")
 	playlist_selector.add_item("Most played")
-	_drop_down(reaction_filter, MapStats.difficulty_filters(), MapStats.difficulty_filter(Settings.song_filter_reaction), 0)
-	_drop_down(length_filter, Constants.LENGTH_FILTERS, Settings.song_filter_length, 0)
 	favorites_filter.set_pressed_no_signal(Settings.song_filter_favorites)
 	workout_filter.set_pressed_no_signal(Settings.song_filter_workout)
 	
@@ -727,8 +699,7 @@ func on_settings_changed(key: StringName) -> void:
 			if MapStats.difficulty_filter(Settings.song_filter_reaction) != 0:
 				_refilter()
 		&"song_filter_reaction", &"song_filter_length":
-			reaction_filter.select(MapStats.difficulty_filter(Settings.song_filter_reaction))
-			length_filter.select(MapStats.length_filter(Settings.song_filter_length)[0])
+			_show_picked_filters()
 			_refilter()
 		&"song_filter_favorites":
 			favorites_filter.set_pressed_no_signal(Settings.song_filter_favorites)
@@ -1195,9 +1166,30 @@ func _show_environment() -> void:
 	if _mods:
 		_mods.show_environment()
 
-## Opens the song filters over the list, or goes back to it.
+## Opens the song filters in the right panel, over the modifiers and beside the list they filter, or goes back to
+## the modifiers.
 func _show_filters(open: bool) -> void:
 	$FiltersPanel.visible = open
+
+## Fills the filters panel with a Difficulty and a Length section of chips (FilterChips), above Clear filters.
+func _build_filter_chips() -> void:
+	var label := func(choice: Array) -> String: return str(choice[1])
+	# a chip's index is its choice's less one: the first choice is "any", which no chip picked gives
+	var pick_difficulty := func(index: int) -> void:
+		Settings.song_filter_reaction = index + 1
+	var pick_length := func(index: int) -> void:
+		Settings.song_filter_length = Constants.LENGTH_FILTERS[index + 1][0]
+	_difficulty_chips = FilterChips.add_section(filter_rows, DIFFICULTY_FILTER_TITLE,
+		MapStats.difficulty_filters().slice(1).map(label), pick_difficulty, &"DifficultyButton")
+	_length_chips = FilterChips.add_section(filter_rows, LENGTH_FILTER_TITLE,
+		Constants.LENGTH_FILTERS.slice(1).map(label), pick_length)
+	filter_rows.move_child(clear_filters_button, -1)
+	_show_picked_filters()
+
+## Shows the saved difficulty and length filters on their chips.
+func _show_picked_filters() -> void:
+	FilterChips.show_picked(_difficulty_chips, MapStats.difficulty_filter(Settings.song_filter_reaction) - 1)
+	FilterChips.show_picked(_length_chips, MapStats.length_filter(Settings.song_filter_length)[0] - 1)
 
 ## Opens More modifiers over the song details, or goes back to them.
 ## Opens or closes the environment cards over the modifiers (the Environment button, Back, or a pick).
