@@ -23,7 +23,8 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
   list with pointer events pushed into a `SubViewport` (as the game's canvases receive them): 1:1, no pick after a
   drag, a short press still picks.
 - `test_song_search.tscn` / `.gd` - `SongSearch` (the song menu's search): kana read as romaji, case, spaces,
-  punctuation, long vowels and doubled letters alike, every typed word, tags; and `BeatSaverPanel.close_query`.
+  punctuation, long vowels and doubled letters alike, every typed word, tags; `BeatSaverPanel.close_query`; the AI
+  mark in saved tags; Get songs listing a 360°-only map by its 360° difficulties.
 - `test_swing_rating.tscn` / `.gd` - checks `LightSaber.swept` (swing angles as Beat Saber measures them): a steady
   approach counts in full, a step whose plane turned past 90° ends the count, a follow-through stops at the turn back.
 - `test_sabers.tscn` / `.gd` - every saber in `Settings.SABER_VISUALS` loads, takes a colour and runs a frame without a

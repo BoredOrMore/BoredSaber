@@ -36,6 +36,15 @@ func _ready() -> void:
 	check(SongTags.tags_from({"tags": ["anime"], "automapper": true}) == ["anime", SongTags.AI_TAG],
 			"an AI map's saved tags carry the AI mark")
 	check(SongTags.tags_from({"tags": ["anime"], "automapper": false}) == ["anime"], "a person's map's don't")
+	# Get songs lists a 360°-only map by its 360° difficulties, a Standard one by Standard, and drops one with neither
+	var diff := func(mode: String) -> Dictionary: return {"characteristic": mode, "notes": 100, "nps": 3.0, "njs": 16.0, "offset": 0.0}
+	var only_360 := BeatSaverPanel.BeatSaverSongInfo.new({"versions": [{"hash": "a", "diffs": [diff.call("360Degree")]}]})
+	check(only_360.is_playable() and only_360.mode == "360Degree" and only_360.estimated_levels(1.0).size() == 1,
+			"a 360°-only map is listed, rated by its 360° difficulty (mode %s)" % only_360.mode)
+	var both := BeatSaverPanel.BeatSaverSongInfo.new({"versions": [{"hash": "b", "diffs": [diff.call("90Degree"), diff.call("Standard")]}]})
+	check(both.mode == "Standard", "a map with Standard is listed by Standard (got %s)" % both.mode)
+	var lights := BeatSaverPanel.BeatSaverSongInfo.new({"versions": [{"hash": "c", "diffs": [diff.call("Lightshow")]}]})
+	check(not lights.is_playable(), "a map with no Standard, 360° or 90° isn't")
 	# Get songs: a search that found nothing tries each word cut to its start once
 	var close := {"ussewa": "usse", "yoru ni kakeu": "yoru ni kake", "blindng lights": "blind ligh", "ado": "ado",
 		"senbonzakra": "senbonza", "gurenga": "guren"}
