@@ -19,6 +19,7 @@ var gamestate_paused := GameStatePaused.new()
 var gamestate_playing := GameStatePlaying.new()
 var gamestate_settings := GameStateSettings.new()
 var gamestate_bodytest := GameStateBodyTest.new()
+var gamestate_practicehold := GameStatePracticeHold.new()
 
 var gamestate: GameState = gamestate_bootup
 var current_health := Constants.HEALTH_START
@@ -37,6 +38,8 @@ var current_health := Constants.HEALTH_START
 @onready var main_menu := $MainMenu_OQ_UI2DCanvas as OQ_UI2DCanvas
 @onready var pause_menu := $PauseMenu_canvas as OQ_UI2DCanvas
 @onready var pause_countdown := $Pause_countdown as Label3D
+@onready var practice_canvas := $Practice_canvas as OQ_UI2DCanvas
+@onready var practice_panel := practice_canvas.ui_control as PracticePanel
 @onready var settings_canvas := $Settings_canvas as OQ_UI2DCanvas
 @onready var settings_panel := settings_canvas.ui_control as SettingsPanel
 @onready var profiles_canvas := $Profiles_canvas as OQ_UI2DCanvas
@@ -101,6 +104,25 @@ var song_start := 0.0
 const PRACTICE_PRE_ROLL_SECONDS := 1.0
 ## How far before the fail "Practice this part" starts, in song seconds (untuned).
 const PRACTICE_BEFORE_FAIL_SECONDS := 8.0
+## The practice panel (owner's choice 5A, 2026-10-30): 60 degrees to the player's right, 15 below the eye, 1.3 m from
+## it, facing it; in the head-turn-plus-eyes zone's glance range and clear of the note lanes and the walls' reach.
+## Scale 1.6 makes the 28 px text 4.4 cm, 1.9 degrees at 1.3 m (vr-ui-design's 1.85 floor), and its 60 px buttons
+## 4.1 degrees.
+const PRACTICE_PANEL_YAW := 60.0
+const PRACTICE_PANEL_PITCH := -15.0
+const PRACTICE_PANEL_DISTANCE := 1.3
+const PRACTICE_PANEL_SCALE := 1.6
+## The left thumbstick scrubs practice's timeline (owner's choice 6C, 2026-10-30): past the dead zone, up to
+## PRACTICE_STICK_SECONDS song seconds a second at full tilt (untuned).
+const PRACTICE_STICK_DEAD_ZONE := 0.3
+const PRACTICE_STICK_SECONDS := 15.0
+var _stick_scrubbing := false
+## where start_map put the practice panel, before a 90/360 map's turns (it turns with the track)
+var _practice_panel_placed := Transform3D()
+## the practised map's stacks as loaded (Map.snapshot), so it can jump back and forth without reading it again
+var _practice_stacks: Array = []
+## a drag on the timeline began while the song played: letting go plays from there after the countdown
+var _resume_after_scrub := false
 
 ## The fail, in the owner's order (2026-10-28): the sound goes first (the low-pass sweep below) and the play space
 ## empties, every note, chain, bomb, wall and arc falling away over FAIL_CLEAR_SECONDS (nothing can be cut or
@@ -281,6 +303,96 @@ func start_practice(info: MapInfo, map_difficulty: DifficultyInfo, start: float,
 	pause_menu.visible = false
 	start_map(info, map_difficulty, gamestate != gamestate_mapselection)
 
+## Puts the practice panel PRACTICE_PANEL_* from the player's eye now, facing it.
+func _place_practice_panel() -> void:
+	var eye := _eye()
+	var yaw := deg_to_rad(PRACTICE_PANEL_YAW)
+	var pitch := deg_to_rad(PRACTICE_PANEL_PITCH)
+	var at := eye + PRACTICE_PANEL_DISTANCE * Vector3(sin(yaw) * cos(pitch), sin(pitch), -cos(yaw) * cos(pitch))
+	_practice_panel_placed = Transform3D(Basis.looking_at(eye - at, Vector3.UP, true).scaled(
+			Vector3.ONE * PRACTICE_PANEL_SCALE), at)
+	practice_canvas.transform = _practice_panel_placed
+
+## Stops the practised song at `at` song seconds and waits there with the panel: the track empties, the timeline and
+## speed can be changed, Play goes on.
+func _practice_hold(at: float) -> void:
+	song_player.stop()
+	lead_in = 0.0
+	pause_countdown.visible = false
+	_clear_track()
+	practice_panel.show_state(false, at, song_player.stream.get_length(), Map.practice_speed)
+	_transition_game_state(gamestate_practicehold)
+
+## Plays the practised song from `at` song seconds: the map from there (the passed light events replayed), the usual
+## countdown while the first notes fly in, accuracy from zero.
+func _practice_play(at: float) -> void:
+	var bpm := Map.current_info.beats_per_minute
+	Map.practice_start = at
+	Map.restore(_practice_stacks)
+	var passed_events := Map.skip_before(at * bpm / 60.0)
+	song_start = maxf(0.0, at - PRACTICE_PRE_ROLL_SECONDS - Map.half_jump_beats * 60.0 / bpm
+			- Cuttable.FLY_SECONDS * Map.speed_percent() / 100.0)
+	event_driver.set_all_off()
+	event_driver.start_show(Map.event_stack, bpm)
+	for event in passed_events:
+		event_driver.process_event(event)
+	_clear_track()
+	_audio_synced_after_restart = false
+	lead_in = maxf(LEAD_IN_MIN_SECONDS, Map.half_jump_beats / Map.beats_per_second() + Cuttable.FLY_SECONDS)
+	Scoreboard.restart()
+	_display_points()
+	practice_panel.show_state(true, at, song_player.stream.get_length(), Map.practice_speed)
+	_transition_game_state(gamestate_playing)
+
+## Where the practised song is now, for the panel: never before the start it was played from (the countdown runs
+## before it).
+func _practice_time() -> float:
+	return maxf(get_current_time(), Map.practice_start)
+
+## Play on the practice panel: the song plays from the timeline's point after the countdown.
+func _on_practice_play_pressed() -> void:
+	_practice_play(practice_panel.seconds())
+
+## Pause on the practice panel: the song stops where it is.
+func _on_practice_pause_pressed() -> void:
+	if gamestate == gamestate_playing:
+		_practice_hold(_practice_time())
+
+## The timeline was grabbed: a playing song stops (mute, track emptied) until it's let go.
+func _on_practice_scrub_started() -> void:
+	if gamestate == gamestate_playing:
+		_resume_after_scrub = true
+		_practice_hold(_practice_time())
+
+## The timeline was let go: a song stopped by the grab plays again from there.
+func _on_practice_scrub_ended(at: float) -> void:
+	if _resume_after_scrub:
+		_resume_after_scrub = false
+		_practice_play(at)
+
+## The left thumbstick on practice's timeline: tilting grabs it (a playing song stops), it runs faster the further it's
+## tilted, centring lets go (a song stopped by the grab plays from there after the countdown).
+func _practice_stick(delta: float) -> void:
+	var x := left_controller.get_vector2(&"primary").x
+	if absf(x) < PRACTICE_STICK_DEAD_ZONE:
+		if _stick_scrubbing:
+			_stick_scrubbing = false
+			_on_practice_scrub_ended(practice_panel.seconds())
+		return
+	if not _stick_scrubbing:
+		_stick_scrubbing = true
+		_on_practice_scrub_started()
+	practice_panel.nudge(x * PRACTICE_STICK_SECONDS * delta)
+	practice_canvas._input_update()
+
+## A new practice speed (only while stopped): the song's pace, pitch and the saved choice.
+func _on_practice_speed_changed(percent: int) -> void:
+	Map.practice_speed = percent
+	Settings.practice_speed = percent
+	Utils.update_bus_speed(&"Music")
+	song_player.pitch_scale = percent / 100.0
+	practice_panel.show_state(false, practice_panel.seconds(), song_player.stream.get_length(), percent)
+
 ## Ends practising (back in the menu, plays go back to normal).
 func _stop_practice() -> void:
 	if Map.practice:
@@ -309,6 +421,7 @@ func _start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	var passed_events: Array[EventInfo] = []
 	song_start = 0.0
 	if Map.practice:
+		_practice_stacks = Map.snapshot()
 		passed_events = Map.skip_before(Map.practice_start * info.beats_per_minute / 60.0)
 		song_start = maxf(0.0, Map.practice_start - PRACTICE_PRE_ROLL_SECONDS
 				- Map.half_jump_beats * 60.0 / info.beats_per_minute - Cuttable.FLY_SECONDS * Map.speed_percent() / 100.0)
@@ -387,7 +500,12 @@ func _start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	
 	_clear_track()
 	_lowered_resolution = false
-	_transition_game_state(gamestate_playing)
+	if Map.practice:
+		# practice waits at its start with the panel beside the player until Play (owner, 2026-10-30)
+		_place_practice_panel()
+		_practice_hold(Map.practice_start)
+	else:
+		_transition_game_state(gamestate_playing)
 	timing.lap("rest")
 	timing.report()
 
@@ -461,6 +579,10 @@ func _fail_song() -> void:
 
 ## The song played to its end: a short fade to black, then the score screen fades up.
 func _on_song_finished() -> void:
+	# practice has no score screen (owner's choice 2A, 2026-10-30): it waits at the song's end with the panel
+	if Map.practice:
+		_practice_hold(song_player.stream.get_length())
+		return
 	await _result_moment.fade_out()
 	_on_song_ended()
 	_result_moment.fade_in()
@@ -542,6 +664,9 @@ func _remove_fail_filter() -> void:
 # the provided 'next_state'.
 func _transition_game_state(next_state: GameState) -> void:
 	gamestate = next_state
+	# only practice's Playing shows the pointer just on the panel (GameStatePlaying)
+	left_ui_raycast.only_on_target = false
+	right_ui_raycast.only_on_target = false
 	_place_menus()
 	_apply_glow()
 	_update_low_health_sound()
@@ -643,6 +768,10 @@ func _physics_process(_dt: float) -> void:
 	if seconds_left != _shown_seconds_left:
 		_shown_seconds_left = seconds_left
 		Scoreboard.score_changed.emit()
+		# the practice panel's timeline follows the song, a redraw a second
+		if Map.practice and gamestate == gamestate_playing:
+			practice_panel.show_time(_practice_time())
+			practice_canvas._input_update()
 	
 	if debug_info_label.visible:
 		var dbg_text := "FPS: %d\nCube Pool: %d free of %d\nLink Pool: %d free of %d" % [
@@ -803,7 +932,8 @@ func _ready() -> void:
 	# the HUD and the energy strips beside the track turn with it on 90/360 maps
 	event_driver.track_turned.connect(func(angle: float) -> void:
 		hud.turn(angle)
-		health_rails.transform = TrackDeck.turned(angle))
+		health_rails.transform = TrackDeck.turned(angle)
+		practice_canvas.transform = TrackDeck.turned(angle) * _practice_panel_placed)
 	add_child(_floor_reflection)
 	_result_moment = ResultMoment.new($XROrigin3D/XRCamera3D as Node3D)
 	add_child(_result_moment)
@@ -859,7 +989,10 @@ func _set_away(away: bool) -> void:
 ## Pauses the song when the player can no longer see or control the game.
 func _pause_if_playing() -> void:
 	if gamestate == gamestate_playing and not failing:
-		_transition_game_state(gamestate_paused)
+		if Map.practice:
+			_practice_hold(_practice_time())
+		else:
+			_transition_game_state(gamestate_paused)
 
 func set_background_texture() -> void:
 	var environment : Environment = $WorldEnvironment.environment
@@ -1180,9 +1313,6 @@ func get_current_time() -> float:
 func _on_song_ended() -> void:
 	song_player.stop()
 	_new_record = {}
-	if Map.practice:
-		_show_practice_result()
-		return
 	PlayCount.increment_play_count(Map.current_info,Map.current_difficulty.difficulty_rank)
 	
 	# a failed song's score stops where it failed, so it isn't a record (it filled the tables with near-zero runs)
@@ -1235,31 +1365,7 @@ func _on_song_ended() -> void:
 		_show_name_card()
 		_transition_game_state(gamestate_mapcomplete)
 
-## The end of a practice run: the score screen says Practice, with the accuracy but no record, play count or name card.
-func _show_practice_result() -> void:
-	event_driver.result_mood(false)
-	_song_end_player.stream = CLEAR_SOUND
-	_song_end_player.play()
-	endscore.show_score(
-		Scoreboard.points,
-		maxi(Highscores.get_highscore(Map.current_info, Map.current_difficulty.difficulty_rank), 0),
-		Scoreboard.accuracy(),
-		"%s By %s\n%s     Practice %d%% from %s" % [
-			Map.current_info.song_name,
-			Map.current_info.song_author_name,
-			MapStats.level_name(Map.current_info, Map.current_difficulty),
-			Map.practice_speed,
-			Hud._clock(int(Map.practice_start))],
-		Scoreboard.full_combo,
-		false,
-		0.0,
-		0.0,
-		true
-	)
-	endscore.hide_name_card()
-	_transition_game_state(gamestate_mapcomplete)
-
-## "Practice this part" on the score screen after a fail: practises from a little before the fail, at the practice
+## "Practice this part" on the score screen after a fail: practice waits a little before the fail, at the practice
 ## speed last picked.
 func _practice_failed_part() -> void:
 	start_practice(Map.current_info, Map.current_difficulty, maxf(0.0, _failed_at - PRACTICE_BEFORE_FAIL_SECONDS),

@@ -531,6 +531,20 @@ static func beats_per_second() -> float:
 static func speed_percent() -> int:
 	return practice_speed if practice else Settings.music_speed
 
+## The loaded map's stacks as they are now (copies), for restore: practice seeks back and forth in one load.
+static func snapshot() -> Array:
+	return [note_stack.duplicate(), bomb_stack.duplicate(), obstacle_stack.duplicate(), arc_stack.duplicate(),
+		chain_stack.duplicate(), event_stack.duplicate()]
+
+## Puts the stacks back as `stacks` (snapshot) had them, leaving the snapshot as it is.
+static func restore(stacks: Array) -> void:
+	note_stack = (stacks[0] as Array[ColorNoteInfo]).duplicate()
+	bomb_stack = (stacks[1] as Array[BombInfo]).duplicate()
+	obstacle_stack = (stacks[2] as Array[ObstacleInfo]).duplicate()
+	arc_stack = (stacks[3] as Array[ArcInfo]).duplicate()
+	chain_stack = (stacks[4] as Array[ChainInfo]).duplicate()
+	event_stack = (stacks[5] as Array[EventInfo]).duplicate()
+
 ## Drops what comes before `beat` from the stacks, so a practice run starts there: notes, bombs, arcs and chains
 ## starting before it, and walls that end before it (a wall still standing there stays, to come in part-way).
 ## Returns the light events before it, oldest first, to set the stage as it would be by then.

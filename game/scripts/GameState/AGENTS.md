@@ -15,6 +15,10 @@ All flow logic (start, fail, end, pause, resume) lives in `game/BeepSaber_Game.g
 - `Paused.gd` - `GameStatePaused`: pause menu, HUD kept, track hidden, sabers sheathed; stops the song.
 - `MapComplete.gd` - `GameStateMapComplete`: end score + this map's highscores.
 - `NewHighscore.gd` - `GameStateNewHighScore`: like MapComplete, for a run that made the board ("Saved as <player>").
+- `PracticeHold.gd` - `GameStatePracticeHold`: practice stopped (`BeepSaber_Game._practice_hold`): the practice panel,
+  track and sabers shown, pointers on, swingcasts off, HUD accuracy only; the left thumbstick scrubs
+  (`_practice_stick`). Playing in practice keeps the panel and draws the pointer only while it points at it
+  (`UIRaycast.only_on_target`, reset by `_transition_game_state`); its B/Y/menu holds instead of pausing.
 - `BodyTest.gd` - `GameStateBodyTest`: hides menus, sabers and pointers, runs a `game/BodyTest.gd` node and
   returns to MapSelection when it emits `finished`.
 

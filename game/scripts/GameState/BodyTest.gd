@@ -12,6 +12,7 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.show_MapSourceDialogs(false)
 	game.endscore._hide()
 	game.pause_menu._hide()
+	game.practice_canvas._hide()
 	game.highscore_canvas._hide()
 	game.left_saber._hide()
 	game.right_saber._hide()

@@ -58,7 +58,6 @@ const BANNER_TEXT_HEIGHT := 0.062
 const BANNER_CORNER := 0.02
 const FAILED_TEXT := "FAILED"
 const CLEARED_TEXT := "SONG CLEARED"
-const PRACTICE_TEXT := "PRACTICE"
 ## Where the buttons sit across the bottom: Repeat and Main Menu, or after a fail Practice this part, Retry and Main
 ## Menu (x in metres).
 const TWO_BUTTONS_X := [-0.3, 0.3]
@@ -164,13 +163,13 @@ func _add_banner() -> void:
 	_progress.position = Vector3(0.0, PROGRESS_Y, 0.012)
 	add_child(_progress)
 
-## Sets the headline for a fail, a clear at `percent` accuracy or a practice run, and after a fail how far the song got.
-func _show_result(percent: float, failed_at: float, song_length: float, practice: bool) -> void:
+## Sets the headline for a fail or a clear at `percent` accuracy, and after a fail how far the song got.
+func _show_result(percent: float, failed_at: float, song_length: float) -> void:
 	var failed := percent < 0
 	var bar_color: Color = Constants.DANGER_COLOR if failed else Constants.RANK_COLORS.get(grade(percent), Constants.UI_TEXT)
 	_banner_material.set_shader_parameter(&"fill_color", bar_color)
 	_banner_material.set_shader_parameter(&"border_color", bar_color)
-	_banner_text.text = FAILED_TEXT if failed else PRACTICE_TEXT if practice else CLEARED_TEXT
+	_banner_text.text = FAILED_TEXT if failed else CLEARED_TEXT
 	_banner_text_material.albedo_color = Color.WHITE if failed else Constants.UI_PANEL
 	($PercentIndicator as Node3D).visible = not failed
 	($RankHalo as Node3D).visible = not failed
@@ -215,8 +214,8 @@ func _hide() -> void:
 	hide()
 
 func show_score(score: int, record: int, percent: float, song_string: String, is_full_combo: bool, is_new_record: bool,
-		failed_at := 0.0, song_length := 0.0, practice := false) -> void:
-	_show_result(percent, failed_at, song_length, practice)
+		failed_at := 0.0, song_length := 0.0) -> void:
+	_show_result(percent, failed_at, song_length)
 	var details_mesh := ($Details as MeshInstance3D).mesh as TextMesh
 	var details_material := ($Details as MeshInstance3D).material_override as StandardMaterial3D
 	var percent_indicator := $PercentIndicator as PercentIndicator

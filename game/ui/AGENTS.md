@@ -82,14 +82,15 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   difficulties, else its 360° or 90° ones (`BeatSaverSongInfo.MODES`/`mode`; the row then ends " (360°)"); presses wait `FILTER_RELOAD_SECONDS` for more before one reload,
   and a "More by" list greys them out. Above the list: Search, the sort and "My songs" in Get songs' place; under
   them a chip per filter on (its x takes it off), the search or the "More by" mapper. (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
-- Practice view (`PracticePanel` in `BeepSaberMainMenu.tscn`, owner's choices 2026-10-30): opened by the Practice
-  toggle, a full-width strip at the bottom of the left panel under the song's records (choice A; the records show
-  `HighscorePanel.COMPACT_ROWS` 5 rows since), lit while open; in the right panel over the modifiers like More
-  modifiers, with Back; a one-line hint (no fail, nothing saved), "Start at" (a slider over the
-  picked difficulty's length as its stats show it, "1:24 of 2:55", − and + `PRACTICE_STEP_SECONDS`; back to 0:00 for
-  another song), Speed (`StepperSpinBox`, `Constants.PRACTICE_SPEED_*` 50-200% in 10% steps, `Settings.practice_speed`,
-  shown "100%" like the Speed chips) and the primary Start practice (`play_selected(true)` -> signal
-  `start_practice` -> `BeepSaber_Game.start_practice`). `_show_practice`/`_sync_practice`; opening the filters closes it.
+- Practice button: a full-width strip at the bottom of the song menu's left panel under the song's records (owner's
+  choice A, 2026-10-30; the records show `HighscorePanel.COMPACT_ROWS` 5 rows since): `play_selected(true)` -> signal
+  `start_practice` -> `BeepSaber_Game.start_practice`, which waits at the song's start with the practice panel.
+- `PracticePanel.gd/.tscn` (class `PracticePanel`, on `BeepSaber_Game`'s `Practice_canvas`; owner's redesign
+  2026-10-30, replacing a Practice view in the song menu that felt cut off from playing): "1:24 of 2:55", a timeline
+  (`HSlider`) that is dragged to any point, stopped or while playing (`scrub_started`/`scrub_ended`; a press without a
+  drag jumps at once), a one-line hint, Speed − 50-200% + (`Constants.PRACTICE_SPEED_*`, greyed while playing), the
+  primary Play/Pause (`icons/pause.svg`, Lucide) and Exit. It only shows and signals; the game runs the song and places
+  it (`BeepSaber_Game.PRACTICE_PANEL_*`). `nudge` moves the timeline for the left thumbstick.
 - `ModifierChips.gd` (class `ModifierChips`, made by the menu's `_ready`): the Song tab's fail and damage rows,
   on/off and Speed chips, More modifiers, environment picker and reset, in step with `Settings`; `changed()` names
   the modified ones. Its static `make_row_button` (a button of a given kind) is shared with the difficulty picker.
@@ -116,7 +117,7 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   `settings_Panel.gd/.tscn` (class `SettingsPanel`, tabs Gameplay/Visuals/Audio/Advanced), `HighscorePanel.gd/.tscn`,
   `Pause_Panel.gd/.tscn` (signals `continue_button`/`restart_button`/`mainmenu_button`), `EndScore.gd/.tscn` (3D `MeshInstance3D`, not a
   canvas; `RankHalo.gdshader` glows round its result ring; a FAILED / SONG CLEARED banner under the song's name, and after a
-  fail "Failed at M:SS of M:SS" in place of the ring; "Practice this part" beside Retry after a fail (signal `practice_part`), a PRACTICE banner after a practice run;
+  fail "Failed at M:SS of M:SS" in place of the ring; "Practice this part" beside Retry after a fail (signal `practice_part`);
   "Not you?" on the name card after a saved record opens "Who's playing?"
   in place of the score screen (hidden meanwhile) and moves the record to whoever is picked, who becomes the current
   player (`BeepSaber_Game._change_record_player`); `doc/research/score-screen-plan.md`), `vr_slider.gd` (thumbstick/drag scrolling), `UI_Panel.gdshader` (rounded 3D panel used by `EndScore.tscn`

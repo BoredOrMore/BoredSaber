@@ -180,6 +180,7 @@ func _ready() -> void:
 	var all_notes := Map.note_stack.size()
 	var all_events := Map.event_stack.size()
 	var from := Map.note_stack[Map.note_stack.size() / 2].beat
+	var loaded := Map.snapshot()
 	var passed := Map.skip_before(from)
 	check(Map.note_stack.all(func(n: ColorNoteInfo) -> bool: return n.beat >= from) and Map.note_stack.size() < all_notes,
 		"practice: notes before beat %s are dropped (%d of %d left)" % [from, Map.note_stack.size(), all_notes])
@@ -187,6 +188,13 @@ func _ready() -> void:
 		"practice: only walls still standing at the start stay")
 	check(passed.size() + Map.event_stack.size() == all_events and passed.all(func(e: EventInfo) -> bool: return e.beat < from),
 		"practice: the light events before the start come back to set the stage (%d)" % passed.size())
+	# practice jumps back: the map as loaded comes back whole, and the snapshot stays for the next jump
+	Map.restore(loaded)
+	check(Map.note_stack.size() == all_notes and (loaded[0] as Array).size() == all_notes,
+		"practice: jumping back restores every note (%d of %d)" % [Map.note_stack.size(), all_notes])
+	Map.skip_before(from)
+	Map.restore(loaded)
+	check(Map.note_stack.size() == all_notes, "practice: a second jump back finds them all again")
 	Map.practice = true
 	Map.practice_speed = 50
 	check(is_equal_approx(Map.beats_per_second(), 1.0), "practice at 50%%: 120 BPM plays 1 beat a second (got %s)" % Map.beats_per_second())

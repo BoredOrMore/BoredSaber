@@ -9,15 +9,23 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.show_MapSourceDialogs(false)
 	game.endscore._hide()
 	game.pause_menu._hide()
+	# practice keeps its panel beside the player, the pointer drawn only while it points there (owner, 2026-10-30)
+	if Map.practice:
+		game.practice_canvas._show()
+	else:
+		game.practice_canvas._hide()
 	game.highscore_canvas._hide()
 	game.show_sabers_for_map()
-	game.multiplier_label.visible = true
+	# practice's HUD is the accuracy alone (owner's choice 3A, 2026-10-30)
+	game.multiplier_label.visible = not Map.practice
 	game.point_label.visible = true
 	# the far HUD of 90/360 maps carries the energy bar instead
 	game.health_rails.visible = Settings.health_mode and not game.hud.far and not Map.practice
 	game.track.visible = true
-	game.left_ui_raycast.visible = false
-	game.right_ui_raycast.visible = false
+	game.left_ui_raycast.visible = Map.practice
+	game.right_ui_raycast.visible = Map.practice
+	game.left_ui_raycast.only_on_target = Map.practice
+	game.right_ui_raycast.only_on_target = Map.practice
 	game.highscore_keyboard._hide()
 	game.online_search_keyboard._hide()
 	game.left_saber.set_swingcast_enabled(true)
@@ -31,9 +39,17 @@ func _physics_process(game: BeepSaber_Game) -> void:
 	DebugView.apply(game)
 	if game.failing:
 		return
+	if Map.practice:
+		game._practice_stick(game.get_physics_process_delta_time())
+		if game.gamestate != self:
+			return
 	for controller: BeepSaberController in [game.left_controller, game.right_controller]:
 		if controller.by_just_pressed() or controller.menu_just_pressed():
-			game._transition_game_state(game.gamestate_paused)
+			# practice stops where it is, with its panel, instead of the pause menu
+			if Map.practice:
+				game._practice_hold(game._practice_time())
+			else:
+				game._transition_game_state(game.gamestate_paused)
 			return
 	if game.lead_in > 0.0:
 		_count_down_lead_in(game)

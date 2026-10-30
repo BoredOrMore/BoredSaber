@@ -5,7 +5,7 @@ extends Node
 ## Smallest gap, in px, between two controls placed side by side with offsets (not by a container).
 const MIN_GAP := 4.0
 ## Panels that open over others: whatever lies wholly under a visible one is hidden, not overlapped.
-const OVERLAYS := ["MorePanel", "MoreModsPanel", "FiltersPanel", "EnvironmentPanel", "PracticePanel"]
+const OVERLAYS := ["MorePanel", "MoreModsPanel", "FiltersPanel", "EnvironmentPanel"]
 ## The song menu's three panel backgrounds: what lies wholly on one is on it, not overlapping it.
 const BACKGROUNDS := ["LeftPanel", "CentrePanel", "RightPanel"]
 ## Rows the song list must show at once at its original 76 px row size (owner, 2026-10-28: the curved menu in the
@@ -131,24 +131,12 @@ func _ready() -> void:
 	check(env_cards.size() == Settings.ENVIRONMENTS.size() and smallest >= 45.0,
 			"a picture card per environment, each %.0f px or more across (3 degrees is 45 px)" % smallest)
 	menu.show_environments(false)
-	# the Practice view over the modifiers: its start point and speed beside the song list, Start practice in reach
-	menu.practice_button.button_pressed = true
-	await _settle()
-	check(menu.practice_panel.visible and menu.practice_button.button_pressed and menu.practice_button.size.y >= 45.0,
-			"practice: the Practice button (%.0f px tall) opens the view and stays lit" % menu.practice_button.size.y)
-	_check_layout(menu, "practice")
-	menu._practice_slider.value = 90.0
+	# the Practice button at the left panel's bottom: a target 3 degrees or more tall; a stray saved speed lands on a step
+	check(menu.practice_button.is_visible_in_tree() and menu.practice_button.size.y >= 45.0,
+			"practice: the Practice button shows, %.0f px tall" % menu.practice_button.size.y)
 	Settings.practice_speed = 47
-	menu._sync_practice()
-	check(menu._practice_time.text.begins_with("1:30 of ") and menu._practice_speed.get_line_edit().text == "50%"
-			and not menu.practice_panel.get_global_rect().intersects(menu.songs_menu.get_global_rect()),
-			"practice: start \"%s\", speed \"%s\" (a stray 47%% lands on 50%%), the list stays in view" % [
-			menu._practice_time.text, menu._practice_speed.get_line_edit().text])
+	check(Settings.practice_speed == 50, "practice: a stray saved speed of 47%% lands on 50%% (got %d)" % Settings.practice_speed)
 	Settings.practice_speed = 100
-	menu._show_filters(true)
-	check(not menu.practice_panel.visible and not menu.practice_button.button_pressed,
-			"practice: opening the filters closes the Practice view and unlights its button")
-	menu._show_filters(false)
 	menu._show_tab(MainMenu.Tab.MORE)
 	await _settle()
 	_check_layout(menu, "more tab")
@@ -187,6 +175,23 @@ func _ready() -> void:
 	_check_layout(profiles, "who's playing, six players, one asking to delete")
 
 	profiles.queue_free()
+
+	# the practice panel beside the player: the longest time and speed, stopped and playing
+	var practice := (load("res://game/ui/PracticePanel.tscn") as PackedScene).instantiate() as PracticePanel
+	_port.add_child(practice)
+	await _settle()
+	practice.show_state(false, 5999.0, 5999.0, Constants.PRACTICE_SPEED_MIN)
+	await _settle()
+	_check_layout(practice, "practice panel, stopped")
+	var slower := practice.get_node(^"Rows/SpeedRow/Slower_Button") as Button
+	check(practice._time.text == "99:59 of 99:59" and practice._speed.text == "50%" and slower.disabled,
+			"practice panel: \"%s\", \"%s\", slower greyed at the slowest" % [practice._time.text, practice._speed.text])
+	practice.show_state(true, 30.0, 5999.0, 100)
+	await _settle()
+	_check_layout(practice, "practice panel, playing")
+	check(practice._play.text == "Pause" and slower.disabled and practice._faster.disabled,
+			"practice panel: playing shows Pause and greys the speed (got %s)" % practice._play.text)
+	practice.queue_free()
 
 	# Visuals with the Graphics chips: Low, then one effect changed (Custom)
 	var settings := (load("res://game/ui/settings_Panel.tscn") as PackedScene).instantiate() as SettingsPanel

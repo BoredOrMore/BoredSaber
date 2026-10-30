@@ -19,8 +19,8 @@ signal profiles_requested()
 signal start_map(info: MapInfo, difficulty: DifficultyInfo, health: bool)
 ## A song was picked or dropped, or a song stopped loading: the game shows or hides the block to slash.
 signal play_ready_changed()
-## Start practice pressed in the Practice view: practise `difficulty` of `info` from `start` song seconds at `speed`
-## percent (BeepSaber_Game.start_practice).
+## The Practice button was pressed: practise `difficulty` of `info` from `start` song seconds at `speed` percent
+## (BeepSaber_Game.start_practice, which waits at the start with the practice panel).
 signal start_practice(info: MapInfo, difficulty: DifficultyInfo, start: float, speed: int)
 
 const FAVORITE_MASK := 0x4000000000000000
@@ -61,14 +61,7 @@ const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 @onready var reset_button := $Modifiers/Header/Reset_Button as Button
 
 @onready var song_preview := $song_prev as SongPreview
-@onready var practice_panel := $PracticePanel as Panel
 @onready var practice_button := $Practice_Button as Button
-@onready var _practice_time := $PracticePanel/Rows/StartAt/StartTime as Label
-@onready var _practice_slider := $PracticePanel/Rows/StartAt/StartRow/StartSlider as HSlider
-@onready var _practice_earlier := $PracticePanel/Rows/StartAt/StartRow/Earlier_Button as Button
-@onready var _practice_later := $PracticePanel/Rows/StartAt/StartRow/Later_Button as Button
-@onready var _practice_speed := $PracticePanel/Rows/Speed/SpeedRow/PracticeSpeed as StepperSpinBox
-@onready var _practice_start_button := $PracticePanel/Rows/StartPractice_Button as Button
 var licenses_showing := false
 
 var current_selected := -1
@@ -688,7 +681,7 @@ func _load_map_and_start(map: MapInfo, practice := false) -> void:
 	var diff_info := set0[_map_difficulty]
 	
 	if practice:
-		start_practice.emit(map, diff_info, _practice_slider.value, Settings.practice_speed)
+		start_practice.emit(map, diff_info, 0.0, Settings.practice_speed)
 	else:
 		start_map.emit(map, diff_info)
 
@@ -800,8 +793,8 @@ func on_settings_changed(key: StringName) -> void:
 			workout_filter.set_pressed_no_signal(Settings.song_filter_workout)
 			_refilter()
 
-## Plays the selected song (the block in front of the player was slashed), or with `practice` practises it from the
-## Practice view's start point and speed.
+## Plays the selected song (the block in front of the player was slashed), or with `practice` practises it (the
+## Practice button).
 func play_selected(practice := false) -> void:
 	if not can_play():
 		return
@@ -1074,8 +1067,6 @@ func update_view() -> void:
 	_sync_difficulty_picker()
 	_update_play_status()
 	_update_mod_controls()
-	if practice_panel.visible:
-		_sync_practice()
 
 ## Difficulty levels in button order: [difficulty name in the map, button label].
 const LEVELS := [["Easy", "Easy"], ["Normal", "Normal"], ["Hard", "Hard"], ["Expert", "Expert"], ["ExpertPlus", "Expert+"]]
@@ -1282,8 +1273,6 @@ func _show_environment() -> void:
 ## Opens the song filters in the right panel, over the modifiers and beside the list they filter, or goes back to
 ## the modifiers (the Filters button toggles them, and stays lit while they are open).
 func _show_filters(open: bool) -> void:
-	if open and practice_panel.visible:
-		_show_practice(false)
 	$FiltersPanel.visible = open
 	filters_button.set_pressed_no_signal(open)
 
@@ -1331,60 +1320,7 @@ func show_environments(open: bool) -> void:
 func _show_more_modifiers(open: bool) -> void:
 	$MoreModsPanel.visible = open
 
-## Seconds the Practice view's − and + move the start point.
-const PRACTICE_STEP_SECONDS := 5.0
-## The song whose start point the Practice view holds; another song starts from its beginning.
-var _practice_song: MapInfo
-
-## Wires the Practice view: Back, the start point's slider with − and +, the speed (Settings.practice_speed, 50-200% in
-## 10% steps) and Start practice.
+## Wires the Practice button at the left panel's bottom (owner's choice A, 2026-10-30): it practises the picked song,
+## waiting at its start with the practice panel beside the player.
 func _build_practice() -> void:
-	practice_button.toggled.connect(_show_practice)
-	($PracticePanel/Rows/Back_Button as Button).pressed.connect(_show_practice.bind(false))
-	_practice_slider.step = 1.0
-	_practice_slider.value_changed.connect(func(_value: float) -> void: _show_practice_time())
-	_practice_earlier.pressed.connect(func() -> void: _practice_slider.value -= PRACTICE_STEP_SECONDS)
-	_practice_later.pressed.connect(func() -> void: _practice_slider.value += PRACTICE_STEP_SECONDS)
-	_practice_speed.min_value = Constants.PRACTICE_SPEED_MIN
-	_practice_speed.max_value = Constants.PRACTICE_SPEED_MAX
-	_practice_speed.step = Constants.PRACTICE_SPEED_STEP
-	_practice_speed.button_step = Constants.PRACTICE_SPEED_STEP
-	_practice_speed.value_changed.connect(func(value: float) -> void:
-		Settings.practice_speed = int(value)
-		_show_practice_speed())
-	_practice_start_button.pressed.connect(play_selected.bind(true))
-
-## Opens the Practice view in the right panel over the modifiers (closing the filters), or goes back to them (the
-## Practice button at the left panel's bottom toggles it, owner's choice A 2026-10-30, and stays lit while it's open).
-func _show_practice(open: bool) -> void:
-	if open:
-		_show_filters(false)
-		_sync_practice()
-	practice_panel.visible = open
-	practice_button.set_pressed_no_signal(open)
-
-## Fits the Practice view to the picked song and difficulty: the start point runs to its last note (the length its
-## stats show) and goes back to the beginning for another song; Start practice greys out when it can't play.
-func _sync_practice() -> void:
-	var map := selected_map()
-	var difficulty := picked_difficulty()
-	var length := float(MapStats.get_stats(map, difficulty).get("seconds", 0.0)) if map and difficulty else 0.0
-	if map != _practice_song:
-		_practice_song = map
-		_practice_slider.set_value_no_signal(0.0)
-	_practice_slider.max_value = length
-	_practice_slider.editable = length > 0.0
-	_practice_earlier.disabled = length <= 0.0
-	_practice_later.disabled = length <= 0.0
-	_practice_speed.value = Settings.practice_speed
-	_show_practice_speed()
-	_practice_start_button.disabled = not can_play()
-	_show_practice_time()
-
-## The start point as "1:24 of 2:55".
-func _show_practice_time() -> void:
-	_practice_time.text = "%s of %s" % [Hud._clock(int(_practice_slider.value)), Hud._clock(int(_practice_slider.max_value))]
-
-## The speed as "100%", written like the Speed modifier's chips (a SpinBox suffix would read "100 %").
-func _show_practice_speed() -> void:
-	_practice_speed.get_line_edit().text = "%d%%" % Settings.practice_speed
+	practice_button.pressed.connect(play_selected.bind(true))

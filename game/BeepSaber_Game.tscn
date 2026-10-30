@@ -37,6 +37,7 @@
 [ext_resource type="PackedScene" path="res://game/ui/ProfilesPanel.tscn" id="40_profiles"]
 [ext_resource type="Script" path="res://game/SlashBlock.gd" id="41_slash"]
 
+[ext_resource type="PackedScene" path="res://game/ui/PracticePanel.tscn" id="practice_panel"]
 [sub_resource type="Environment" id="1"]
 background_mode = 2
 sky = ExtResource("14")
@@ -248,6 +249,12 @@ visible = false
 
 [node name="Pause_Panel" parent="PauseMenu_canvas" unique_id=1084204812 instance=ExtResource("18")]
 
+[node name="Practice_canvas" parent="." instance=ExtResource("3")]
+round_corners = true
+visible = false
+
+[node name="PracticePanel" parent="Practice_canvas" instance=ExtResource("practice_panel")]
+
 [node name="Pause_countdown" type="Label3D" parent="." unique_id=459181070]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.49382, -0.649511)
 visible = false
@@ -350,6 +357,12 @@ main_menu_ref = NodePath("../MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu")
 [connection signal="repeat" from="EndScore" to="." method="_restart_button"]
 [connection signal="practice_part" from="EndScore" to="." method="_practice_failed_part"]
 [connection signal="change_player" from="EndScore" to="." method="_change_record_player"]
+[connection signal="play_pressed" from="Practice_canvas/PracticePanel" to="." method="_on_practice_play_pressed"]
+[connection signal="pause_pressed" from="Practice_canvas/PracticePanel" to="." method="_on_practice_pause_pressed"]
+[connection signal="exit_pressed" from="Practice_canvas/PracticePanel" to="." method="_main_menu_button"]
+[connection signal="scrub_started" from="Practice_canvas/PracticePanel" to="." method="_on_practice_scrub_started"]
+[connection signal="scrub_ended" from="Practice_canvas/PracticePanel" to="." method="_on_practice_scrub_ended"]
+[connection signal="speed_changed" from="Practice_canvas/PracticePanel" to="." method="_on_practice_speed_changed"]
 [connection signal="continue_button" from="PauseMenu_canvas/Pause_Panel" to="." method="_unpause_button"]
 [connection signal="mainmenu_button" from="PauseMenu_canvas/Pause_Panel" to="." method="_main_menu_button"]
 [connection signal="restart_button" from="PauseMenu_canvas/Pause_Panel" to="." method="_restart_button"]
