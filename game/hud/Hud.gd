@@ -102,6 +102,10 @@ const HUD_RING_SIZE := 1.5
 const HUD_RING := Vector2(0.0, 0.15)
 const HUD_MULTIPLIER_HEIGHT := 0.2
 const HUD_TIME := Vector3(0.0, -0.3, 0.11)
+## the "Practice · 50%" line under the time while practising (muted, the time's size), and on the far cluster above
+## the score, clear of the notes below it
+const HUD_PRACTICE := Vector3(0.0, -0.45, 0.11)
+const FAR_PRACTICE := Vector2(0.0, 1.6)
 
 # the score and the combo keep their nodes in BeepSaber_Game.tscn (other scripts find them by path)
 var _point_label: MeshInstance3D
@@ -131,6 +135,7 @@ var _grade_size := 1.0
 var _rumble_wait := 0.0
 var _rumble_boost := 0.0
 var _time_label: MeshInstance3D
+var _practice_label: MeshInstance3D
 
 func _init(point_label: MeshInstance3D, combo: ComboHud, percent_indicator: PercentIndicator) -> void:
 	name = "Hud"
@@ -166,6 +171,7 @@ func _ready() -> void:
 	(_grade_label.mesh as TextMesh).pixel_size *= GRADE_FONT_SCALE
 	_add_grade_glow()
 	_time_label = _label(_right, HUD_TIME, muted)
+	_practice_label = _label(_right, HUD_PRACTICE, muted)
 	_set_letters(_combo.mesh as TextMesh, HUD_COMBO.z)
 	_set_letters(_point_label.mesh as TextMesh, HUD_SCORE.z)
 	(_point_label.mesh as TextMesh).text = "0"
@@ -181,7 +187,7 @@ func _ready() -> void:
 	place()
 
 ## Puts the two panels in place from the player's eye (the headset's place now), each turned to face it, and the
-## old nodes on them.
+## old nodes on them; shows the practice line while practising.
 func place(eye := HUD_EYE) -> void:
 	_grade = ""
 	_grade_size = 1.0
@@ -200,6 +206,7 @@ func place(eye := HUD_EYE) -> void:
 				_far_spot(FAR_RING))
 		_caption.position = _far_spot(FAR_CAPTION)
 		_time_label.position = _far_spot(FAR_TIME)
+		_practice_label.position = _far_spot(FAR_PRACTICE)
 		show_health(_health)
 	else:
 		_left.global_transform = _panel(eye, -1.0)
@@ -210,6 +217,10 @@ func place(eye := HUD_EYE) -> void:
 				Vector3(HUD_RING.x, HUD_RING.y, 0.0))
 		_caption.position = Vector3(HUD_COMBO_CAPTION.x, HUD_COMBO_CAPTION.y, 0.0)
 		_time_label.position = Vector3(HUD_TIME.x, HUD_TIME.y, 0.0)
+		_practice_label.position = Vector3(HUD_PRACTICE.x, HUD_PRACTICE.y, 0.0)
+	# practice says so the whole run, so a score that isn't saved never reads as a real one
+	_practice_label.visible = Map.practice
+	_set_text(_practice_label, "Practice · %d%%" % Map.practice_speed)
 	_combo.rest_at(_combo.position)
 	_placed = [_left.global_transform, _right.global_transform, _point_label.global_transform, _combo.global_transform]
 	turn(_turn)
@@ -233,6 +244,7 @@ func _set_far(on: bool) -> void:
 	_set_letters(_combo.mesh as TextMesh, _far_size(FAR_COMBO_DEG) if on else HUD_COMBO.z)
 	_set_letters(_caption.mesh as TextMesh, _far_size(FAR_SMALL_DEG) if on else HUD_COMBO_CAPTION.z)
 	_set_letters(_time_label.mesh as TextMesh, _far_size(FAR_SMALL_DEG) if on else HUD_TIME.z)
+	_set_letters(_practice_label.mesh as TextMesh, _far_size(FAR_SMALL_DEG) if on else HUD_PRACTICE.z)
 	for label: MeshInstance3D in [_point_label, _combo, _caption, _time_label]:
 		(label.mesh as TextMesh).pixel_size *= NUMBER_FONT_SCALE if label != _caption else 1.0
 	_combo.set_multiplier_height((_far_size(FAR_MULTIPLIER_DEG) / (_far_size(FAR_RING_DEG) / ComboHud.RING_SIZE)) if on
@@ -241,7 +253,7 @@ func _set_far(on: bool) -> void:
 	_accuracy_label.visible = not on
 	_grade_label.visible = not on
 	_grade_glow.visible = not on and GRADE_GLOWS.has(_grade)
-	_health_bar.visible = on and Settings.health_mode
+	_health_bar.visible = on and Settings.health_mode and not Map.practice
 	# drawn after the see-through walls, so a wall passing through never covers it; notes in front still do
 	for material: BaseMaterial3D in [_point_label.material_override, _caption.material_override,
 			_combo.material_override]:
