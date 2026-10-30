@@ -34,8 +34,9 @@ const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 @onready var favorites_filter := $FiltersPanel/Rows/ToggleRow/FavoritesFilter as Button
 @onready var workout_filter := $FiltersPanel/Rows/ToggleRow/WorkoutFilter as Button
 @onready var filter_rows := $FiltersPanel/Rows as VBoxContainer
-@onready var filter_status := $FiltersPanel/Rows/FilterStatus as Label
-@onready var clear_filters_button := $FiltersPanel/Rows/ClearFilters_Button as Button
+@onready var filter_status := $FiltersPanel/Rows/Status/FilterStatus as Label
+@onready var clear_filters_button := $FiltersPanel/Rows/Status/ClearFilters_Button as Button
+@onready var chip_row := $ChipRow as HBoxContainer
 @onready var empty_list_label := $EmptyList as Label
 @onready var _bg_img_loader := preload("res://game/scripts/BackgroundImgLoader.gd").new()
 
@@ -461,17 +462,41 @@ func _show_filter_counts(filter: SongFilter, songs: Array[MapInfo], shown: int) 
 		var on := int(filter.reaction != 0) + int(filter.length != 0) + int(filter.favorites) + int(filter.workout)
 		var what: String = (FILTERS_ON_TEXT[0 if on == 1 else 1] % on) if _search_text.is_empty() else ("\"%s\"" % _search_text)
 		filters_button.text = FILTERS_SHOWN_TEXT % [shown, total, what]
-	clear_filters_button.visible = not filter.is_off() or not _search_text.is_empty()
+	# greyed out rather than hidden, so the status beside it keeps its width
+	clear_filters_button.disabled = filter.is_off() and _search_text.is_empty()
+	_update_chips(filter)
 	empty_list_label.visible = shown == 0
 	empty_list_label.text = NO_SONGS_TEXT if total == 0 else NO_MATCH_TEXT
 
-## Turns every filter off and clears the search, from the status row's Clear filters.
+## The row above the list, as on Get songs (owner, 2026-10-30: the song menu's filters match Get songs'): the search
+## and each filter on, each a chip whose x takes it off (FilterChips.fill_row).
+func _update_chips(filter: SongFilter) -> void:
+	var chips := []
+	if not _search_text.is_empty():
+		chips.append([FilterChips.search_text(_search_text), _clean_search])
+	var filters := []
+	if filter.favorites:
+		filters.append([FAVORITES_LABEL, func() -> void: Settings.song_filter_favorites = false])
+	if filter.workout:
+		filters.append([WORKOUT_LABEL, func() -> void: Settings.song_filter_workout = false])
+	if filter.reaction != 0:
+		filters.append([MapStats.difficulty_filters()[filter.reaction][1], func() -> void: Settings.song_filter_reaction = 0])
+	var length := MapStats.length_filter(filter.length)
+	if int(length[0]) != 0:
+		filters.append([length[1], func() -> void: Settings.song_filter_length = 0])
+	FilterChips.fill_row(chip_row, chips, filters, _clear_only_filters)
+
+## Turns every filter off and clears the search, from the status row's Clear.
 func _clear_filters() -> void:
+	_clear_only_filters()
+	_clean_search()
+
+## Turns every filter off, keeping the search (the row's "N filters" chip).
+func _clear_only_filters() -> void:
 	Settings.song_filter_reaction = 0
 	Settings.song_filter_length = 0
 	Settings.song_filter_favorites = false
 	Settings.song_filter_workout = false
-	_clean_search()
 
 ## Rebuilds the shown song list with the current search text and filters.
 func _refilter() -> void:
@@ -1176,7 +1201,7 @@ func _show_filters(open: bool) -> void:
 	$FiltersPanel.visible = open
 	filters_button.set_pressed_no_signal(open)
 
-## Fills the filters panel with a Difficulty and a Length section of chips (FilterChips), above Clear filters.
+## Fills the filters panel with a Difficulty and a Length section of chips (FilterChips), under the status and Clear.
 func _build_filter_chips() -> void:
 	var label := func(choice: Array) -> String: return str(choice[1])
 	# a chip's index is its choice's less one: the first choice is "any", which no chip picked gives
@@ -1188,7 +1213,6 @@ func _build_filter_chips() -> void:
 		MapStats.difficulty_filters().slice(1).map(label), pick_difficulty, &"DifficultyButton")
 	_length_chips = FilterChips.add_section(filter_rows, LENGTH_FILTER_TITLE,
 		Constants.LENGTH_FILTERS.slice(1).map(label), pick_length, &"DifficultyButton")
-	filter_rows.move_child(clear_filters_button, -1)
 	_show_picked_filters()
 
 ## Shows the saved difficulty and length filters on their chips.

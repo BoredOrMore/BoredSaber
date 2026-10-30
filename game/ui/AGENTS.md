@@ -45,7 +45,9 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   sections `SECTION_GAP` apart (`section_list`), used by the modifier and More modifiers sections;
   `FilterChips.gd` (class `FilterChips`), the filter panels' sections (owner, 2026-10-30: filters sit in the right
   panel beside the list they filter, never over it, one press per choice): a `MenuSection` per filter with a chip
-  per choice that wraps, its song count on it (greyed at none), the picked chip pressed again turning it off.
+  per choice that wraps, its song count on it (greyed at none, its width set for `COUNT_ROOM` from the start), the
+  picked chip pressed again turning it off; and the chip row above both lists (`fill_row`: a chip per filter on, x
+  takes it off, folding into one "N filters" chip when they don't fit).
   Button kinds are `menu_theme.tres` type variations, so each look and its states (normal, hover, pressed,
   selected, disabled) and rounded corners live in one place; the hover sound is `UI_AudioEngine`'s for every
   button: `Button` (secondary), `PrimaryButton` (the page's main action: Done, Download), `ChipButton` (modifier
@@ -69,7 +71,7 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   like it (owner, 2026-10-29, layout A): 1753x745 px at scale 2.4 on the menus' 2 m cylinder, where the song menu is,
   details left and the list in the centre. The right panel holds the filters, always open beside the list (owner,
   2026-10-30): a status line ("Loading songs…", "About 1,234 songs" from BeatSaver's info.total, "No songs match")
-  with Clear, then `FilterChips` sections Style, Difficulty, Length (both in the narrow `DifficultyButton` kind, one
+  with Clear (greyed, never hidden, when nothing is on), then `FilterChips` sections Style, Difficulty, Length (both in the narrow `DifficultyButton` kind, one
   row each, so all four fit unscrolled) and Genre; presses wait `FILTER_RELOAD_SECONDS` for more before one reload,
   and a "More by" list greys them out. Above the list: Search, the sort and "My songs" in Get songs' place; under
   them a chip per filter on (its x takes it off), the search or the "More by" mapper. (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
@@ -148,7 +150,7 @@ never clicks what it started on (a release far away cancels the press), and a fl
 the top. `scroll_without_pointer = true` scrolls even when not hovered. The song list sets `joystick_scroll = false`:
 there the thumbstick moves the selection instead (`MainMenu._step_with_stick`, centred by `SongList.center_on`;
 each step ticks that hand's controller, `STICK_TICK_*`).
-Above the list one row holds Search (icon), the sort, Get songs and, at its right end, Filters (a toggle: opens and closes `FiltersPanel` in the right panel over the modifiers, the list staying in view, with no Back button: Favorites, Workout, then Difficulty and Length chips from `FilterChips`). BeatSaver loads the next page past 90% scroll (`BeatSaverPanel.gd:447-465`).
+Above the list one row holds Search (icon), the sort, Get songs and, at its right end, Filters (a toggle: opens and closes `FiltersPanel` in the right panel over the modifiers, the list staying in view, with no Back button: the status line with Clear, then Favorites, Workout, Difficulty and Length chips from `FilterChips`, laid out as on Get songs). Under the row, as on Get songs, a chip per filter on and the search (`_update_chips`). BeatSaver loads the next page past 90% scroll (`BeatSaverPanel.gd:447-465`).
 
 ## BeatSaver HTTP flow
 
@@ -186,6 +188,9 @@ Above the list one row holds Search (icon), the sort, Get songs and, at its righ
   `CheckButton` once had 0 px idle vs 16 px hover margins and its label jumped under the pointer (commit `37ceb03`);
   `toggle_idle` and `list_hover` now both use 16/8. Same rule for `surface*` (20/12) and `tab_*` (28/12).
 - Set colours in the theme, not per-node overrides, so panels stay consistent.
+- Text that changes (counts, statuses, chips that come and go) gets its room up front, so nothing around it moves
+  (owner, 2026-10-30): fixed rows and widths sized for the longest text, controls greyed out rather than hidden
+  (`FilterChips.COUNT_ROOM`, the chip rows above both lists, the filters' Clear).
 
 ## Recipes
 
