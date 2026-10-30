@@ -218,13 +218,25 @@ func _preload(info: MapInfo, difficulty: DifficultyInfo) -> void:
 	if _preload_running.erase(task):
 		WorkerThreadPool.wait_for_task_completion(task)
 
-## Reads the map file (as "map_data") and the song (as "stream", with its file's "size") into `into`; on a worker.
+## Reads the map file (as "map_data"), its v4 lightshow file (as "lightshow_data", {} without one) and the song (as
+## "stream", with its file's "size") into `into`; on a worker.
 static func _read_song(info: MapInfo, difficulty: DifficultyInfo, into: Dictionary) -> void:
 	into["map_data"] = Utils.binary_to_json(Utils.read_binary_file(info.filepath, difficulty.beatmap_filename))
+	into["lightshow_data"] = _read_lightshow(info, difficulty)
 	var filename := info.filepath + info.song_filename
 	if FileAccess.file_exists(filename):
 		into["stream"] = AudioStreamOggVorbis.load_from_file(filename)
 		into["size"] = FileAccess.open(filename, FileAccess.READ).get_length()
+
+## The v4 lightshow file of `difficulty` of `info`, {} when it names none or it can't be read (the map then plays
+## without lights).
+static func _read_lightshow(info: MapInfo, difficulty: DifficultyInfo) -> Dictionary:
+	if difficulty.lightshow_filename.is_empty():
+		return {}
+	var data := Utils.binary_to_json(Utils.read_binary_file(info.filepath, difficulty.lightshow_filename))
+	if data.is_empty():
+		push_warning("Could not read the lightshow " + info.filepath + "/" + difficulty.lightshow_filename)
+	return data
 
 ## What was read for `difficulty` of `info` (waiting for it if it's still being read, reading it now if it was picked
 ## too recently to have started), {} if something else was. It stays, so a restart of the song finds it in memory.
@@ -265,7 +277,9 @@ func _start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	if (map_data.is_empty()):
 		vr.log_error("Could not read map data from " + info.filepath + "/" + map_difficulty.beatmap_filename)
 	timing.lap("read")
-	if not Map.load_beatmap(info, map_difficulty, map_data):
+	var lightshow_data: Dictionary = preloaded["lightshow_data"] if preloaded.has("lightshow_data") else \
+			_read_lightshow(info, map_difficulty)
+	if not Map.load_beatmap(info, map_difficulty, map_data, lightshow_data):
 		menu.show_play_error()
 		return
 	timing.lap("parse")
