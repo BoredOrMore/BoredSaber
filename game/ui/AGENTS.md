@@ -78,7 +78,7 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   2026-10-30): a status line ("Loading songs…", "About 1,234 songs" from BeatSaver's info.total, "No songs match")
   with Clear (greyed, never hidden, when nothing is on), then one scrolling page (`FilterChips.add_scroll`, as the song menu's) of Include AI maps
   (`Settings.beatsaver_include_ai`: `&automapper=true`, AI maps then playable; off by default, Clear turns it off),
-  Difficulty, Length, Style and Genre, all `FilterChip`s; an AI map's row and details say so (" (AI)", "Made by AI"); a map is listed by its Standard
+  Difficulty, Length, Style and Genre, all `FilterChip`s; an AI map's row and details say so ("AI · " before its name, "Made by AI"); a map is listed by its Standard
   difficulties, else its 360° or 90° ones (`BeatSaverSongInfo.MODES`/`mode`; the row then ends " (360°)"); presses wait `FILTER_RELOAD_SECONDS` for more before one reload,
   and a "More by" list greys them out. Above the list: Search, the sort and "My songs" in Get songs' place; under
   them a chip per filter on (its x takes it off), the search or the "More by" mapper. (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)

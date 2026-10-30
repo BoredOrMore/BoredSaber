@@ -13,7 +13,8 @@ const GENRES := [["Any genre", ""], ["Pop", "pop"], ["J-Pop", "j-pop"], ["K-Pop"
 
 ## Kept with a song's tags when BeatSaver says an AI made the map (its "automapper"), so the song menu can say so.
 const AI_TAG := "ai-map"
-## After the name of a map an AI made, on both song pages (owner, 2026-10-30).
+## Before the name of a map an AI made in both song lists (owner, 2026-10-30), and after its mapper on the song menu.
+const AI_MARK := "AI · "
 const AI_SUFFIX := " (AI)"
 
 ## Saved tags, keyed by song folder name; an empty list means looked up and BeatSaver had none.

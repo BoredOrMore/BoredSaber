@@ -253,17 +253,13 @@ func _levels(song: BeatSaverSongInfo) -> Array:
 			levels.append(MapStats.level_of(info, difficulty, MapStats.get_stats(info, difficulty)))
 	return [levels, false]
 
-## A map's row text, as the song menu names its songs: "Artist - Title" (the map's name when it has neither).
+## A map's row text, as the song menu names its songs: "Artist - Title" (the map's name when it has neither), "AI · "
+## before it for an AI's map and its mode after it when it isn't Standard (" (360°)").
 static func _row_text(song: BeatSaverSongInfo) -> String:
-	if song.song_name.is_empty():
-		return song.name + _row_suffix(song)
-	return ("%s - %s" % [song.song_author_name, song.song_name] if not song.song_author_name.is_empty() else song.song_name) \
-			+ _row_suffix(song)
-
-## After a map's name in its row: its mode when it isn't Standard (" (360°)") and " (AI)" for an AI's map.
-static func _row_suffix(song: BeatSaverSongInfo) -> String:
-	var suffix := "" if song.mode == "Standard" else " (%s)" % MainMenu.CHARACTERISTIC_LABELS.get(song.mode, song.mode)
-	return suffix + (SongTags.AI_SUFFIX if song.automapper else "")
+	var title := song.name if song.song_name.is_empty() else ("%s - %s" % [song.song_author_name, song.song_name] \
+			if not song.song_author_name.is_empty() else song.song_name)
+	var mode := "" if song.mode == "Standard" else " (%s)" % MainMenu.CHARACTERISTIC_LABELS.get(song.mode, song.mode)
+	return (SongTags.AI_MARK if song.automapper else "") + title + mode
 
 ## The end of a map's row: how its download is going, else its length, with "✓" once it is in the library.
 func _side_text(song: BeatSaverSongInfo) -> String:

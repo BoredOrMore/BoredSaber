@@ -328,8 +328,8 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 		@warning_ignore("return_value_discarded")
 		var favorite := PlayCount.is_favorite(map)
 		var list_cover: Texture2D = _list_covers.get(map.filepath, default_song_icon)
-		songs_menu.add_item("%s%s - %s%s%s" % ["\u2605 " if favorite else "", map.song_author_name, map.song_name,
-			SongTags.AI_SUFFIX if SongTags.is_ai(map) else "", "" if map.have_song else NO_MUSIC_SUFFIX], list_cover)
+		songs_menu.add_item("%s%s%s - %s%s" % ["\u2605 " if favorite else "", SongTags.AI_MARK if SongTags.is_ai(map) else "",
+			map.song_author_name, map.song_name, "" if map.have_song else NO_MUSIC_SUFFIX], list_cover)
 		songs_menu.set_item_custom_fg_color(map_index, Color.YELLOW if favorite else Color.WHITE)
 		if not _list_covers.has(map.filepath):
 			_bg_img_loader.load_texture(map.filepath, map.cover_image_filename, _on_cover_loaded.bind(_list_generation, map.filepath),
