@@ -169,17 +169,10 @@ static func nps_window(level: int) -> Vector2:
 ## Icons of the big button: download, or play once the song is in the library.
 const DOWNLOAD_ICON := preload("res://game/ui/icons/download.svg")
 const PLAY_ICON := preload("res://game/ui/icons/play.svg")
-const CLEAR_ICON := preload("res://game/ui/icons/x.svg")
 ## The sort button while a search lists maps by how well they match.
 const BEST_MATCH_TEXT := "Best match"
-## The chip that stands for several filters when their chips don't fit above the list; the chip of the mapper list
-## "More by" opened (its x goes back to the list before).
-const SOME_FILTERS_TEXT := "%d filters"
+## The chip of the mapper list "More by" opened (its x goes back to the list before).
 const MAPPER_CHIP_TEXT := "By %s"
-## Most letters of the search shown on its chip, before "…".
-const SEARCH_CHIP_LETTERS := 16
-## The x on a chip, px.
-const CHIP_ICON_SIZE := 24
 ## A map's cover in the list (BeatSaverList.COVER_SIZE) and in the details, px. Only the picked map's big cover is
 ## fetched (DetailCoverDownload), so the list keeps 20 KB per map instead of 160 KB (owner, 2026-10-29, layout A).
 const DETAIL_COVER := 152
@@ -367,7 +360,8 @@ func _sync_filter_controls() -> void:
 	var mapper_list := prev_request != null and prev_request.type == "uploader"
 	for chip: Button in _style_chips + _level_chips + _length_chips + _genre_chips:
 		chip.disabled = mapper_list
-	clear_filters_button.visible = not _filter_chips().is_empty() and not mapper_list
+	# greyed out rather than hidden, so the status beside it keeps its width
+	clear_filters_button.disabled = _filter_chips().is_empty() or mapper_list
 	_update_chips()
 	_show_filter_status()
 
@@ -430,28 +424,9 @@ func _update_chips() -> void:
 		chips.append([MAPPER_CHIP_TEXT % _uploader_name, _on_back_pressed])
 	else:
 		if not search_word.is_empty():
-			var shown := search_word if search_word.length() <= SEARCH_CHIP_LETTERS else search_word.left(SEARCH_CHIP_LETTERS).strip_edges() + "…"
-			chips.append(["\"%s\"" % shown, _on_clear_search_pressed])
+			chips.append([FilterChips.search_text(search_word), _on_clear_search_pressed])
 		filters = _filter_chips()
-	_fill_chips(chips + filters)
-	if chip_row.get_combined_minimum_size().x > chip_row.size.x:
-		_fill_chips(chips + [[SOME_FILTERS_TEXT % filters.size(), _on_clear_filters_pressed]])
-
-## Puts chips [text, what pressing it does] in the row above the list.
-func _fill_chips(chips: Array) -> void:
-	for chip in chip_row.get_children():
-		chip_row.remove_child(chip)
-		chip.queue_free()
-	for entry: Array in chips:
-		var chip := Button.new()
-		chip.theme_type_variation = &"ChipButton"
-		chip.text = entry[0]
-		chip.icon = CLEAR_ICON
-		chip.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		chip.add_theme_constant_override(&"icon_max_width", CHIP_ICON_SIZE)
-		chip.pressed.connect(entry[1] as Callable)
-		UI_AudioEngine.attach_button(chip)
-		chip_row.add_child(chip)
+	FilterChips.fill_row(chip_row, chips, filters, _on_clear_filters_pressed)
 
 ## Turns every filter off; the list loads again once (_filters_changed).
 func _on_clear_filters_pressed() -> void:
