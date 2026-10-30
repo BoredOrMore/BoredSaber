@@ -105,12 +105,12 @@ const PRACTICE_PRE_ROLL_SECONDS := 1.0
 ## How far before the fail "Practice this part" starts, in song seconds (untuned).
 const PRACTICE_BEFORE_FAIL_SECONDS := 8.0
 ## The practice panel (owner's choice 5A, 2026-10-30): 60 degrees to the player's right, 1.3 m from the eye, facing it;
-## in the head-turn-plus-eyes zone's glance range and clear of the note lanes and the walls' reach. Its centre sits 9
-## degrees below the eye (15 at first; 9 since the Repeat row made it 540 px, 0.84 m, tall), so it spans about 9 up to
-## 27 down, the zone's floor. Scale 1.6 makes the 28 px text 4.4 cm, 1.9 degrees at 1.3 m (vr-ui-design's 1.85
-## floor), and its 52-64 px targets 3.5-4.4 degrees.
+## in the head-turn-plus-eyes zone's glance range and clear of the note lanes and the walls' reach. Its centre sits 11
+## degrees below the eye (15 at first), so its 450 px (0.7 m) span about 4 up to 26 down, inside the zone's 27 floor.
+## Scale 1.6 makes the 28 px text 4.4 cm, 1.9 degrees at 1.3 m (vr-ui-design's 1.85 floor), and its 52-64 px targets
+## 3.5-4.4 degrees.
 const PRACTICE_PANEL_YAW := 60.0
-const PRACTICE_PANEL_PITCH := -9.0
+const PRACTICE_PANEL_PITCH := -11.0
 const PRACTICE_PANEL_DISTANCE := 1.3
 const PRACTICE_PANEL_SCALE := 1.6
 ## The left thumbstick scrubs practice's timeline (owner's choice 6C, 2026-10-30): past the dead zone, up to

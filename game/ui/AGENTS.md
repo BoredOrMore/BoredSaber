@@ -86,16 +86,17 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   choice A, 2026-10-30; the records show `HighscorePanel.COMPACT_ROWS` 5 rows since): `play_selected(true)` -> signal
   `start_practice` -> `BeepSaber_Game.start_practice`, which waits at the song's start with the practice panel.
 - `PracticePanel.gd/.tscn` (class `PracticePanel`, on `BeepSaber_Game`'s `Practice_canvas`; owner's redesign
-  2026-10-30, replacing a Practice view in the song menu that felt cut off from playing): "1:24 of 2:55" over the
-  playback timeline (`HSlider`), which follows the song and is dragged to any point, stopped or while playing
-  (`scrub_started`/`scrub_ended`; a press without a drag jumps at once); "Start 0:12" beside the start point's own
-  slider, which stays where it was set (owner, 2026-10-30; `start_set`); "End 1:50" with a Repeat toggle and the end
-  point's slider (owner's A-B loop, 2026-10-30; off by default, "End: whole song"; on, the part runs from the start
-  to the end again and again, at least `MIN_PART_SECONDS` long, starting `NEW_PART_SECONDS` long; `end_set`, -1 off);
-  a one-line hint; Speed − 50-200% +
-  (`Constants.PRACTICE_SPEED_*`, greyed while playing); the primary Play/Pause (`icons/pause.svg`, Lucide), Restart
-  (from the start point) and Exit. It only shows and signals; the game runs the song and places
-  it (`BeepSaber_Game.PRACTICE_PANEL_*`). `nudge` moves the timeline for the left thumbstick.
+  2026-10-30, replacing a Practice view in the song menu that felt cut off from playing): "1:41 of 2:55" and the Repeat
+  toggle over one bar (`PracticeTimeline.gd`, class `PracticeTimeline`, owner 2026-10-30: one bar, not three sliders),
+  "Start 1:24" and "End 1:50" (or "Plays to the end") under it, a one-line hint, Speed − 50-200% +
+  (`Constants.PRACTICE_SPEED_*`, greyed while playing), the primary Play/Pause (`icons/pause.svg`, Lucide), Restart
+  (from the start) and Exit. The bar draws the song with the playhead (a round knob; a press in its top `BAR_BAND`
+  takes it: `scrub_started`/`scrub_ended`), the start point (a triangle hung under the bar) and with Repeat on the end
+  point (a square), the part between them lit; a press in the `MARKER_BAND` under the bar takes the nearer marker
+  (`start_set`/`end_set`). Shapes and labels tell them apart, never colour alone, and no font glyphs. Repeat on starts a
+  part `NEW_PART_SECONDS` long, at least `MIN_PART_SECONDS`; a later start pushes the end on; off is -1. The panel
+  only shows and signals; the game runs the song and places it (`BeepSaber_Game.PRACTICE_PANEL_*`). `nudge` moves the
+  playhead for the left thumbstick.
 - `ModifierChips.gd` (class `ModifierChips`, made by the menu's `_ready`): the Song tab's fail and damage rows,
   on/off and Speed chips, More modifiers, environment picker and reset, in step with `Settings`; `changed()` names
   the modified ones. Its static `make_row_button` (a button of a given kind) is shared with the difficulty picker.

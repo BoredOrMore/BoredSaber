@@ -2,6 +2,7 @@
 
 [ext_resource type="StyleBox" path="res://game/ui/menu_panel.tres" id="menu_panel"]
 [ext_resource type="Script" path="res://game/ui/PracticePanel.gd" id="script"]
+[ext_resource type="Script" path="res://game/ui/PracticeTimeline.gd" id="timeline"]
 [ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="menu_theme"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/play.svg" id="icon_play"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/log-out.svg" id="icon_log-out"]
@@ -12,7 +13,7 @@
 
 [node name="PracticePanel" type="Panel"]
 offset_right = 560.0
-offset_bottom = 540.0
+offset_bottom = 450.0
 theme = ExtResource("menu_theme")
 theme_override_styles/panel = ExtResource("menu_panel")
 script = ExtResource("script")
@@ -28,51 +29,44 @@ offset_right = -24.0
 offset_bottom = -16.0
 theme_override_constants/separation = 10
 
-[node name="Time" type="Label" parent="Rows"]
-custom_minimum_size = Vector2(0, 36)
-layout_mode = 2
-text = "0:00 of 0:00"
-vertical_alignment = 1
-
-[node name="Timeline" type="HSlider" parent="Rows"]
-custom_minimum_size = Vector2(0, 52)
-layout_mode = 2
-
-[node name="StartTime" type="Label" parent="Rows"]
-custom_minimum_size = Vector2(0, 36)
-layout_mode = 2
-text = "Start 0:00"
-vertical_alignment = 1
-
-[node name="Start" type="HSlider" parent="Rows"]
-custom_minimum_size = Vector2(0, 52)
-layout_mode = 2
-
-[node name="EndRow" type="HBoxContainer" parent="Rows"]
+[node name="TopRow" type="HBoxContainer" parent="Rows"]
 custom_minimum_size = Vector2(0, 44)
 layout_mode = 2
 
-[node name="EndTime" type="Label" parent="Rows/EndRow"]
+[node name="Time" type="Label" parent="Rows/TopRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-text = "End: whole song"
+text = "0:00 of 0:00"
 vertical_alignment = 1
 
-[node name="Repeat" type="CheckButton" parent="Rows/EndRow"]
+[node name="Repeat" type="CheckButton" parent="Rows/TopRow"]
 layout_mode = 2
 text = "Repeat"
 
-[node name="End" type="HSlider" parent="Rows"]
-custom_minimum_size = Vector2(0, 52)
+[node name="Timeline" type="Control" parent="Rows"]
 layout_mode = 2
-editable = false
+script = ExtResource("timeline")
+
+[node name="Marks" type="HBoxContainer" parent="Rows"]
+layout_mode = 2
+
+[node name="StartTime" type="Label" parent="Rows/Marks"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Start 0:00"
+
+[node name="EndTime" type="Label" parent="Rows/Marks"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Plays to the end"
+horizontal_alignment = 2
 
 [node name="Hint" type="Label" parent="Rows"]
 custom_minimum_size = Vector2(0, 30)
 layout_mode = 2
 theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
 theme_override_font_sizes/font_size = 22
-text = "The start stays put; Restart goes back to it."
+text = "Drag under the bar to move the start."
 horizontal_alignment = 1
 vertical_alignment = 1
 text_overrun_behavior = 3

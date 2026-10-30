@@ -50,12 +50,12 @@ constraints apply here unchanged.
   `Map.practice`, `practice_start` (song seconds) and `practice_speed` (percent, 50-200; `Map.speed_percent()`
   replaces the Speed modifier everywhere the song's pace is read: `beats_per_second`, the song's pitch, the Music bus,
   the lead-in), then `start_map`, which keeps the map as loaded (`Map.snapshot`, `_practice_stacks`), places the
-  practice panel (`PRACTICE_PANEL_*`: 60 degrees right, 9 below the eye, 1.3 m; turned with the track on 90/360
+  practice panel (`PRACTICE_PANEL_*`: 60 degrees right, 11 below the eye, 1.3 m; turned with the track on 90/360
   maps) and waits there (`_practice_hold` -> `GameStatePracticeHold`: song stopped, track empty, pointers on).
   Play (`_practice_play`) restores the map, drops what comes before the point (`Map.skip_before`: notes, bombs, arcs
   and chains before it, walls ended by then; the passed light events replayed at once), counts down while the first
   notes fly in and plays the song from `song_start`, the point less `PRACTICE_PRE_ROLL_SECONDS` and the fly-in.
-  Grabbing the playback timeline (pointer, or the left thumbstick: `_practice_stick`, `PRACTICE_STICK_*`) while
+  Grabbing the playhead (pointer, or the left thumbstick: `_practice_stick`, `PRACTICE_STICK_*`) while
   playing stops the song and empties the track; letting go plays from there. The start point
   (`_practice_start_point`) stays where it was set: Restart plays from it, setting it jumps there, and the song's end
   waits there. With Repeat on, reaching the end point (`_practice_end_point`, `_practice_check_end`) plays from the

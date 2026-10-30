@@ -185,28 +185,39 @@ func _ready() -> void:
 	_check_layout(practice, "practice panel, stopped")
 	var slower := practice.get_node(^"Rows/SpeedRow/Slower_Button") as Button
 	check(practice._time.text == "99:59 of 99:59" and practice._start_time.text == "Start 99:59"
-			and practice._end_time.text == "End 99:59"
-			and practice._speed.text == "50%" and slower.disabled,
-			"practice panel: \"%s\", \"%s\", \"%s\", slower greyed at the slowest" % [practice._time.text,
-			practice._start_time.text, practice._speed.text])
-	practice.show_state(true, 30.0, 12.0, -1.0, 5999.0, 100)
-	practice.show_time(95.0)
-	check(practice.start_seconds() == 12.0 and practice._start_time.text == "Start 0:12",
-			"practice panel: the start point stays put while the song plays on (got %s)" % practice._start_time.text)
-	# Repeat: off plays the whole song; on starts a part NEW_PART_SECONDS long; a start past the end pushes the end on
-	var ends: Array[float] = []
-	practice.end_set.connect(func(seconds: float) -> void: ends.append(seconds))
-	check(practice._end_time.text == "End: whole song" and not practice._end.editable,
-			"practice panel: Repeat off says the whole song and greys the end (got %s)" % practice._end_time.text)
-	practice._repeat.button_pressed = true
-	practice._start.value = 40.0
-	practice._repeat.button_pressed = false
-	check(ends == [22.0, 42.0, -1.0],
-			"practice panel: Repeat on sets the end 10 s after the start, a later start moves it on, off clears it (got %s)" % [ends])
+			and practice._end_time.text == "End 99:59" and practice._speed.text == "50%" and slower.disabled,
+			"practice panel: \"%s\", \"%s\", \"%s\", \"%s\", slower greyed at the slowest" % [practice._time.text,
+			practice._start_time.text, practice._end_time.text, practice._speed.text])
+	practice.show_state(true, 30.0, 12.0, -1.0, 100.0, 100)
 	await _settle()
 	_check_layout(practice, "practice panel, playing")
 	check(practice._play.text == "Pause" and slower.disabled and practice._faster.disabled,
 			"practice panel: playing shows Pause and greys the speed (got %s)" % practice._play.text)
+	practice.show_time(95.0)
+	check(practice.start_seconds() == 12.0 and practice._start_time.text == "Start 0:12"
+			and practice._end_time.text == "Plays to the end",
+			"practice panel: the start stays put while the song plays on, no end without Repeat (got %s, %s)" % [
+			practice._start_time.text, practice._end_time.text])
+	# one bar: a press on it takes the playhead, a press under it the start marker; Repeat adds the end marker
+	var bar := practice._bar
+	var events: Array = []
+	practice.scrub_started.connect(func() -> void: events.append("grab"))
+	practice.scrub_ended.connect(func(seconds: float) -> void: events.append(roundi(seconds)))
+	practice.start_set.connect(func(seconds: float) -> void: events.append("start %d" % roundi(seconds)))
+	practice.end_set.connect(func(seconds: float) -> void: events.append("end %d" % roundi(seconds)))
+	var half_x := bar._x(50.0)
+	_press_bar(bar, Vector2(half_x, PracticeTimeline.BAR_BAND * 0.5))
+	_press_bar(bar, Vector2(bar._x(40.0), PracticeTimeline.BAR_BAND + 20.0))
+	practice._repeat.button_pressed = true
+	_press_bar(bar, Vector2(bar._x(90.0), PracticeTimeline.BAR_BAND + 20.0))
+	_press_bar(bar, Vector2(bar._x(89.0), PracticeTimeline.BAR_BAND + 20.0))
+	practice._set_start(95.0)
+	practice._repeat.button_pressed = false
+	check(events == ["grab", 50, "start 40", "end 50", "end 90", "end 89", "end 97", "start 95", "end -1"],
+			"practice panel: the bar takes the playhead, under it the nearer marker; Repeat on starts a 10 s part, a start "
+			+ "past the end pushes it on, off clears it (got %s)" % [events])
+	check(bar.size.y >= PracticeTimeline.BAR_BAND + PracticeTimeline.MARKER_BAND,
+			"practice panel: the bar and its markers each have a 52 px band (%.0f px)" % bar.size.y)
 	practice.queue_free()
 
 	# Visuals with the Graphics chips: Low, then one effect changed (Custom)
@@ -658,3 +669,12 @@ func _check_children(parent: Control, bounds: Rect2, problems: PackedStringArray
 func _hidden_under_overlay(a: Control, a_rect: Rect2, b: Control, b_rect: Rect2) -> bool:
 	var covers := OVERLAYS + BACKGROUNDS
 	return (String(a.name) in covers and a_rect.encloses(b_rect)) or (String(b.name) in covers and b_rect.encloses(a_rect))
+
+## A pointer press and release at `at` on the practice bar, as the canvas pushes them.
+func _press_bar(bar: PracticeTimeline, at: Vector2) -> void:
+	for pressed: bool in [true, false]:
+		var event := InputEventMouseButton.new()
+		event.button_index = MOUSE_BUTTON_LEFT
+		event.pressed = pressed
+		event.position = at
+		bar._gui_input(event)
