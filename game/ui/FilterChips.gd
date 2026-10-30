@@ -44,12 +44,14 @@ static func add_section(parent: Container, title: String, labels: Array, on_pick
 ## (owner, 2026-10-30): Favorites and Workout (song menu only), Difficulty, Length, Style, Genre.
 const SCROLL_NAME := &"FilterScroll"
 const VR_SLIDER := preload("res://game/ui/vr_slider.tscn")
+const VR_SLIDER_SCRIPT := preload("res://game/ui/vr_slider.gd")
 ## A drag the scroll container's own touch scrolling needs before it starts (px): never.
 const NO_OWN_DRAG := 100000
 
 ## Adds to rows at index a scroll container holding one page for every section (in a margin), dragged by the pointer like the
-## lists (vr_slider; the thumbstick too when joystick is true). Returns the page, to add the sections to.
-static func add_scroll(rows: VBoxContainer, index: int, joystick: bool) -> VBoxContainer:
+## lists (vr_slider), and by the thumbstick while the pointer is on it (owner, 2026-10-30: the stick works on what
+## the pointer is on). Returns the page, to add the sections to.
+static func add_scroll(rows: VBoxContainer, index: int) -> VBoxContainer:
 	var scroll := ScrollContainer.new()
 	scroll.name = SCROLL_NAME
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -71,9 +73,18 @@ static func add_scroll(rows: VBoxContainer, index: int, joystick: bool) -> VBoxC
 	margin.add_child(page)
 	var slider := VR_SLIDER.instantiate()
 	slider.scroll_node_path = NodePath("..")
-	slider.joystick_scroll = joystick
 	scroll.add_child(slider)
 	return page
+
+## True while the pointer is on the filters' page of rows (add_scroll), so the thumbstick scrolls it.
+static func pointed_at(rows: VBoxContainer) -> bool:
+	var scroll := rows.get_node_or_null(NodePath(SCROLL_NAME))
+	if scroll == null or not (scroll as Control).is_visible_in_tree():
+		return false
+	for child in scroll.get_children():
+		if child.get_script() == VR_SLIDER_SCRIPT:
+			return child.is_mouse_in
+	return false
 
 ## Shows the chip at index as picked and the others not (-1: none), without calling on_pick.
 static func show_picked(chips: Array[Button], index: int) -> void:

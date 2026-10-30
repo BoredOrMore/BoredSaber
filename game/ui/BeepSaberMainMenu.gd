@@ -97,11 +97,13 @@ const STICK_TICK_SECONDS := 0.02
 var _stick_time := -1.0
 var _stick_next := 0.0
 
-## Moves the song selection with the stronger thumbstick of the two hands while the song menu takes input.
+## Moves the song selection with the stronger thumbstick of the two hands while the song menu takes input, unless
+## the pointer is on the filters, which the stick scrolls then (owner, 2026-10-30: the stick works on what the pointer
+## is on).
 func _step_with_stick(delta: float) -> void:
 	var canvas := get_viewport().get_parent() as OQ_UI2DCanvas
 	var takes_input := canvas != null and canvas.is_visible_in_tree() and not canvas.disable_collision \
-			and not keyboard.visible and songs_menu.item_count > 0
+			and not keyboard.visible and songs_menu.item_count > 0 and not FilterChips.pointed_at(filter_rows)
 	var y := 0.0
 	var hand := vr.rightController
 	if takes_input:
@@ -1250,8 +1252,8 @@ func _build_filter_chips() -> void:
 	var pick_length := func(index: int) -> void:
 		Settings.song_filter_length = Constants.LENGTH_FILTERS[index + 1][0]
 	# the same sections as Get songs', in one scrolling page under the status (FilterChips.add_scroll), Favorites and
-	# Workout first; the thumbstick stays on the song list's selection
-	var page := FilterChips.add_scroll(filter_rows, 1, false)
+	# Workout first; the thumbstick scrolls it while the pointer is on it (_step_with_stick leaves it alone then)
+	var page := FilterChips.add_scroll(filter_rows, 1)
 	favorites_filter.get_parent().reparent(page)
 	_difficulty_chips = FilterChips.add_section(page, DIFFICULTY_FILTER_TITLE,
 		MapStats.difficulty_filters().slice(1).map(label), pick_difficulty)

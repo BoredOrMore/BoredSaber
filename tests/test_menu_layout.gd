@@ -513,6 +513,12 @@ func _check_filter_scroll(root: Control, rows: VBoxContainer, page_name: String)
 		return
 	var sliders := scroll.get_children().filter(func(c: Node) -> bool: return c.get_script() == preload("res://game/ui/vr_slider.gd"))
 	check(sliders.size() == 1, "%s: the pointer drags the filters (vr_slider on it)" % page_name)
+	if sliders.size() == 1:
+		# the thumbstick goes to the filters only while the pointer is on them (owner, 2026-10-30)
+		sliders[0].is_mouse_in = true
+		var on := FilterChips.pointed_at(rows)
+		sliders[0].is_mouse_in = false
+		check(on and not FilterChips.pointed_at(rows), "%s: the filters take the thumbstick only while pointed at" % page_name)
 	var page := scroll.get_child(0) as Control
 	check(page.get_combined_minimum_size().x <= scroll.size.x + 0.5, "%s: the filters don't scroll sideways (%.0f of %.0f px)" % [
 			page_name, page.get_combined_minimum_size().x, scroll.size.x])

@@ -337,7 +337,7 @@ func _build_filter_chips() -> void:
 		_genre_tag = GENRES[index + 1][1] if index >= 0 else ""
 		_filters_changed()
 	# the same sections as the song menu's, in one scrolling page under the status (FilterChips.add_scroll)
-	var page := FilterChips.add_scroll(filter_rows, 1, true)
+	var page := FilterChips.add_scroll(filter_rows, 1)
 	_level_chips = FilterChips.add_section(page, DIFFICULTY_TITLE, Constants.DIFFICULTY_LEVELS.map(label), pick_level)
 	_length_chips = FilterChips.add_section(page, LENGTH_TITLE,
 		Constants.LENGTH_FILTERS.slice(1).map(func(choice: Array) -> String: return str(choice[1])), pick_length)

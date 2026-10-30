@@ -150,9 +150,10 @@ never clicks what it started on (a release far away cancels the press), and a fl
 `ItemList` still selects on press, so the BeatSaver list picks the row a drag starts on. Otherwise thumbstick
 (stronger of both hands) with threshold, speed lerp and hold acceleration consts at
 the top. `scroll_without_pointer = true` scrolls even when not hovered. The song list sets `joystick_scroll = false`:
-there the thumbstick moves the selection instead (`MainMenu._step_with_stick`, centred by `SongList.center_on`;
+there the thumbstick moves the selection instead, except while the pointer is on the filters' page, which it scrolls
+then (`FilterChips.pointed_at`; owner, 2026-10-30: the stick works on what the pointer is on) (`MainMenu._step_with_stick`, centred by `SongList.center_on`;
 each step ticks that hand's controller, `STICK_TICK_*`).
-Above the list one row holds Search (icon), the sort, Get songs and, at its right end, Filters (a toggle: opens and closes `FiltersPanel` in the right panel over the modifiers, the list staying in view, with no Back button: the status line with Clear, then one scrolling page as on Get songs (`FilterChips.add_scroll`; dragged by the pointer, not the thumbstick, which stays on the song selection): Favorites, Workout, Difficulty, Length, Style and Genre (from `SongTags`; a song without the tag is hidden while one is on)). Under the row, as on Get songs, a chip per filter on and the search (`_update_chips`). BeatSaver loads the next page past 90% scroll (`BeatSaverPanel.gd:447-465`).
+Above the list one row holds Search (icon), the sort, Get songs and, at its right end, Filters (a toggle: opens and closes `FiltersPanel` in the right panel over the modifiers, the list staying in view, with no Back button: the status line with Clear, then one scrolling page as on Get songs (`FilterChips.add_scroll`; dragged by the pointer, scrolled by the thumbstick while the pointer is on it): Favorites, Workout, Difficulty, Length, Style and Genre (from `SongTags`; a song without the tag is hidden while one is on)). Under the row, as on Get songs, a chip per filter on and the search (`_update_chips`). BeatSaver loads the next page past 90% scroll (`BeatSaverPanel.gd:447-465`).
 
 ## BeatSaver HTTP flow
 
