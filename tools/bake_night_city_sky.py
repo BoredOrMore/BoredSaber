@@ -59,7 +59,7 @@ BAND_SHARPNESS = 10.0
 BAND_STRENGTH = 0.15
 CENTRE_GLOW = 0.35  # glow over the city straight ahead
 CENTRE_WIDTH = 0.35
-# the towers' outlines and rims blurred over this much (radians, a Gaussian's sigma), as far things soften in the air;
+# the towers' outlines blurred over this much (radians, a Gaussian's sigma), as far things soften in the air;
 # the same width as the landmark's and the towers' soft edges (EnvSolid.gdshaderinc SHELL_BLUR_ANGLE). Untuned.
 EDGE_BLUR = 0.007
 
@@ -153,9 +153,9 @@ def masks(width, height):
     rim += STREET_GLOW * np.exp(-np.maximum(y, 0.0) * STREET_SHARPNESS) * open_sky
     band = BAND_STRENGTH * np.exp(-np.abs(y - BAND_ELEVATION) * BAND_SHARPNESS) * open_sky
     glow = CENTRE_GLOW * np.exp(-np.abs(az) / CENTRE_WIDTH) * np.exp(-np.maximum(y, 0.0) * 6.0) * open_sky
-    # the outlines and rims soft (the windows stay sharp: lights, inset from the edges)
+    # the outlines soft; the rims, strips and windows stay sharp (owner, 2026-10-30: blur only the towers' shapes)
     sigma = (EDGE_BLUR / (2 * np.pi / width), EDGE_BLUR / (np.pi * (V_BOTTOM - V_TOP) / height))
-    haze, rim = blur(haze, *sigma), blur(rim, *sigma)
+    haze = blur(haze, *sigma)
     return dict(haze=haze, lit=lit, rand=rand, rim=rim, band=band, glow=glow)
 
 
