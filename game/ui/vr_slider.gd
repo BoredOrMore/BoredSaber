@@ -113,7 +113,13 @@ func _input(event: InputEvent) -> void:
 			_dragging = false
 		return
 	var motion := event as InputEventMouseMotion
-	if motion == null or _press_pos == NOT_PRESSED:
+	if motion == null:
+		return
+	# hover follows the pointer itself: a press on a child (a filter chip) sends the exit while the pointer is still
+	# inside, so no exit came when it left after, and the stick kept scrolling this instead of the song list
+	is_mouse_in = motion.position != FAR_AWAY and scroll_node.is_visible_in_tree() \
+			and scroll_node.get_global_rect().has_point(motion.position)
+	if _press_pos == NOT_PRESSED:
 		return
 	# the button went up where this didn't see it (an option list's popup takes the release): the press is over,
 	# or the list would follow the pointer from then on
