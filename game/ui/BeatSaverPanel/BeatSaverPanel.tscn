@@ -164,9 +164,12 @@ offset_right = 1233.0
 offset_bottom = 124.0
 theme_override_constants/separation = 8
 
-[node name="Source" type="Label" parent="ChipRow"]
-layout_mode = 2
-size_flags_horizontal = 3
+[node name="Source" type="Label" parent="."]
+layout_mode = 0
+offset_left = 520.0
+offset_top = 708.0
+offset_right = 1233.0
+offset_bottom = 740.0
 theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
 theme_override_font_sizes/font_size = 22
 text = "From beatsaver.com"
@@ -179,7 +182,7 @@ layout_mode = 0
 offset_left = 520.0
 offset_top = 132.0
 offset_right = 1233.0
-offset_bottom = 740.0
+offset_bottom = 700.0
 script = ExtResource("beatsaver_list")
 
 [node name="EmptyList" type="Label" parent="."]
@@ -188,7 +191,7 @@ layout_mode = 0
 offset_left = 520.0
 offset_top = 132.0
 offset_right = 1233.0
-offset_bottom = 740.0
+offset_bottom = 700.0
 mouse_filter = 2
 theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
 horizontal_alignment = 1

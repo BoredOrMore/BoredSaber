@@ -192,7 +192,6 @@ var _preview_url := ""
 @onready var sort_button := $SortButton as OptionButton
 @onready var search_button := $search as Button
 @onready var chip_row := $ChipRow as HBoxContainer
-@onready var source_label := $ChipRow/Source as Label
 @onready var empty_list := $EmptyList as Label
 @onready var label := $Label as Label
 @onready var cover_rect := $TextureRect as TextureRect
@@ -423,7 +422,7 @@ func _filter_chips() -> Array:
 
 ## The row above the list shows what it lists (owner, 2026-10-29, layout A: show which filters are on): the mapper of
 ## a "More by" list, or the search and each filter on, each a chip whose x takes it off; when the filters' chips don't
-## fit, one chip stands for them all. With none it credits BeatSaver.
+## fit, one chip stands for them all. BeatSaver is credited at the bottom of the page (owner, 2026-10-30).
 func _update_chips() -> void:
 	var chips := []
 	var filters := []
@@ -438,12 +437,11 @@ func _update_chips() -> void:
 	if chip_row.get_combined_minimum_size().x > chip_row.size.x:
 		_fill_chips(chips + [[SOME_FILTERS_TEXT % filters.size(), _on_clear_filters_pressed]])
 
-## Puts chips [text, what pressing it does] in the row above the list; with none it credits BeatSaver.
+## Puts chips [text, what pressing it does] in the row above the list.
 func _fill_chips(chips: Array) -> void:
 	for chip in chip_row.get_children():
-		if chip != source_label:
-			chip_row.remove_child(chip)
-			chip.queue_free()
+		chip_row.remove_child(chip)
+		chip.queue_free()
 	for entry: Array in chips:
 		var chip := Button.new()
 		chip.theme_type_variation = &"ChipButton"
@@ -454,8 +452,6 @@ func _fill_chips(chips: Array) -> void:
 		chip.pressed.connect(entry[1] as Callable)
 		UI_AudioEngine.attach_button(chip)
 		chip_row.add_child(chip)
-		chip_row.move_child(chip, chip_row.get_child_count() - 2)
-	source_label.visible = chips.is_empty()
 
 ## Turns every filter off; the list loads again once (_filters_changed).
 func _on_clear_filters_pressed() -> void:
