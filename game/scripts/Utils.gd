@@ -178,6 +178,11 @@ static func rotation_unit_vector(angle: float) -> Vector2:
 static func close_angle(angle1: float, angle2: float) -> bool:
 	return abs(angle1-angle2)<1e-5
 	
+## The pitch fix behind a slowed or sped-up song, above Godot's oversampling of 4 (owner's choice 4A, 2026-10-30: the
+## song warbled at practice's 50%, a 2x shift): smoother at about twice the audio cost; untuned, measure on the Pico.
+## The FFT stays at 2048: Godot 4.6's FFT_SIZE_4096 fails ("Invalid FFT frame size for PitchShift").
+const PITCH_SHIFT_OVERSAMPLING := 8
+
 static func update_bus_speed(bus_name: String) -> void:
 	# the song bus follows the practice speed while practising (Map.speed_percent)
 	var speed := (Map.speed_percent() if bus_name == &"Music" else Settings.music_speed) / 100.
@@ -203,6 +208,7 @@ static func update_bus_speed(bus_name: String) -> void:
 		return
 	var effect := AudioEffectPitchShift.new()
 	effect.pitch_scale = 1./speed
+	effect.oversampling = PITCH_SHIFT_OVERSAMPLING
 	AudioServer.add_bus_effect(bus, effect)
 
 static func adjust_vertical(y: float) -> float:
