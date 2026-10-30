@@ -26,14 +26,16 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
 - `SwingableRayCast/` - `SwingableRayCast`: saber ray plus swept sub-rays, signal `area_collided`.
 - `SongUploader/` - `SongUploader` HTTP server (`prompt.html`, `style.css` are served as-is).
 - `webxr/webxr_initializer.*` - "Enter VR" button for the Web export.
-- `BackgroundImgLoader.gd` - threaded cover loader (`load_texture`), max 10 threads by default.
+- `BackgroundImgLoader.gd` - threaded cover loader (`load_texture`), max 10 threads by default; a free thread takes
+  the big cover first, then a list row in view (`set_view`), then the oldest; `drop_list_requests` forgets the rows
+  still waiting when the list is rebuilt.
 - `HTTPRequestPool.gd/.tscn` - throttled `HTTPRequest`s, signal `request_complete(..., token, user_data)`.
 - `ImageUtils.gd` - `get_img_from_buffer` by magic bytes (jpg/png/bmp/webp); `round_corners` cuts cover art's
   corners round (`COVER_CORNER`), for every cover `BackgroundImgLoader` loads and the Download page's cards.
 - `Loudness.gd` (class `Loudness`, all `static`) - plays songs at -14 LUFS: measures a song's BS.1770 loudness on a
   worker thread, caches it in `user://loudness.json`, and sets the Music/MusicPreview bus's `AudioEffectAmplify`.
 - `MapStats.gd` - cached note count / length / NPS per difficulty, menu filters, `count_all_async`.
-- `LinkedList.gd` - small deque used by `BackgroundImgLoader` and `SwingableRayCast` debug trail.
+- `LinkedList.gd` - small deque used by the `SwingableRayCast` debug trail.
 
 ## How it connects
 

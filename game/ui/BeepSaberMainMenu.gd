@@ -319,8 +319,11 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 	_currently_selected_songlist_ref = songs
 	songs_menu.clear()
 	_list_generation += 1
+	# the old list's rows still waiting for a cover are other songs now
+	_bg_img_loader.drop_list_requests()
 	
 	var map_index := 0
+	var missing_covers: Array[int] = []
 	for map in songs:
 		@warning_ignore("return_value_discarded")
 		var favorite := PlayCount.is_favorite(map)
@@ -328,8 +331,7 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 		songs_menu.add_item("%s%s - %s%s" % ["\u2605 " if favorite else "", map.song_author_name, map.song_name, "" if map.have_song else NO_MUSIC_SUFFIX], list_cover)
 		songs_menu.set_item_custom_fg_color(map_index, Color.YELLOW if favorite else Color.WHITE)
 		if not _list_covers.has(map.filepath):
-			_bg_img_loader.load_texture(map.filepath, map.cover_image_filename, _on_cover_loaded.bind(_list_generation, map.filepath),
-					false, map_index, LIST_COVER_SIZE)
+			missing_covers.append(map_index)
 		map_index += 1
 		
 	if current_map != null:
@@ -342,6 +344,12 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 				_select_song(i, false)
 		if current_selected == -1:
 			songs_menu.deselect_all()
+	# asked for once the list is placed, so the rows in view load first
+	_show_cover_view()
+	for index in missing_covers:
+		var map := songs[index]
+		_bg_img_loader.load_texture(map.filepath, map.cover_image_filename, _on_cover_loaded.bind(_list_generation, map.filepath),
+				false, index, LIST_COVER_SIZE)
 	_update_play_status()
 
 ## One set of song list filters, so the counts can try a choice without saving it.
@@ -512,6 +520,11 @@ func _on_cover_loaded(img_tex: Texture2D, is_main_cover: bool, list_idx: int, ge
 		else:
 			_set_list_cover.call_deferred(list_idx, img_tex, generation, map_path)
 
+## Tells the cover loader which rows are in view, so their covers load first.
+func _show_cover_view() -> void:
+	var rows := songs_menu.shown_rows()
+	_bg_img_loader.set_view(rows.x, rows.y)
+
 ## Puts a loaded cover on its row, unless the list was rebuilt since the load started (the row may be
 ## another song now, or gone).
 func _set_list_cover(list_idx: int, img_tex: Texture2D, generation: int, map_path: String) -> void:
@@ -650,6 +663,7 @@ func _ready() -> void:
 	_build_difficulty_picker()
 	_build_tabs()
 	_build_filter_chips()
+	songs_menu.get_v_scroll_bar().value_changed.connect(func(_value: float) -> void: _show_cover_view())
 	_show_player_name()
 	_update_mod_controls()
 	favorite_button.hide()

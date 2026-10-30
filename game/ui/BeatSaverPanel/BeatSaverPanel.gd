@@ -544,6 +544,7 @@ func update_list(req: BeatSaverRequest) -> void:
 		_song_index.clear()
 		_cover_list += 1
 		_finished_covers.clear()
+		_cover_fetched.clear()
 		item_selected = -1
 		_total_songs = -1
 		# this load has the current filters, so a reload still waiting for more filter presses isn't needed
@@ -635,8 +636,6 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 			var songs: Array = parsed[0]
 			if parsed[1] >= 0:
 				_total_songs = parsed[1]
-			# resume covers a newer page interrupted, rather than skipping them
-			_current_cover_to_download = mini(_current_cover_to_download, song_data.size())
 			for first in range(0, songs.size(), ROWS_PER_FRAME):
 				if first > 0:
 					await get_tree().process_frame
@@ -1160,7 +1159,9 @@ func _text_input_cancel() -> void:
 	keyboard._hide()
 
 
-var _current_cover_to_download := 0
+## Per song in the list, 1 once its cover was fetched (or it has none); and the song whose cover is being fetched.
+var _cover_fetched := PackedByteArray()
+var _cover_index := -1
 ## Counts list rebuilds, so a cover finished for an older list is dropped.
 var _cover_list := 0
 ## Finished covers wait here, [index, song, image], and go onto the list together at most every COVER_FLUSH_SECONDS:
@@ -1174,24 +1175,36 @@ func _update_all_covers() -> void:
 	httpcoverdownload.cancel_request()
 	update_next_cover()
 
+## Fetches the next missing cover: the rows in view first, then the ones below them, then those above (owner,
+## 2026-10-30: covers on screen load first, wherever the player scrolled to).
 func update_next_cover() -> void:
-	if _current_cover_to_download < song_data.size():
-		var cover_url := _get_cover_url_from_song_data(song_data[_current_cover_to_download])
-		
-		if cover_url == "":
-			# song didn't have a cover. skip this cover and move to next one
-			_current_cover_to_download += 1
-			update_next_cover()
-		else:
-			httpcoverdownload.request(cover_url)
+	var fetched := _cover_fetched.size()
+	_cover_fetched.resize(song_data.size())
+	for i in range(fetched, song_data.size()):
+		_cover_fetched[i] = 0
+	var first := clampi(item_list.shown_rows().x, 0, song_data.size())
+	_cover_index = -1
+	for step in song_data.size():
+		# from the first row in view to the end, then from the top
+		var i := (first + step) % song_data.size()
+		if _cover_fetched[i] != 0:
+			continue
+		var cover_url := _get_cover_url_from_song_data(song_data[i])
+		if cover_url.is_empty():
+			_cover_fetched[i] = 1
+			continue
+		_cover_index = i
+		httpcoverdownload.request(cover_url)
+		return
 
 ## A cover arrived: the next one starts downloading at once, while this one is decoded, sized and given its level strip
 ## on a worker thread (owner, 2026-10-28: the view hitched as covers came in; a full-size JPEG decoded on the main
 ## thread), and only the finished 200 px image becomes the card's texture here.
 func _update_cover(result: int, _response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
-	var index := _current_cover_to_download
+	var index := _cover_index
 	var list := _cover_list
-	_current_cover_to_download += 1
+	if index >= 0 and index < _cover_fetched.size():
+		_cover_fetched[index] = 1
 	update_next_cover()
 	if result != 0 or index >= song_data.size():
 		return

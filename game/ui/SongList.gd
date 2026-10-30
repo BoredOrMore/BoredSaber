@@ -174,6 +174,12 @@ func _row(index: int) -> Button:
 func _row_top(index: int) -> float:
 	return _top.custom_minimum_size.y + index * (ROW_HEIGHT + ROW_SEPARATION)
 
+## The first and last rows in view (last below first when none).
+func shown_rows() -> Vector2i:
+	var step := ROW_HEIGHT + ROW_SEPARATION
+	var top := scroll_vertical - _top.custom_minimum_size.y
+	return Vector2i(maxi(floori(top / step), 0), mini(floori((top + _view_height()) / step), _count - 1))
+
 ## Height of the list's visible part.
 func _view_height() -> float:
 	var panel := get_theme_stylebox(&"panel")

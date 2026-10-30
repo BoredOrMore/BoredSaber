@@ -91,6 +91,11 @@ func shows(index: int) -> bool:
 	var step := ROW_HEIGHT + ROW_SEPARATION
 	return index * step < scroll_vertical + size.y and (index + 1) * step > scroll_vertical
 
+## The first and last songs whose rows are in view (last below first when none).
+func shown_rows() -> Vector2i:
+	var step := ROW_HEIGHT + ROW_SEPARATION
+	return Vector2i(int(scroll_vertical / step), mini(int((scroll_vertical + size.y) / step), item_count - 1))
+
 ## A song's small cover, shown in the details until the big one arrives.
 func get_item_image(index: int) -> Image:
 	return _covers[index]
