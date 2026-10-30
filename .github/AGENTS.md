@@ -6,6 +6,8 @@ for Pico 4 on every push, pull request and manual dispatch. `.github/debug.keyst
 ## File map
 
 - `workflows/build-pico4.yml` - the only workflow.
+- `pull_request_template.md` - the body every new PR starts from: what and why, changes, a checklist of the
+  repo's checks (tests, agent docs, headset, GPU, UI review, colour rules), game-feel sources, captures, gaps.
 - `debug.keystore` - committed Android debug key (alias `androiddebugkey`, password `android`). Don't
   regenerate it: a new key makes the next APK fail to install over the old one.
 
