@@ -113,6 +113,10 @@ func _input(event: InputEvent) -> void:
 			_dragging = false
 		return
 	var motion := event as InputEventMouseMotion
+	if motion != null:
+		# the pointer is on the list wherever it moves, over the list's own buttons too: their enter took the list's
+		# exit, and leaving one off the list sent the list nothing, so the thumbstick stayed on it (owner, 2026-10-30)
+		is_mouse_in = scroll_node.is_visible_in_tree() and scroll_node.get_global_rect().has_point(motion.position)
 	if motion == null or _press_pos == NOT_PRESSED:
 		return
 	# the button went up where this didn't see it (an option list's popup takes the release): the press is over,

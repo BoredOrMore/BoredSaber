@@ -149,7 +149,9 @@ follows the pointer 1:1 once it moves `DRAG_THRESHOLD` (12 px) from the press, a
 never clicks what it started on (a release far away cancels the press), and a flick coasts `MOMENTUM_SECONDS`. An
 `ItemList` still selects on press, so the BeatSaver list picks the row a drag starts on. Otherwise thumbstick
 (stronger of both hands) with threshold, speed lerp and hold acceleration consts at
-the top. `scroll_without_pointer = true` scrolls even when not hovered. The song list sets `joystick_scroll = false`:
+the top. `scroll_without_pointer = true` scrolls even when not hovered. Hover (`is_mouse_in`) follows every pointer move over
+the list's rect, its own buttons included, and the canvas sends a last move off the panel when the pointer leaves it
+(`helper_UIArea.OFF_PANEL`), so the thumbstick never stays on a list the pointer left. The song list sets `joystick_scroll = false`:
 there the thumbstick moves the selection instead, except while the pointer is on the filters' page, which it scrolls
 then (`FilterChips.pointed_at`; owner, 2026-10-30: the stick works on what the pointer is on) (`MainMenu._step_with_stick`, centred by `SongList.center_on`;
 each step ticks that hand's controller, `STICK_TICK_*`).

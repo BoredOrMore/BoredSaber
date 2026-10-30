@@ -1,6 +1,9 @@
 # A Helper to make UIs work on a Area object
 extends UIRaycastTarget
 
+## Where the pointer is said to go when it leaves the panel: off every control.
+const OFF_PANEL := Vector2(-100000.0, -100000.0)
+
 # Member variables
 @onready var parent := get_parent() as OQ_UI2DCanvas
 @onready var viewport := parent.get_node("SubViewport") as SubViewport
@@ -67,4 +70,12 @@ func ui_raycast_exit() -> void:
 		viewport.push_input(e)
 		parent._input_update()
 		_held = false
+	if last_pos2d != Vector2(INF, INF):
+		# a last move far off the panel, so what was under the pointer sees it leave (hover looks, the lists'
+		# thumbstick scrolling)
+		var away := InputEventMouseMotion.new()
+		away.position = OFF_PANEL
+		away.global_position = OFF_PANEL
+		viewport.push_input(away)
+		parent._input_update()
 	last_pos2d = Vector2(INF, INF)

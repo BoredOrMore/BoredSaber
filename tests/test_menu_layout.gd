@@ -519,6 +519,14 @@ func _check_filter_scroll(root: Control, rows: VBoxContainer, page_name: String)
 		var on := FilterChips.pointed_at(rows)
 		sliders[0].is_mouse_in = false
 		check(on and not FilterChips.pointed_at(rows), "%s: the filters take the thumbstick only while pointed at" % page_name)
+		# the pointer onto a chip, then off the filters altogether: the stick goes back (owner, 2026-10-30: after a chip
+		# press the song list no longer scrolled)
+		var chip := scroll.find_children("*", "Button", true, false)[0] as Button
+		_pointer(chip.get_global_rect().get_center(), null)
+		var on_chip := FilterChips.pointed_at(rows)
+		_pointer(scroll.get_global_rect().position - Vector2(40.0, 0.0), null)
+		check(on_chip and not FilterChips.pointed_at(rows),
+				"%s: pointing off the filters from a chip gives the thumbstick back" % page_name)
 	var page := scroll.get_child(0) as Control
 	check(page.get_combined_minimum_size().x <= scroll.size.x + 0.5, "%s: the filters don't scroll sideways (%.0f of %.0f px)" % [
 			page_name, page.get_combined_minimum_size().x, scroll.size.x])
