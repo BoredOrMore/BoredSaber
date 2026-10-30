@@ -45,7 +45,7 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   sections `SECTION_GAP` apart (`section_list`), used by the modifier and More modifiers sections;
   `FilterChips.gd` (class `FilterChips`), the filter panels' sections (owner, 2026-10-30: filters sit in the right
   panel beside the list they filter, never over it, one press per choice): a `MenuSection` per filter with a chip
-  per choice that wraps, its song count on it (greyed at none, its width set for `COUNT_ROOM` from the start), the
+  per choice that wraps, its song count on it (greyed at none, its width kept for a count as long as the list's size), the
   picked chip pressed again turning it off; and the chip row above both lists (`fill_row`: a chip per filter on, x
   takes it off, folding into one "N filters" chip when they don't fit); and `add_scroll`, both panels' one scrolling page
   of sections (owner, 2026-10-30: every section in one panel, scrolled), dragged by its own `vr_slider` only.
@@ -53,7 +53,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   selected, disabled) and rounded corners live in one place; the hover sound is `UI_AudioEngine`'s for every
   button: `Button` (secondary), `PrimaryButton` (the page's main action: Done, Download), `ChipButton` (modifier
   and settings chips, Favorite, Reset, More modifiers; narrow padding, 48 px), `TabButton` (Modifiers/More; a
-  chip), `DifficultyButton` (level and characteristic buttons; narrow padding, 22 px text),
+  chip), `DifficultyButton` (level and characteristic buttons; narrow padding, 22 px text), `FilterChip` (both
+  filter panels' chips: the level look with 14 px at the sides, each as wide as its text, lined up from the left),
   `BackButton` (Back and Close), `DestructiveButton` (every `ConfirmButton`; its words turn red on hover). Panel kinds:
   `StatPill` (a stat, fully rounded), `LevelBar` (a level's name in its colour).
   `ModifierChips.make_row_button` takes the kind.
@@ -73,7 +74,7 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   details left and the list in the centre. The right panel holds the filters, always open beside the list (owner,
   2026-10-30): a status line ("Loading songs…", "About 1,234 songs" from BeatSaver's info.total, "No songs match")
   with Clear (greyed, never hidden, when nothing is on), then one scrolling page (`FilterChips.add_scroll`, as the song menu's) of Difficulty, Length, Style and
-  Genre, all in the narrow `DifficultyButton` kind; presses wait `FILTER_RELOAD_SECONDS` for more before one reload,
+  Genre, all `FilterChip`s; presses wait `FILTER_RELOAD_SECONDS` for more before one reload,
   and a "More by" list greys them out. Above the list: Search, the sort and "My songs" in Get songs' place; under
   them a chip per filter on (its x takes it off), the search or the "More by" mapper. (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
 - `ModifierChips.gd` (class `ModifierChips`, made by the menu's `_ready`): the Song tab's fail and damage rows,
@@ -191,7 +192,8 @@ Above the list one row holds Search (icon), the sort, Get songs and, at its righ
 - Set colours in the theme, not per-node overrides, so panels stay consistent.
 - Text that changes (counts, statuses, chips that come and go) gets its room up front, so nothing around it moves
   (owner, 2026-10-30): fixed rows and widths sized for the longest text, controls greyed out rather than hidden
-  (`FilterChips.COUNT_ROOM`, the chip rows above both lists, the filters' Clear).
+  (`FilterChips.show_count`'s count room, the chip rows above both lists, the filters' Clear, the filters' scroll bar
+  room).
 
 ## Recipes
 

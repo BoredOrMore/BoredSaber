@@ -454,25 +454,25 @@ func _show_filter_counts(filter: SongFilter, songs: Array[MapInfo], shown: int) 
 	for i in _difficulty_chips.size():
 		var choice := filter.copy()
 		choice.reaction = difficulties[i + 1][0]
-		FilterChips.show_count(_difficulty_chips[i], difficulties[i + 1][1], choice.count(songs))
+		FilterChips.show_count(_difficulty_chips[i], difficulties[i + 1][1], choice.count(songs), songs.size())
 	for i in _length_chips.size():
 		var choice := filter.copy()
 		choice.length = Constants.LENGTH_FILTERS[i + 1][0]
-		FilterChips.show_count(_length_chips[i], Constants.LENGTH_FILTERS[i + 1][1], choice.count(songs))
+		FilterChips.show_count(_length_chips[i], Constants.LENGTH_FILTERS[i + 1][1], choice.count(songs), songs.size())
 	for i in _style_chips.size():
 		var choice := filter.copy()
 		choice.style = SongTags.STYLES[i + 1][1]
-		FilterChips.show_count(_style_chips[i], SongTags.STYLES[i + 1][0], choice.count(songs))
+		FilterChips.show_count(_style_chips[i], SongTags.STYLES[i + 1][0], choice.count(songs), songs.size())
 	for i in _genre_chips.size():
 		var choice := filter.copy()
 		choice.genre = SongTags.GENRES[i + 1][1]
-		FilterChips.show_count(_genre_chips[i], SongTags.GENRES[i + 1][0], choice.count(songs))
+		FilterChips.show_count(_genre_chips[i], SongTags.GENRES[i + 1][0], choice.count(songs), songs.size())
 	var favorites := filter.copy()
 	favorites.favorites = true
-	FilterChips.show_count(favorites_filter, FAVORITES_LABEL, favorites.count(songs))
+	FilterChips.show_count(favorites_filter, FAVORITES_LABEL, favorites.count(songs), songs.size())
 	var workout := filter.copy()
 	workout.workout = true
-	FilterChips.show_count(workout_filter, WORKOUT_LABEL, workout.count(songs))
+	FilterChips.show_count(workout_filter, WORKOUT_LABEL, workout.count(songs), songs.size())
 
 	var total := _all_songs.size()
 	var noun: String = SONG_NOUNS[0] if total == 1 else SONG_NOUNS[1]
@@ -1254,18 +1254,18 @@ func _build_filter_chips() -> void:
 	var page := FilterChips.add_scroll(filter_rows, 1, false)
 	favorites_filter.get_parent().reparent(page)
 	_difficulty_chips = FilterChips.add_section(page, DIFFICULTY_FILTER_TITLE,
-		MapStats.difficulty_filters().slice(1).map(label), pick_difficulty, &"DifficultyButton")
+		MapStats.difficulty_filters().slice(1).map(label), pick_difficulty)
 	_length_chips = FilterChips.add_section(page, LENGTH_FILTER_TITLE,
-		Constants.LENGTH_FILTERS.slice(1).map(label), pick_length, &"DifficultyButton")
+		Constants.LENGTH_FILTERS.slice(1).map(label), pick_length)
 	var name := func(choice: Array) -> String: return str(choice[0])
 	var pick_style := func(index: int) -> void:
 		Settings.song_filter_style = SongTags.STYLES[index + 1][1] if index >= 0 else ""
 	var pick_genre := func(index: int) -> void:
 		Settings.song_filter_genre = SongTags.GENRES[index + 1][1] if index >= 0 else ""
 	_style_chips = FilterChips.add_section(page, STYLE_FILTER_TITLE,
-		SongTags.STYLES.slice(1).map(name), pick_style, &"DifficultyButton")
+		SongTags.STYLES.slice(1).map(name), pick_style)
 	_genre_chips = FilterChips.add_section(page, GENRE_FILTER_TITLE,
-		SongTags.GENRES.slice(1).map(name), pick_genre, &"DifficultyButton")
+		SongTags.GENRES.slice(1).map(name), pick_genre)
 	_show_picked_filters()
 
 ## Shows the saved difficulty, length, style and genre filters on their chips.

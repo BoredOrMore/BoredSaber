@@ -338,17 +338,11 @@ func _build_filter_chips() -> void:
 		_filters_changed()
 	# the same sections as the song menu's, in one scrolling page under the status (FilterChips.add_scroll)
 	var page := FilterChips.add_scroll(filter_rows, 1, true)
-	# the song menu's difficulty buttons (their narrower kind keeps the five levels on one row)
-	_level_chips = FilterChips.add_section(page, DIFFICULTY_TITLE,
-		Constants.DIFFICULTY_LEVELS.map(label), pick_level, &"DifficultyButton")
-	# the same narrow kind keeps the three lengths on one row
+	_level_chips = FilterChips.add_section(page, DIFFICULTY_TITLE, Constants.DIFFICULTY_LEVELS.map(label), pick_level)
 	_length_chips = FilterChips.add_section(page, LENGTH_TITLE,
-		Constants.LENGTH_FILTERS.slice(1).map(func(choice: Array) -> String: return str(choice[1])), pick_length,
-		&"DifficultyButton")
-	_style_chips = FilterChips.add_section(page, STYLE_TITLE, STYLES.slice(1).map(label), pick_style,
-		&"DifficultyButton")
-	_genre_chips = FilterChips.add_section(page, GENRE_TITLE, GENRES.slice(1).map(label), pick_genre,
-		&"DifficultyButton")
+		Constants.LENGTH_FILTERS.slice(1).map(func(choice: Array) -> String: return str(choice[1])), pick_length)
+	_style_chips = FilterChips.add_section(page, STYLE_TITLE, STYLES.slice(1).map(label), pick_style)
+	_genre_chips = FilterChips.add_section(page, GENRE_TITLE, GENRES.slice(1).map(label), pick_genre)
 
 ## Shows the filters on their chips and as chips above the list; a mapper's list ("More by") isn't filtered, so its
 ## chips are greyed out then.

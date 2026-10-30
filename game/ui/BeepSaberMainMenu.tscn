@@ -403,20 +403,18 @@ theme_override_constants/h_separation = 6
 theme_override_constants/v_separation = 6
 
 [node name="FavoritesFilter" type="Button" parent="FiltersPanel/Rows/ToggleRow"]
-theme_type_variation = &"ChipButton"
+theme_type_variation = &"FilterChip"
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-size_flags_horizontal = 3
 toggle_mode = true
 text = "Favorites"
 icon = ExtResource("icon_star")
 script = ExtResource("icon_button")
 
 [node name="WorkoutFilter" type="Button" parent="FiltersPanel/Rows/ToggleRow"]
-theme_type_variation = &"ChipButton"
+theme_type_variation = &"FilterChip"
 custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
-size_flags_horizontal = 3
 toggle_mode = true
 text = "Workout"
 

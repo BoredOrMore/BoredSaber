@@ -11,9 +11,6 @@ const CHIP_GAP := MenuSection.ROW_GAP
 const CHIP_HEIGHT := 48
 ## A choice with how many songs it would list, e.g. "Hard (18)".
 const COUNT_LABEL := "%s (%d)"
-## The count a counted chip keeps room for from the start, so its width (and its neighbours) stays put as counts
-## change (owner, 2026-10-30: leave room for changing text so things don't move about).
-const COUNT_ROOM := 999
 ## The row above a list: the x on each chip (px), the chip that stands for all the filters when theirs don't fit, and
 ## most letters of a search shown on its chip before "…".
 const CLEAR_ICON := preload("res://game/ui/icons/x.svg")
@@ -21,10 +18,11 @@ const CHIP_ICON_SIZE := 24
 const SOME_FILTERS_TEXT := "%d filters"
 const SEARCH_CHIP_LETTERS := 16
 
-## Adds a section titled title to parent with a chip per label, in the theme's button kind `kind`. Pressing a chip
+## Adds a section titled title to parent with a chip per label, in the theme's button kind `kind` (FilterChip: the
+## level buttons' look with room at the sides, the same on both pages). Pressing a chip
 ## calls on_pick with its index, or -1 when it was the picked one (the filter goes off). Returns the chips.
 static func add_section(parent: Container, title: String, labels: Array, on_pick: Callable,
-		kind := &"ChipButton") -> Array[Button]:
+		kind := &"FilterChip") -> Array[Button]:
 	var section := MenuSection.make(title)
 	parent.add_child(section)
 	var flow := HFlowContainer.new()
@@ -35,6 +33,8 @@ static func add_section(parent: Container, title: String, labels: Array, on_pick
 	for i in labels.size():
 		var chip := ModifierChips.make_row_button(str(labels[i]), null, func() -> void: pass, kind)
 		chip.custom_minimum_size.y = CHIP_HEIGHT
+		# each chip as wide as its text, lined up from the left: stretched to fill, a row's last chip ran the width
+		chip.size_flags_horizontal = Control.SIZE_FILL
 		chip.toggled.connect(func(on: bool) -> void: on_pick.call(i if on else -1))
 		flow.add_child(chip)
 		chips.append(chip)
@@ -47,22 +47,28 @@ const VR_SLIDER := preload("res://game/ui/vr_slider.tscn")
 ## A drag the scroll container's own touch scrolling needs before it starts (px): never.
 const NO_OWN_DRAG := 100000
 
-## Adds to rows at index a scroll container holding one page for every section, dragged by the pointer like the
+## Adds to rows at index a scroll container holding one page for every section (in a margin), dragged by the pointer like the
 ## lists (vr_slider; the thumbstick too when joystick is true). Returns the page, to add the sections to.
 static func add_scroll(rows: VBoxContainer, index: int, joystick: bool) -> VBoxContainer:
 	var scroll := ScrollContainer.new()
 	scroll.name = SCROLL_NAME
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_RESERVE
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	# vr_slider alone drags it: on the headset a ScrollContainer starts its own touch drag from a press between the
 	# chips, and two drags at once would scroll twice as far
 	scroll.scroll_deadzone = NO_OWN_DRAG
 	rows.add_child(scroll)
 	rows.move_child(scroll, index)
+	# the sections stop a scroll bar's width short of the scroll bar (owner, 2026-10-30, as the BeatSaver list); the
+	# bar's own room is kept while it is hidden (SCROLL_MODE_RESERVE), so nothing moves when it shows
+	var margin := MarginContainer.new()
+	margin.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	margin.add_theme_constant_override(&"margin_right", int(scroll.get_v_scroll_bar().get_combined_minimum_size().x))
+	scroll.add_child(margin)
 	var page := VBoxContainer.new()
-	page.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	MenuSection.section_list(page)
-	scroll.add_child(page)
+	margin.add_child(page)
 	var slider := VR_SLIDER.instantiate()
 	slider.scroll_node_path = NodePath("..")
 	slider.joystick_scroll = joystick
@@ -75,10 +81,15 @@ static func show_picked(chips: Array[Button], index: int) -> void:
 		chips[i].set_pressed_no_signal(i == index)
 
 ## Shows a chip's label with how many songs it would list, greyed out at none unless it is the picked one (so the
-## list can't be filtered empty).
-static func show_count(chip: Button, label: String, count: int) -> void:
-	if chip.custom_minimum_size.x == 0.0:
-		chip.text = COUNT_LABEL % [label, COUNT_ROOM]
+## list can't be filtered empty). The chip keeps room for a count as many digits long as `most` (the list's size,
+## which no count passes) so its width, and its neighbours', stays put as counts change (owner, 2026-10-30: leave
+## room for changing text so things don't move about).
+static func show_count(chip: Button, label: String, count: int, most: int) -> void:
+	var room := int(pow(10.0, str(most).length())) - 1
+	if chip.get_meta(&"count_room", -1) != room:
+		chip.set_meta(&"count_room", room)
+		chip.custom_minimum_size.x = 0.0
+		chip.text = COUNT_LABEL % [label, room]
 		chip.custom_minimum_size.x = chip.get_minimum_size().x
 	chip.text = COUNT_LABEL % [label, count]
 	chip.disabled = count == 0 and not chip.button_pressed

@@ -391,6 +391,60 @@ corner_radius_top_right = 14
 corner_radius_bottom_right = 14
 corner_radius_bottom_left = 14
 
+[sub_resource type="StyleBoxFlat" id="filter_chip"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.133, 0.149, 0.18, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="filter_chip_hover"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.173, 0.192, 0.231, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.37, 0.78, 0.94, 0.6)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="filter_chip_pressed"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.2, 0.36, 0.45, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.37, 0.78, 0.94, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
+[sub_resource type="StyleBoxFlat" id="filter_chip_disabled"]
+content_margin_left = 14.0
+content_margin_top = 12.0
+content_margin_right = 14.0
+content_margin_bottom = 12.0
+bg_color = Color(0.11, 0.12, 0.145, 1)
+corner_radius_top_left = 14
+corner_radius_top_right = 14
+corner_radius_bottom_right = 14
+corner_radius_bottom_left = 14
+
 [resource]
 default_font = ExtResource("1")
 default_font_size = 28
@@ -437,6 +491,14 @@ ChipButton/styles/normal = SubResource("chip")
 ChipButton/styles/pressed = SubResource("chip_pressed")
 DestructiveButton/base_type = &"Button"
 DestructiveButton/colors/font_hover_color = Color(1, 0.45, 0.4, 1)
+FilterChip/base_type = &"Button"
+FilterChip/font_sizes/font_size = 22
+FilterChip/styles/disabled = SubResource("filter_chip_disabled")
+FilterChip/styles/focus = SubResource("empty")
+FilterChip/styles/hover = SubResource("filter_chip_hover")
+FilterChip/styles/hover_pressed = SubResource("filter_chip_pressed")
+FilterChip/styles/normal = SubResource("filter_chip")
+FilterChip/styles/pressed = SubResource("filter_chip_pressed")
 DifficultyButton/base_type = &"Button"
 DifficultyButton/font_sizes/font_size = 22
 DifficultyButton/styles/disabled = SubResource("level_disabled")
