@@ -26,6 +26,9 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   the ItemList calls the menu uses; every row 76 px with a 72 px cover, 82 px apart (the selected one only changes its background); empty space at both ends lets
   `center_on` glide any row to the middle (the thumbstick uses it); a pressed row stays under the pointer. The menu
   sets `BackgroundImgLoader.focus` to `first_shown()` on scroll, so covers in view load first.
+- `SongSearch.gd` (class `SongSearch`): the song menu's search match (owner, 2026-10-30): every typed word must be in
+  the song's name, artist, mapper or BeatSaver tags, compared as loose keys (kana read as Hepburn romaji, case,
+  spaces, punctuation, long vowels and doubled letters ignored; kanji stay as they are), cached per song.
 - `ProfilesPanel.gd/.tscn` (class `ProfilesPanel`): "Who's playing?", opened by the player button beside the menu's gear
   (`BeepSaber_Game._open_profiles`) on its own canvas 10 cm in front of the menu, which takes no pointer input meanwhile.
   Picks, adds (max `Settings.MAX_PLAYERS`), renames (records too, `Highscores.rename_player`) and deletes players;
@@ -73,10 +76,26 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   like it (owner, 2026-10-29, layout A): 1753x745 px at scale 2.4 on the menus' 2 m cylinder, where the song menu is,
   details left and the list in the centre. The right panel holds the filters, always open beside the list (owner,
   2026-10-30): a status line ("Loading songs…", "About 1,234 songs" from BeatSaver's info.total, "No songs match")
-  with Clear (greyed, never hidden, when nothing is on), then one scrolling page (`FilterChips.add_scroll`, as the song menu's) of Difficulty, Length, Style and
-  Genre, all `FilterChip`s; presses wait `FILTER_RELOAD_SECONDS` for more before one reload,
+  with Clear (greyed, never hidden, when nothing is on), then one scrolling page (`FilterChips.add_scroll`, as the song menu's) of Include AI maps
+  (`Settings.beatsaver_include_ai`: `&automapper=true`, AI maps then playable; off by default, Clear turns it off),
+  Difficulty, Length, Style and Genre, all `FilterChip`s; an AI map's row and details say so ("AI · " before its name, "Made by AI"); a map is listed by its Standard
+  difficulties, else its 360° or 90° ones (`BeatSaverSongInfo.MODES`/`mode`; the row then ends " (360°)"); presses wait `FILTER_RELOAD_SECONDS` for more before one reload,
   and a "More by" list greys them out. Above the list: Search, the sort and "My songs" in Get songs' place; under
   them a chip per filter on (its x takes it off), the search or the "More by" mapper. (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
+- Practice button: a full-width strip at the bottom of the song menu's left panel under the song's records (owner's
+  choice A, 2026-10-30; the records show `HighscorePanel.COMPACT_ROWS` 5 rows since): `play_selected(true)` -> signal
+  `start_practice` -> `BeepSaber_Game.start_practice`, which waits at the song's start with the practice panel.
+- `PracticePanel.gd/.tscn` (class `PracticePanel`, on `BeepSaber_Game`'s `Practice_canvas`; owner's redesign
+  2026-10-30, replacing a Practice view in the song menu that felt cut off from playing): "1:24 of 2:55" over the
+  playback timeline (`HSlider`), which follows the song and is dragged to any point, stopped or while playing
+  (`scrub_started`/`scrub_ended`; a press without a drag jumps at once); "Start 0:12" beside the start point's own
+  slider, which stays where it was set (owner, 2026-10-30; `start_set`); "End 1:50" with a Repeat toggle and the end
+  point's slider (owner's A-B loop, 2026-10-30; off by default, "End: whole song"; on, the part runs from the start
+  to the end again and again, at least `MIN_PART_SECONDS` long, starting `NEW_PART_SECONDS` long; `end_set`, -1 off);
+  a one-line hint; Speed − 50-200% +
+  (`Constants.PRACTICE_SPEED_*`, greyed while playing); the primary Play/Pause (`icons/pause.svg`, Lucide), Restart
+  (from the start point) and Exit. It only shows and signals; the game runs the song and places
+  it (`BeepSaber_Game.PRACTICE_PANEL_*`). `nudge` moves the timeline for the left thumbstick.
 - `ModifierChips.gd` (class `ModifierChips`, made by the menu's `_ready`): the Song tab's fail and damage rows,
   on/off and Speed chips, More modifiers, environment picker and reset, in step with `Settings`; `changed()` names
   the modified ones. Its static `make_row_button` (a button of a given kind) is shared with the difficulty picker.
@@ -103,7 +122,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   `settings_Panel.gd/.tscn` (class `SettingsPanel`, tabs Gameplay/Visuals/Audio/Advanced), `HighscorePanel.gd/.tscn`,
   `Pause_Panel.gd/.tscn` (signals `continue_button`/`restart_button`/`mainmenu_button`), `EndScore.gd/.tscn` (3D `MeshInstance3D`, not a
   canvas; `RankHalo.gdshader` glows round its result ring; a FAILED / SONG CLEARED banner under the song's name, and after a
-  fail "Failed at M:SS of M:SS" in place of the ring; "Not you?" on the name card after a saved record opens "Who's playing?"
+  fail "Failed at M:SS of M:SS" in place of the ring; "Practice this part" beside Retry after a fail (signal `practice_part`);
+  "Not you?" on the name card after a saved record opens "Who's playing?"
   in place of the score screen (hidden meanwhile) and moves the record to whoever is picked, who becomes the current
   player (`BeepSaber_Game._change_record_player`); `doc/research/score-screen-plan.md`), `vr_slider.gd` (thumbstick/drag scrolling), `UI_Panel.gdshader` (rounded 3D panel used by `EndScore.tscn`
   and `game/scripts/UIRaycast/UIRaycastButton.tscn`).
@@ -149,7 +169,9 @@ follows the pointer 1:1 once it moves `DRAG_THRESHOLD` (12 px) from the press, a
 never clicks what it started on (a release far away cancels the press), and a flick coasts `MOMENTUM_SECONDS`. An
 `ItemList` still selects on press, so the BeatSaver list picks the row a drag starts on. Otherwise thumbstick
 (stronger of both hands) with threshold, speed lerp and hold acceleration consts at
-the top. `scroll_without_pointer = true` scrolls even when not hovered. The song list sets `joystick_scroll = false`:
+the top. `scroll_without_pointer = true` scrolls even when not hovered. Hover (`is_mouse_in`) follows every pointer move over
+the list's rect, its own buttons included, and the canvas sends a last move off the panel when the pointer leaves it
+(`helper_UIArea.OFF_PANEL`), so the thumbstick never stays on a list the pointer left. The song list sets `joystick_scroll = false`:
 there the thumbstick moves the selection instead, except while the pointer is on the filters' page, which it scrolls
 then (`FilterChips.pointed_at`; owner, 2026-10-30: the stick works on what the pointer is on) (`MainMenu._step_with_stick`, centred by `SongList.center_on`;
 each step ticks that hand's controller, `STICK_TICK_*`).
@@ -176,6 +198,12 @@ Above the list one row holds Search (icon), the sort, Get songs and, at its righ
   `DETAIL_COVER` px (`_on_detail_cover_completed`) into the details' one texture.
 - Known gaps (report, don't silently patch in unrelated work): `versions[0]["hash"]` is indexed without checking
   `versions` is non-empty (:234-235, :301).
+- Mods: every list and search asks BeatSaver to leave out maps needing Noodle Extensions (`MOD_FILTER`
+  `&noodle=false`; it takes only one such filter at a time, measured); Vivify difficulties are still cut when a page
+  arrives; Mapping Extensions ones are listed (the game reads its precise lanes, rows and angles).
+- Search: BeatSaver matches whole words or their start, not typos, and reads Japanese a character at a time (kana
+  searches pull in noise; real titles are in kanji, which romaji can't give). A search that finds nothing is tried
+  once more with each word cut short (`close_query`), the status saying "No exact match · close to …" (`_close_to`).
 - Download (:312): rejects HTML bodies; a `WorkerThreadPool` task (`_save_song`, awaited a frame at a time) writes
   the zip to `APPDATA_PATH/temp` and unpacks it to `Songs/<hash>/`; once the queue is empty
   `main_menu_ref.add_downloaded_songs` reads just those folders' info on another task and adds them to the list (no
@@ -191,6 +219,13 @@ Above the list one row holds Search (icon), the sort, Get songs and, at its righ
   `CheckButton` once had 0 px idle vs 16 px hover margins and its label jumped under the pointer (commit `37ceb03`);
   `toggle_idle` and `list_hover` now both use 16/8. Same rule for `surface*` (20/12) and `tab_*` (28/12).
 - Set colours in the theme, not per-node overrides, so panels stay consistent.
+- A difficulty requiring a mod the game lacks (`DifficultyInfo.missing_mod`: any but `PLAYABLE_MODS`, Mapping
+  Extensions, Chroma, Cinema) is greyed out on the song menu with the reason as its tooltip; a map's first playable
+  difficulty is picked, and if none plays the stats say "Needs the … mod" and the note to slash stays away
+  (`MainMenu.can_play`).
+- The song menu's left panel is locked (owner, 2026-10-30): the characteristic tab row always takes its room (one tab
+  for a one-characteristic song) and all five level slots stay in place, the ones a map lacks greyed out, so nothing
+  moves from song to song (`test_menu_layout` checks every listed song).
 - Text that changes (counts, statuses, chips that come and go) gets its room up front, so nothing around it moves
   (owner, 2026-10-30): fixed rows and widths sized for the longest text, controls greyed out rather than hidden
   (`FilterChips.show_count`'s count room, the chip rows above both lists, the filters' Clear, the filters' scroll bar

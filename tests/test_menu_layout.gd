@@ -58,6 +58,7 @@ func _ready() -> void:
 	if menu.songs_menu.item_count > 0:
 		menu.songs_menu.select(0)
 		menu._select_song(0, false)
+		await _check_left_panel_locked(menu)
 
 		# the selected song's preview (SongPreview) starts, and stop_preview fades it out and stops it
 		var preview := menu.song_preview
@@ -130,6 +131,12 @@ func _ready() -> void:
 	check(env_cards.size() == Settings.ENVIRONMENTS.size() and smallest >= 45.0,
 			"a picture card per environment, each %.0f px or more across (3 degrees is 45 px)" % smallest)
 	menu.show_environments(false)
+	# the Practice button at the left panel's bottom: a target 3 degrees or more tall; a stray saved speed lands on a step
+	check(menu.practice_button.is_visible_in_tree() and menu.practice_button.size.y >= 45.0,
+			"practice: the Practice button shows, %.0f px tall" % menu.practice_button.size.y)
+	Settings.practice_speed = 47
+	check(Settings.practice_speed == 50, "practice: a stray saved speed of 47%% lands on 50%% (got %d)" % Settings.practice_speed)
+	Settings.practice_speed = 100
 	menu._show_tab(MainMenu.Tab.MORE)
 	await _settle()
 	_check_layout(menu, "more tab")
@@ -168,6 +175,39 @@ func _ready() -> void:
 	_check_layout(profiles, "who's playing, six players, one asking to delete")
 
 	profiles.queue_free()
+
+	# the practice panel beside the player: the longest time and speed, stopped and playing
+	var practice := (load("res://game/ui/PracticePanel.tscn") as PackedScene).instantiate() as PracticePanel
+	_port.add_child(practice)
+	await _settle()
+	practice.show_state(false, 5999.0, 5999.0, 5999.0, 5999.0, Constants.PRACTICE_SPEED_MIN)
+	await _settle()
+	_check_layout(practice, "practice panel, stopped")
+	var slower := practice.get_node(^"Rows/SpeedRow/Slower_Button") as Button
+	check(practice._time.text == "99:59 of 99:59" and practice._start_time.text == "Start 99:59"
+			and practice._end_time.text == "End 99:59"
+			and practice._speed.text == "50%" and slower.disabled,
+			"practice panel: \"%s\", \"%s\", \"%s\", slower greyed at the slowest" % [practice._time.text,
+			practice._start_time.text, practice._speed.text])
+	practice.show_state(true, 30.0, 12.0, -1.0, 5999.0, 100)
+	practice.show_time(95.0)
+	check(practice.start_seconds() == 12.0 and practice._start_time.text == "Start 0:12",
+			"practice panel: the start point stays put while the song plays on (got %s)" % practice._start_time.text)
+	# Repeat: off plays the whole song; on starts a part NEW_PART_SECONDS long; a start past the end pushes the end on
+	var ends: Array[float] = []
+	practice.end_set.connect(func(seconds: float) -> void: ends.append(seconds))
+	check(practice._end_time.text == "End: whole song" and not practice._end.editable,
+			"practice panel: Repeat off says the whole song and greys the end (got %s)" % practice._end_time.text)
+	practice._repeat.button_pressed = true
+	practice._start.value = 40.0
+	practice._repeat.button_pressed = false
+	check(ends == [22.0, 42.0, -1.0],
+			"practice panel: Repeat on sets the end 10 s after the start, a later start moves it on, off clears it (got %s)" % [ends])
+	await _settle()
+	_check_layout(practice, "practice panel, playing")
+	check(practice._play.text == "Pause" and slower.disabled and practice._faster.disabled,
+			"practice panel: playing shows Pause and greys the speed (got %s)" % practice._play.text)
+	practice.queue_free()
 
 	# Visuals with the Graphics chips: Low, then one effect changed (Custom)
 	var settings := (load("res://game/ui/settings_Panel.tscn") as PackedScene).instantiate() as SettingsPanel
@@ -519,6 +559,14 @@ func _check_filter_scroll(root: Control, rows: VBoxContainer, page_name: String)
 		var on := FilterChips.pointed_at(rows)
 		sliders[0].is_mouse_in = false
 		check(on and not FilterChips.pointed_at(rows), "%s: the filters take the thumbstick only while pointed at" % page_name)
+		# the pointer onto a chip, then off the filters altogether: the stick goes back (owner, 2026-10-30: after a chip
+		# press the song list no longer scrolled)
+		var chip := scroll.find_children("*", "Button", true, false)[0] as Button
+		_pointer(chip.get_global_rect().get_center(), null)
+		var on_chip := FilterChips.pointed_at(rows)
+		_pointer(scroll.get_global_rect().position - Vector2(40.0, 0.0), null)
+		check(on_chip and not FilterChips.pointed_at(rows),
+				"%s: pointing off the filters from a chip gives the thumbstick back" % page_name)
 	var page := scroll.get_child(0) as Control
 	check(page.get_combined_minimum_size().x <= scroll.size.x + 0.5, "%s: the filters don't scroll sideways (%.0f of %.0f px)" % [
 			page_name, page.get_combined_minimum_size().x, scroll.size.x])
@@ -545,6 +593,24 @@ func _check_no_scroll(menu: MainMenu, state: String) -> void:
 			if content.get_combined_minimum_size().y > scroll.size.y + 0.5 or content.get_combined_minimum_size().x > scroll.size.x + 0.5:
 				scrolling.append("%s (content %s in %s)" % [menu.get_path_to(scroll), content.get_combined_minimum_size(), scroll.size])
 	check(scrolling.is_empty(), "%s: only the song list scrolls%s" % [state, "" if scrolling.is_empty() else ": " + ", ".join(scrolling)])
+
+## The left panel's sections stay put from song to song (owner, 2026-10-30): the characteristic tabs, each level
+## slot and the stats start at the same place for every listed song.
+func _check_left_panel_locked(menu: MainMenu) -> void:
+	var places := {}
+	for i in menu.songs_menu.item_count:
+		menu.songs_menu.select(i)
+		menu._select_song(i, false)
+		await _settle()
+		var place := [menu.characteristic_row.get_global_rect(), menu.level_stats.global_position]
+		for button: Control in menu.level_row.get_children():
+			place.append(button.get_global_rect() if button.visible else Rect2())
+		places[str(place)] = i
+	check(places.size() == 1, "the left panel's sections stay put across %d songs (%d layouts)" % [
+			menu.songs_menu.item_count, places.size()])
+	menu.songs_menu.select(0)
+	menu._select_song(0, false)
+	await _settle()
 
 ## Ten records on the selected difficulty, the current player's best ninth (in a table of the test's own): the ranks
 ## under the song show the best ones and, last, the player's best with its place.

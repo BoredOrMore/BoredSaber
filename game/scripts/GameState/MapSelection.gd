@@ -11,6 +11,7 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.show_MapSourceDialogs(true)
 	game.endscore._hide()
 	game.pause_menu._hide()
+	game.practice_canvas._hide()
 	game.highscore_canvas._hide()
 	# sabers are out in the menu: they slash the block that plays the song
 	game.left_saber._show()

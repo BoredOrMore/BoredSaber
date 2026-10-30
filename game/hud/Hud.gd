@@ -181,7 +181,7 @@ func _ready() -> void:
 	place()
 
 ## Puts the two panels in place from the player's eye (the headset's place now), each turned to face it, and the
-## old nodes on them.
+## old nodes on them; in practice only the accuracy shows.
 func place(eye := HUD_EYE) -> void:
 	_grade = ""
 	_grade_size = 1.0
@@ -190,6 +190,7 @@ func place(eye := HUD_EYE) -> void:
 	_grade_label.position = Vector3(HUD_GRADE.x, HUD_GRADE.y, 0.0)
 	_grade_label.rotation = Vector3.ZERO
 	_set_far(Map.current_difficulty != null and Map.current_difficulty.characteristic in Map.TURNING_CHARACTERISTICS)
+	_set_practice(Map.practice)
 	if far:
 		var cluster := far_cluster(eye, notes_top())
 		_left.global_transform = cluster
@@ -225,6 +226,21 @@ func turn(angle: float) -> void:
 	_combo.global_transform = turned * _placed[3]
 	_combo.rest_at(_combo.position)
 
+## Practice's HUD is the accuracy alone (owner's choice 3A, 2026-10-30), at the score's place and size in its colour;
+## otherwise every line, as _set_far left them.
+func _set_practice(on: bool) -> void:
+	_caption.visible = not on
+	_time_label.visible = not on
+	_grade_label.visible = not on and not far
+	_combo.ring.visible = not on
+	_accuracy_label.visible = on or not far
+	var score_spot := _far_spot(Vector2.ZERO) if far else Vector3(HUD_SCORE.x, HUD_SCORE.y, 0.0)
+	_accuracy_label.position = score_spot if on else Vector3(HUD_ACCURACY.x, HUD_ACCURACY.y, 0.0)
+	var height := (_far_size(FAR_SCORE_DEG) if far else HUD_SCORE.z) if on else HUD_ACCURACY.z
+	_set_letters(_accuracy_label.mesh as TextMesh, height)
+	(_accuracy_label.mesh as TextMesh).pixel_size *= NUMBER_FONT_SCALE
+	_accuracy_label.material_override = _point_label.material_override if on else _caption.material_override
+
 ## Switches between the far cluster (`on`, 90/360 maps) and the side panels: the lines' sizes, what shows, the calm
 ## combo, and drawing over walls.
 func _set_far(on: bool) -> void:
@@ -241,7 +257,7 @@ func _set_far(on: bool) -> void:
 	_accuracy_label.visible = not on
 	_grade_label.visible = not on
 	_grade_glow.visible = not on and GRADE_GLOWS.has(_grade)
-	_health_bar.visible = on and Settings.health_mode
+	_health_bar.visible = on and Settings.health_mode and not Map.practice
 	# drawn after the see-through walls, so a wall passing through never covers it; notes in front still do
 	for material: BaseMaterial3D in [_point_label.material_override, _caption.material_override,
 			_combo.material_override]:
@@ -346,7 +362,7 @@ func _collect_shown(node: Node, materials: Dictionary, rings: Dictionary, labels
 
 ## The score, the time played of the song's length (whole seconds), the accuracy and its grade.
 func show_points(points: int, played: int, length: int, accuracy: float) -> void:
-	_set_text(_point_label, _grouped(points))
+	_set_text(_point_label, "" if Map.practice else _grouped(points))
 	_set_text(_time_label, "%s / %s" % [_clock(clampi(played, 0, length)), _clock(length)])
 	# the percent climbs from 0 through the song (Scoreboard.song_progress); the grade still follows the accuracy
 	_set_text(_accuracy_label, "%.1f%%" % (Scoreboard.song_progress() * 100.0))
@@ -379,7 +395,7 @@ func show_points(points: int, played: int, length: int, accuracy: float) -> void
 
 ## The rumble at A, S and SS: the letter shakes and tilts around its spot (alongside a pop's growing), brighter.
 func _process(delta: float) -> void:
-	if not _left.visible or far:
+	if not _left.visible or far or Map.practice:
 		return
 	var home := Vector3(HUD_GRADE.x, HUD_GRADE.y, 0.0)
 	_grade_glow.visible = GRADE_GLOWS.has(_grade)

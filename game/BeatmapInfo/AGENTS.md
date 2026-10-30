@@ -7,6 +7,10 @@ static loader in `game/Map.gd` that fills them. Format reference: https://bsmg.w
 
 - `MapInfo.gd` - song metadata + `difficulty_beatmaps`. `new_v2` (`_version`, `_difficultyBeatmapSets`),
   `new_v4` (`version`, `difficultyBeatmaps`, `song`/`audio` dicts). Lightshow characteristic is skipped.
+- `DifficultyInfo.gd` - `missing_mod()`: the first required mod (`_requirements` / v4 `requirements`) outside
+  `PLAYABLE_MODS` (Mapping Extensions, Chroma, Cinema). Mapping Extensions' precise values go through
+  `Utils.precise_measurement` (lanes, walls), `precise_layer` (note rows) and `precise_angle_rad` (1000/2000 +
+  degrees, clockwise), as the mod's PrecisePlacementPatches and 360DegreeNoteRotationPatches do.
 - `DifficultyInfo.gd` - difficulty, characteristic, `beatmap_filename`, NJS + offset, `custom_data`,
   `custom_name` (from `_difficultyLabel`/`difficultyLabel`), v4 `lightshow_filename`. v4 has no rank yet (`DifficultyInfo.gd:75`).
 - `ColorNoteInfo.gd`, `BombInfo.gd`, `ObstacleInfo.gd`, `ArcInfo.gd`, `ChainInfo.gd`, `EventInfo.gd` - one

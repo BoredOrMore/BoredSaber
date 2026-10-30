@@ -3,6 +3,8 @@ class_name EndScore
 
 signal mainmenu
 signal repeat
+## "Practice this part" after a fail (owner, 2026-10-30).
+signal practice_part
 ## "Not you?" on the name card: the player wants this run's record under someone else (owner, 2026-10-28)
 signal change_player
 
@@ -56,6 +58,10 @@ const BANNER_TEXT_HEIGHT := 0.062
 const BANNER_CORNER := 0.02
 const FAILED_TEXT := "FAILED"
 const CLEARED_TEXT := "SONG CLEARED"
+## Where the buttons sit across the bottom: Repeat and Main Menu, or after a fail Practice this part, Retry and Main
+## Menu (x in metres).
+const TWO_BUTTONS_X := [-0.3, 0.3]
+const THREE_BUTTONS_X := [-0.6, 0.0, 0.6]
 ## After a fail the empty ring and its 0% give way to how far the song got ("Failed at 1:42\nof 3:10"), at the ring's
 ## place, PROGRESS_TEXT_HEIGHT letters.
 const PROGRESS_TEXT_HEIGHT := 0.07
@@ -189,6 +195,7 @@ func _show() -> void:
 	raycast_area.collision_layer = CollisionLayerConstants.Ui_mask
 	collision.disabled = false
 	($Repeat as UIRaycastButton).collision_layer = CollisionLayerConstants.Ui_mask
+	($Practice as UIRaycastButton).collision_layer = CollisionLayerConstants.Ui_mask
 	($MainMenu as UIRaycastButton).collision_layer = CollisionLayerConstants.Ui_mask
 	($ChangePlayer as UIRaycastButton).collision_layer = CollisionLayerConstants.Ui_mask
 	show()
@@ -197,6 +204,7 @@ func _hide() -> void:
 	raycast_area.collision_layer = 0
 	collision.disabled = true
 	($Repeat as UIRaycastButton).collision_layer = 0
+	($Practice as UIRaycastButton).collision_layer = 0
 	($MainMenu as UIRaycastButton).collision_layer = 0
 	($ChangePlayer as UIRaycastButton).collision_layer = 0
 	_tick_player.stop()
@@ -247,6 +255,13 @@ func show_score(score: int, record: int, percent: float, song_string: String, is
 	var repeat_button := $Repeat as UIRaycastButton
 	repeat_button.text = "Retry" if percent < 0 else "Repeat"
 	repeat_button.set_primary(percent < 0)
+	# after a fail, practising the part that failed sits beside Retry
+	var practice_button := $Practice as UIRaycastButton
+	practice_button.visible = percent < 0
+	var xs: Array = TWO_BUTTONS_X if percent >= 0 else THREE_BUTTONS_X.slice(1)
+	practice_button.position.x = THREE_BUTTONS_X[0]
+	repeat_button.position.x = xs[0]
+	($MainMenu as UIRaycastButton).position.x = xs[1]
 	_finished = percent >= 0
 	($MainMenu as UIRaycastButton).set_primary(_finished)
 	
@@ -357,6 +372,7 @@ func _show_rank(label: RichTextLabel, rank: String) -> void:
 
 func set_buttons_disabled(disabled: bool) -> void:
 	($Repeat/Collision as CollisionShape3D).disabled = disabled
+	($Practice/Collision as CollisionShape3D).disabled = disabled
 	($MainMenu/Collision as CollisionShape3D).disabled = disabled
 	($ChangePlayer/Collision as CollisionShape3D).disabled = disabled
 
@@ -384,6 +400,9 @@ func _on_ChangePlayer_button_up() -> void:
 
 func _on_Repeat_button_up() -> void:
 	repeat.emit()
+
+func _on_Practice_button_up() -> void:
+	practice_part.emit()
 
 func _on_MainMenu_button_up() -> void:
 	set_buttons_disabled(true)

@@ -2,6 +2,9 @@ extends Panel
 class_name BeatSaverPanel
 
 class BeatSaverSongInfo extends RefCounted:
+	## The modes a map can be listed by, the first it has winning: the game plays 360° and 90° maps too (owner,
+	## 2026-10-30: they were hidden here).
+	const MODES := ["Standard", "360Degree", "90Degree"]
 	var name: String
 	var description: String
 	var song_name: String
@@ -18,6 +21,8 @@ class BeatSaverSongInfo extends RefCounted:
 	## Picked by BeatSaver's staff.
 	var curated: bool
 	var tags: PackedStringArray
+	## The mode the map is listed and rated by: Standard, else 360° or 90° (MODES); "" when it has none of them.
+	var mode := ""
 	## The row's text (BeatSaverPanel._row_text), and estimated_levels() with the Speed modifier it was worked out
 	## at: both made on the page's worker thread (_parse_page), so adding the row does no work per song on the main
 	## thread (owner, 2026-10-30: Get songs still hitched as each page of 50 came in).
@@ -33,13 +38,19 @@ class BeatSaverSongInfo extends RefCounted:
 		score = Utils.get_float(Utils.get_dict(song_info, "stats", {}), "score", 0.0)
 		curated = song_info.get("curatedAt") != null
 		tags = PackedStringArray(Utils.get_array(song_info, "tags", []))
-		# difficulties that need a mod this game doesn't have (Noodle Extensions, Mapping Extensions,
-		# Vivify) don't play right here, and ones too tangled to swing aren't listed, so both are left out
+		# difficulties that need a mod this game doesn't have (Noodle Extensions, Vivify) don't play right here, and
+		# ones too tangled to swing aren't listed, so both are left out; Mapping Extensions plays here
+		# (DifficultyInfo.PLAYABLE_MODS)
 		if not versions.is_empty() and versions[0] is Dictionary:
 			var version := versions[0] as Dictionary
 			version["diffs"] = Utils.get_array(version, "diffs", []).filter(func(diff: Variant) -> bool:
-				return diff is Dictionary and not (diff.get("ne", false) or diff.get("me", false) or diff.get("vivify", false)) \
+				return diff is Dictionary and not (diff.get("ne", false) or diff.get("vivify", false)) \
 					and parity_percent(diff as Dictionary) < Constants.FLOW_HIDDEN_PERCENT)
+			for wanted: String in MODES:
+				if (version["diffs"] as Array).any(func(diff: Dictionary) -> bool:
+						return Utils.get_str(diff, "characteristic", "Standard") == wanted):
+					mode = wanted
+					break
 		uploader_id = int(Utils.get_float(Utils.get_dict(song_info, "uploader", {}), "id", -1))
 		var metadata := Utils.get_dict(song_info, "metadata", {})
 		song_name = Utils.get_str(metadata, "songName", "")
@@ -86,22 +97,22 @@ class BeatSaverSongInfo extends RefCounted:
 	func get_hash() -> String:
 		return Utils.get_str(versions[0] as Dictionary, "hash", "") if not versions.is_empty() else ""
 
-	## True if the map can be played here: made by a person, with a Standard difficulty that needs no mod.
+	## True if the map can be played here: made by a person (or an AI, with Include AI maps on), with a Standard, 360°
+	## or 90° difficulty that needs no mod.
 	func is_playable() -> bool:
-		if automapper or versions.is_empty():
-			return false
-		for diff: Variant in Utils.get_array(versions[0] as Dictionary, "diffs", []):
-			if Utils.get_str(diff as Dictionary, "characteristic", "") == "Standard":
-				return true
-		return false
+		return not (automapper and not Settings.beatsaver_include_ai) and not mode.is_empty()
 
-	## True if the level filter is off or a Standard difficulty of the newest version plays at the picked level
+	## True if a difficulty (BeatSaver's diff) is of the mode the map is listed by.
+	func of_mode(diff: Dictionary) -> bool:
+		return Utils.get_str(diff, "characteristic", "Standard") == mode
+
+	## True if the level filter is off or a difficulty of the map's mode in the newest version plays at the picked level
 	## (level_of).
 	func passes_reaction_filter() -> bool:
 		var level := BeatSaverPanel.picked_level()
 		return level < 0 or estimated_levels().has(level)
 
-	## The levels (indices in Constants.DIFFICULTY_LEVELS) of the newest version's Standard difficulties at the Speed
+	## The levels (indices in Constants.DIFFICULTY_LEVELS) of the newest version's difficulties of the map's mode at the Speed
 	## modifier `speed` (the current one by default); worked out once per speed and kept.
 	func estimated_levels(speed := MapStats._speed()) -> Array:
 		if speed == _levels_speed:
@@ -109,7 +120,7 @@ class BeatSaverSongInfo extends RefCounted:
 		var levels := []
 		if not versions.is_empty():
 			for diff: Variant in Utils.get_array(versions[0] as Dictionary, "diffs", []):
-				if diff is Dictionary and Utils.get_str(diff as Dictionary, "characteristic", "Standard") == "Standard":
+				if diff is Dictionary and of_mode(diff as Dictionary):
 					levels.append(level_of(diff as Dictionary, speed))
 		_levels = levels
 		_levels_speed = speed
@@ -239,15 +250,17 @@ func _levels(song: BeatSaverSongInfo) -> Array:
 		return [song.estimated_levels(), true]
 	var levels := []
 	for difficulty in info.difficulty_beatmaps:
-		if difficulty.characteristic == "" or difficulty.characteristic == "Standard":
+		if (difficulty.characteristic if difficulty.characteristic != "" else "Standard") == song.mode:
 			levels.append(MapStats.level_of(info, difficulty, MapStats.get_stats(info, difficulty)))
 	return [levels, false]
 
-## A map's row text, as the song menu names its songs: "Artist - Title" (the map's name when it has neither).
+## A map's row text, as the song menu names its songs: "Artist - Title" (the map's name when it has neither), "AI · "
+## before it for an AI's map and its mode after it when it isn't Standard (" (360°)").
 static func _row_text(song: BeatSaverSongInfo) -> String:
-	if song.song_name.is_empty():
-		return song.name
-	return "%s - %s" % [song.song_author_name, song.song_name] if not song.song_author_name.is_empty() else song.song_name
+	var title := song.name if song.song_name.is_empty() else ("%s - %s" % [song.song_author_name, song.song_name] \
+			if not song.song_author_name.is_empty() else song.song_name)
+	var mode := "" if song.mode == "Standard" else " (%s)" % MainMenu.CHARACTERISTIC_LABELS.get(song.mode, song.mode)
+	return (SongTags.AI_MARK if song.automapper else "") + title + mode
 
 ## The end of a map's row: how its download is going, else its length, with "✓" once it is in the library.
 func _side_text(song: BeatSaverSongInfo) -> String:
@@ -324,6 +337,18 @@ const DIFFICULTY_TITLE := "Difficulty"
 const LENGTH_TITLE := "Length"
 const GENRE_TITLE := "Genre"
 
+## BeatSaver's own filter for maps needing a mod. It takes one such filter at a time, the others ignored (measured
+## 2026-10-30, top 100 by rating: with none 28 maps need a mod; noodle=false 4, with Vivify gone too; me=false 27;
+## both 27), and no noodle map there had a plain difficulty to lose. Vivify difficulties left are still cut per
+## difficulty when a page arrives (BeatSaverSongInfo._init); Mapping Extensions plays here.
+const MOD_FILTER := "&noodle=false"
+
+## The Include AI maps chip (Settings.beatsaver_include_ai), its words, and the AI note in a map's details.
+var _include_ai: Button
+const INCLUDE_AI_TEXT := "Include AI maps"
+const AI_CHIP_TEXT := "AI maps"
+const AI_DETAIL := " · Made by AI"
+
 ## Fills the filters panel with a section of chips per filter, under the status and Clear.
 func _build_filter_chips() -> void:
 	var label := func(choice: Array) -> String: return str(choice[0])
@@ -338,6 +363,15 @@ func _build_filter_chips() -> void:
 		_filters_changed()
 	# the same sections as the song menu's, in one scrolling page under the status (FilterChips.add_scroll)
 	var page := FilterChips.add_scroll(filter_rows, 1)
+	# AI-made maps, left out unless this is on (owner, 2026-10-30)
+	_include_ai = ModifierChips.make_row_button(INCLUDE_AI_TEXT, null, func() -> void:
+		Settings.beatsaver_include_ai = _include_ai.button_pressed, &"FilterChip")
+	_include_ai.size_flags_horizontal = Control.SIZE_FILL
+	_include_ai.custom_minimum_size.y = FilterChips.CHIP_HEIGHT
+	UI_AudioEngine.attach_button(_include_ai)
+	var ai_row := HFlowContainer.new()
+	ai_row.add_child(_include_ai)
+	page.add_child(ai_row)
 	_level_chips = FilterChips.add_section(page, DIFFICULTY_TITLE, Constants.DIFFICULTY_LEVELS.map(label), pick_level)
 	_length_chips = FilterChips.add_section(page, LENGTH_TITLE,
 		Constants.LENGTH_FILTERS.slice(1).map(func(choice: Array) -> String: return str(choice[1])), pick_length)
@@ -353,7 +387,8 @@ func _sync_filter_controls() -> void:
 	FilterChips.show_picked(_length_chips, int(MapStats.length_filter(Settings.beatsaver_filter_length)[0]) - 1)
 	FilterChips.show_picked(_genre_chips, tags.call(GENRES).find(_genre_tag))
 	var mapper_list := prev_request != null and prev_request.type == "uploader"
-	for chip: Button in _style_chips + _level_chips + _length_chips + _genre_chips:
+	_include_ai.set_pressed_no_signal(Settings.beatsaver_include_ai)
+	for chip: Button in _style_chips + _level_chips + _length_chips + _genre_chips + [_include_ai]:
 		chip.disabled = mapper_list
 	# greyed out rather than hidden, so the status beside it keeps its width
 	clear_filters_button.disabled = _filter_chips().is_empty() or mapper_list
@@ -371,6 +406,17 @@ const LOADING_STATUS := "Loading songs…"
 const TOTAL_STATUS := "About %s songs"
 const NO_MATCH_STATUS := "No songs match"
 const MAPPER_STATUS := "Showing all songs by %s"
+const CLOSE_STATUS := "No exact match · close to \"%s\""
+## A search that finds nothing is tried once more with each word cut to its start (owner, 2026-10-30: BeatSaver
+## matches whole words or their start, so one wrong letter found nothing: "ussewa" 0 maps, "usse" Usseewa): a word
+## longer than CLOSE_MATCH_LETTERS loses its last CLOSE_MATCH_CUT letters, keeping at least CLOSE_MATCH_LETTERS and
+## at most CLOSE_MATCH_MOST: BeatSaver matches a word's start only up to 8 letters (measured 2026-10-30: "senbonza"
+## 22 maps, "senbonzak" 0, "senbonzakura" 22).
+const CLOSE_MATCH_LETTERS := 4
+const CLOSE_MATCH_CUT := 2
+const CLOSE_MATCH_MOST := 8
+## The search as typed while the list shows close matches for a shorter one; "" otherwise.
+var _close_to := ""
 
 ## A filter changed: shows it at once and loads the list again once no other change came for FILTER_RELOAD_SECONDS.
 func _filters_changed() -> void:
@@ -386,6 +432,8 @@ func _show_filter_status() -> void:
 		filter_status.text = LOADING_STATUS
 	elif item_list.item_count == 0:
 		filter_status.text = NO_MATCH_STATUS if empty_list.text == NO_MATCH_TEXT else ""
+	elif not _close_to.is_empty():
+		filter_status.text = CLOSE_STATUS % prev_request.data
 	elif _total_songs >= 0:
 		filter_status.text = TOTAL_STATUS % Hud._grouped(_total_songs)
 	else:
@@ -407,6 +455,8 @@ func _filter_chips() -> Array:
 	var length := MapStats.length_filter(Settings.beatsaver_filter_length)
 	if int(length[0]) != 0:
 		chips.append([length[1], func() -> void: Settings.beatsaver_filter_length = 0])
+	if Settings.beatsaver_include_ai:
+		chips.append([AI_CHIP_TEXT, func() -> void: Settings.beatsaver_include_ai = false])
 	return chips
 
 ## The row above the list shows what it lists (owner, 2026-10-29, layout A: show which filters are on): the mapper of
@@ -429,6 +479,7 @@ func _on_clear_filters_pressed() -> void:
 	_genre_tag = ""
 	Settings.beatsaver_filter_reaction = 0
 	Settings.beatsaver_filter_length = 0
+	Settings.beatsaver_include_ai = false
 	_filters_changed()
 
 ## Draws the page again (it redraws only on input otherwise).
@@ -440,12 +491,16 @@ func _redraw() -> void:
 ## or "" when all are off.
 func _filter_query() -> String:
 	var length := MapStats.length_filter(Settings.beatsaver_filter_length)
-	var query := ""
+	# BeatSaver leaves out the maps that need Noodle Extensions (and Vivify) itself, so a page comes full and the count
+	# leaves them out too (owner, 2026-10-30)
+	var query := MOD_FILTER
 	var tags := PackedStringArray([_style_tag, _genre_tag])
 	tags.erase("")
 	tags.erase("")
 	if not tags.is_empty():
 		query += "&tags=" + ",".join(tags)
+	if Settings.beatsaver_include_ai:
+		query += "&automapper=true"
 	if float(length[2]) > 0.0:
 		query += "&minDuration=%d" % int(length[2])
 	if float(length[3]) > 0.0:
@@ -460,7 +515,7 @@ func _filter_query() -> String:
 
 ## Follows filter changes and reloads the current list with them.
 func _on_settings_changed(key: StringName) -> void:
-	if key == &"beatsaver_filter_reaction" or key == &"beatsaver_filter_length":
+	if key == &"beatsaver_filter_reaction" or key == &"beatsaver_filter_length" or key == &"beatsaver_include_ai":
 		_filters_changed()
 
 ## Loads the current list or search again from its first page, with the current filters.
@@ -494,7 +549,8 @@ func _show() -> void:
 		self.visible = true
 	_on_BeatSaverPanel_visibility_changed()
 
-## BeatSaver search URL for one page. Leaving out the automapper parameter leaves out AI-made maps.
+## BeatSaver search URL for one page. Without the automapper parameter (Include AI maps, _filter_query) BeatSaver
+## leaves out AI-made maps.
 func _search_url(page: int, query: String, sort_order: String) -> String:
 	return "https://beatsaver.com/api/search/text/%d?q=%s&sortOrder=%s&pageSize=%d%s" % [page, query.uri_encode(), sort_order,
 		PAGE_SIZE, _filter_query()]
@@ -630,8 +686,23 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 		if item_list.item_count > 0:
 			_show_empty("")
 		elif not _scroll_page_request_pending:
+			var close := close_query(prev_request.data) if prev_request.type == "text_search" else ""
+			if _close_to.is_empty() and close != prev_request.data:
+				_close_to = prev_request.data
+				prev_request.data = close
+				update_list(prev_request)
+				return
 			_show_empty(NO_MATCH_TEXT)
 	_show_filter_status()
+
+## The search with each word longer than CLOSE_MATCH_LETTERS cut by CLOSE_MATCH_CUT letters (to between
+## CLOSE_MATCH_LETTERS and CLOSE_MATCH_MOST): what a search that found nothing tries next.
+static func close_query(text: String) -> String:
+	var words := PackedStringArray()
+	for word in text.split(" ", false):
+		var keep := clampi(word.length() - CLOSE_MATCH_CUT, CLOSE_MATCH_LETTERS, CLOSE_MATCH_MOST)
+		words.append(word.left(keep) if word.length() > CLOSE_MATCH_LETTERS else word)
+	return " ".join(words)
 
 ## Parses a BeatSaver page into `parsed` as [maps playable here, each with its row text and its levels at the Speed
 ## modifier `speed`; how many maps match in all (a search's info.total), or -1 when it doesn't say], left empty when
@@ -678,7 +749,7 @@ const REACTION_FILL_PAGES := 10
 
 ## Fetches the next pages on its own while the list still ends within FETCH_ROWS_LEFT rows of the view, since the
 ## next page otherwise loads only when the player scrolls (owner, 2026-10-29: the first page of Latest showed no scroll
-## bar, so no more songs ever came: automapped maps and ones without Standard are left out, and a page can keep few).
+## bar, so no more songs ever came: automapped maps and ones without Standard, 360° or 90° are left out, and a page can keep few).
 ## BeatSaver can't filter by reaction time either, so with that filter on it keeps going until REACTION_FILL_ITEMS songs.
 func _fill_short_list() -> void:
 	if prev_request == null or next_page_available == -1 or prev_request.page >= REACTION_FILL_PAGES:
@@ -709,6 +780,7 @@ func _list_sorted(sort_order: String) -> void:
 ## match order.
 func _set_search(text: String) -> void:
 	search_word = text
+	_close_to = ""
 	if not text.is_empty():
 		sort_button.select(-1)
 		sort_button.text = BEST_MATCH_TEXT
@@ -748,11 +820,12 @@ func _on_ItemList_item_selected(index: int) -> void:
 			vr.log_warning("Preview request failed: %s" % _preview_url)
 
 ## The rest of the picked map in plain words, under its title, artist and mapper: how liked it is, whether staff picked
-## it, its tags, each Standard difficulty, the other modes by name and the start of its description. Short enough for
+## it, its tags, each difficulty of its mode, the other modes by name and the start of its description. Short enough for
 ## the song menu's side panel with five Standard difficulties (tests/test_menu_layout.gd).
 func _details_text(song: BeatSaverSongInfo) -> String:
 	var muted := Constants.UI_TEXT_MUTED.to_html(false)
-	var text := "[color=#%s]%d%% liked%s[/color]" % [muted, roundi(song.score * 100.0), " · ★ Staff pick" if song.curated else ""]
+	var text := "[color=#%s]%d%% liked%s%s%s[/color]" % [muted, roundi(song.score * 100.0), " · ★ Staff pick" if song.curated else "",
+		AI_DETAIL if song.automapper else "", "" if song.mode == "Standard" else " · " + MainMenu.CHARACTERISTIC_LABELS.get(song.mode, song.mode)]
 	var tag_names := PackedStringArray()
 	for tag in song.tags:
 		tag_names.append(_tag_name(tag))
@@ -762,9 +835,10 @@ func _details_text(song: BeatSaverSongInfo) -> String:
 	for diff: Variant in Utils.get_array(song.versions[0] as Dictionary, "diffs", []):
 		var d := diff as Dictionary
 		var mode := Utils.get_str(d, "characteristic", "Standard")
-		if mode != "Standard":
-			if not modes.has(mode):
-				modes.append(mode)
+		if mode != song.mode:
+			var shown: String = MainMenu.CHARACTERISTIC_LABELS.get(mode, mode)
+			if not modes.has(shown):
+				modes.append(shown)
 			continue
 		var level: Array = Constants.DIFFICULTY_LEVELS[song.level_of(d)]
 		var line: String = level[0]
@@ -786,7 +860,7 @@ func _details_text(song: BeatSaverSongInfo) -> String:
 		text += "\n[color=#%s]%s[/color]" % [muted, _escape(description)]
 	return text
 
-## Each Standard difficulty as a rounded bar across the panel in its level's colour, with its name ("≈" while
+## Each difficulty of the map's mode as a rounded bar across the panel in its level's colour, with its name ("≈" while
 ## estimated) and its numbers in columns under a header of stats pills (StatPills: time to get ready, notes per second,
 ## swing flow, each icon with its unit), measured once the map is in the library; the player's level (the level
 ## filter) framed in UI_ACCENT; then what "≈" means. A table, so all five levels' numbers fit the song menu's side
@@ -901,14 +975,14 @@ func _show_no_song() -> void:
 ## Icons in the details' pills, the size of their 22 px text.
 const PILL_ICON_SIZE := 24
 
-## Each Standard difficulty as [level, seconds to get ready, notes per second, flow percent]: measured from the map
+## Each difficulty of the map's mode (Standard, else 360° or 90°) as [level, seconds to get ready, notes per second, flow percent]: measured from the map
 ## file once it is in the library (MapStats), else from BeatSaver's data.
 func _difficulty_rows(song: BeatSaverSongInfo) -> Array:
 	var rows := []
 	var info := _local_map(song)
 	if info != null:
 		for difficulty in info.difficulty_beatmaps:
-			if difficulty.characteristic == "" or difficulty.characteristic == "Standard":
+			if (difficulty.characteristic if difficulty.characteristic != "" else "Standard") == song.mode:
 				var stats := MapStats.get_stats(info, difficulty)
 				rows.append([MapStats.level_of(info, difficulty, stats), MapStats.reaction_seconds(info, difficulty),
 					float(stats.get("nps", 0.0)) * MapStats._speed(), float(stats.get("flow", 0.0))])
@@ -917,7 +991,7 @@ func _difficulty_rows(song: BeatSaverSongInfo) -> Array:
 		return rows
 	for diff: Variant in Utils.get_array(song.versions[0] as Dictionary, "diffs", []):
 		var d := diff as Dictionary
-		if Utils.get_str(d, "characteristic", "Standard") == "Standard":
+		if song.of_mode(d):
 			rows.append([song.level_of(d), song.reaction_seconds(d), Utils.get_float(d, "nps", 0.0) * MapStats._speed(),
 				BeatSaverSongInfo.parity_percent(d)])
 	return rows
@@ -1008,7 +1082,7 @@ func _on_download_button_up() -> void:
 	if downloading.any(func(entry: Array) -> bool: return Utils.get_str(entry[1] as Dictionary, "hash", "") == hash):
 		return
 	OS.request_permissions()
-	downloading.append([song.name, song.versions[0], song.tags])
+	downloading.append([song.name, song.versions[0], song.tags + (PackedStringArray([SongTags.AI_TAG]) if song.automapper else PackedStringArray())])
 	if downloading.size() == 1:
 		download_next()
 	label.text = ""

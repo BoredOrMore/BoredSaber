@@ -134,18 +134,29 @@ static func custom_thread_call(thread : Thread, function : Callable, params := [
 			thread_finished_mutex.unlock()
 		return err
 
-static func precise_measurement(x : int) -> float:
-	if x < 1000:
-		return x
-	else:
-		return (x-1000.)/1000.
+## A lane from a map: as it is, or a Mapping Extensions precise value in thousandths of a lane (1000 is lane 0,
+## 1500 lane 0.5; -1000 and down count from lane 1 the other way: -2000 is lane 0), as the mod places it
+## (Kylemc1413/MappingExtensions, PrecisePlacementPatches.cs). Walls' sizes use it too, as before.
+static func precise_measurement(x: float) -> float:
+	if x >= 1000.0:
+		return (x - 1000.0) / 1000.0
+	if x <= -1000.0:
+		return (x + 1000.0) / 1000.0
+	return x
+
+## A note's row from a map: as it is, or a Mapping Extensions precise value in thousandths of a row from row 0
+## (1000 is row 0, 1500 row 0.5, -1000 row -2: rows have no -2000 shift, unlike lanes; PrecisePlacementPatches.cs).
+static func precise_layer(y: float) -> float:
+	return (y - 1000.0) / 1000.0 if absf(y) >= 1000.0 else y
 
 static func precise_angle_rad(direction: float, offset: float) -> float:
 	var angle : float
 	if direction < 1000:
 		angle = Constants.CUBE_ROTATIONS[direction]
 	else:
-		angle = direction - 1000
+		# Mapping Extensions: 1000 + degrees clockwise from down (the mod's RotationAngle is 1000 - direction, in the
+		# table's sense), 2000 + degrees the same for its arrowless notes (360DegreeNoteRotationPatches.cs)
+		angle = deg_to_rad((1000.0 if direction < 2000 else 2000.0) - direction)
 	angle += offset * (PI/180.)
 	if angle < 0:
 		angle += TAU
@@ -167,8 +178,14 @@ static func rotation_unit_vector(angle: float) -> Vector2:
 static func close_angle(angle1: float, angle2: float) -> bool:
 	return abs(angle1-angle2)<1e-5
 	
+## The pitch fix behind a slowed or sped-up song, above Godot's oversampling of 4 (owner's choice 4A, 2026-10-30: the
+## song warbled at practice's 50%, a 2x shift): smoother at about twice the audio cost; untuned, measure on the Pico.
+## The FFT stays at 2048: Godot 4.6's FFT_SIZE_4096 fails ("Invalid FFT frame size for PitchShift").
+const PITCH_SHIFT_OVERSAMPLING := 8
+
 static func update_bus_speed(bus_name: String) -> void:
-	var speed := Settings.music_speed / 100.
+	# the song bus follows the practice speed while practising (Map.speed_percent)
+	var speed := (Map.speed_percent() if bus_name == &"Music" else Settings.music_speed) / 100.
 	if (Settings.audio_master == 0. or 
 			(bus_name == &"Music" and Settings.audio_music == 0.) or 
 			(bus_name == &"MusicPreview" and Settings.audio_music == 0.)):
@@ -191,15 +208,16 @@ static func update_bus_speed(bus_name: String) -> void:
 		return
 	var effect := AudioEffectPitchShift.new()
 	effect.pitch_scale = 1./speed
+	effect.oversampling = PITCH_SHIFT_OVERSAMPLING
 	AudioServer.add_bus_effect(bus, effect)
 
-static func adjust_vertical(y: int) -> int:
+static func adjust_vertical(y: float) -> float:
 	if Settings.flip & Constants.FLIP_VERTICAL:
 		return 2-y
 	else:
 		return y
 
-static func adjust_horizontal(x: int) -> int:
+static func adjust_horizontal(x: float) -> float:
 	if Settings.flip & Constants.FLIP_HORIZONTAL:
 		return 3-x
 	else:

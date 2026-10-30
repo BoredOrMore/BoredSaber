@@ -11,6 +11,12 @@ const GENRES := [["Any genre", ""], ["Pop", "pop"], ["J-Pop", "j-pop"], ["K-Pop"
 	["Electronic", "electronic"], ["Rock", "rock"], ["Game music", "video-game-soundtrack"], ["Metal", "metal"],
 	["Classical", "classical-orchestral"], ["Hip-hop", "hip-hop-rap"], ["Vocaloid", "vocaloid"]]
 
+## Kept with a song's tags when BeatSaver says an AI made the map (its "automapper"), so the song menu can say so.
+const AI_TAG := "ai-map"
+## Before the name of a map an AI made in both song lists (owner, 2026-10-30), and after its mapper on the song menu.
+const AI_MARK := "AI · "
+const AI_SUFFIX := " (AI)"
+
 ## Saved tags, keyed by song folder name; an empty list means looked up and BeatSaver had none.
 const CACHE_FILE := "song_tags.json"
 ## Songs looked up per request, BeatSaver's limit for /maps/hash.
@@ -29,6 +35,17 @@ static func folder_of(map: MapInfo) -> String:
 ## Tags saved for a song, empty when none are known.
 static func tags_of(map: MapInfo) -> PackedStringArray:
 	return PackedStringArray(_load().get(folder_of(map), []))
+
+## A BeatSaver map's tags as saved here: its tags, plus AI_TAG when an AI made it.
+static func tags_from(info: Dictionary) -> Array:
+	var tags := Utils.get_array(info, "tags", []).duplicate()
+	if bool(info.get("automapper", false)):
+		tags.append(AI_TAG)
+	return tags
+
+## True if BeatSaver said an AI made the song's map.
+static func is_ai(map: MapInfo) -> bool:
+	return tags_of(map).has(AI_TAG)
 
 ## Saves the tags of a song just downloaded into this folder.
 static func remember(folder: String, tags: PackedStringArray) -> void:
@@ -67,7 +84,7 @@ static func look_up_missing(parent: Node, maps: Array[MapInfo], done: Callable) 
 		for hash: String in batch:
 			# one hash returns the map itself, several return the maps keyed by hash (null when not found)
 			var info: Variant = parsed if batch.size() == 1 else (parsed as Dictionary).get(hash) if parsed is Dictionary else null
-			_cache[folders[hash]] = Utils.get_array(info as Dictionary, "tags", []) if info is Dictionary else []
+			_cache[folders[hash]] = tags_from(info as Dictionary) if info is Dictionary else []
 		_save()
 		done.call()
 	request.queue_free()
