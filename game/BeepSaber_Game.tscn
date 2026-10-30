@@ -345,6 +345,7 @@ main_menu_ref = NodePath("../MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu")
 [connection signal="slashed" from="SlashBlock" to="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" method="play_selected"]
 [connection signal="close_requested" from="Profiles_canvas/ProfilesPanel" to="." method="_close_profiles"]
 [connection signal="start_map" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="start_map"]
+[connection signal="start_practice" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="start_practice"]
 [connection signal="mainmenu" from="EndScore" to="." method="_main_menu_button"]
 [connection signal="repeat" from="EndScore" to="." method="_restart_button"]
 [connection signal="practice_part" from="EndScore" to="." method="_practice_failed_part"]

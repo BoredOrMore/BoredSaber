@@ -5,7 +5,7 @@ extends Node
 ## Smallest gap, in px, between two controls placed side by side with offsets (not by a container).
 const MIN_GAP := 4.0
 ## Panels that open over others: whatever lies wholly under a visible one is hidden, not overlapped.
-const OVERLAYS := ["MorePanel", "MoreModsPanel", "FiltersPanel", "EnvironmentPanel"]
+const OVERLAYS := ["MorePanel", "MoreModsPanel", "FiltersPanel", "EnvironmentPanel", "PracticePanel"]
 ## The song menu's three panel backgrounds: what lies wholly on one is on it, not overlapping it.
 const BACKGROUNDS := ["LeftPanel", "CentrePanel", "RightPanel"]
 ## Rows the song list must show at once at its original 76 px row size (owner, 2026-10-28: the curved menu in the
@@ -131,6 +131,21 @@ func _ready() -> void:
 	check(env_cards.size() == Settings.ENVIRONMENTS.size() and smallest >= 45.0,
 			"a picture card per environment, each %.0f px or more across (3 degrees is 45 px)" % smallest)
 	menu.show_environments(false)
+	# the Practice view over the modifiers: its start point and speed beside the song list, Start practice in reach
+	menu._show_practice(true)
+	await _settle()
+	_check_layout(menu, "practice")
+	menu._practice_slider.value = 90.0
+	Settings.practice_speed = 47
+	menu._sync_practice()
+	check(menu._practice_time.text.begins_with("1:30 of ") and menu._practice_speed.get_line_edit().text == "50%"
+			and not menu.practice_panel.get_global_rect().intersects(menu.songs_menu.get_global_rect()),
+			"practice: start \"%s\", speed \"%s\" (a stray 47%% lands on 50%%), the list stays in view" % [
+			menu._practice_time.text, menu._practice_speed.get_line_edit().text])
+	Settings.practice_speed = 100
+	menu._show_filters(true)
+	check(not menu.practice_panel.visible, "practice: opening the filters closes the Practice view")
+	menu._show_filters(false)
 	menu._show_tab(MainMenu.Tab.MORE)
 	await _settle()
 	_check_layout(menu, "more tab")

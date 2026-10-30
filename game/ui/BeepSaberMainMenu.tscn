@@ -24,6 +24,9 @@
 [ext_resource type="PackedScene" path="res://game/ui/MenuPanel.tscn" id="menu_panel"]
 [ext_resource type="PackedScene" path="res://game/ui/MenuSection.tscn" id="menu_section"]
 [ext_resource type="PackedScene" uid="uid://cpwxp083qm1jq" path="res://game/ui/HighscorePanel.tscn" id="highscores"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/minus.svg" id="icon_minus"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/plus.svg" id="icon_plus"]
+[ext_resource type="Script" path="res://game/ui/StepperSpinBox.gd" id="stepper"]
 
 [sub_resource type="StyleBoxEmpty" id="1"]
 
@@ -417,6 +420,103 @@ custom_minimum_size = Vector2(0, 48)
 layout_mode = 2
 toggle_mode = true
 text = "Workout"
+
+[node name="PracticePanel" type="Panel" parent="."]
+visible = false
+layout_mode = 0
+offset_left = 1289.0
+offset_top = 8.0
+offset_right = 1737.0
+offset_bottom = 737.0
+
+[node name="Rows" type="VBoxContainer" parent="PracticePanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = 16.0
+offset_right = -16.0
+offset_bottom = -16.0
+theme_override_constants/separation = 16
+
+[node name="Back_Button" type="Button" parent="PracticePanel/Rows"]
+theme_type_variation = &"BackButton"
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+text = "Back"
+icon = ExtResource("icon_arrow-left")
+script = ExtResource("icon_button")
+
+[node name="Hint" type="Label" parent="PracticePanel/Rows"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
+text = "Any part, slower or faster. You can't fail, and nothing is saved."
+autowrap_mode = 3
+
+[node name="StartAt" parent="PracticePanel/Rows" instance=ExtResource("menu_section")]
+layout_mode = 2
+title = "Start at"
+
+[node name="StartTime" type="Label" parent="PracticePanel/Rows/StartAt"]
+custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
+text = "0:00 of 0:00"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="StartRow" type="HBoxContainer" parent="PracticePanel/Rows/StartAt"]
+layout_mode = 2
+
+[node name="Earlier_Button" type="Button" parent="PracticePanel/Rows/StartAt/StartRow"]
+custom_minimum_size = Vector2(52, 52)
+layout_mode = 2
+tooltip_text = "Earlier"
+icon = ExtResource("icon_minus")
+icon_alignment = 1
+
+[node name="StartSlider" type="HSlider" parent="PracticePanel/Rows/StartAt/StartRow"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+
+[node name="Later_Button" type="Button" parent="PracticePanel/Rows/StartAt/StartRow"]
+custom_minimum_size = Vector2(52, 52)
+layout_mode = 2
+tooltip_text = "Later"
+icon = ExtResource("icon_plus")
+icon_alignment = 1
+
+[node name="Speed" parent="PracticePanel/Rows" instance=ExtResource("menu_section")]
+layout_mode = 2
+title = "Speed"
+
+[node name="SpeedRow" type="HBoxContainer" parent="PracticePanel/Rows/Speed"]
+layout_mode = 2
+
+[node name="PracticeSpeed" type="SpinBox" parent="PracticePanel/Rows/Speed/SpeedRow"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 50.0
+max_value = 200.0
+step = 10.0
+value = 100.0
+script = ExtResource("stepper")
+button_step = 10.0
+
+[node name="Space" type="Control" parent="PracticePanel/Rows"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="StartPractice_Button" type="Button" parent="PracticePanel/Rows"]
+theme_type_variation = &"PrimaryButton"
+custom_minimum_size = Vector2(0, 72)
+layout_mode = 2
+text = "Start practice"
+icon = ExtResource("icon_play")
+script = ExtResource("icon_button")
 
 [node name="MorePanel" type="Panel" parent="."]
 visible = false

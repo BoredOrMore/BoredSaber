@@ -420,8 +420,10 @@ var song_filter_genre: String:
 ## The practice speed in percent (Map.practice_speed), kept for the next practice (owner, 2026-10-30: 50-200%).
 var practice_speed: int:
 	set(value):
-		practice_speed = value
-		set_and_emit(&"practice_speed", value)
+		# config.ini is a boundary: a hand-edited value lands on a step in range
+		practice_speed = clampi(snappedi(value, Constants.PRACTICE_SPEED_STEP), Constants.PRACTICE_SPEED_MIN,
+				Constants.PRACTICE_SPEED_MAX)
+		set_and_emit(&"practice_speed", practice_speed)
 ## Get songs lists AI-made maps too (owner, 2026-10-30; off: BeatSaver leaves them out).
 var beatsaver_include_ai: bool:
 	set(value):

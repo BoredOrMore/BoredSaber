@@ -82,6 +82,12 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   difficulties, else its 360° or 90° ones (`BeatSaverSongInfo.MODES`/`mode`; the row then ends " (360°)"); presses wait `FILTER_RELOAD_SECONDS` for more before one reload,
   and a "More by" list greys them out. Above the list: Search, the sort and "My songs" in Get songs' place; under
   them a chip per filter on (its x takes it off), the search or the "More by" mapper. (BeatSage, YouTube search and a BeatSaver/BeatSage picker were removed: nothing could reach them.)
+- Practice view (`PracticePanel` in `BeepSaberMainMenu.tscn`, owner's choices 2026-10-30): in the right panel over
+  the modifiers like More modifiers, with Back; a one-line hint (no fail, nothing saved), "Start at" (a slider over the
+  picked difficulty's length as its stats show it, "1:24 of 2:55", − and + `PRACTICE_STEP_SECONDS`; back to 0:00 for
+  another song), Speed (`StepperSpinBox`, `Constants.PRACTICE_SPEED_*` 50-200% in 10% steps, `Settings.practice_speed`,
+  shown "100%" like the Speed chips) and the primary Start practice (`play_selected(true)` -> signal
+  `start_practice` -> `BeepSaber_Game.start_practice`). `_show_practice`/`_sync_practice`; opening the filters closes it.
 - `ModifierChips.gd` (class `ModifierChips`, made by the menu's `_ready`): the Song tab's fail and damage rows,
   on/off and Speed chips, More modifiers, environment picker and reset, in step with `Settings`; `changed()` names
   the modified ones. Its static `make_row_button` (a button of a given kind) is shared with the difficulty picker.
