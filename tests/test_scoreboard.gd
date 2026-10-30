@@ -74,6 +74,7 @@ func _ready() -> void:
 	_test_walls(game)
 	_test_chain_links()
 	_test_restart()
+	_test_song_progress()
 	Settings.swing_scoring = true
 	neutral_modifiers()
 	_test_swing_scoring_perfect_run()
@@ -94,6 +95,38 @@ func _ready() -> void:
 
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
+
+## The HUD's percent: 0 before any note, climbing to the accuracy at the song's end; chain links count in the song's best.
+func _test_song_progress() -> void:
+	var saved_notes := Map.note_stack
+	var saved_chains := Map.chain_stack
+	var best := int(Scoreboard.note_best_score())
+	Map.note_stack = []
+	for i in 20:
+		Map.note_stack.append(ColorNoteInfo.new(float(i), 1, 0, 0, 1, 0))
+	Map.chain_stack = []
+	Scoreboard.restart()
+	check(Scoreboard.song_best == best * (8 * 20 - 63), "the song's best is best x (8n-63) for 20 notes (got %d)" % Scoreboard.song_best)
+	check(near(Scoreboard.song_progress(), 0.0), "the percent starts at 0 (got %.4f)" % Scoreboard.song_progress())
+	for i in 10:
+		hit(best)
+	check(near(Scoreboard.song_progress(), float(Scoreboard.points) / Scoreboard.song_best),
+		"halfway, the percent is points over the song's best (got %.4f)" % Scoreboard.song_progress())
+	check(Scoreboard.song_progress() < Scoreboard.accuracy(), "halfway through a perfect run the percent is below the accuracy")
+	for i in 10:
+		hit(best)
+	check(near(Scoreboard.song_progress(), 1.0), "a perfect run ends at 100% (got %.4f)" % Scoreboard.song_progress())
+
+	# a chain on the first note: the head gives a note's best, each of its 2 links the link's best
+	Map.note_stack = [ColorNoteInfo.new(0.0, 1, 0, 0, 1, 0)]
+	Map.chain_stack = [ChainInfo.new(0, 0.0, 1, 0, 0, 1.0, 1, 2, 3, 1.0, 0)]
+	Scoreboard.restart()
+	var link := int(Scoreboard.chain_link_best_score())
+	check(Scoreboard.song_best == best + link * 2 * 2, "a chain head plus 2 links at x2 (got %d)" % Scoreboard.song_best)
+
+	Map.note_stack = saved_notes
+	Map.chain_stack = saved_chains
+	Scoreboard.restart()
 
 func _test_multiplier_and_perfect_run() -> void:
 	Scoreboard.restart()
