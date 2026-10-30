@@ -183,6 +183,9 @@ Above the list one row holds Search (icon), the sort, Get songs and, at its righ
   `DETAIL_COVER` px (`_on_detail_cover_completed`) into the details' one texture.
 - Known gaps (report, don't silently patch in unrelated work): `versions[0]["hash"]` is indexed without checking
   `versions` is non-empty (:234-235, :301).
+- Mods: every list and search asks BeatSaver to leave out maps needing Noodle Extensions (`MOD_FILTER`
+  `&noodle=false`; it takes only one such filter at a time, measured); Mapping Extensions and Vivify difficulties are
+  still cut when a page arrives.
 - Search: BeatSaver matches whole words or their start, not typos, and reads Japanese a character at a time (kana
   searches pull in noise; real titles are in kanji, which romaji can't give). A search that finds nothing is tried
   once more with each word cut short (`close_query`), the status saying "No exact match · close to …" (`_close_to`).

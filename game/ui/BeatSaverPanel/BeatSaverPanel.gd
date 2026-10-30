@@ -340,6 +340,12 @@ const DIFFICULTY_TITLE := "Difficulty"
 const LENGTH_TITLE := "Length"
 const GENRE_TITLE := "Genre"
 
+## BeatSaver's own filter for maps needing a mod. It takes one such filter at a time, the others ignored (measured
+## 2026-10-30, top 100 by rating: with none 28 maps need a mod; noodle=false 4, with Vivify gone too; me=false 27;
+## both 27), and no noodle map there had a plain difficulty to lose. The rest (Mapping Extensions) is still cut per
+## difficulty when a page arrives (BeatSaverSongInfo._init).
+const MOD_FILTER := "&noodle=false"
+
 ## The Include AI maps chip (Settings.beatsaver_include_ai), its words, and the AI note in a map's details.
 var _include_ai: Button
 const INCLUDE_AI_TEXT := "Include AI maps"
@@ -488,7 +494,9 @@ func _redraw() -> void:
 ## or "" when all are off.
 func _filter_query() -> String:
 	var length := MapStats.length_filter(Settings.beatsaver_filter_length)
-	var query := ""
+	# BeatSaver leaves out the maps that need Noodle Extensions (and Vivify) itself, so a page comes full and the count
+	# leaves them out too (owner, 2026-10-30)
+	var query := MOD_FILTER
 	var tags := PackedStringArray([_style_tag, _genre_tag])
 	tags.erase("")
 	tags.erase("")
