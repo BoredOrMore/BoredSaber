@@ -40,8 +40,8 @@
 //      on that side of the track (window_left_color, window_right_color) with a warm room tint. Where a room is
 //      smaller than a pixel the windows blend into their average, so far walls don't sparkle. Light, after the haze,
 //      kept well under the notes (Light rule 1)
-//   10. soft far edges (SHELL: Night City's landmark and tower bodies, NightCityRig): a second, see-through copy of a
-//      box, blown up and drawn from inside (only its back faces, so the box itself hides it wherever the box shows), whose
+//   10. soft far edges (SHELL: Night City's landmark and tower bodies, Henge's slabs, Neon Grid's arches, Pulse Void's
+//      rim): a second, see-through copy of a box, blown up and drawn from inside (only its back faces, so the box itself hides it wherever the box shows), whose
 //      pixels fade out with how far their line of sight passes from the box (silhouette_gap), so a far box's outline
 //      melts into the sky over SHELL_BLUR_ANGLE, as distant things blur in the air, with no read of the screen (rule
 //      10). Its colour is the box's own at the outline (a side face's form). Nothing from SHELL_NEAR in, full at
