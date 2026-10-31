@@ -24,6 +24,7 @@ extends Node3D
 const FACE_SHADER := preload("res://game/env/MonolithFace.gdshader")
 const FLOOR_SHADER := preload("res://game/env/MonolithFloor.gdshader")
 const CLOUD_SHADER := preload("res://game/env/MonolithCloud.gdshader")
+const CLOUD_EDGE_SHADER := preload("res://game/env/MonolithCloudEdge.gdshader")
 ## the slab: its size (across, up, deep), its front face's distance from the player and its turn left of straight ahead
 ## (radians), which is also the way the valley runs; its top front corners stand about 950 m away, inside the camera's
 ## far plane (1024 m)
@@ -57,6 +58,11 @@ const CLOUD_STEP := 3.0
 ## the puffs' base rises and falls round each ring by this much, CLOUD_SWELLS times round
 const CLOUD_SWELL := 8.0
 const CLOUD_SWELLS := 5
+## the clouds' soft edge (owner, 2026-10-31): a see-through fringe out from the puffs' outline, this wide as an angle
+## seen from the player (radians, so far rings get wider fringes), its direction smoothed over this many top vertices
+## either side so it doesn't fold at the dips between puffs
+const CLOUD_BLUR := 0.012
+const CLOUD_BLUR_SMOOTH := 3
 ## the random puffs come from this seed, so every load looks the same
 const CLOUD_SEED := 31
 
@@ -82,6 +88,8 @@ func _ready() -> void:
 	floor_material.set_shader_parameter(&"slab_yaw", SLAB_YAW)
 	floor_material.set_shader_parameter(&"slab_half_width", SLAB.x * 0.5)
 	floor_material.set_shader_parameter(&"slab_distance", SLAB_DISTANCE)
+	_sink_into_clouds(face_material)
+	_sink_into_clouds(floor_material)
 	var valley := MeshInstance3D.new()
 	valley.mesh = _valley_mesh()
 	valley.transform = Transform3D(slab_basis(), _around_player(Vector3.ZERO))
@@ -108,15 +116,33 @@ func _ready() -> void:
 		var material := ShaderMaterial.new()
 		material.shader = CLOUD_SHADER
 		material.set_shader_parameter(&"depth_share", float(i) / (CLOUD_RINGS.size() - 1))
+		var edge_material := ShaderMaterial.new()
+		edge_material.shader = CLOUD_EDGE_SHADER
+		edge_material.set_shader_parameter(&"depth_share", float(i) / (CLOUD_RINGS.size() - 1))
 		var cloud := MeshInstance3D.new()
 		cloud.mesh = _cloud_ring(CLOUD_RINGS[i], random)
 		cloud.position = _around_player(Vector3.ZERO)
-		cloud.material_override = material
+		cloud.set_surface_override_material(0, material)
+		cloud.set_surface_override_material(1, edge_material)
 		cloud.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(cloud)
 
+## Gives `material` the cloud rings' radii and levels (the puffs' middle height), so what lies below them sinks in
+## (monolith_cloud.gdshaderinc).
+func _sink_into_clouds(material: ShaderMaterial) -> void:
+	assert(CLOUD_RINGS.size() == 4, "monolith_cloud.gdshaderinc takes exactly 4 rings")
+	var radii := Vector4.ZERO
+	var levels := Vector4.ZERO
+	for i in 4:
+		radii[i] = CLOUD_RINGS[i].x
+		levels[i] = CLOUD_RINGS[i].y + CLOUD_RINGS[i].z * 0.5
+	material.set_shader_parameter(&"cloud_radii", radii)
+	material.set_shader_parameter(&"cloud_levels", levels)
+	material.set_shader_parameter(&"cloud_centre", Vector2(0.0, Constants.PLAYER_Z))
+
 ## One ring of cloud (`ring`: radius, the puffs' base height, their tallest rise): a band from the valley floor up to a
-## row of overlapping round puffs. UV.y holds the metres down from the top, for the cloud's rim and shading.
+## row of overlapping round puffs (surface 0; UV.y holds the metres down from the top, for the cloud's rim and shading),
+## and its soft edge, a fringe CLOUD_BLUR wide out from the outline (surface 1; UV.x 0 on the outline to 1 at its rim).
 func _cloud_ring(ring: Vector3, random: RandomNumberGenerator) -> ArrayMesh:
 	var around := TAU * ring.x
 	var scale := ring.x / 400.0
@@ -133,6 +159,7 @@ func _cloud_ring(ring: Vector3, random: RandomNumberGenerator) -> ArrayMesh:
 	var samples := ceili(around / CLOUD_STEP)
 	var vertices := PackedVector3Array()
 	var uvs := PackedVector2Array()
+	var tops: Array[Vector2] = []
 	var first := 0
 	for i in samples + 1:
 		var s := around * i / samples
@@ -143,9 +170,9 @@ func _cloud_ring(ring: Vector3, random: RandomNumberGenerator) -> ArrayMesh:
 			var d := s - puffs[p].x
 			if absf(d) < puffs[p].y:
 				top = maxf(top, sqrt(puffs[p].y * puffs[p].y - d * d))
-		var angle := s / ring.x
-		var height := ring.y + CLOUD_SWELL * sin(angle * CLOUD_SWELLS) + top / tallest * ring.z
-		var out := Vector3(sin(angle), 0.0, -cos(angle)) * ring.x
+		var height := ring.y + CLOUD_SWELL * sin(s / ring.x * CLOUD_SWELLS) + top / tallest * ring.z
+		tops.append(Vector2(s, height))
+		var out := _ring_point(ring.x, s)
 		vertices.append(out + Vector3(0.0, height, 0.0))
 		uvs.append(Vector2(0.0, 0.0))
 		vertices.append(out + Vector3(0.0, VALLEY_Y, 0.0))
@@ -154,14 +181,41 @@ func _cloud_ring(ring: Vector3, random: RandomNumberGenerator) -> ArrayMesh:
 	for i in samples:
 		var a := i * 2
 		indices.append_array([a, a + 2, a + 1, a + 1, a + 2, a + 3])
+	var mesh := ArrayMesh.new()
 	var arrays := []
 	arrays.resize(Mesh.ARRAY_MAX)
 	arrays[Mesh.ARRAY_VERTEX] = vertices
 	arrays[Mesh.ARRAY_TEX_UV] = uvs
 	arrays[Mesh.ARRAY_INDEX] = indices
-	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	# the fringe: each top vertex and one pushed out across the outline (along the ring and up)
+	var width := CLOUD_BLUR * ring.x
+	var fringe := PackedVector3Array()
+	var fringe_uvs := PackedVector2Array()
+	for i in tops.size():
+		var before := tops[maxi(i - CLOUD_BLUR_SMOOTH, 0)]
+		var after := tops[mini(i + CLOUD_BLUR_SMOOTH, tops.size() - 1)]
+		var tangent := (after - before).normalized()
+		var normal := Vector2(-tangent.y, tangent.x)
+		var angle := tops[i].x / ring.x
+		var along_dir := Vector3(cos(angle), 0.0, sin(angle))
+		var top := _ring_point(ring.x, tops[i].x) + Vector3(0.0, tops[i].y, 0.0)
+		fringe.append(top)
+		fringe_uvs.append(Vector2(0.0, 0.0))
+		fringe.append(top + (along_dir * normal.x + Vector3.UP * normal.y) * width)
+		fringe_uvs.append(Vector2(1.0, 0.0))
+	arrays = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = fringe
+	arrays[Mesh.ARRAY_TEX_UV] = fringe_uvs
+	arrays[Mesh.ARRAY_INDEX] = indices
 	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	return mesh
+
+## The point on a ring of `radius` round the player, `along` metres round it from straight ahead (-z), at y 0.
+static func _ring_point(radius: float, along: float) -> Vector3:
+	var angle := along / radius
+	return Vector3(sin(angle), 0.0, -cos(angle)) * radius
 
 ## The valley in its own frame (x across, -z down the valley toward the slab): one column of vertices at each edge of
 ## the floor and of every terrace face, so the steps stay sharp, each column reaching as far along as VALLEY_RADIUS allows.

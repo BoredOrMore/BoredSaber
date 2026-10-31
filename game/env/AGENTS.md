@@ -120,7 +120,12 @@ Monolith (one colossal slab down a terraced valley, seen from a tall pillar, abs
 - `MonolithFloor.gdshader`: the valley and pillar: dark ground with a neutral `BASE`, the horizon's glow on the far
   ground toward the slab, steep faces darker than treads (slope from screen derivatives, no normals), the slab's shadow
   falling toward the player as a widening wedge. `MonolithCloud.gdshader`: the cloud rings, opaque (outline in the
-  mesh: no discard, no blending), light under the top darkening downward, a thin rim on the puffs, farther rings paler. `MonolithSky.gdshader`:
+  mesh: no discard, no blending), light under the top darkening downward, a thin rim on the puffs, farther rings paler.
+  `MonolithCloudEdge.gdshader`: the clouds' soft edge (owner, 2026-10-31), a see-through fringe `CLOUD_BLUR` (an
+  angle) out from the outline, the stage's only blending. `monolith_cloud.gdshaderinc`: the clouds' tones and
+  `under_cloud`, used by the clouds, the valley, the pillar and the slab: below the clouds' level (`CLOUD_RINGS`' puffs'
+  middle, set by `_sink_into_clouds`, exactly 4 rings) a surface takes the cloud's tone, so nothing pokes hard through
+  a cloud or shows beneath one (owner, 2026-10-31). `MonolithSky.gdshader`:
   black with a neutral horizon glow behind the slab (`SLAB_DIR` must match `MonolithRig.SLAB_YAW`; no `bg_<type>`) and
   a fainter neutral one all round so the ridges stand as silhouettes.
 

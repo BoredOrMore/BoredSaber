@@ -7,8 +7,10 @@ render_mode unshaded, shadows_disabled, fog_disabled;
 // the share lit, EventDriver._update_monolith, each fading in over its own step), a slit up the middle in the floor
 // lights' colour open from the foot to `slit` of the height (the drop opens it all the way), and a strip along the foot
 // in the same colour. Every line keeps at least MIN_PIXELS across so it doesn't shimmer, dimmed to keep its light;
-// a white-hot core along its middle (AGENTS.md "Light", rule 2). BLOCKOUT, untuned.
+// a white-hot core along its middle (AGENTS.md "Light", rule 2). Its foot sinks into the clouds. BLOCKOUT, untuned.
+global uniform vec4 env_haze;
 #include "res://game/env/fog_light.gdshaderinc"
+#include "res://game/env/monolith_cloud.gdshaderinc"
 
 uniform vec3 size = vec3(360.0, 810.0, 90.0);
 uniform vec4 left_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
@@ -28,10 +30,14 @@ const float CORE_WHITE = 0.5;
 
 varying vec3 local;
 varying float front;
+varying vec3 world;
+varying vec3 haze_v;
 
 void vertex() {
 	local = VERTEX;
 	front = step(0.5, NORMAL.z);
+	world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	haze_v = fog_lit(env_haze.rgb, world - CAMERA_POSITION_WORLD);
 }
 
 // How much of a line `width` metres wide, `d` metres from its middle, covers this pixel, at least MIN_PIXELS wide.
@@ -55,5 +61,6 @@ void fragment() {
 	color += floor_color.rgb * line(abs(y - FOOT_HEIGHT * 0.5), FOOT_HEIGHT);
 	color *= front;
 	float peak = max(color.r, max(color.g, color.b));
-	ALBEDO = fog_result(mix(color, vec3(peak), CORE_WHITE * peak), VERTEX);
+	// its foot sinks into the clouds (monolith_cloud.gdshaderinc)
+	ALBEDO = fog_result(under_cloud(mix(color, vec3(peak), CORE_WHITE * peak), haze_v, world), VERTEX);
 }

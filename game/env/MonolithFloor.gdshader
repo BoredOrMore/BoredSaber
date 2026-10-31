@@ -5,9 +5,11 @@ render_mode unshaded, shadows_disabled, fog_disabled;
 // the horizon's glow behind the slab, the terraces' steep faces darker than their treads (RISER) so the steps read as
 // bands, with the slab's shadow falling down the valley toward the player: a wedge from the slab's foot, widening by
 // SHADOW_SPREAD as it nears, fading over SHADOW_LENGTH. Its edges soften with distance (fwidth). Neutral: the ground
-// takes the haze's colour, not the lights'. BLOCKOUT, untuned.
+// takes the haze's colour, not the lights'. Below the clouds' level it sinks into them (monolith_cloud.gdshaderinc).
+// BLOCKOUT, untuned.
 global uniform vec4 env_haze;
 #include "res://game/env/fog_light.gdshaderinc"
+#include "res://game/env/monolith_cloud.gdshaderinc"
 
 // the slab's centre on the floor (world xz), its turn left of straight ahead, half its width and its front face's
 // distance from the player (MonolithRig)
@@ -54,5 +56,5 @@ void fragment() {
 	// the surface's own slope, from the screen-space change of its position: flat per triangle, no normals needed
 	float flat_share = abs(normalize(cross(dFdx(world), dFdy(world))).y);
 	vec3 color = (vec3(BASE) + haze_v * (GROUND + glow)) * (1.0 - shadow) * mix(RISER, 1.0, flat_share);
-	ALBEDO = fog_dither(fog_result(color, VERTEX), FRAGCOORD.xy);
+	ALBEDO = fog_dither(fog_result(under_cloud(color, haze_v, world), VERTEX), FRAGCOORD.xy);
 }
