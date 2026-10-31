@@ -823,7 +823,7 @@ func _update_show(delta: float) -> void:
 		metal_factory_rig.breathe(show_beat, _show_bpm, _intensity)
 
 ## Henge's show (doc/world/GAME_BIBLE.md: held breath, then release), from the show's intensity (intensity_curve, the
-## map's light events): the slabs' edges light one by one round the ring as the show builds (HENGE_BUILT_SHARE of the
+## map's light events): the slabs' edges light one by one from straight ahead out to both sides as the show builds (HENGE_BUILT_SHARE of the
 ## ring by _built) and all the way round over the run-up to a drop (build_up); on the drop every gap floods
 ## (HengeFloor.gdshader's flood), easing in over HENGE_FLOOD_RISE_SECONDS and out over HENGE_FLOOD_FALL_SECONDS, never
 ## a flash. The intensity hovers at STRIP_DROP for a while (desktop run over 18 maps: drops of under a second, on and
@@ -848,11 +848,12 @@ func _update_henge(delta: float) -> void:
 		lit = 1.0 if _henge_drop else maxf(_built * HENGE_BUILT_SHARE, build_up(_intensity_curve, show_beat, _show_bpm))
 	_henge_flood = move_toward(_henge_flood, 1.0 if _henge_drop else 0.0,
 			delta / (HENGE_FLOOD_RISE_SECONDS if _henge_drop else HENGE_FLOOD_FALL_SECONDS))
-	var strips := henge_rig.strip_material
-	strips.set_shader_parameter(&"left_color", left_waving_lasers_material.get_shader_parameter(&"light_color"))
-	strips.set_shader_parameter(&"right_color", right_waving_lasers_material.get_shader_parameter(&"light_color"))
-	strips.set_shader_parameter(&"track_angle", track_angle)
-	strips.set_shader_parameter(&"lit", lit)
+	# the strips, and the floor they light (HengeFloor.gdshader)
+	for material: ShaderMaterial in [henge_rig.strip_material, henge_rig.floor_material]:
+		material.set_shader_parameter(&"left_color", left_waving_lasers_material.get_shader_parameter(&"light_color"))
+		material.set_shader_parameter(&"right_color", right_waving_lasers_material.get_shader_parameter(&"light_color"))
+		material.set_shader_parameter(&"track_angle", track_angle)
+		material.set_shader_parameter(&"lit", lit)
 	henge_rig.floor_material.set_shader_parameter(&"flood", _henge_flood)
 	henge_rig.ring_material.set_shader_parameter(&"light_color", track_lights_material.get_shader_parameter(&"light_color"))
 

@@ -37,7 +37,8 @@ or levels. Readable during fast play first, beautiful second, and cheap enough f
 ## 3. Plan a substantial change
 Write down, and show the user before building: the player experience it adds, where it sits in the spatial layout
 (and that it stays out of the exclusion zones), its silhouette and focal role, its colours and materials, how it
-reacts to the music, and its GPU cost. Record lasting decisions in the matching `doc/world/` file.
+reacts to the music, how its far outlines soften against the sky (owner, 2026-10-31: planned with every new stage;
+`game/env/AGENTS.md` "Soft far edges"), and its GPU cost. Record lasting decisions in the matching `doc/world/` file.
 
 ## 4. Order of work
 Inspect → spatial and visual design → block out the big forms (boxes in the rig script) → check scale and

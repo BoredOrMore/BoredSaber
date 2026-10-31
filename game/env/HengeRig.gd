@@ -10,12 +10,14 @@ extends Node3D
 ## slab tops (the diagonal lasers, LightRig). Bands of light from the gaps between the slabs rake across the floor
 ## toward the player, the slabs' shadows between, drawn in the floor's vertex colour (HengeFloor.gdshader), not per pixel.
 ## Slabs and strips are split into QUADRANTS MultiMeshes so the ones behind the player are culled. The build-up (edges
-## lighting one by one round the circle) and the drop (every gap floods) are EventDriver._update_henge's.
+## lighting one by one from straight ahead out to both sides) and the drop (every gap floods) are EventDriver._update_henge's.
 ## BLOCKOUT: plain boxes and strips. A tool script, so it shows in the editor too. Sizes in metres, untuned.
 
 const STRIP_SHADER := preload("res://game/env/HengeStrip.gdshader")
 const FLOOR_SHADER := preload("res://game/env/HengeFloor.gdshader")
 const RING_SHADER := preload("res://game/env/LightStrip.gdshader")
+## a see-through copy of the slabs that softens their outlines against the sky (EnvSolid layer 10), black as they are
+const SHELL_SHADER := preload("res://game/env/EnvSolidShell.gdshader")
 ## the monoliths: how many round the circle, their inner faces' distance from the player, their size (across, up, deep);
 ## the gaps between are about 27 m
 const SLAB_COUNT := 24
@@ -23,11 +25,14 @@ const RING_RADIUS := 150.0
 const SLAB := Vector3(12.0, 120.0, 3.0)
 ## each inner-edge strip's section (across, deep), standing just proud of the slab's inner face
 const EDGE_STRIP := Vector2(0.4, 0.3)
-## the floor: a disc FLOOR_RADIUS out, its top FLOOR_Y below the track, under the platform's base; split into FLOOR_WEDGES
-## a slab (one in the slab's shadow, the rest the gap's band) and BAND_STEPS rings from the player to its edge
+## the floor: a disc FLOOR_RADIUS out, its top FLOOR_Y below the track, under the platform's base; split into wedges
+## round the player (_floor_mesh: the slab's shadow, the gap's band and the fades between) and BAND_STEPS rings to its edge
 const FLOOR_RADIUS := 200.0
 const FLOOR_Y := -TrackDeck.DECK_DEPTH
 const BAND_STEPS := 6
+## how wide (radians round the player) the shadows' sides fade from shadow to band, as far edges blur in the air: the
+## same angle as the slabs' soft outlines (EnvSolid.gdshaderinc SHELL_BLUR_ANGLE). Untuned.
+const SHADOW_BLUR := 0.007
 ## the floor's ring strip in the floor lights' colour: its radius, width and height above the floor
 const RING_STRIP_RADIUS := 140.0
 const RING_STRIP := Vector2(0.6, 0.05)
@@ -47,6 +52,9 @@ func _ready() -> void:
 	var slab_material := StandardMaterial3D.new()
 	slab_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	slab_material.albedo_color = Color.BLACK
+	var shell_material := ShaderMaterial.new()
+	shell_material.shader = SHELL_SHADER
+	shell_material.set_shader_parameter(&"shell_color", Color.BLACK)
 	strip_material = ShaderMaterial.new()
 	strip_material.shader = STRIP_SHADER
 	for q in QUADRANTS:
@@ -57,6 +65,7 @@ func _ready() -> void:
 			for side in [-1.0, 1.0]:
 				strips.append(edge_strip_place(i, side))
 		_add_boxes(slabs, slab_material)
+		_add_boxes(slabs, shell_material)
 		_add_boxes(strips, strip_material)
 	var floor_disc := MeshInstance3D.new()
 	floor_disc.mesh = _floor_mesh()
@@ -120,9 +129,9 @@ func _add_boxes(places: Array[Transform3D], material: Material) -> void:
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
 
-## The floor disc: two wedges a slab, the slab's shadow (vertex colour 0) and the gap's band of light (1 at the ring,
-## falling off toward the player and past the slabs), in BAND_STEPS rings, each wedge with its own vertices so the
-## bands keep sharp sides.
+## The floor disc: four wedges a slab, the slab's shadow (vertex colour 0), a SHADOW_BLUR wide fade into the gap's
+## band of light (1 at the ring, falling off toward the player and past the slabs), the band, and a fade back, in
+## BAND_STEPS rings.
 static func _floor_mesh() -> ArrayMesh:
 	var tool := SurfaceTool.new()
 	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -130,17 +139,20 @@ static func _floor_mesh() -> ArrayMesh:
 	var half_slab := atan2(SLAB.x * 0.5, RING_RADIUS)
 	for i in SLAB_COUNT:
 		var a := slab_angle(i)
-		var edges := [[a - half_slab, a + half_slab, 0.0], [a + half_slab, slab_angle(i + 1) - half_slab, 1.0]]
+		var f := SHADOW_BLUR * 0.5
+		var next := slab_angle(i + 1) - half_slab
+		# [from angle, to angle, band at from, band at to]
+		var edges := [[a - half_slab + f, a + half_slab - f, 0.0, 0.0], [a + half_slab - f, a + half_slab + f, 0.0, 1.0],
+			[a + half_slab + f, next - f, 1.0, 1.0], [next - f, next + f, 1.0, 0.0]]
 		for edge: Array in edges:
 			for step in BAND_STEPS:
 				var r0 := FLOOR_RADIUS * step / BAND_STEPS
 				var r1 := FLOOR_RADIUS * (step + 1) / BAND_STEPS
-				var c0 := float(edge[2]) * _band(r0)
-				var c1 := float(edge[2]) * _band(r1)
 				var p := [_floor_point(r0, edge[0]), _floor_point(r0, edge[1]), _floor_point(r1, edge[0]),
 					_floor_point(r1, edge[1])]
 				for k: int in [0, 2, 1, 1, 2, 3]:
-					tool.set_color(Color(c1 if k >= 2 else c0, 0.0, 0.0))
+					var band := _band(r1 if k >= 2 else r0)
+					tool.set_color(Color(band * float(edge[3] if k % 2 == 1 else edge[2]), 0.0, 0.0))
 					tool.add_vertex(p[k])
 	return tool.commit()
 

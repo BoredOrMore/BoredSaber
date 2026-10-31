@@ -50,6 +50,9 @@ MOUNTAIN_FRONT = 0.35  # mountains are lower straight ahead, so the sun stays in
 MOUNTAIN_SHADE = 0.3
 RIM_WIDTH = 0.012
 RIM_STRENGTH = 0.6
+# the mountains' outline and the light along their rims blurred over this much (radians, a Gaussian's sigma), as far
+# things soften in the air; the same width as the arches' soft edges (EnvSolid.gdshaderinc SHELL_BLUR_ANGLE). Untuned.
+EDGE_BLUR = 0.007
 
 
 def smoothstep(e0, e1, x):
@@ -89,15 +92,30 @@ def masks(width, height):
     ridge = (0.5 + 0.5 * np.sin(az * 3.0 + 1.0)) * (0.6 + 0.4 * np.sin(az * 7.0 + 2.0)) + 0.1 * np.sin(az * 19.0)
     top = MOUNTAIN_HEIGHT * ridge * (MOUNTAIN_FRONT + (1.0 - MOUNTAIN_FRONT) * smoothstep(0.2, 1.0, np.abs(az)))
     mountain = 1.0 - smoothstep(top - px, top + px, y)
+    rim = RIM_STRENGTH * np.exp(-np.maximum(top - y, 0.0) / RIM_WIDTH) * mountain
+    sigma = (EDGE_BLUR / (2 * np.pi / width), EDGE_BLUR / (np.pi * (V_BOTTOM - V_TOP) / height))
+    mountain, rim = blur(mountain, *sigma), blur(rim, *sigma)
     sky = 1.0 - mountain
-    rim = RIM_STRENGTH * np.exp(-np.maximum(top - y, 0.0) / RIM_WIDTH)
     return {
         "haze": haze * sky + MOUNTAIN_SHADE * mountain,
         "sun": sun * sky,
-        "ring": ring_light * sky + rim * mountain,
+        "ring": ring_light * sky + rim,
         "band": band * sky,
         "side": side * sky,
     }
+
+
+def blur(mask, sigma_x, sigma_y):
+    """The mask blurred by a Gaussian of sigma_x, sigma_y texels; wrapping around the circle across, clamped up and down."""
+    for axis, sigma, mode in ((1, sigma_x, "wrap"), (0, sigma_y, "edge")):
+        r = int(np.ceil(sigma * 3.0))
+        k = np.exp(-0.5 * (np.arange(-r, r + 1) / sigma) ** 2)
+        k /= k.sum()
+        pad = [(0, 0), (0, 0)]
+        pad[axis] = (r, r)
+        padded = np.pad(mask, pad, mode=mode)
+        mask = sum(k[i] * np.take(padded, np.arange(i, i + mask.shape[axis]), axis=axis) for i in range(2 * r + 1))
+    return mask
 
 
 def to_bytes(mask, scale):

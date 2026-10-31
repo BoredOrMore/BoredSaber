@@ -78,6 +78,13 @@ Night City (canyon)
   `wall_*_spot` place lights; `set_windows` feeds layer 9.
 - `EnvSolidCanyon.gdshader`: EnvSolid with `CANYON` + `WINDOWS`. `EnvSolidCanyonPlain.gdshader`: `CANYON` only, for
   near pieces that never show windows (saves the per-pixel window cost).
+- `EnvSolidCanyonShell.gdshader`: EnvSolid with `CANYON` + `SHELL` (layer 10): a blown-up, see-through copy of the
+  towers' bodies and the landmark, drawn from inside, fading out over `SHELL_BLUR_ANGLE` from their outline, so far
+  edges melt into the sky with no screen read; nothing nearer than `SHELL_NEAR_FAR.x`. The sky's own skyline gets the
+  same softness baked in (`tools/bake_night_city_sky.py` `EDGE_BLUR`). Untuned, not measured on the headset.
+- `EnvSolidShell.gdshader`: the same layer 10 without `CANYON`, for Henge's slabs (`HengeRig`, one shell per quadrant,
+  drawn flat black through `shell_color` so the haze doesn't ring them in a light line), Neon Grid's arches
+  (`NeonGridRig`, the arch boxes) and Pulse Void's rim (`PulseVoid`, its segments' boxes).
 - `CityBillboard.gdshader`: procedural shape billboards on the tower wall, square bars' light (`billboard_material`).
 - `CloudSea.gdshader`: opaque heaving cloud plane below the roofs (no blending); EnvSolid's canyon fog meets it.
 - `NightCitySky.gdshader`: tower skyline from `night_city_sky_sharp/soft.png` (`tools/bake_night_city_sky.py`).
@@ -94,7 +101,7 @@ Henge (24 monoliths round the player, for 90/360 maps; BLOCKOUT 2026-10-29)
   `slab_top(i)` places the lasers (`LightRig` "henge": diagonal beams straight up, waving lasers between; no square bars).
 - `HengeStrip.gdshader`: the edge strips, left or right lasers' colour by which side of the track's turned line the
   slab stands (`track_turn.gdshaderinc`; `strip_material` params set each frame by EventDriver); `lit` lights the
-  slabs one by one round the ring from straight ahead (`EventDriver._update_henge`: `_built` x `HENGE_BUILT_SHARE`,
+  slabs one by one from straight ahead out to both sides alike, meeting behind (`EventDriver._update_henge`: `_built` x `HENGE_BUILT_SHARE`,
   all the way over a drop's run-up, `build_up`). Drops come from the show intensity with a hold (`henge_drop`:
   past `STRIP_DROP`, held `HENGE_DROP_HOLD_SECONDS`, released under `HENGE_DROP_RELEASE`); no light events, dark.
 - `HengeFloor.gdshader`: dark ground plus vertex-colour bands of the haze's colour; `flood` (the drop, eased) brightens
@@ -231,6 +238,11 @@ Air
   `match` arm in `LightRig.apply`, visibility in `show_scenery_for_mixed_reality`, optional `TrackDeck.SKINS`/
   `FAR_Z_BY_STAGE`, its pictures `thumbs/<id>.png` and `thumbs/<id>_wide.png` (`tools/capture/env_thumbnails.sh`, a `FRAMES` line
   framed on the stage's main unique element; render them again when the stage's look changes, the picker shows them), `stage_capture.gd --env`. Write `doc/world/` entries first.
+- Soft far edges (owner, 2026-10-31: every new stage plans them from its design): each far outline against the sky (60 m
+  and beyond) softens over `EnvSolid.gdshaderinc` `SHELL_BLUR_ANGLE`. Boxes: an `EnvSolidShell`/`EnvSolidCanyonShell`
+  MultiMesh of the same transforms (`NeonGridRig`, `PulseVoid`, `NightCityRig`, `HengeRig`); a model: shell boxes that
+  fit its parts; a baked sky: blur the shapes and any light not switched per cell, and keep a light switched per cell
+  (windows) soft only inside its own cell (`tools/bake_night_city_sky.py`: blurring across cells showed as squares).
 - New light carrier: place lights from a static helper on the rig, hang them in `LightRig.apply`; prefer the cheapest
   option in `doc/world/VISUAL_STYLE.md` "Light carriers" (vertex-mask vent < `LightStrip` < fixture < beam).
 - Haze amount/tint: `HAZE_BASE`, `HAZE_LIGHT_WEIGHT`, `HAZE_NEUTRAL`;
