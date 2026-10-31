@@ -101,7 +101,7 @@ Henge (24 monoliths round the player, for 90/360 maps; BLOCKOUT 2026-10-29)
   `slab_top(i)` places the lasers (`LightRig` "henge": diagonal beams straight up, waving lasers between; no square bars).
 - `HengeStrip.gdshader`: the edge strips, left or right lasers' colour by which side of the track's turned line the
   slab stands (`track_turn.gdshaderinc`; `strip_material` params set each frame by EventDriver); `lit` lights the
-  slabs one by one round the ring from straight ahead (`EventDriver._update_henge`: `_built` x `HENGE_BUILT_SHARE`,
+  slabs one by one from straight ahead out to both sides alike, meeting behind (`EventDriver._update_henge`: `_built` x `HENGE_BUILT_SHARE`,
   all the way over a drop's run-up, `build_up`). Drops come from the show intensity with a hold (`henge_drop`:
   past `STRIP_DROP`, held `HENGE_DROP_HOLD_SECONDS`, released under `HENGE_DROP_RELEASE`); no light events, dark.
 - `HengeFloor.gdshader`: dark ground plus vertex-colour bands of the haze's colour; `flood` (the drop, eased) brightens

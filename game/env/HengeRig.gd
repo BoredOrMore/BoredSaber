@@ -10,7 +10,7 @@ extends Node3D
 ## slab tops (the diagonal lasers, LightRig). Bands of light from the gaps between the slabs rake across the floor
 ## toward the player, the slabs' shadows between, drawn in the floor's vertex colour (HengeFloor.gdshader), not per pixel.
 ## Slabs and strips are split into QUADRANTS MultiMeshes so the ones behind the player are culled. The build-up (edges
-## lighting one by one round the circle) and the drop (every gap floods) are EventDriver._update_henge's.
+## lighting one by one from straight ahead out to both sides) and the drop (every gap floods) are EventDriver._update_henge's.
 ## BLOCKOUT: plain boxes and strips. A tool script, so it shows in the editor too. Sizes in metres, untuned.
 
 const STRIP_SHADER := preload("res://game/env/HengeStrip.gdshader")

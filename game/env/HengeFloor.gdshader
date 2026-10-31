@@ -23,12 +23,12 @@ const float FLOOD_LEVEL = 0.12;
 const float FLOOR_MAX = 0.35;
 uniform float flood = 0.0;
 // the strips' light: their colours and build-up (EventDriver, as the strips'), the slabs' ring (HengeRig.RING_RADIUS)
-// and slabs round it (HengeRig.SLAB_COUNT), and the pool's brightness and reach (metres) toward the player and beyond
+// and slabs from ahead to behind on each side (HengeRig.SLAB_COUNT / 2), and the pool's brightness and reach (metres) toward the player and beyond
 uniform vec4 left_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
 uniform vec4 right_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
 uniform float lit = 1.0;
 const float RING_RADIUS = 150.0;
-const float SLABS = 24.0;
+const float SIDE_SLABS = 12.0;
 const float STRIP_LIGHT = 0.2;
 const float STRIP_REACH = 25.0;
 const float STRIP_BEHIND = 6.0;
@@ -46,8 +46,8 @@ vec3 strip_light() {
 	float in_from_ring = RING_RADIUS - length(from_player);
 	float pool = in_from_ring > 0.0 ? exp(-in_from_ring / STRIP_REACH) : exp(in_from_ring / STRIP_BEHIND);
 	vec3 color = track_xz(world).x < 0.0 ? left_color.rgb : right_color.rgb;
-	float around = fract(atan(world.x, TRACK_PIVOT_Z - world.z) / 6.28318530718 + 1.0);
-	return color * (clamp((lit - around) * SLABS, 0.0, 1.0) * pool * STRIP_LIGHT);
+	float around = abs(atan(world.x, TRACK_PIVOT_Z - world.z)) / 3.14159265359;
+	return color * (clamp((lit * (1.0 + 1.0 / SIDE_SLABS) - around) * SIDE_SLABS, 0.0, 1.0) * pool * STRIP_LIGHT);
 }
 
 void fragment() {

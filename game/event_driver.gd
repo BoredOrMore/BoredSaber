@@ -818,7 +818,7 @@ func _update_show(delta: float) -> void:
 		metal_factory_rig.breathe(show_beat, _show_bpm, _intensity)
 
 ## Henge's show (doc/world/GAME_BIBLE.md: held breath, then release), from the show's intensity (intensity_curve, the
-## map's light events): the slabs' edges light one by one round the ring as the show builds (HENGE_BUILT_SHARE of the
+## map's light events): the slabs' edges light one by one from straight ahead out to both sides as the show builds (HENGE_BUILT_SHARE of the
 ## ring by _built) and all the way round over the run-up to a drop (build_up); on the drop every gap floods
 ## (HengeFloor.gdshader's flood), easing in over HENGE_FLOOD_RISE_SECONDS and out over HENGE_FLOOD_FALL_SECONDS, never
 ## a flash. The intensity hovers at STRIP_DROP for a while (desktop run over 18 maps: drops of under a second, on and
