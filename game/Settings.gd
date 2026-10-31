@@ -26,8 +26,6 @@ const COLOR_PRESETS := [
 		["Galaxy", Color("5b6cff"), Color("ff5be1")],
 		["Lime & Grape", Color("b0f03d"), Color("8e3dff")] ]
 
-## how notes are drawn: index into this list is the note_style shader global
-const NOTE_STYLES := [ ["solid", "Solid"], ["neon", "Neon"] ]
 ## with Darker Notes on, note bodies are no brighter than this HSV value; hue and saturation stay
 const NOTE_DARK_VALUE := 0.7
 ## the scenery around the track, picked on the song menu's Song tab; "auto" follows the environment each map was made for
@@ -267,12 +265,6 @@ var spectator_view: bool:
 	set(value):
 		spectator_view = value
 		set_and_emit(&"spectator_view", value)
-## the older note looks (Solid or Neon, note_style) instead of the glossy default one (BeepCube.gdshader), to compare
-## them (owner, 2026-10-25)
-var classic_notes: bool:
-	set(value):
-		classic_notes = value
-		set_and_emit(&"classic_notes", value)
 ## Night City's classic layout (rows of buildings on both sides) instead of the giant building canyon (NightCityRig),
 ## to compare them (owner, 2026-10-25)
 var classic_night_city: bool:
@@ -334,10 +326,6 @@ var resolution: String:
 	set(value):
 		resolution = value
 		set_and_emit(&"resolution", value)
-var note_style: String:
-	set(value):
-		note_style = value
-		set_and_emit(&"note_style", value)
 var darker_notes: bool:
 	set(value):
 		darker_notes = value
@@ -499,12 +487,10 @@ var default_values = {
 	audio_sfx = 0.8,
 	spectator_view = false,
 	spectator_hud = true,
-	classic_notes = false,
 	classic_night_city = false,
 	refresh_90 = false,
 	background = "dynamic",
 	environment = "auto",
-	note_style = "solid",
 	resolution = "Normal",
 	msaa = "4x",
 	glow_quality = "Soft",

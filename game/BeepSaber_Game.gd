@@ -913,7 +913,7 @@ func _ready() -> void:
 	add_child(low_res_glow)
 	_apply_glow()
 	_apply_msaa()
-	_apply_note_style()
+	_apply_note_brightness()
 	_apply_environment()
 	_apply_atmosphere()
 	
@@ -1174,8 +1174,8 @@ func on_settings_changed(key: StringName) -> void:
 			_apply_glow()
 		&"msaa":
 			_apply_msaa()
-		&"note_style", &"darker_notes", &"classic_notes":
-			_apply_note_style()
+		&"darker_notes":
+			_apply_note_brightness()
 		&"environment":
 			if gamestate == gamestate_mapselection and _result_moment:
 				_switch_stage_in_black()
@@ -1185,13 +1185,8 @@ func on_settings_changed(key: StringName) -> void:
 			if not _height_held:
 				xr_origin.transform.origin.y = Constants.view_shift(Settings.player_height_offset)
 
-## Tells the note shaders which look the player picked (the glossy one, 2, unless Classic notes is on), and how
-## bright their colours may be.
-func _apply_note_style() -> void:
-	var style := maxi(Settings.NOTE_STYLES.map(func(s: Array) -> String: return s[0]).find(Settings.note_style), 0)
-	if not Settings.classic_notes:
-		style = 2
-	RenderingServer.global_shader_parameter_set(&"note_style", style)
+## Tells the note shaders how bright their colours may be (Darker notes).
+func _apply_note_brightness() -> void:
 	RenderingServer.global_shader_parameter_set(&"note_max_value", Settings.NOTE_DARK_VALUE if Settings.darker_notes else 1.0)
 
 ## Shows the environment the player picked, or on "Auto" the one for the last map played.

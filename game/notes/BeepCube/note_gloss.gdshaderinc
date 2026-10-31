@@ -1,4 +1,4 @@
-// The default note look (note_style 2, Settings.classic_notes off): glossy coloured plastic as in Beat Saber, so the
+// The note look: glossy coloured plastic as in Beat Saber, so the
 // notes stop reading as painted tin cans (owner, 2026-10-25). Shared by BeepCube.gdshader and ChainLink.gdshader.
 // Fake light only (AGENTS.md "Light", rule 10), a few math operations per pixel, no texture:
 //   1. body: the note's colour glowing on its own, at a medium level so the colour stays clear in a dark scene

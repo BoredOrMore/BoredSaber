@@ -33,7 +33,7 @@ extends Node3D
 ##   fades in over a second, so pair with --seconds 3, or 0.5 to catch the sparks)
 ##   --failed-word 1 (the big FAILED of a fail in the play space, ResultMoment; pair with --result fail)
 ##   --stats 1 (print the frame's triangles, draw calls and objects as drawn, RenderingServer's counters, one view)
-##   --dot 1 (a dot note)  --note-style 2 (0 Solid, 1 Neon: the Classic notes looks; 2 the glossy default)
+##   --dot 1 (a dot note)
 
 const ENVIRONMENT_SCENE := preload("res://game/event_driver.tscn")
 const FLOOR_SCENE := preload("res://game/floor.tscn")
@@ -77,7 +77,6 @@ func _ready() -> void:
 	var right := Color(args.get("right", Settings.color_right.to_html(false)) as String)
 	RenderingServer.global_shader_parameter_set(&"left_saber_color", left)
 	RenderingServer.global_shader_parameter_set(&"right_saber_color", right)
-	RenderingServer.global_shader_parameter_set(&"note_style", int(args.get("note-style", "2")))
 
 	# Night City's classic layout (in memory only; the saved setting is left alone)
 	Settings.classic_night_city = args.get("classic-city", "0") == "1"
@@ -308,9 +307,6 @@ func _hold_note(camera: Camera3D, color: Color, args: Dictionary) -> void:
 	var material := note.mi.material_override as ShaderMaterial
 	material.set_shader_parameter(&"color", color)
 	material.set_shader_parameter(&"is_dot", args.get("dot", "0") == "1")
-	# the Classic notes looks come with the classic mesh, as in the game
-	if args.get("note-style", "2") != "2":
-		note._set_mesh(note._classic)
 
 ## Sets up the notes' pools on a track at the hit plane, as BeepSaber_Game does, and drops what comes before
 ## `start_beat` (the song starts there; they would all fly in at once). The notes show in the deck as in the game

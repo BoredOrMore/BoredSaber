@@ -40,7 +40,7 @@ before building something new.
   player would see ("how wide the halo is, in metres"), plus its unit. Group them by layer at the top of
   the file, in layer order.
 - `const` for values tuned once; `uniform` only for what the game sets per object; `global uniform` only
-  for what the whole scene shares (`env_haze`, `left_saber_color`, `cut_waves`, `note_style`...). Reuse
+  for what the whole scene shares (`env_haze`, `left_saber_color`, `cut_waves`, `note_max_value`...). Reuse
   those before adding a new one, and reuse the `.gdshaderinc` helpers in `game/env/`
   (`height_fog`, `fog_light`, `player_light`). No colour toning of the darks (gradient mapping, shadow
   tints): the owner had a navy shadow tint removed (2026-10-26); blacks stay black.

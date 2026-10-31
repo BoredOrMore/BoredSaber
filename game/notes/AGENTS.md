@@ -26,7 +26,7 @@ spawn, cut and miss flow, pooling rules and "Add a note type".
 - `BeepCube/` — `BeepCube.gd` (note; `cutted` signal, scoring, rumble), `BeepCube_CutPiece.gd`
   (`CutPiece` RigidBody halves, `MAX_LIFETIME` 0.3 s), `BeepCube_SliceParticles.gd/.tscn` (GPU particles freed
   on Android/Web), `BeepCube.gdshader` (`color`, `is_dot`, `arrows_enabled`, `is_chain_head`, cut uniforms),
-  `note_gloss.gdshaderinc` (the default glossy note look, shared with `ChainLink.gdshader`).
+  `note_gloss.gdshaderinc` (the glossy note look, shared with `ChainLink.gdshader`).
   `BeepCubeTest.tscn` is a standalone test scene.
 - `Chain/` — `ChainLink.gd` (bezier link placement, lenient hitbox, link scoring), shader, mesh.
 - `Arc/` — `Arc.gd` (mesh from `ArcInfo.mesh_arrays`, magnet material on head cut), `Arc.gdshader`
@@ -51,7 +51,7 @@ spawn, cut and miss flow, pooling rules and "Add a note type".
 - Note look: `BeepCube.gdshader` + `note_gloss.gdshaderinc` (shared with `ChainLink.gdshader`); mesh `note_round.glb`
   from `tools/models/note_round.py -- game/notes/BeepCube`.
 - Cut accuracy and points: `BeepCube.cut`, `ChainLink.cut`; the score rules: `game/Scoreboard.gd`, `game/Constants.gd`.
-- Wall or bomb look: `FramedWall.gdshader` / `BombMerged.gdshader` (defaults), the classic ones beside them.
+- Wall or bomb look: `FramedWall.gdshader` / `BombMerged.gdshader` (the bomb's classic one beside it).
 - A new note type: "Add a note type" in `game/AGENTS.md`.
 
 ## Checking a change

@@ -44,12 +44,10 @@ signal benchmark_requested()
 @onready var audio_sfx_control := $Tabs/Audio/VBox/audio/sfx/sfx_slider as HSlider
 @onready var spectator_view_control := $Tabs/Advanced/VBox/spectator_view as CheckButton
 @onready var spectator_hud_control := $Tabs/Advanced/VBox/spectator_hud as CheckButton
-@onready var classic_notes_control := $Tabs/Advanced/VBox/classic_notes as CheckButton
 @onready var classic_night_city_control := $Tabs/Advanced/VBox/classic_night_city as CheckButton
 @onready var refresh_90_control := $Tabs/Advanced/VBox/refresh_90 as CheckButton
 @onready var background_mode_control := $Tabs/Visuals/VBox/background_mode_grid/background_mode as OptionButton
 @onready var background_texture_control := $Tabs/Visuals/VBox/background_texture_grid/background_texture as OptionButton
-@onready var note_style_control := $Tabs/Visuals/VBox/note_style_grid/note_style as OptionButton
 @onready var darker_notes_control := $Tabs/Visuals/VBox/darker_notes as CheckButton
 
 const SWATCH_SIZE := 24
@@ -81,12 +79,6 @@ func _ready() -> void:
 	_add_debug_view_switches()
 	_add_graphics_row()
 
-	for i in len(Settings.NOTE_STYLES):
-		note_style_control.add_item(Settings.NOTE_STYLES[i][1])
-		if Settings.note_style == Settings.NOTE_STYLES[i][0]:
-			note_style_control.selected = i
-	note_style_control.item_selected.connect(_on_note_style_selected)
-	
 	_update_backgrounds()
 
 	color_preset_control.add_item("Custom")
@@ -183,7 +175,6 @@ func set_controls_from_settings() -> void:
 	audio_sfx_control.value = Settings.audio_sfx
 	spectator_view_control.button_pressed = Settings.spectator_view
 	spectator_hud_control.button_pressed = Settings.spectator_hud
-	classic_notes_control.button_pressed = Settings.classic_notes
 	classic_night_city_control.button_pressed = Settings.classic_night_city
 	refresh_90_control.button_pressed = Settings.refresh_90
 
@@ -524,10 +515,6 @@ func _on_spectator_view_toggled(value: bool) -> void:
 func _on_spectator_hud_toggled(value: bool) -> void:
 	Settings.spectator_hud = value
 
-## Switches between the glossy notes and the older looks (the Note style picked on the Visuals tab).
-func _on_classic_notes_toggled(value: bool) -> void:
-	Settings.classic_notes = value
-
 ## Switches Night City between the building canyon and its classic layout.
 func _on_classic_night_city_toggled(value: bool) -> void:
 	Settings.classic_night_city = value
@@ -578,8 +565,6 @@ func _on_background_texture_selected(item: int) -> void:
 func _on_background_mode_selected(item: int) -> void:
 	Settings.background = Settings.BACKGROUND_MODES[item][0]
 
-func _on_note_style_selected(item: int) -> void:
-	Settings.note_style = Settings.NOTE_STYLES[item][0]
 
 func _on_left_handed_toggled(value: bool) -> void:
 	Settings.left_handed = value
