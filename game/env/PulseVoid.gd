@@ -12,6 +12,8 @@ extends Node3D
 ## in the editor too (built, not saved: no owner). Sizes in metres, blockout, untuned.
 
 const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
+## a see-through copy of the rim's segments that softens its outline against the sky (EnvSolid layer 10)
+const ENV_SOLID_SHELL := preload("res://game/env/EnvSolidShell.gdshader")
 const ARCH_STRIP := preload("res://game/env/ArchStrip.gdshader")
 ## a dish panel (doc/assets/dish_panel/spec.md): a unit piece, its face's top at +0.5, scaled to each ring's panel
 const DISH_PANEL := preload("res://game/models/dish_panel.glb")
@@ -118,6 +120,20 @@ func _ready() -> void:
 		legs.append(Transform3D(Basis.looking_at(_leg_foot(k) - _leg_top(k), Vector3.UP), _leg_top(k)))
 	_add_model(FEED_LEG, legs, material)
 	_add_model(RIM_SEGMENT, _rim_segments(), material)
+	var shell_material := material.duplicate() as ShaderMaterial
+	shell_material.shader = ENV_SOLID_SHELL
+	var shells := MultiMesh.new()
+	shells.transform_format = MultiMesh.TRANSFORM_3D
+	shells.mesh = BoxMesh.new()
+	var rim := _rim_segments()
+	shells.instance_count = rim.size()
+	for i in rim.size():
+		shells.set_instance_transform(i, rim[i])
+	var shell_instance := MultiMeshInstance3D.new()
+	shell_instance.multimesh = shells
+	shell_instance.material_override = shell_material
+	shell_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(shell_instance)
 	_add_model(RIM_MAST, masts, material)
 	_add_model(DISH_PROPS, [Transform3D.IDENTITY], material)
 	_add_seams()

@@ -13,7 +13,8 @@ neon_grid      0  6 30
 night_city   -32 16 44
 pulse_void     0  6 44
 metal_factory 30 10 50 --beat 0
-henge          0 14 60"
+henge          0 14 60
+monolith       30 18 62 --build-up 1"
 echo "$FRAMES" | while read -r id yaw pitch fov extra; do
 	# the wide picture: the middle of the card's view, about as wide again as it is tall
 	wide_fov=$(python3 -c "print(round($fov * 0.5, 2))")

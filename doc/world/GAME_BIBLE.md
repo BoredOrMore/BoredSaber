@@ -47,6 +47,24 @@ See `SPATIAL_LAYOUT.md` (origin, bounds, corridor, exclusion zones) and the root
   - Budget notes: draw the floor bands in vertex colour on a wedge mesh, not per pixel; split slabs and strips in
     four quadrants for culling; keep the drop's floor flood below the notes' brightness.
 
+## Monolith (owner, 2026-10-31)
+- Picked after two rounds of concepts (doc https://claude.ai/artifact/Moa8du6uKSKjhjsekRMvj4). Rejected: Shaft, a
+  vertical cylinder 70 m round, because notes fly in from 300 m and came out of its wall. Rule from it: the notes'
+  fly-in stays clear, nothing within about 320 m between y -5 and +30. Henge breaks it too; the owner keeps Henge as is.
+- "Feels tiny" means (owner, 2026-10-31): in open space with something massive, not inside it or at its centre.
+- Abstract, no story. In the Auto pool.
+- Feeling: standing before something that was here before you. One black slab (1:4:9), 360 m wide, 810 m tall, 90 m
+  deep, 520 m away, 30 degrees left of ahead, its face turned to the player, on an open dark plain.
+- Light on the slab only: its two vertical edges (left and right lasers), 8 horizontal seams (square bars), a slit up
+  its middle (floor lights), beams up its face from fixtures on a ledge 150 m up, above the clouds (diagonal and
+  waving; the ledge's own light strip was taken off, owner 2026-10-31). A faint neutral glow on the horizon behind it; its shadow falls across the plain toward the player.
+- Build-up: seams light from the foot up; drop: the slit opens to the top, then closes back low.
+- The main form is one symmetric object placed off-centre on purpose (the point of the stage); props still to come.
+- Setting (owner, 2026-10-31): the player stands on a tall pillar in the middle of a valley, looking down on terraces
+  stepping away below, the slab ahead down the valley, stylized low clouds drifting among the terraces (owner's pick
+  "clouds among terraces" over "above a sea of cloud" and "clouds only far away"). The clouds are stylized like the
+  owner's reference: layered upright flats with rows of round puffs on top and a thin bright rim, paler with distance.
+
 ## Stage stories (agreed with the owner, 2026-10-24, as a first version)
 - Classic: a steel tunnel where a lighting crew rehearses its show. The rings are calibration gates; the moving
   heads are the crew's rig, waiting for the song to start.
