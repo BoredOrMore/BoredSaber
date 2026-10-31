@@ -65,15 +65,13 @@ func _ready() -> void:
 		elif key == &"player_height_offset":
 			player_height_offset_control.set_value_no_signal(Settings.player_height_offset))
 	
-	if OS.get_name() in ["Android", "Web"]:
-		spectator_hud_control.hide()
-		spectator_view_control.hide()
 
 	for i in len(Settings.BACKGROUND_MODES):
 		background_mode_control.add_item(Settings.BACKGROUND_MODES[i][1])
 		if Settings.background == Settings.BACKGROUND_MODES[i][0]:
 			background_mode_control.selected = i
 	background_mode_control.connect("item_selected", _on_background_mode_selected)
+	_group_advanced()
 	_add_debug_view_switches()
 	_add_graphics_row()
 
@@ -87,8 +85,8 @@ func _ready() -> void:
 	set_controls_from_settings()
 	_play_ui_sound_demo = true
 	# each saber's position and rotation row has a Reset back to 0
-	for row: Node in [$Tabs/Advanced/VBox/left_saber_offset/pos_row, $Tabs/Advanced/VBox/left_saber_offset/rot_row,
-			$Tabs/Advanced/VBox/right_saber_offset/pos_row, $Tabs/Advanced/VBox/right_saber_offset/rot_row]:
+	for row: Node in [left_saber_posx_control.get_parent(), left_saber_rotx_control.get_parent(),
+			right_saber_posx_control.get_parent(), right_saber_rotx_control.get_parent()]:
 		(row.get_node(^"reset") as Button).pressed.connect(_reset_row.bind(row))
 	for picker in [left_saber_col.get_picker(),right_saber_col.get_picker()]:
 		picker.sampler_visible = false
@@ -264,6 +262,44 @@ func _add_debug_view_switches() -> void:
 	show_debug_control.get_parent().add_child(measure)
 	show_debug_control.get_parent().move_child(measure, index)
 	_show_debug_view_switches()
+
+## Advanced's sections (MenuSection): [title, the Advanced rows they hold, in order, and for rows most players never
+## need the words of the button that shows them ("" shown always)]
+const ADVANCED_SECTIONS := [
+	["Saber grip", ["left_saber_offset", "right_saber_offset"], "saber grip"],
+	["Cast", ["spectator_hint", "spectator_view", "spectator_hud"], ""],
+	["Developer", ["show_collisions", "show_debug"], "developer options"],
+]
+const SHOW_TEXT := "Show %s"
+const HIDE_TEXT := "Hide %s"
+
+## Groups Advanced into ADVANCED_SECTIONS, the rows of some behind a Show button (AGENTS.md: show less, reveal on
+## demand). Cast has nothing to show where the game draws no spectator view (Android, Web).
+func _group_advanced() -> void:
+	var advanced := $Tabs/Advanced/VBox as VBoxContainer
+	MenuSection.section_list(advanced)
+	for group: Array in ADVANCED_SECTIONS:
+		var section := MenuSection.make(group[0] as String)
+		advanced.add_child(section)
+		var rows: Container = section
+		var words := group[2] as String
+		if not words.is_empty():
+			rows = VBoxContainer.new()
+			rows.add_theme_constant_override(&"separation", MenuSection.ROW_GAP)
+			rows.visible = false
+			var toggle := Button.new()
+			toggle.toggle_mode = true
+			toggle.text = SHOW_TEXT % words
+			toggle.toggled.connect(func(on: bool) -> void:
+				rows.visible = on
+				toggle.text = (HIDE_TEXT if on else SHOW_TEXT) % words)
+			UI_AudioEngine.attach_button(toggle)
+			section.add_child(toggle)
+			section.add_child(rows)
+		for row_name: String in group[1]:
+			advanced.get_node(NodePath(row_name)).reparent(rows, false)
+		if group[0] == "Cast" and OS.get_name() in ["Android", "Web"]:
+			section.hide()
 
 ## What each graphics chip means, under the chips.
 const GRAPHICS_HINTS := {
