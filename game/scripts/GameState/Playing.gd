@@ -2,6 +2,7 @@ extends GameState
 class_name GameStatePlaying
 
 func _ready(game: BeepSaber_Game) -> void:
+	vr.set_play_performance(true)
 	game.main_menu._hide()
 	game.profiles_canvas._hide()
 	game.slash_block.set_shown(false)
