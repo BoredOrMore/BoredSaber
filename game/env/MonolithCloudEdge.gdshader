@@ -2,8 +2,9 @@ shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 
 // The soft edge of Monolith's clouds (MonolithRig.gd; owner, 2026-10-31: blur the clouds' edges): a thin see-through
-// fringe out from the puffs' outline, in the rim's tone (MonolithCloud.gdshader RIM_TONE: keep them matching), fading from solid on the outline (UV.x 0) to clear at its rim (UV.x 1). The only blending on the stage,
-// and only on this strip. BLOCKOUT, untuned.
+// fringe out from the puffs' outline, in the rim's tone (MonolithCloud.gdshader RIM_TONE: keep them matching), fading
+// from solid on the outline (UV.x 0) to clear at its rim (UV.x 1). The only blending on the stage, and only on this
+// strip. BLOCKOUT, untuned.
 global uniform vec4 env_haze;
 #include "res://game/env/fog_light.gdshaderinc"
 #include "res://game/env/monolith_cloud.gdshaderinc"

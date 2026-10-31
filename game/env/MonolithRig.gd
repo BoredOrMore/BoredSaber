@@ -2,24 +2,25 @@
 class_name MonolithRig
 extends Node3D
 ## Monolith (doc/world/GAME_BIBLE.md "Monolith"; owner, 2026-10-31): standing before something that was here before you.
-## Abstract, no story. The player stands on a tall pillar in the middle of a valley (owner, 2026-10-31): the valley floor
-## lies VALLEY_Y below, its sides step up in terraces to ridges on both sides, and low stylized clouds drift among the
-## terraces (owner's pick B), drawn like stage flats (owner's reference, 2026-10-31): upright rings round the player, each
-## a band whose top is a row of round puffs, nearer rings darker, farther ones paler. One colossal black slab (SLAB, 1:4:9) stands on the valley floor SLAB_DISTANCE away, down
-## the valley SLAB_YAW off straight ahead, its broad face turned to the player: tiny beside something massive, not inside
-## it or at its centre. Nothing within the notes' fly-in (Cuttable.FLY_DISTANCE, r 320 m) rises above y -5 in any
-## direction (terraces start high only beyond it, clouds stay below), so it serves 90 and 360 degree maps too.
-## Light only on the slab (AGENTS.md "Light", rule 5), drawn in its face's own shader (MonolithFace.gdshader; flush strip
-## meshes would fight for depth this far out): its two vertical edges in the left and right lasers' colours, horizontal
-## seams in the square bars' colour lit from the foot up as the show builds, a slit up the middle and a strip along a
-## ledge in the floor lights' colour, LEDGE_HEIGHT up, clear above the clouds; beams up its face from fixtures on that
-## ledge (the diagonal and waving lasers, LightRig; owner, 2026-10-31: moved up out of the clouds). Behind it the horizon glows faintly (MonolithSky) so it stands as a silhouette, and its shadow falls down
-## the valley toward the player (MonolithFloor.gdshader, on the valley and the pillar). The clouds are opaque with holes
-## (MonolithCloud.gdshader), so they cost no blending.
+## Abstract, no story. The player stands on a tall pillar in the middle of a valley (owner, 2026-10-31): the valley
+## floor lies VALLEY_Y below, its sides step up in terraces to ridges on both sides, and low stylized clouds drift among
+## the terraces (owner's pick B), drawn like stage flats (owner's reference, 2026-10-31): upright rings round the
+## player, each a band whose top is a row of round puffs, nearer rings darker, farther ones paler. One colossal black
+## slab (SLAB, 1:4:9) stands on the valley floor SLAB_DISTANCE away, down the valley SLAB_YAW off straight ahead, its
+## broad face turned to the player: tiny beside something massive, not inside it or at its centre. Nothing within the
+## notes' fly-in (Cuttable.FLY_DISTANCE, r 320 m) rises above y -5 in any direction (terraces start high only beyond it,
+## clouds stay below), so it serves 90 and 360 degree maps too. Light only on the slab (AGENTS.md "Light", rule 5),
+## drawn in its face's own shader (MonolithFace.gdshader; flush strip meshes would fight for depth this far out): its
+## two vertical edges in the left and right lasers' colours, horizontal seams in the square bars' colour lit from the
+## foot up as the show builds, a slit up the middle in the floor lights' colour; beams up its face from fixtures on a
+## ledge LEDGE_HEIGHT up, clear above the clouds (the diagonal and waving lasers, LightRig; owner, 2026-10-31: moved up
+## out of the clouds, the ledge's own light strip taken off). Behind it the horizon glows faintly (MonolithSky) so it
+## stands as a silhouette, and its shadow falls down the valley toward the player (MonolithFloor.gdshader, on the valley
+## and the pillar). The clouds are opaque meshes whose outline is the puffs themselves (MonolithCloud.gdshader) with a
+## thin see-through soft edge (MonolithCloudEdge.gdshader); what lies below them sinks in (monolith_cloud.gdshaderinc).
 ## Far edges stay sharp in the blockout: the soft-edge layer (AGENTS.md "Soft far edges") goes on the slab's outline
-## once the look is agreed, never across its per-seam lights.
-## BLOCKOUT: one box, the valley mesh, a pillar and the cloud rings. A tool script, so it shows in the editor too.
-## Sizes in metres, untuned.
+## once the look is agreed, never across its per-seam lights. BLOCKOUT: one box, the valley mesh, a pillar and the cloud
+## rings. A tool script, so it shows in the editor too. Sizes in metres, untuned.
 
 const FACE_SHADER := preload("res://game/env/MonolithFace.gdshader")
 const FLOOR_SHADER := preload("res://game/env/MonolithFloor.gdshader")
@@ -31,7 +32,7 @@ const CLOUD_EDGE_SHADER := preload("res://game/env/MonolithCloudEdge.gdshader")
 const SLAB := Vector3(360.0, 810.0, 90.0)
 const SLAB_DISTANCE := 520.0
 const SLAB_YAW := deg_to_rad(30.0)
-## the ledge across the slab's face carrying the lasers' fixtures and the floor lights' strip: metres up from its foot,
+## the ledge across the slab's face carrying the lasers' fixtures: metres up from its foot,
 ## above the clouds' puffs round the slab (up to about +60 m, CLOUD_RINGS)
 const LEDGE_HEIGHT := 150.0
 ## the pillar the player stands on: from under the platform (PILLAR_TOP) down to the valley floor, PILLAR_RADIUS wide
@@ -77,7 +78,6 @@ func _ready() -> void:
 	face_material = ShaderMaterial.new()
 	face_material.shader = FACE_SHADER
 	face_material.set_shader_parameter(&"size", SLAB)
-	face_material.set_shader_parameter(&"ledge_height", LEDGE_HEIGHT)
 	var slab := MeshInstance3D.new()
 	var box := BoxMesh.new()
 	box.size = SLAB
