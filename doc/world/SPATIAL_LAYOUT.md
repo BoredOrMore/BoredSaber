@@ -98,16 +98,17 @@ Plain boxes in `HengeRig.gd`, every size a named constant there; for 90 and 360 
   top front corners about 980 m away (camera far 1024 m).
 - Pillar: the platform stands on a column 10 m round down to the valley floor at y -80.
 - Valley: runs the slab's way (30 degrees left of ahead); a flat floor at y -80 under the clouds. Mountains (owner,
-  2026-10-31: layered silhouette flats in place of the first terraces): 3 upright rings at 380, 650 and 950 m with
-  jagged ridges, low along the valley's line (-30, -10, +10 m, so they hide in the clouds toward the slab and behind
-  the player) and high at its sides (+100, +220, +380 m), so each farther layer stands higher to the eye; nothing of
-  them within 320 m, none touching the slab. The slab stands on the valley floor (top about 950 m away); its shadow falls
-  down the valley toward the player.
-- Clouds (owner's reference, 2026-10-31: stylized flats): 6 upright rings at 80, 150, 230, 340, 470 and 760 m (none crossing the slab; the
-  nearest three added 2026-10-31 so the clouds reach close to the player), each a band up from the valley floor topped
-  by a row of round puffs; inside 320 m the puffs top out below y -5 (the 230 m ring near y -9, its soft edge -6); beyond 320 m they
-  rise to about +60 m at 760 m, hiding the slab's foot. Edges soft (a fringe 0.012 rad wide, owner 2026-10-31);
-  terrain, pillar and slab below the clouds' level take the cloud's tone, so nothing pokes through a cloud.
+  2026-10-31: 3D low-poly peaks, no two alike, in place of the silhouette flats): six model variants placed round rings
+  at 380, 650 and 950 m, each scaled to the ring's height there: low along the valley's line (-30, -10, +10 m; none is
+  placed under 80 m above the floor, so the valley toward the slab and behind the player stays open) and high at its
+  sides (+100, +220, +380 m), so each farther layer stands higher to the eye; nothing of them within 320 m, none
+  touching the slab. The slab stands on the valley floor (top about 950 m away); its shadow falls down the valley
+  toward the player.
+- Clouds (owner's reference, 2026-10-31: 3D cumulus banks, no two alike, drifting slowly): six model variants laid in
+  two rows round each of 6 bands at 80, 150, 230, 340, 470 and 760 m, joining into one cloud sea; inside 320 m every
+  top stays below y -6; beyond it they rise to about +60 m at 760 m, hiding the slab's foot. No bank crosses the slab.
+  Each band turns round the player at about 1.5 m/s (0.7-1.3x per band, one way). Terrain, pillar and slab below the
+  clouds' level take the cloud's tone, so nothing pokes through a cloud.
 - Lights: drawn on the slab's face (edges 3 m, seams 1.5 m every 90 m, slit 2 m); beam fixtures along a
   ledge 150 m up (y +70, above the clouds), 2 m in front of the face.
 - Sky: black, a neutral glow low on the horizon behind the slab and a fainter one all round behind the ridges.

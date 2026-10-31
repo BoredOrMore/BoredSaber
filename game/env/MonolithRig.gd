@@ -3,10 +3,9 @@ class_name MonolithRig
 extends Node3D
 ## Monolith (doc/world/GAME_BIBLE.md "Monolith"; owner, 2026-10-31): standing before something that was here before you.
 ## Abstract, no story. The player stands on a tall pillar in the middle of a valley (owner, 2026-10-31): the valley
-## floor lies VALLEY_Y below, mountains rise on both sides, and low stylized clouds fill it (owner's pick B), the clouds
-## and the mountains both drawn like stage flats (owner, 2026-10-31: mountains as layered silhouettes, in place of the
-## first terraces) (owner's reference, 2026-10-31): upright rings round the
-## player, each a band whose top is a row of round puffs, nearer rings darker, farther ones paler. One colossal black
+## floor lies VALLEY_Y below, mountains rise on both sides, and low stylized clouds fill it (owner's pick B), both 3D
+## models with no two alike (owner, 2026-10-31, in place of the flat rings): cumulus banks after the owner's reference,
+## drifting slowly round the player, nearer bands darker, farther ones paler, and low-poly peaks. One colossal black
 ## slab (SLAB, 1:4:9) stands on the valley floor SLAB_DISTANCE away, down the valley SLAB_YAW off straight ahead, its
 ## broad face turned to the player: tiny beside something massive, not inside it or at its centre. Nothing within the
 ## notes' fly-in (Cuttable.FLY_DISTANCE, r 320 m) rises above y -5 in any direction (mountains stand only beyond it,
@@ -17,18 +16,17 @@ extends Node3D
 ## ledge LEDGE_HEIGHT up, clear above the clouds (the diagonal and waving lasers, LightRig; owner, 2026-10-31: moved up
 ## out of the clouds, the ledge's own light strip taken off). Behind it the horizon glows faintly (MonolithSky) so it
 ## stands as a silhouette, and its shadow falls down the valley toward the player (MonolithFloor.gdshader, on the valley
-## and the pillar). The mountains (MonolithRidge.gdshader) are dark flat silhouettes rising out of the clouds, paler with
-## distance, low down the valley so the slab and the way behind stay open. The clouds are opaque meshes whose outline is the puffs themselves (MonolithCloud.gdshader) with a
-## thin see-through soft edge (MonolithCloudEdge.gdshader); what lies below them sinks in (monolith_cloud.gdshaderinc).
+## and the pillar). The mountains (MonolithRidge.gdshader) are dark faceted peaks rising out of the clouds, paler with
+## distance, none down the valley's line so the slab and the way behind stay open. The clouds (MonolithCloud.gdshader)
+## are opaque banks with bright tops and lit upper outlines; what lies below them sinks in (monolith_cloud.gdshaderinc).
 ## Far edges stay sharp in the blockout: the soft-edge layer (AGENTS.md "Soft far edges") goes on the slab's outline
 ## once the look is agreed, never across its per-seam lights. BLOCKOUT: one box, a flat valley floor, a pillar, the
-## cloud rings and the mountain rings. A tool script, so it shows in the editor too. Sizes in metres, untuned.
+## cloud bands and the mountains. A tool script, so it shows in the editor too. Sizes in metres, untuned.
 
 const FACE_SHADER := preload("res://game/env/MonolithFace.gdshader")
 const FLOOR_SHADER := preload("res://game/env/MonolithFloor.gdshader")
 const CLOUD_SHADER := preload("res://game/env/MonolithCloud.gdshader")
 const RIDGE_SHADER := preload("res://game/env/MonolithRidge.gdshader")
-const CLOUD_EDGE_SHADER := preload("res://game/env/MonolithCloudEdge.gdshader")
 ## the slab: its size (across, up, deep), its front face's distance from the player and its turn left of straight ahead
 ## (radians), which is also the way the valley runs; its top front corners stand about 950 m away, inside the camera's
 ## far plane (1024 m)
@@ -45,46 +43,64 @@ const PILLAR_SIDES := 6
 ## the valley floor's height, under the clouds, reaching VALLEY_RADIUS from the player (past the last ridge)
 const VALLEY_Y := -80.0
 const VALLEY_RADIUS := 980.0
-## the mountains (owner, 2026-10-31: layered silhouette flats in place of the terraces): one upright ring per entry of
-## RIDGE_RINGS (radius, the ridge's height down the valley, its height at the valley's sides), all beyond the notes'
-## fly-in (r 320 m) and clear of the slab (the nearest inside its face, the others behind its back corners); nearer rings
-## lower to the eye than farther ones so every layer shows. Between the valley's line and its sides the height follows
-## |sin| of the angle off the valley to the power RIDGE_VALLEY_POWER (higher: a wider, flatter valley floor).
+## the mountains (owner, 2026-10-31: 3D models in place of the flat silhouettes, no two alike): low-poly peaks
+## (tools/models/monolith_mountain.py, MOUNTAIN_MODELS) stood round one ring per entry of RIDGE_RINGS (radius, the
+## peaks' height down the valley, their height at the valley's sides), all beyond the notes' fly-in (r 320 m) and clear
+## of the slab (the nearest inside its face, the others behind its back corners); nearer rings lower to the eye than
+## farther ones so every layer shows. Between the valley's line and its sides the height follows |sin| of the angle off
+## the valley to the power RIDGE_VALLEY_POWER (higher: a wider, flatter valley floor). Each mountain is scaled to that
+## height times MOUNTAIN_HEIGHT_JITTER (min, max) and turned to face the player; neighbours overlap by MOUNTAIN_OVERLAP
+## of their length; none is placed where the height is under MOUNTAIN_MIN_HEIGHT above the valley floor (the valley's
+## line stays open).
 const RIDGE_RINGS := [Vector3(380.0, -30.0, 100.0), Vector3(650.0, -10.0, 220.0), Vector3(950.0, 10.0, 380.0)]
 const RIDGE_VALLEY_POWER := 1.5
-## the ridge line: a peak or a dip every RIDGE_SPACING metres (at 400 m out, wider farther away), peaks up and dips down
-## by up to RIDGE_JAG of the ring's side height range
-const RIDGE_SPACING := Vector2(30.0, 80.0)
-const RIDGE_JAG := 0.2
-## the mountains' soft edge: the stage's far blur width (AGENTS.md "Soft far edges", radians), not smoothed at the peaks
-const RIDGE_BLUR := 0.007
-const RIDGE_BLUR_SMOOTH := 1
-## the mountains' fringe tone (MonolithCloudEdge.gdshader `tone`: a grey plus this many times the haze); the clouds'
-## is CLOUD_EDGE_TONE (MonolithCloud.gdshader RIM_TONE: keep them matching)
-const RIDGE_EDGE_TONE := Vector2(0.03, 0.6)
-const CLOUD_EDGE_TONE := Vector2(0.12, 2.0)
-## the clouds: one upright ring per entry of CLOUD_RINGS (radius, puffs' base height, their tallest rise above it), from
-## the valley floor up to a row of round puffs CLOUD_PUFF_WIDTH wide (metres at 400 m out, wider farther away), one
-## vertex per CLOUD_STEP metres along the top. Rings within the notes' fly-in (r 320 m) keep their puffs below y -5.
-## (owner, 2026-10-31: clouds closer to the player, so the two nearest rings sit 80 and 150 m out, well below)
+const MOUNTAIN_MODELS: Array[PackedScene] = [preload("res://game/models/monolith_mountain_0.glb"),
+	preload("res://game/models/monolith_mountain_1.glb"), preload("res://game/models/monolith_mountain_2.glb"),
+	preload("res://game/models/monolith_mountain_3.glb"), preload("res://game/models/monolith_mountain_4.glb"),
+	preload("res://game/models/monolith_mountain_5.glb")]
+const MOUNTAIN_HEIGHT_JITTER := Vector2(0.8, 1.15)
+const MOUNTAIN_OVERLAP := 0.15
+const MOUNTAIN_MIN_HEIGHT := 80.0
+## the clouds (owner, 2026-10-31: 3D models in place of the flat rings, no two alike, drifting slowly): cumulus banks
+## (tools/models/monolith_cloud.py, CLOUD_MODELS) laid round one band per entry of CLOUD_RINGS (radius, the banks' base
+## height, their tallest rise above it) in CLOUD_ROWS rows spread CLOUD_SPREAD of the gap to the next band in and out,
+## so the bands join into one cloud sea. Each bank's top reaches the band's rise times CLOUD_HEIGHT_JITTER (min, max)
+## above its base, its foot sunk CLOUD_SINK of the rise below the base (hidden among the others), it is stretched
+## CLOUD_WIDEN times wider than tall (flatter decks, still puffy) and turned at random; neighbours overlap by
+## CLOUD_OVERLAP of their length. Bands within the notes' fly-in (r 320 m) keep their tops below y -5.
+## (owner, 2026-10-31: clouds closer to the player, so the two nearest bands sit 80 and 150 m out, well below)
 const CLOUD_RINGS := [Vector3(80.0, -55.0, 18.0), Vector3(150.0, -48.0, 22.0), Vector3(230.0, -43.0, 26.0),
 	Vector3(340.0, -25.0, 34.0), Vector3(470.0, -12.0, 44.0), Vector3(760.0, 0.0, 60.0)]
-const CLOUD_PUFF_WIDTH := Vector2(40.0, 110.0)
-const CLOUD_STEP := 3.0
-## the puffs' base rises and falls round each ring by this much, CLOUD_SWELLS times round
-const CLOUD_SWELL := 8.0
-const CLOUD_SWELLS := 5
-## the clouds' soft edge (owner, 2026-10-31): a see-through fringe out from the puffs' outline, this wide as an angle
-## seen from the player (radians, so far rings get wider fringes), its direction smoothed over this many top vertices
-## either side so it doesn't fold at the dips between puffs
-const CLOUD_BLUR := 0.012
-const CLOUD_BLUR_SMOOTH := 3
-## the random puffs come from this seed, so every load looks the same
+const CLOUD_MODELS: Array[PackedScene] = [preload("res://game/models/monolith_cloud_0.glb"),
+	preload("res://game/models/monolith_cloud_1.glb"), preload("res://game/models/monolith_cloud_2.glb"),
+	preload("res://game/models/monolith_cloud_3.glb"), preload("res://game/models/monolith_cloud_4.glb"),
+	preload("res://game/models/monolith_cloud_5.glb")]
+const CLOUD_ROWS := 2
+const CLOUD_HEIGHT_JITTER := Vector2(0.7, 1.0)
+const CLOUD_SPREAD := 0.25
+const CLOUD_SINK := 0.4
+const CLOUD_WIDEN := 1.3
+const CLOUD_OVERLAP := 0.1
+## each band drifts round the player at CLOUD_DRIFT metres a second (all one way, like one wind), CLOUD_DRIFT_SPREAD
+## (min, max) times that per band so the layers slide past each other
+const CLOUD_DRIFT := 1.5
+const CLOUD_DRIFT_SPREAD := Vector2(0.7, 1.3)
+## the notes' fly-in rule (owner, 2026-10-31): within Cuttable.FLY_DISTANCE plus NOTE_PATH_MARGIN of the player no
+## cloud top rises above NOTE_PATH_FLOOR and no mountain stands
+const NOTE_PATH_MARGIN := 20.0
+const NOTE_PATH_FLOOR := -6.0
+## the random banks and mountains come from this seed, so every load looks the same
 const CLOUD_SEED := 31
+## each cloud band and the mountains are cut into this many slices round the player (one mesh and draw call each), so
+## the slices out of view are skipped (frustum culling)
+const SECTORS := 4
 
 ## the slab face's material (light colours, build-up and slit set each frame by EventDriver) and the floor's
 var face_material: ShaderMaterial
 var floor_material: ShaderMaterial
+## the cloud bands (CLOUD_RINGS order) and how fast each turns round the player (radians a second, CLOUD_DRIFT)
+var _cloud_bands: Array[Node3D] = []
+var _cloud_spins: Array[float] = []
 
 func _ready() -> void:
 	face_material = ShaderMaterial.new()
@@ -130,39 +146,31 @@ func _ready() -> void:
 	add_child(pillar)
 	var random := RandomNumberGenerator.new()
 	random.seed = CLOUD_SEED
+	var cloud_meshes := _model_meshes(CLOUD_MODELS)
 	for i in CLOUD_RINGS.size():
 		var material := ShaderMaterial.new()
 		material.shader = CLOUD_SHADER
 		material.set_shader_parameter(&"depth_share", float(i) / (CLOUD_RINGS.size() - 1))
-		var edge_material := ShaderMaterial.new()
-		edge_material.shader = CLOUD_EDGE_SHADER
-		edge_material.set_shader_parameter(&"depth_share", float(i) / (CLOUD_RINGS.size() - 1))
-		edge_material.set_shader_parameter(&"tone", CLOUD_EDGE_TONE)
-		var cloud := MeshInstance3D.new()
-		cloud.mesh = _cloud_ring(CLOUD_RINGS[i], random)
-		cloud.position = _around_player(Vector3.ZERO)
-		cloud.set_surface_override_material(0, material)
-		cloud.set_surface_override_material(1, edge_material)
-		cloud.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		add_child(cloud)
-	for i in RIDGE_RINGS.size():
-		var material := ShaderMaterial.new()
-		material.shader = RIDGE_SHADER
-		material.set_shader_parameter(&"depth_share", float(i) / (RIDGE_RINGS.size() - 1))
-		_sink_into_clouds(material)
-		var edge_material := ShaderMaterial.new()
-		edge_material.shader = CLOUD_EDGE_SHADER
-		edge_material.set_shader_parameter(&"depth_share", float(i) / (RIDGE_RINGS.size() - 1))
-		edge_material.set_shader_parameter(&"tone", RIDGE_EDGE_TONE)
-		var ridge := MeshInstance3D.new()
-		ridge.mesh = _ridge_ring(RIDGE_RINGS[i], random)
-		ridge.position = _around_player(Vector3.ZERO)
-		ridge.set_surface_override_material(0, material)
-		ridge.set_surface_override_material(1, edge_material)
-		ridge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		add_child(ridge)
+		var band := Node3D.new()
+		band.position = _around_player(Vector3.ZERO)
+		add_child(band)
+		_add_sectors(band, _cloud_band(i, cloud_meshes, random), material)
+		_cloud_bands.append(band)
+		_cloud_spins.append(CLOUD_DRIFT * random.randf_range(CLOUD_DRIFT_SPREAD.x, CLOUD_DRIFT_SPREAD.y) / CLOUD_RINGS[i].x)
+	var mountain_material := ShaderMaterial.new()
+	mountain_material.shader = RIDGE_SHADER
+	_sink_into_clouds(mountain_material)
+	var mountains := Node3D.new()
+	mountains.position = _around_player(Vector3.ZERO)
+	add_child(mountains)
+	_add_sectors(mountains, _mountain_rings(_model_meshes(MOUNTAIN_MODELS), random), mountain_material)
 
-## Gives `material` the cloud rings' radii and levels (the puffs' middle height), so what lies below them sinks in
+## Turns the cloud bands round the player (CLOUD_DRIFT), each at its own pace.
+func _process(delta: float) -> void:
+	for i in _cloud_bands.size():
+		_cloud_bands[i].rotate_y(-_cloud_spins[i] * delta)
+
+## Gives `material` the cloud bands' radii and levels (the puffs' middle height), so what lies below them sinks in
 ## (monolith_cloud.gdshaderinc).
 func _sink_into_clouds(material: ShaderMaterial) -> void:
 	assert(CLOUD_RINGS.size() == 6, "monolith_cloud.gdshaderinc CLOUD_RING_COUNT is 6")
@@ -175,127 +183,145 @@ func _sink_into_clouds(material: ShaderMaterial) -> void:
 	material.set_shader_parameter(&"cloud_levels", levels)
 	material.set_shader_parameter(&"cloud_centre", Vector2(0.0, Constants.PLAYER_Z))
 
-## One ring of cloud (`ring`: radius, the puffs' base height, their tallest rise): a band from the valley floor up to a
-## row of overlapping round puffs, UV.x measured from the tallest puffs' line for its shading (_upright_ring).
-func _cloud_ring(ring: Vector3, random: RandomNumberGenerator) -> ArrayMesh:
-	var around := TAU * ring.x
-	var scale := ring.x / 400.0
-	# the puffs: centre along the ring and radius, each overlapping the last
-	var puffs: Array[Vector2] = []
-	var along := 0.0
-	while along < around:
-		var radius := random.randf_range(CLOUD_PUFF_WIDTH.x, CLOUD_PUFF_WIDTH.y) * 0.5 * scale
-		puffs.append(Vector2(along + radius, radius))
-		along += radius * random.randf_range(1.0, 1.6)
-	var tallest := 0.0
-	for puff in puffs:
-		tallest = maxf(tallest, puff.y)
-	var samples := ceili(around / CLOUD_STEP)
-	var tops: Array[Vector2] = []
-	var shade := PackedFloat32Array()
-	var first := 0
-	for i in samples + 1:
-		var s := around * i / samples
-		while first < puffs.size() - 1 and puffs[first].x + puffs[first].y < s:
-			first += 1
-		# the nearby puffs, and the ring's first and last ones once round, so the outline closes without a step
+## The first mesh in each of `models` (the .glb scenes): [its arrays for merging (_merged), its top, its length (x),
+## how far it reaches from its origin toward +z or to either side, whichever is more].
+static func _model_meshes(models: Array[PackedScene]) -> Array[Array]:
+	var meshes: Array[Array] = []
+	for model in models:
+		var mesh := LaserFixtures._model_mesh(model)
+		var arrays := mesh.surface_get_arrays(0)
 		var top := 0.0
-		var near: Array[int] = [0, 1, 2, 3, puffs.size() - 1, puffs.size() - 2, puffs.size() - 3]
-		near.append_array(range(first, mini(first + 4, puffs.size())))
-		for p in near:
-			for once_round in [-around, 0.0, around]:
-				var d: float = s + once_round - puffs[p].x
-				if absf(d) < puffs[p].y:
-					top = maxf(top, sqrt(puffs[p].y * puffs[p].y - d * d))
-		var swell := ring.y + CLOUD_SWELL * sin(s / ring.x * CLOUD_SWELLS)
-		var height := swell + top / tallest * ring.z
-		tops.append(Vector2(s, height))
-		shade.append(swell + ring.z)
-	return _upright_ring(ring.x, tops, shade, CLOUD_BLUR, CLOUD_BLUR_SMOOTH)
+		for v: Vector3 in arrays[Mesh.ARRAY_VERTEX]:
+			top = maxf(top, v.y)
+		var aabb := mesh.get_aabb()
+		meshes.append([arrays, top, aabb.size.x, maxf(aabb.end.z, maxf(aabb.size.x, aabb.size.z) * 0.5)])
+	return meshes
 
-## One ring of mountains (`ring`: radius, the ridge's height down the valley, at its sides): a band from the valley floor
-## up to a jagged ridge, low along the valley (the slab's line, both ways) and high at its sides (_upright_ring).
-func _ridge_ring(ring: Vector3, random: RandomNumberGenerator) -> ArrayMesh:
-	var around := TAU * ring.x
-	var scale := ring.x / 400.0
-	var jag := RIDGE_JAG * (ring.z - ring.y)
-	# an even count of points, peaks and dips in turn, so the ridge closes round the ring without a step
-	var spacing := (RIDGE_SPACING.x + RIDGE_SPACING.y) * 0.5 * scale
-	var count := maxi(2, roundi(around / spacing / 2.0) * 2)
-	var tops: Array[Vector2] = []
-	var shade := PackedFloat32Array()
-	for i in count:
-		var s := (i + random.randf_range(-0.3, 0.3)) * around / count
-		var side := pow(absf(sin(s / ring.x + SLAB_YAW)), RIDGE_VALLEY_POWER)
-		var bump := random.randf_range(0.3, 1.0) * jag * (1.0 if i % 2 == 0 else -1.0)
-		tops.append(Vector2(s, lerpf(ring.y, ring.z, side) + bump * side))
-		shade.append(tops[i].y)
-	tops.append(tops[0] + Vector2(around, 0.0))
-	shade.append(shade[0])
-	return _upright_ring(ring.x, tops, shade, RIDGE_BLUR, RIDGE_BLUR_SMOOTH)
+## Cloud band `index` of CLOUD_RINGS as SECTORS meshes round the player (_merged): banks picked from `meshes`, each
+## scaled to the band's rise, turned at random and nudged in or out, overlapping its neighbours. UV.x of each vertex is
+## its metres below its bank's top, UV.y the band's depth share (MonolithCloud.gdshader).
+func _cloud_band(index: int, meshes: Array[Array], random: RandomNumberGenerator) -> Array[ArrayMesh]:
+	var ring: Vector3 = CLOUD_RINGS[index]
+	var gap: float = (CLOUD_RINGS[mini(index + 1, CLOUD_RINGS.size() - 1)].x - CLOUD_RINGS[maxi(index - 1, 0)].x) * 0.5
+	var places: Array[Array] = []
+	for row in CLOUD_ROWS:
+		var radius := ring.x + (float(row) / maxi(CLOUD_ROWS - 1, 1) * 2.0 - 1.0) * CLOUD_SPREAD * gap
+		var around := TAU * radius
+		var along := random.randf_range(0.0, 50.0)
+		while along < around:
+			var pick: Array = meshes[random.randi_range(0, meshes.size() - 1)]
+			var rise := ring.z * random.randf_range(CLOUD_HEIGHT_JITTER.x, CLOUD_HEIGHT_JITTER.y)
+			var width_scale: float = (rise + ring.z * CLOUD_SINK) / pick[1] * CLOUD_WIDEN
+			# a bank reaching into the notes' fly-in keeps its top below NOTE_PATH_FLOOR there
+			if radius - pick[3] * width_scale < Cuttable.FLY_DISTANCE + NOTE_PATH_MARGIN:
+				rise = minf(rise, NOTE_PATH_FLOOR - ring.y)
+			var height_scale: float = (rise + ring.z * CLOUD_SINK) / pick[1]
+			var length: float = pick[2] * width_scale
+			var angle := (along + length * 0.5) / radius
+			var origin := Vector3(sin(angle), 0.0, -cos(angle)) * radius + Vector3(0.0, ring.y - ring.z * CLOUD_SINK, 0.0)
+			if _touches_slab(origin, pick[3] * width_scale):
+				along += length * (1.0 - CLOUD_OVERLAP)
+				continue
+			var basis := Basis(Vector3.UP, random.randf_range(0.0, TAU)) * Basis.from_scale(
+					Vector3(width_scale, height_scale, width_scale))
+			places.append([pick, Transform3D(basis, origin), height_scale, float(index) / (CLOUD_RINGS.size() - 1),
+					angle])
+			along += length * (1.0 - CLOUD_OVERLAP)
+	return _merged(places)
 
-## An upright ring of `radius` round the player whose outline is `tops` (metres along the ring, height; the last one is
-## the first again, once round): a band from the valley floor up to the outline (surface 0; UV.y holds the metres down
-## from the outline, UV.x the metres down from `shade`'s height at each top) and its soft edge, a fringe `blur` (an
-## angle) wide out from the outline, its direction smoothed over `smooth` tops either side (surface 1; UV.x 0 on the
-## outline to 1 at its rim).
-func _upright_ring(radius: float, tops: Array[Vector2], shade: PackedFloat32Array, blur: float, smooth: int) -> ArrayMesh:
-	var around := TAU * radius
-	var vertices := PackedVector3Array()
-	var uvs := PackedVector2Array()
-	for i in tops.size():
-		var out := _ring_point(radius, tops[i].x)
-		vertices.append(out + Vector3(0.0, tops[i].y, 0.0))
-		uvs.append(Vector2(shade[i] - tops[i].y, 0.0))
-		vertices.append(out + Vector3(0.0, VALLEY_Y, 0.0))
-		uvs.append(Vector2(shade[i] - VALLEY_Y, tops[i].y - VALLEY_Y))
-	var indices := PackedInt32Array()
-	for i in tops.size() - 1:
-		var a := i * 2
-		indices.append_array([a, a + 2, a + 1, a + 1, a + 2, a + 3])
-	var mesh := ArrayMesh.new()
-	var arrays := []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = vertices
-	arrays[Mesh.ARRAY_TEX_UV] = uvs
-	arrays[Mesh.ARRAY_INDEX] = indices
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	# the fringe: each top vertex and one pushed out across the outline (along the ring and up)
-	var width := blur * radius
-	var fringe := PackedVector3Array()
-	var fringe_uvs := PackedVector2Array()
-	for i in tops.size():
-		# the neighbours round the closed ring (the last sample is the first again)
-		var before := _round_ring(tops, i - smooth, around)
-		var after := _round_ring(tops, i + smooth, around)
-		var tangent := (after - before).normalized()
-		var normal := Vector2(-tangent.y, tangent.x)
-		var angle := tops[i].x / radius
-		var along_dir := Vector3(cos(angle), 0.0, sin(angle))
-		var top := _ring_point(radius, tops[i].x) + Vector3(0.0, tops[i].y, 0.0)
-		fringe.append(top)
-		fringe_uvs.append(Vector2(0.0, 0.0))
-		fringe.append(top + (along_dir * normal.x + Vector3.UP * normal.y) * width)
-		fringe_uvs.append(Vector2(1.0, 0.0))
-	arrays = []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = fringe
-	arrays[Mesh.ARRAY_TEX_UV] = fringe_uvs
-	arrays[Mesh.ARRAY_INDEX] = indices
-	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	return mesh
+## All of RIDGE_RINGS' mountains as SECTORS meshes round the player (_merged): peaks picked from `meshes`, each scaled
+## to its ring's height there (low along the valley, high at its sides), turned to face the player, overlapping its
+## neighbours. UV.x of each vertex is its metres below its mountain's top, UV.y the ring's depth share
+## (MonolithRidge.gdshader).
+func _mountain_rings(meshes: Array[Array], random: RandomNumberGenerator) -> Array[ArrayMesh]:
+	var places: Array[Array] = []
+	for r in RIDGE_RINGS.size():
+		var ring: Vector3 = RIDGE_RINGS[r]
+		var around := TAU * ring.x
+		var along := random.randf_range(0.0, 100.0)
+		while along < around:
+			var pick: Array = meshes[random.randi_range(0, meshes.size() - 1)]
+			var angle := along / ring.x
+			var side := pow(absf(sin(angle + SLAB_YAW)), RIDGE_VALLEY_POWER)
+			var height := (lerpf(ring.y, ring.z, side) - VALLEY_Y) * random.randf_range(MOUNTAIN_HEIGHT_JITTER.x,
+					MOUNTAIN_HEIGHT_JITTER.y)
+			var scale: float = height / pick[1]
+			var length: float = pick[2] * scale
+			if height >= MOUNTAIN_MIN_HEIGHT:
+				var centre := angle + length * 0.5 / ring.x
+				# its front stays out of the notes' fly-in
+				var radius := maxf(ring.x, Cuttable.FLY_DISTANCE + NOTE_PATH_MARGIN + pick[3] * scale)
+				var origin := Vector3(sin(centre), 0.0, -cos(centre)) * radius + Vector3(0.0, VALLEY_Y, 0.0)
+				if _touches_slab(origin, pick[3] * scale):
+					along += length * (1.0 - MOUNTAIN_OVERLAP)
+					continue
+				var basis := Basis(Vector3.UP, -centre).scaled(Vector3.ONE * scale)
+				places.append([pick, Transform3D(basis, origin), scale, float(r) / (RIDGE_RINGS.size() - 1), centre])
+			along += maxf(length, MOUNTAIN_MIN_HEIGHT) * (1.0 - MOUNTAIN_OVERLAP)
+	return _merged(places)
 
-## The outline sample `i` of a closed ring of `tops` (the last one is the first again), counted on round the ring
-## past either end, with its place along the ring kept continuous (`around`: the ring's length).
-static func _round_ring(tops: Array[Vector2], i: int, around: float) -> Vector2:
-	var count := tops.size() - 1
-	var turns := floori(float(i) / count)
-	return tops[i - turns * count] + Vector2(turns * around, 0.0)
+## One mesh per slice round the player (SECTORS) of every model in `places` ([model arrays, its top, its length],
+## transform, its height scale, depth share, angle round the player from straight ahead) at its place, keeping its normals and
+## vertex colours; UV.x holds each vertex's metres below its model's top and UV.y the depth share. A slice with no
+## models (the valley's open line) gets no mesh.
+static func _merged(places: Array[Array]) -> Array[ArrayMesh]:
+	var slices: Array[Array] = []
+	for k in SECTORS:
+		slices.append([])
+	for place in places:
+		slices[posmod(floori(place[4] / TAU * SECTORS), SECTORS)].append(place)
+	var meshes: Array[ArrayMesh] = []
+	for slice in slices:
+		var vertices := PackedVector3Array()
+		var normals := PackedVector3Array()
+		var colors := PackedColorArray()
+		var uvs := PackedVector2Array()
+		var indices := PackedInt32Array()
+		for p: Array in slice:
+			var model: Array = p[0]
+			var arrays: Array = model[0]
+			var at: Transform3D = p[1]
+			var scale: float = p[2]
+			var share: float = p[3]
+			var first := vertices.size()
+			# normals take the inverse transpose, so they stay square to a surface stretched more one way than another
+			var normal_basis := at.basis.inverse().transposed()
+			for v: Vector3 in arrays[Mesh.ARRAY_VERTEX]:
+				vertices.append(at * v)
+				uvs.append(Vector2((model[1] - v.y) * scale, share))
+			for n: Vector3 in arrays[Mesh.ARRAY_NORMAL]:
+				normals.append((normal_basis * n).normalized())
+			colors.append_array(arrays[Mesh.ARRAY_COLOR])
+			for i: int in arrays[Mesh.ARRAY_INDEX]:
+				indices.append(first + i)
+		if vertices.is_empty():
+			continue
+		var merged := []
+		merged.resize(Mesh.ARRAY_MAX)
+		merged[Mesh.ARRAY_VERTEX] = vertices
+		merged[Mesh.ARRAY_NORMAL] = normals
+		merged[Mesh.ARRAY_COLOR] = colors
+		merged[Mesh.ARRAY_TEX_UV] = uvs
+		merged[Mesh.ARRAY_INDEX] = indices
+		var mesh := ArrayMesh.new()
+		mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, merged)
+		meshes.append(mesh)
+	return meshes
 
-## The point on a ring of `radius` round the player, `along` metres round it from straight ahead (-z), at y 0.
-static func _ring_point(radius: float, along: float) -> Vector3:
-	var angle := along / radius
-	return Vector3(sin(angle), 0.0, -cos(angle)) * radius
+## Whether something standing at `origin` (round the player's standing point) and reaching `reach` metres from it would
+## touch the slab (no cloud crosses it and no mountain touches it: owner, 2026-10-31).
+static func _touches_slab(origin: Vector3, reach: float) -> bool:
+	var local := slab_place().affine_inverse() * _around_player(origin)
+	return absf(local.x) < SLAB.x * 0.5 + reach and absf(local.z) < SLAB.z * 0.5 + reach
+
+## Adds one MeshInstance3D per mesh in `meshes` under `parent`, drawn with `material`.
+func _add_sectors(parent: Node3D, meshes: Array[ArrayMesh], material: ShaderMaterial) -> void:
+	for mesh in meshes:
+		var sector := MeshInstance3D.new()
+		sector.mesh = mesh
+		sector.material_override = material
+		sector.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		parent.add_child(sector)
 
 ## The slab's turn round the player: straight ahead (-z) turned SLAB_YAW to the left.
 static func slab_basis() -> Basis:

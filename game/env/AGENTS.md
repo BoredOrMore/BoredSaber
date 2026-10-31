@@ -113,11 +113,15 @@ Monolith (one colossal slab down a cloud-filled valley between mountains, seen f
 - `MonolithRig.gd` (tool, `MonolithRig`): one black box `SLAB` (1:4:9) `SLAB_DISTANCE` out, `SLAB_YAW` left of ahead,
   its face to the player (`face_material`), standing on the floor of a valley `VALLEY_Y` below the platform that runs
   the same way; the player's pillar down to it; a flat valley floor out to `VALLEY_RADIUS` (valley and pillar share
-  `floor_material`); mountain rings (`RIDGE_RINGS`, `_ridge_ring`: a band up from the valley floor to a jagged ridge,
-  low along the valley's line and high at its sides; owner, 2026-10-31: layered silhouettes in place of terraces); upright cloud rings (`CLOUD_RINGS`, `_cloud_ring`: a band up from the valley floor whose top
-  is a row of round puffs, built in the mesh and closed round the ring with no step) , the nearest 80 m out (owner, 2026-10-31:
-  clouds closer). Clouds and mountains share `_upright_ring` (band plus soft-edge fringe). Every mountain ring stays
-  beyond r 320 m and clear of the slab, and every cloud inside it below y -5; keep it so when changing the numbers. `ledge_spot(share)` and
+  `floor_material`); 3D mountains and clouds (owner, 2026-10-31: models, no two alike, clouds drifting; built by
+  `tools/models/monolith_mountain.py` and `monolith_cloud.py`, six variants each in `game/models/`): mountains round
+  `RIDGE_RINGS` (`_mountain_rings`: scaled to the ring's height there, low along the valley's line and high at its
+  sides, none under `MOUNTAIN_MIN_HEIGHT`, each facing the player), cloud banks round `CLOUD_RINGS` (`_cloud_band`:
+  `CLOUD_ROWS` rows per band, scaled to its rise, turned at random), the nearest 80 m out. `_merged` joins each band and
+  the mountains into `SECTORS` meshes round the player (frustum culling; UV.x metres below the model's top, UV.y the
+  depth share); `_process` turns each band at its own `CLOUD_DRIFT` pace. `_touches_slab` keeps every bank and
+  mountain off the slab, and the `NOTE_PATH_*` checks keep mountains beyond r 320 m and cloud tops inside it below
+  y -6; keep it so when changing the numbers (about 61k triangles in all, about half in view). `ledge_spot(share)` and
   `up_face(lean)` place the lasers (`LightRig` "monolith": diagonal beams up the face from its ledge `LEDGE_HEIGHT`
   up, above the clouds (owner, 2026-10-31), waving lasers
   between; no square bars). Nothing within the notes' 300 m fly-in in any direction (owner's rule, 2026-10-31).
@@ -128,13 +132,12 @@ Monolith (one colossal slab down a cloud-filled valley between mountains, seen f
   slit, it closes to `MONOLITH_SLIT_REST`). Soft far edges not on yet: planned for the slab's outline, never its lines.
 - `MonolithFloor.gdshader`: the valley and pillar: dark ground with a neutral `BASE`, the horizon's glow on the far
   ground toward the slab, steep faces darker than treads (slope from screen derivatives, no normals), the slab's shadow
-  falling toward the player as a widening wedge. `MonolithCloud.gdshader`: the cloud rings, opaque (outline in the
-  mesh: no discard, no blending), light at the tallest puffs' line darkening downward (from that
-  smooth line, not each puff's top, so no crease runs down from the dips between puffs), a thin rim on the puffs, farther rings paler.
-  `MonolithRidge.gdshader`: the mountain rings, opaque dark flat silhouettes with a thin lighter
-  ridge line, paler with distance, sinking into the clouds below their level. `MonolithCloudEdge.gdshader`: the clouds'
-  and mountains' soft edge (owner, 2026-10-31), a see-through fringe `CLOUD_BLUR` or `RIDGE_BLUR` (an angle) out from
-  the outline in the `tone` MonolithRig sets, the stage's only blending. `monolith_cloud.gdshaderinc`: the clouds' tones and
+  falling toward the player as a widening wedge. `MonolithCloud.gdshader`: the cloud banks, opaque, light at each bank's top darkening downward,
+  faces turned up brighter, creases darkened by the baked occlusion (vertex red), the upper outline lit toward a rim
+  tone (vertex green: height in the bank), farther bands paler; no see-through fringe any more (the rim softens the
+  outline; to check on the headset). `MonolithRidge.gdshader`: the mountains, opaque dark facets, those turned toward the
+  glow behind the slab (`KEY`, match `SLAB_YAW`) lighter, paler toward the summits, gullies darkened by the baked
+  occlusion, paler with distance, sinking into the clouds below their level. `monolith_cloud.gdshaderinc`: the clouds' tones and
   `under_cloud`, used by the clouds, the mountains, the valley, the pillar and the slab: below the clouds' level (`CLOUD_RINGS`' puffs'
   middle, set by `_sink_into_clouds`, `CLOUD_RING_COUNT` rings, 6) a surface takes the cloud's tone, so nothing pokes hard through
   a cloud or shows beneath one (owner, 2026-10-31). `MonolithSky.gdshader`:
