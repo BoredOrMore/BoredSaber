@@ -21,7 +21,7 @@ global uniform vec4 env_haze;
 const float TOP_LIGHT = 0.9;
 const float TOP_POWER = 2.0;
 // how much the baked occlusion darkens the creases (0 none, 1 full)
-const float AO_STRENGTH = 0.8;
+const float AO_STRENGTH = 0.35;
 // the rim: a neutral grey plus this many times the haze, how sharply it gathers at the outline (higher: thinner), and
 // the height share in the bank it starts from (below it the outline keeps the body's tone)
 const vec2 RIM_TONE = vec2(0.12, 2.0);

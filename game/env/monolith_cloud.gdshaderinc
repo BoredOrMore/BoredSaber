@@ -11,8 +11,8 @@ uniform float cloud_levels[CLOUD_RING_COUNT];
 uniform vec2 cloud_centre = vec2(0.0, 1.0);
 // the body: a neutral grey plus this many times the haze, just under the top (x) and CLOUD_DARK_DEPTH metres down (y)
 const vec2 CLOUD_TOP_TONE = vec2(0.05, 1.2);
-const vec2 CLOUD_LOW_TONE = vec2(0.008, 0.25);
-const float CLOUD_DARK_DEPTH = 45.0;
+const vec2 CLOUD_LOW_TONE = vec2(0.03, 0.7);
+const float CLOUD_DARK_DEPTH = 70.0;
 // the farthest ring is this far toward the plain haze, and this much brighter
 const float CLOUD_FAR_HAZE = 0.5;
 const float CLOUD_FAR_LIFT = 1.4;
