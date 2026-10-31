@@ -45,6 +45,8 @@ var _materials: Array[ShaderMaterial] = []
 var _full_opacity: Array[float] = []
 var _amount := 1.0
 var _tween: Tween
+## the fog sheets, hidden at no smoke: at opacity 0 they still drew every pixel they cover (the Eerie song kept them)
+var _sheets: MultiMeshInstance3D
 ## A song is on (dissipate) rather than a menu (refill).
 var _playing := false
 
@@ -96,6 +98,8 @@ func _set_amount(amount: float) -> void:
 		if eerie and i < FLOOR_LAYERS.size():
 			opacity = _full_opacity[i] * EERIE_FLOOR * (lerpf(EERIE_SONG_FLOOR, 1.0, amount) if _playing else amount)
 		_materials[i].set_shader_parameter(&"opacity", opacity)
+	if _sheets:
+		_sheets.visible = amount > 0.0
 
 ## Puts the smoke in step with Settings.atmosphere (it may change any time).
 func apply_atmosphere() -> void:
@@ -117,6 +121,7 @@ func _free_smoke() -> void:
 		child.queue_free()
 	_materials.clear()
 	_full_opacity.clear()
+	_sheets = null
 
 ## Builds the floor layer and the fog sheets at full density.
 func _spawn() -> void:
@@ -157,8 +162,8 @@ func _spawn() -> void:
 	sheet_material.set_shader_parameter(&"opacity", SHEET_OPACITY)
 	_materials.append(sheet_material)
 	_full_opacity.append(SHEET_OPACITY)
-	var sheets := MultiMeshInstance3D.new()
-	sheets.multimesh = multimesh
-	sheets.material_override = sheet_material
-	sheets.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(sheets)
+	_sheets = MultiMeshInstance3D.new()
+	_sheets.multimesh = multimesh
+	_sheets.material_override = sheet_material
+	_sheets.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_sheets)
