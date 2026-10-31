@@ -843,11 +843,12 @@ func _update_henge(delta: float) -> void:
 		lit = 1.0 if _henge_drop else maxf(_built * HENGE_BUILT_SHARE, build_up(_intensity_curve, show_beat, _show_bpm))
 	_henge_flood = move_toward(_henge_flood, 1.0 if _henge_drop else 0.0,
 			delta / (HENGE_FLOOD_RISE_SECONDS if _henge_drop else HENGE_FLOOD_FALL_SECONDS))
-	var strips := henge_rig.strip_material
-	strips.set_shader_parameter(&"left_color", left_waving_lasers_material.get_shader_parameter(&"light_color"))
-	strips.set_shader_parameter(&"right_color", right_waving_lasers_material.get_shader_parameter(&"light_color"))
-	strips.set_shader_parameter(&"track_angle", track_angle)
-	strips.set_shader_parameter(&"lit", lit)
+	# the strips, and the floor they light (HengeFloor.gdshader)
+	for material: ShaderMaterial in [henge_rig.strip_material, henge_rig.floor_material]:
+		material.set_shader_parameter(&"left_color", left_waving_lasers_material.get_shader_parameter(&"light_color"))
+		material.set_shader_parameter(&"right_color", right_waving_lasers_material.get_shader_parameter(&"light_color"))
+		material.set_shader_parameter(&"track_angle", track_angle)
+		material.set_shader_parameter(&"lit", lit)
 	henge_rig.floor_material.set_shader_parameter(&"flood", _henge_flood)
 	henge_rig.ring_material.set_shader_parameter(&"light_color", track_lights_material.get_shader_parameter(&"light_color"))
 
