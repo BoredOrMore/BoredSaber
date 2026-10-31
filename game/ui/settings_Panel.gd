@@ -8,7 +8,6 @@ signal benchmark_requested()
 
 @onready var saber_control := $Tabs/Visuals/VBox/SaberTypeRow/saber as OptionButton
 @onready var color_preset_control := $Tabs/Visuals/VBox/ColorPresetRow/color_preset as OptionButton
-@onready var glare_control := $Tabs/Visuals/VBox/glare as CheckButton
 @onready var smoke_control := $Tabs/Visuals/VBox/smoke as CheckButton
 @onready var saber_tail_control := $Tabs/Visuals/VBox/saber_tail as CheckButton
 @onready var saber_thickness := $Tabs/Visuals/VBox/SaberThicknessRow/saber_thickness as HSlider
@@ -100,7 +99,8 @@ func _ready() -> void:
 			
 	if OS.get_name() == &"Web":
 		# way too heavy for webxr
-		$Tabs/Visuals/VBox/glare.hide()
+		(_glow_chips[GLOW_OFF] as Button).get_parent().hide()
+		_glow_hint.hide()
 		
 func _update_backgrounds() -> void:
 	var selected := 0
@@ -144,7 +144,6 @@ func set_controls_from_settings() -> void:
 	right_saber_col.color = Settings.color_right
 	_update_color_preset_selection()
 	saber_tail_control.button_pressed = Settings.saber_tail
-	glare_control.button_pressed = Settings.glare
 	smoke_control.button_pressed = Settings.smoke
 	darker_notes_control.button_pressed = Settings.darker_notes
 	saber_control.select(Settings.saber_visual)
@@ -233,9 +232,6 @@ func _update_color_preset_selection() -> void:
 func _on_saber_tail_toggled(button_pressed: bool) -> void:
 	Settings.saber_tail = button_pressed
 
-func _on_glare_toggled(button_pressed: bool) -> void:
-	Settings.glare = button_pressed
-
 func _on_smoke_toggled(button_pressed: bool) -> void:
 	Settings.smoke = button_pressed
 
@@ -285,7 +281,9 @@ const GLOW_HINTS := {
 	"Crisp": "Crisper light around the lasers",
 	"Classic": "Glow over the whole view",
 }
-const GLOW_OFF_HINT := "Needs Glow on"
+## The Glow row's first chip, which turns glow off (Settings.glare); the others turn it on in their GLOW_QUALITIES look
+const GLOW_OFF := "Off"
+const GLOW_OFF_HINT := "No light around the lasers"
 const ATMOSPHERE_HINTS := {
 	"Normal": "Clear air, lively lights",
 	"Eerie": "Cold low mist, slow dim lights",
@@ -322,8 +320,7 @@ func _add_graphics_row() -> void:
 			func(resolution: String) -> void: Settings.resolution = resolution, _resolution_hint)
 	_msaa_chips = _add_chip_row(4, "Anti-aliasing", Settings.MSAA_LEVELS.map(func(m: Array) -> String: return m[0]),
 			func(level: String) -> void: Settings.msaa = level, _msaa_hint)
-	_glow_chips = _add_chip_row(6, "Glow style", Settings.GLOW_QUALITIES, func(quality: String) -> void: Settings.glow_quality = quality,
-			_glow_hint)
+	_glow_chips = _add_chip_row(6, "Glow", [GLOW_OFF] + Settings.GLOW_QUALITIES, _pick_glow, _glow_hint)
 	_atmosphere_chips = _add_chip_row(8, "Atmosphere", Settings.ATMOSPHERES,
 			func(atmosphere: String) -> void: Settings.atmosphere = atmosphere, _atmosphere_hint)
 	for quality: String in GLOW_LABELS:
@@ -332,6 +329,14 @@ func _add_graphics_row() -> void:
 		if key in [&"resolution", &"msaa", &"glow_quality", &"atmosphere"] or key in Settings.GRAPHICS_PRESETS["Low"]:
 			_sync_graphics())
 	_sync_graphics()
+
+## Turns glow off for the Off chip, else on in the chip's look.
+func _pick_glow(chip_name: String) -> void:
+	if chip_name == GLOW_OFF:
+		Settings.glare = false
+		return
+	Settings.glow_quality = chip_name
+	Settings.glare = true
 
 ## A row of chips under a row label at index in Visuals, each calling pick with its name, and hint under it;
 ## returns the chips by name.
@@ -382,14 +387,11 @@ func _sync_graphics() -> void:
 		(_msaa_chips[name] as Button).set_pressed_no_signal(name == Settings.msaa)
 	_msaa_hint.text = MSAA_HINTS.get(Settings.msaa, "")
 	for name: String in _glow_chips:
-		var chip := _glow_chips[name] as Button
-		chip.disabled = not Settings.glare
-		chip.set_pressed_no_signal(name == Settings.glow_quality)
+		(_glow_chips[name] as Button).set_pressed_no_signal(name == (Settings.glow_quality if Settings.glare else GLOW_OFF))
 	_glow_hint.text = GLOW_HINTS.get(Settings.glow_quality, "") if Settings.glare else GLOW_OFF_HINT
 	for name: String in _atmosphere_chips:
 		(_atmosphere_chips[name] as Button).set_pressed_no_signal(name == Settings.atmosphere)
 	_atmosphere_hint.text = ATMOSPHERE_HINTS.get(Settings.atmosphere, "")
-	glare_control.set_pressed_no_signal(Settings.glare)
 	smoke_control.set_pressed_no_signal(Settings.smoke)
 	saber_tail_control.set_pressed_no_signal(Settings.saber_tail)
 	cut_blocks.set_pressed_no_signal(Settings.cube_cuts_falloff)

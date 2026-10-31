@@ -368,10 +368,6 @@ theme_override_font_sizes/font_size = 22
 text = "Graphics above sets the effects below; change any of them to make your own mix."
 autowrap_mode = 3
 
-[node name="glare" type="CheckButton" parent="Tabs/Visuals/VBox"]
-layout_mode = 2
-text = "Glow"
-
 [node name="smoke" type="CheckButton" parent="Tabs/Visuals/VBox"]
 layout_mode = 2
 text = "Smoke"
@@ -847,7 +843,6 @@ scroll_without_pointer = true
 [connection signal="toggled" from="Tabs/Visuals/VBox/cut_blocks" to="." method="_on_cut_blocks_toggled"]
 [connection signal="toggled" from="Tabs/Visuals/VBox/cut_flash" to="." method="_on_cut_flash_toggled"]
 [connection signal="toggled" from="Tabs/Gameplay/VBox/saber_clash_rumble" to="." method="_on_saber_clash_rumble_toggled"]
-[connection signal="toggled" from="Tabs/Visuals/VBox/glare" to="." method="_on_glare_toggled"]
 [connection signal="toggled" from="Tabs/Visuals/VBox/smoke" to="." method="_on_smoke_toggled"]
 [connection signal="toggled" from="Tabs/Visuals/VBox/darker_notes" to="." method="_on_darker_notes_toggled"]
 [connection signal="toggled" from="Tabs/Visuals/VBox/saber_tail" to="." method="_on_saber_tail_toggled"]

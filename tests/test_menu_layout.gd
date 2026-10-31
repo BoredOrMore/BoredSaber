@@ -237,8 +237,8 @@ func _ready() -> void:
 	Settings.set_graphics_preset("Low")
 	await _settle()
 	check(Settings.msaa == "4x", "Graphics Low picks 4x anti-aliasing")
-	check(settings._graphics_chips["Low"].button_pressed and not settings.glare_control.button_pressed,
-			"Graphics Low lights its chip and turns Glow off")
+	check(settings._graphics_chips["Low"].button_pressed and settings._glow_chips[SettingsPanel.GLOW_OFF].button_pressed,
+			"Graphics Low lights its chip and Glow's Off chip")
 	settings._resolution_chips["Full"].pressed.emit()
 	check(Settings.render_scale() == 1.44 and not settings._resolution_chips["Full"].disabled, "Resolution Full on Low renders at 1.44x")
 	Settings.resolution_cap = "Sharp"
