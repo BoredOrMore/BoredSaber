@@ -205,7 +205,6 @@ openxr/environment_blend_mode=0
 openxr/startup_alert=false
 openxr/foveation_level=2
 openxr/foveation_dynamic=false
-openxr/extensions/hand_tracking=true
 shaders/enabled=true
 openxr/extensions/meta/passthrough=true
 openxr/extensions/meta/color_space=false
