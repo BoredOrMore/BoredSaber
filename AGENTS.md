@@ -245,6 +245,13 @@ channel), so brightness comes from contrast and the size of bright areas, not fr
    The result moment (a fail or a clear) may take its own mood; see the exception in "Colour rules".
 10. Fake it cheaply: no post-processing or screen reads on the Pico (a screen read copies the frame per
     eye); glow, distortion and shadows are drawn in the object's own shader.
+11. Changes happen where the player is looking, or around the player (owner, 2026-10-31): any environment change
+    or effect during play (build-up and drop, structure that moves or assembles, light-show moments, drifting
+    clouds) happens inside the view of a player facing the track (about ±50° to the side with the head straight,
+    ±60° with a comfortable head turn; `doc/research/player-guidance.md`), or it plays off the player's position and
+    surroundings (it comes from where they stand, passes round them, answers their saber or their body). An effect
+    only visible behind or far off to the side is wasted work and GPU time: move it into view or drop it. 90/360 maps
+    count the view from the direction the notes currently come from.
 
 For any shader work, follow `.claude/skills/shader-design/SKILL.md` (layers first, named knobs, then
 optimise with before/after GPU numbers). For any new or replaced model, follow
