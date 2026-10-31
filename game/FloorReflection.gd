@@ -15,7 +15,8 @@ const KIND_NOTE := 0.0
 const KIND_LEFT_SABER := 2.0
 const KIND_RIGHT_SABER := 3.0
 
-var _track: Node3D
+## the notes on the track: only its acquired ones are walked each frame, not the whole pool parked under the track
+var _cubes: ScenePool
 var _sabers: Array[LightSaber]
 var _deck: Node3D
 var _notes := MultiMesh.new()
@@ -27,9 +28,9 @@ var _note_mesh: Mesh
 ## off while a fail drops the notes through the deck (BeepSaber_Game._empty_track), where a mirror would show them rise
 var enabled := true
 
-## Mirrors the notes under `track` and the blades of `sabers` in the deck's top (`deck`'s y).
-func _init(track: Node3D, sabers: Array[LightSaber], deck: Node3D) -> void:
-	_track = track
+## Mirrors the notes acquired from `cubes` and the blades of `sabers` in the deck's top (`deck`'s y).
+func _init(cubes: ScenePool, sabers: Array[LightSaber], deck: Node3D) -> void:
+	_cubes = cubes
 	_sabers = sabers
 	_deck = deck
 	_material.shader = SHADER
@@ -60,9 +61,9 @@ func _process(_delta: float) -> void:
 	_prepass.set_shader_parameter(&"floor_y", floor_y)
 	var mirror := Transform3D(Basis.from_scale(Vector3(1.0, -1.0, 1.0)), Vector3(0.0, 2.0 * floor_y, 0.0))
 	var count := 0
-	for node in _track.get_children():
+	for node in _cubes.in_use:
 		var cube := node as BeepCube
-		if cube == null or cube.is_released() or not cube.mi.is_visible_in_tree() or count == MAX_NOTES:
+		if not cube.mi.is_visible_in_tree() or count == MAX_NOTES:
 			continue
 		if _note_mesh != cube.mi.mesh:
 			_note_mesh = cube.mi.mesh

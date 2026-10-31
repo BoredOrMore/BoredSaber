@@ -23,7 +23,7 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
   Tested by `tests/test_highscores.gd`.
 - `global_references.gd` (autoload `GlobalReferences`) - the five `ScenePool`s and `main_game_scene`.
 - `CollisionLayerConstants.gd` - `*_bit` / `*_mask` physics layer constants.
-- `ScenePool/` - `ScenePool` (`presize`, `acquire`, signal `new_scene_instanced`) and `PooledNode3D` (`release`).
+- `ScenePool/` - `ScenePool` (`presize`, `acquire`, `in_use`: the acquired nodes, signal `new_scene_instanced`) and `PooledNode3D` (`release`).
 - `UIRaycast/` - `UIRaycast` laser pointer, `UIRaycastTarget.gd` (Area3D base), `UIRaycastButton` (3D button, `pressed`/`released`).
 - `SwingableRayCast/` - `SwingableRayCast`: saber ray plus swept sub-rays, signal `area_collided`.
 - `SongUploader/` - `SongUploader` HTTP server (`prompt.html`, `style.css` are served as-is).

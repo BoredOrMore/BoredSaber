@@ -12,6 +12,8 @@ signal new_scene_instanced(obj: Node3D, during_presizing: bool)
 
 var _total_objs := 0
 var _free_list: Array[PooledNode3D] = []
+## The nodes acquired and not yet released, so a per-frame user walks only these, not the whole pool.
+var in_use: Array[PooledNode3D] = []
 
 func total_count() -> int:
 	return _total_objs
@@ -34,6 +36,7 @@ func acquire() -> PooledNode3D:
 	if not node:
 		node = _instance_new_scene(false)
 	node._is_released = false
+	in_use.append(node)
 	return node
 
 func _instance_new_scene(during_presizing: bool) -> Node3D:
@@ -44,4 +47,5 @@ func _instance_new_scene(during_presizing: bool) -> Node3D:
 	return new_node
 
 func _on_scene_released(node: PooledNode3D) -> void:
+	in_use.erase(node)
 	_free_list.push_back(node)

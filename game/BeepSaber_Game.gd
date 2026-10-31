@@ -762,7 +762,7 @@ func _ready() -> void:
 	(multiplier_label as ComboHud).milestone_reached.connect(_on_combo_milestone)
 	hud = Hud.new(point_label, multiplier_label as ComboHud, percent_indicator)
 	add_child(hud)
-	_floor_reflection = FloorReflection.new(track, [left_saber, right_saber], event_driver.track_deck)
+	_floor_reflection = FloorReflection.new(GlobalReferences.cube_pool, [left_saber, right_saber], event_driver.track_deck)
 	event_driver.platform = standing_ground
 	# the HUD and the energy strips beside the track turn with it on 90/360 maps
 	event_driver.track_turned.connect(func(angle: float) -> void:
@@ -1409,7 +1409,7 @@ func _adjust_height() -> void:
 	await _fade_view(0.0)
 	_height_held = false
 
-## Fades a quad over the eyes to opacity over HEIGHT_FADE_SECONDS.
+## Fades a quad over the eyes to opacity over HEIGHT_FADE_SECONDS; hidden once clear, so it costs nothing after.
 func _fade_view(opacity: float) -> void:
 	if not _height_fade.is_inside_tree():
 		var quad := QuadMesh.new()
@@ -1426,7 +1426,10 @@ func _fade_view(opacity: float) -> void:
 		_height_fade.position = Vector3(0.0, 0.0, -0.1)
 		vr.vrCamera.add_child(_height_fade)
 	var material := _height_fade.material_override as StandardMaterial3D
+	# a see-through quad over the whole view still blends every pixel of both eyes: shown only while it fades
+	_height_fade.visible = true
 	await create_tween().tween_property(material, "albedo_color:a", opacity, HEIGHT_FADE_SECONDS).finished
+	_height_fade.visible = opacity > 0.0
 
 func _settings_button() -> void:
 	settings_panel._update_backgrounds()
