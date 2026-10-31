@@ -50,13 +50,15 @@ Run: `blender -b -P tools/models/<script>.py -- game/models` (`OUT_DIR` = first 
 `note_round.py -- game/notes/BeepCube`. Each header names its spec `doc/assets/<name>/spec.md`; follow
 `.claude/skills/game-model-creator/SKILL.md` and `tools/asset_pipeline/`.
 
-- `model_export.py`: shared `bake_and_export(obj, out_dir, name)`: AO baked to vertex red, face attr `glow` 1/2 to
-  green/blue (EnvSolid vents), flat shading, GLB Y-up, prints triangles.
+- `model_export.py`: shared `bake_and_export(obj, out_dir, name, smooth, green, unwrap)`: AO baked to vertex red, face
+  attr `glow` 1/2 to green/blue (EnvSolid vents) or a per-vertex `green` list instead, flat shading unless `smooth`,
+  smart-project UVs if `unwrap` (checker review), GLB Y-up, prints triangles.
 - Using it: `ac_unit`, `antenna`, `dish_panel`, `dish_props`, `feed_cabin`, `feed_leg`, `hanging_scaffold`, `platform_frame`, `site_props`,
   `stair_house`, `survey_mast`, `tower_crane`, `track_edge`, `track_end`, `wall_catwalk`, `water_tank` (one `.glb`
   each, same name); `arch_parts` (arch_section/footing/scaffold), `classic_props` (classic_props, tool_box),
   `follow_spot` (+`follow_spot_stand`), `rim_parts` (rim_segment, rim_mast), `tunnel_parts` (tunnel_rib, tunnel_lining), `wall_kit` (wall_column/panel/
-  pipes/machine/machine_low).
+  pipes/machine/machine_low); `monolith_cloud` (`monolith_cloud_0`-`5`, smooth, green = height in the bank,
+  UVs) and `monolith_mountain` (`monolith_mountain_0`-`5`, green = height share, UVs).
 - Own exporter (older, inline copy): `anvil_base`, `gears` (gear_ring, drive_gear_large/small), `laser_fixture`
   (+`laser_fixture_yoke`), `piston_hammer` (+`piston_housing`), `note_round` (`game/notes/BeepCube/note_round.glb`).
 
