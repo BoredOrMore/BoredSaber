@@ -139,7 +139,7 @@ const float WINDOW_REACH = 200.0;
 
 #ifdef SHELL
 // 10. soft far edges: how wide the blur is as an angle (radians), and the distances it grows over (untuned)
-const float SHELL_BLUR_ANGLE = 0.007;
+const float SHELL_BLUR_ANGLE = 0.02;
 const vec2 SHELL_NEAR_FAR = vec2(60.0, 200.0);
 // the steps of the search for the line of sight's nearest pass to the box
 const int SHELL_STEPS = 12;

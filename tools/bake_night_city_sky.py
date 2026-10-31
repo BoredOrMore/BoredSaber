@@ -61,7 +61,7 @@ CENTRE_GLOW = 0.35  # glow over the city straight ahead
 CENTRE_WIDTH = 0.35
 # the towers' outlines blurred over this much (radians, a Gaussian's sigma), as far things soften in the air;
 # the same width as the landmark's and the towers' soft edges (EnvSolid.gdshaderinc SHELL_BLUR_ANGLE). Untuned.
-EDGE_BLUR = 0.007
+EDGE_BLUR = 0.02
 
 
 def smoothstep(e0, e1, x):
