@@ -336,6 +336,10 @@ const STYLE_TITLE := "Style"
 const DIFFICULTY_TITLE := "Difficulty"
 const LENGTH_TITLE := "Length"
 const GENRE_TITLE := "Genre"
+## Last on the filters page, not a filter: how maps download (Settings.not_music_dl; moved from Settings, owner
+## 2026-10-31)
+const DOWNLOADS_TITLE := "Downloads"
+const WITHOUT_MUSIC_TEXT := "Without music"
 
 ## BeatSaver's own filter for maps needing a mod. It takes one such filter at a time, the others ignored (measured
 ## 2026-10-30, top 100 by rating: with none 28 maps need a mod; noodle=false 4, with Vivify gone too; me=false 27;
@@ -377,6 +381,9 @@ func _build_filter_chips() -> void:
 		Constants.LENGTH_FILTERS.slice(1).map(func(choice: Array) -> String: return str(choice[1])), pick_length)
 	_style_chips = FilterChips.add_section(page, STYLE_TITLE, STYLES.slice(1).map(label), pick_style)
 	_genre_chips = FilterChips.add_section(page, GENRE_TITLE, GENRES.slice(1).map(label), pick_genre)
+	var without_music := FilterChips.add_section(page, DOWNLOADS_TITLE, [WITHOUT_MUSIC_TEXT],
+		func(index: int) -> void: Settings.not_music_dl = index == 0)[0]
+	without_music.set_pressed_no_signal(Settings.not_music_dl)
 
 ## Shows the filters on their chips and as chips above the list; a mapper's list ("More by") isn't filtered, so its
 ## chips are greyed out then.

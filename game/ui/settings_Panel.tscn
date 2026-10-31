@@ -530,10 +530,6 @@ size_flags_vertical = 3
 max_value = 10.0
 value = 10.0
 
-[node name="not_music_dl" type="CheckButton" parent="Tabs/Audio/VBox"]
-layout_mode = 2
-text = "Download songs without music"
-
 [node name="Advanced" type="ScrollContainer" parent="Tabs"]
 visible = false
 layout_mode = 2
@@ -870,7 +866,6 @@ scroll_without_pointer = true
 [connection signal="value_changed" from="Tabs/Advanced/VBox/right_saber_offset/rot_row/rotz" to="." method="_on_right_saber_rot_z_changed"]
 [connection signal="value_changed" from="Tabs/Gameplay/VBox/player_height_offset/pos" to="." method="_on_player_height_offset_changed"]
 [connection signal="pressed" from="Tabs/Gameplay/VBox/player_height_offset/measure" to="." method="_on_measure_height_pressed"]
-[connection signal="toggled" from="Tabs/Audio/VBox/not_music_dl" to="." method="_on_not_music_dl_toggled"]
 [connection signal="toggled" from="Tabs/Gameplay/VBox/swing_scoring" to="." method="_on_swing_scoring_toggled"]
 [connection signal="toggled" from="Tabs/Advanced/VBox/show_collisions" to="." method="_on_show_collisions_toggled"]
 [connection signal="toggled" from="Tabs/Advanced/VBox/show_debug" to="." method="_on_show_debug_toggled"]

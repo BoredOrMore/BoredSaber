@@ -20,7 +20,6 @@ signal benchmark_requested()
 @onready var mixed_reality_control := $Tabs/Visuals/VBox/mixed_reality as CheckButton
 @onready var explain_control := $Tabs/Gameplay/VBox/explain as CheckButton
 @onready var left_handed_control := $Tabs/Gameplay/VBox/left_handed as CheckButton
-@onready var not_music_dl_control := $Tabs/Audio/VBox/not_music_dl as CheckButton
 @onready var swing_scoring_control := $Tabs/Gameplay/VBox/swing_scoring as CheckButton
 @onready var show_collisions := $Tabs/Advanced/VBox/show_collisions as CheckButton
 @onready var ui_volume_slider := $Tabs/Audio/VBox/UI_VolumeRow/ui_volume_slider as HSlider
@@ -149,7 +148,6 @@ func set_controls_from_settings() -> void:
 	mixed_reality_control.button_pressed = Settings.mixed_reality
 	explain_control.button_pressed = Settings.explain
 	left_handed_control.button_pressed = Settings.left_handed
-	not_music_dl_control.button_pressed = Settings.not_music_dl
 	swing_scoring_control.button_pressed = Settings.swing_scoring
 	ui_volume_slider.value = Settings.ui_volume
 	left_saber_posx_control.value = Settings.left_saber_offset_pos.x
@@ -600,9 +598,6 @@ func _on_right_saber_col_pressed() -> void:
 	right_saber_col_state = not right_saber_col_state
 	left_saber_col.get_popup().hide()
 	left_saber_col_state = false
-
-func _on_not_music_dl_toggled(button_pressed: bool) -> void:
-	Settings.not_music_dl = button_pressed
 
 func _on_background_texture_selected(item: int) -> void:
 	if item < len(Settings.BACKGROUND_TEXTURES):
