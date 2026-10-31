@@ -40,11 +40,11 @@ static func new_v3(chain_dict: Dictionary) -> ChainInfo:
 		int(Utils.get_float(chain_dict, "c", 0)),
 		Utils.get_float(chain_dict, "b", 0.0),
 		Utils.precise_measurement(Utils.get_float(chain_dict, "x", 0)),
-		Utils.precise_measurement(Utils.get_float(chain_dict, "y", 0)),
+		Utils.precise_layer(Utils.get_float(chain_dict, "y", 0)),
 		Utils.precise_angle_rad(Utils.get_float(chain_dict, "d", 0), Utils.get_float(chain_dict, "a", 0)),
 		Utils.get_float(chain_dict, "tb", 0.0),
 		Utils.precise_measurement(Utils.get_float(chain_dict, "tx", 0)),
-		Utils.precise_measurement(Utils.get_float(chain_dict, "ty", 0)),
+		Utils.precise_layer(Utils.get_float(chain_dict, "ty", 0)),
 		int(Utils.get_float(chain_dict, "sc", 0)),
 		Utils.get_float(chain_dict, "s", 1.0),
 		Utils.get_float(chain_dict, "r", 0)

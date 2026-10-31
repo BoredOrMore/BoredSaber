@@ -79,7 +79,8 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
   pass `*_bit` directly, so notes use layers 9/10 and bombs layer 5 (`Bomb.tscn:63` = 16), one below the
   `project.godot` `[layer_names]` (LeftNote 10, RightNote 11, Bombs 6). Self-consistent: change both sides or neither.
 - UI pointer: `UIRaycast` casts only when `active and visible` (`UIRaycast.gd:63`). Game states set `visible`;
-  the `left_handed` setting picks which hand is `active` (`BeepSaber_Game.gd:369-375`). Its `RayCast3D` hits areas
+  the `left_handed` setting picks which hand is `active` (`BeepSaber_Game.gd:369-375`). With `only_on_target` the
+  ray is drawn only while it hits a `UIRaycastTarget` (practice's panel during play). Its `RayCast3D` hits areas
   only, mask `524290` = layers 2 (UI) and 20 (`UIRaycast.tscn:26-28`). Targets must extend `UIRaycastTarget`
   or they are ignored (`UIRaycast.gd:29`); buttons sit on layer 2 (`UIRaycastButton.tscn:32`, `EndScore.gd:20-23`).
 - `SwingableRayCast` builds its sub-rays one physics frame after `_ready`, copying the mask then

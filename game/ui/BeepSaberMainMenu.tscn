@@ -189,9 +189,18 @@ layout_mode = 0
 offset_left = 16.0
 offset_top = 388.0
 offset_right = 464.0
-offset_bottom = 729.0
+offset_bottom = 661.0
 show_song_info = false
 compact = true
+
+[node name="Practice_Button" type="Button" parent="."]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 0
+offset_left = 16.0
+offset_top = 669.0
+offset_right = 464.0
+offset_bottom = 729.0
+text = "Practice"
 
 [node name="Tabs" type="HBoxContainer" parent="."]
 layout_mode = 0

@@ -5,11 +5,7 @@ class_name NightCityRig
 ## The default is a giant building canyon (doc/assets/night_city_canyon/spec.md, owner 2026-10-25, blockout): a wall
 ## of towers 150-200 m tall on one side (WALL_SIDE), low roofs stepping down on the other, a far city in the haze and
 ## a landmark tower beyond, so the player on their rooftop feels tiny and left and right differ (VISUAL_STYLE "Scale
-## and symmetry"). Settings.classic_night_city brings back the classic layout: dark
-## buildings in a row on each side of the track, their inner faces 19 m out, so the skyline straight ahead stays
-## clear. Searchlights (the waving lasers) stand on the roofs, the diagonal lasers cross from the roofs' inner
-## edges, and the square bars trim the roof edges facing the track. Dark boxes in one MultiMesh with the scenery's
-## fog shader. Sizes in metres, untuned.
+## and symmetry"). Dark boxes in MultiMeshes with the scenery's fog shader. Sizes in metres, untuned.
 
 const ENV_SOLID := preload("res://game/env/EnvSolidCanyon.gdshader")
 ## the same without the windows, for the pieces that never show any: one shader with them cost these pixels for nothing
@@ -25,20 +21,6 @@ const LIGHT_SPILL := 0.3
 ## went half haze-grey). Untuned.
 const ALBEDO := Color(0.05, 0.05, 0.06)
 const FOG_DENSITY := 0.0075
-const INNER_FACE_X := 19.0
-const DEPTH_X := 7.0
-## [z centre, length along the track, height] of each building, left side then right side
-const LEFT: Array[Vector3] = [Vector3(-20.0, 9.0, 10.0), Vector3(-32.0, 10.0, 14.0), Vector3(-44.0, 9.0, 11.0), Vector3(-56.0, 10.0, 16.0)]
-## The player stands on a rooftop: a low parapet runs along each side of it.
-## Near the player, out of the note lane and clear of the view ahead, a few pieces stand within a few metres so
-## they move against the far scenery as the head moves (parallax), which makes the player feel they stand in the
-## place rather than in front of it.
-const PARAPET_X := 4.0
-const PARAPET_HEIGHT := 1.0
-const PARAPET_THICKNESS := 0.3
-## the parapet's z from and to; the player stands at 1
-const PARAPET_Z := Vector2(5.0, -5.0)
-const RIGHT: Array[Vector3] = [Vector3(-20.0, 9.0, 13.0), Vector3(-32.0, 10.0, 10.0), Vector3(-44.0, 9.0, 15.0), Vector3(-56.0, 10.0, 11.0)]
 
 ## The canyon (blockout; every size a proposal). The side the tower wall stands on (-1 left, 1 right); the low roofs
 ## and the far city are on the other.
@@ -191,26 +173,14 @@ var _sea: MeshInstance3D
 var billboard_material: ShaderMaterial
 var _material: ShaderMaterial
 
-## The buildings of one side (-1 left, 1 right) as [z centre, length, height] (the classic layout).
-static func buildings(side: float) -> Array[Vector3]:
-	return LEFT if side < 0.0 else RIGHT
-
-## The roof height at a point along the track on one side, or 0 between buildings.
-static func roof_at(side: float, z: float) -> float:
-	for b in buildings(side):
-		if absf(z - b.x) <= b.y * 0.5:
-			return b.z
-	return 0.0
-
 func _ready() -> void:
 	_material = ShaderMaterial.new()
 	_material.shader = ENV_SOLID
 	_material.set_shader_parameter(&"light_spill", LIGHT_SPILL)
 	_material.set_shader_parameter(&"albedo", ALBEDO)
 	_material.set_shader_parameter(&"fog_density", FOG_DENSITY)
-	# in the editor too (a tool script, for looking at the stage; built, not saved: no owner), with the canyon, as the
-	# Settings autoload isn't there
-	build(false if Engine.is_editor_hint() else Settings.classic_night_city)
+	# in the editor too (a tool script, for looking at the stage; built, not saved: no owner)
+	build()
 
 ## The canyon's windows (EnvSolid layer 9): the map's light colours either side, how far the show has built them up
 ## (0-1) and how bright they burn (never quite dark once lit).
@@ -223,8 +193,8 @@ func set_windows(left: Color, right: Color, level: float, glow: float) -> void:
 		material.set_shader_parameter(&"window_level", level)
 		material.set_shader_parameter(&"window_glow", glow)
 
-## Builds the classic layout or the canyon.
-func build(classic: bool) -> void:
+## Builds the canyon.
+func build() -> void:
 	if _instance:
 		_instance.queue_free()
 	if _plain_instance:
@@ -246,46 +216,45 @@ func build(classic: bool) -> void:
 		shell.queue_free()
 	_shells.clear()
 	var bodies: Array[Transform3D] = []
-	var boxes := _classic_boxes() if classic else _drawn_boxes(_canyon_boxes(bodies))
-	_material.set_shader_parameter(&"windows", 0.0 if classic else 1.0)
-	_material.set_shader_parameter(&"canyon_fog", Vector4.ZERO if classic else CANYON_FOG)
+	var boxes := _drawn_boxes(_canyon_boxes(bodies))
+	_material.set_shader_parameter(&"windows", 1.0)
+	_material.set_shader_parameter(&"canyon_fog", CANYON_FOG)
 	_material.set_shader_parameter(&"fog_roll", CANYON_FOG_ROLL)
 	# the boxes closer to the track than the windows start show none (EnvSolid windows_light): drawn without them
 	var window_min_x := RAILING_X + STAIR_HOUSE_SIZE.x + 2.0
 	_material.set_shader_parameter(&"window_min_x", window_min_x)
 	_material.set_shader_parameter(&"window_span", Vector2(STREET_Y, TOWERS[1].w))
-	_material.set_shader_parameter(&"side_shade", 0.0 if classic else SIDE_SHADE)
+	_material.set_shader_parameter(&"side_shade", SIDE_SHADE)
 	_material.set_shader_parameter(&"window_pier_cells", int(PILASTER_STEP / PILASTER.y))
-	_material.set_shader_parameter(&"depth_shade", 0.0 if classic else DEPTH_SHADE)
+	_material.set_shader_parameter(&"depth_shade", DEPTH_SHADE)
 	var windowed: Array[Transform3D] = []
 	var plain: Array[Transform3D] = []
 	for box in boxes:
 		var far_x := absf(box.origin.x) + absf(box.basis.x.x) * 0.5
-		(windowed if not classic and far_x > window_min_x else plain).append(box)
+		(windowed if far_x > window_min_x else plain).append(box)
 	_instance = _box_instance(windowed, _material)
 	var plain_material := _material.duplicate() as ShaderMaterial
 	plain_material.shader = ENV_SOLID_PLAIN
 	_plain_instance = _box_instance(plain, plain_material)
-	if not classic:
-		var o := -WALL_SIDE
-		_landmark = MeshInstance3D.new()
-		_landmark.mesh = BoxMesh.new()
-		_landmark.transform = _span(Vector3(o * LANDMARK.x, STREET_Y, LANDMARK.y + LANDMARK.z * 0.5),
-			Vector3(o * (LANDMARK.x + LANDMARK.z), LANDMARK.w, LANDMARK.y - LANDMARK.z * 0.5))
-		var far := _material.duplicate() as ShaderMaterial
-		far.set_shader_parameter(&"fog_density", LANDMARK_FOG)
-		_landmark.material_override = far
-		_landmark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		add_child(_landmark)
-		var landmark: Array[Transform3D] = [_landmark.transform]
-		for shell: Array in [[bodies, _material], [landmark, far]]:
-			var shell_material := (shell[1] as ShaderMaterial).duplicate() as ShaderMaterial
-			shell_material.shader = ENV_SOLID_SHELL
-			_shells.append(_box_instance(shell[0], shell_material))
-		_mounts.clear()
-		_add_billboards()
-		_add_props()
-		_add_sea()
+	var o := -WALL_SIDE
+	_landmark = MeshInstance3D.new()
+	_landmark.mesh = BoxMesh.new()
+	_landmark.transform = _span(Vector3(o * LANDMARK.x, STREET_Y, LANDMARK.y + LANDMARK.z * 0.5),
+		Vector3(o * (LANDMARK.x + LANDMARK.z), LANDMARK.w, LANDMARK.y - LANDMARK.z * 0.5))
+	var far := _material.duplicate() as ShaderMaterial
+	far.set_shader_parameter(&"fog_density", LANDMARK_FOG)
+	_landmark.material_override = far
+	_landmark.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(_landmark)
+	var landmark: Array[Transform3D] = [_landmark.transform]
+	for shell: Array in [[bodies, _material], [landmark, far]]:
+		var shell_material := (shell[1] as ShaderMaterial).duplicate() as ShaderMaterial
+		shell_material.shader = ENV_SOLID_SHELL
+		_shells.append(_box_instance(shell[0], shell_material))
+	_mounts.clear()
+	_add_billboards()
+	_add_props()
+	_add_sea()
 
 ## The sea of cloud in the canyon.
 func _add_sea() -> void:
@@ -567,15 +536,3 @@ static func _nearest(box: Transform3D) -> float:
 	var head := Vector3(0.0, 1.7, 0.0)
 	return (head - head.clamp(box.origin - half, box.origin + half)).length()
 
-## The classic layout's boxes.
-func _classic_boxes() -> Array[Transform3D]:
-	var boxes: Array[Transform3D] = []
-	for side in [-1.0, 1.0]:
-		for b in buildings(side):
-			var centre := Vector3(side * (INNER_FACE_X + DEPTH_X * 0.5), b.z * 0.5 - 1.0, b.x)
-			boxes.append(Transform3D(Basis.from_scale(Vector3(DEPTH_X, b.z + 2.0, b.y)), centre))
-	for side in [-1.0, 1.0]:
-		var length := PARAPET_Z.x - PARAPET_Z.y
-		boxes.append(Transform3D(Basis.from_scale(Vector3(PARAPET_THICKNESS, PARAPET_HEIGHT + 1.0, length)),
-			Vector3(side * PARAPET_X, (PARAPET_HEIGHT - 1.0) * 0.5, (PARAPET_Z.x + PARAPET_Z.y) * 0.5)))
-	return boxes

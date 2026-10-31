@@ -1,0 +1,117 @@
+[gd_scene format=3]
+
+[ext_resource type="StyleBox" path="res://game/ui/menu_panel.tres" id="menu_panel"]
+[ext_resource type="Script" path="res://game/ui/PracticePanel.gd" id="script"]
+[ext_resource type="Script" path="res://game/ui/PracticeTimeline.gd" id="timeline"]
+[ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="menu_theme"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/play.svg" id="icon_play"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/log-out.svg" id="icon_log-out"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/rotate-ccw.svg" id="icon_rotate-ccw"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/minus.svg" id="icon_minus"]
+[ext_resource type="Texture2D" path="res://game/ui/icons/plus.svg" id="icon_plus"]
+[ext_resource type="Script" path="res://game/ui/IconButton.gd" id="icon_button"]
+
+[node name="PracticePanel" type="Panel"]
+offset_right = 560.0
+offset_bottom = 450.0
+theme = ExtResource("menu_theme")
+theme_override_styles/panel = ExtResource("menu_panel")
+script = ExtResource("script")
+
+[node name="Rows" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 24.0
+offset_top = 16.0
+offset_right = -24.0
+offset_bottom = -16.0
+theme_override_constants/separation = 10
+
+[node name="TopRow" type="HBoxContainer" parent="Rows"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+
+[node name="Time" type="Label" parent="Rows/TopRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "0:00 of 0:00"
+vertical_alignment = 1
+
+[node name="Repeat" type="CheckButton" parent="Rows/TopRow"]
+layout_mode = 2
+text = "Repeat"
+
+[node name="Timeline" type="Control" parent="Rows"]
+layout_mode = 2
+script = ExtResource("timeline")
+
+[node name="Hint" type="Label" parent="Rows"]
+custom_minimum_size = Vector2(0, 30)
+layout_mode = 2
+theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
+theme_override_font_sizes/font_size = 22
+text = "Drag under the bar to move the start."
+horizontal_alignment = 1
+vertical_alignment = 1
+text_overrun_behavior = 3
+
+[node name="SpeedRow" type="HBoxContainer" parent="Rows"]
+layout_mode = 2
+
+[node name="SpeedTitle" type="Label" parent="Rows/SpeedRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Speed"
+vertical_alignment = 1
+
+[node name="Slower_Button" type="Button" parent="Rows/SpeedRow"]
+custom_minimum_size = Vector2(60, 60)
+layout_mode = 2
+tooltip_text = "Slower"
+icon = ExtResource("icon_minus")
+icon_alignment = 1
+
+[node name="Speed" type="Label" parent="Rows/SpeedRow"]
+custom_minimum_size = Vector2(110, 0)
+layout_mode = 2
+text = "100%"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Faster_Button" type="Button" parent="Rows/SpeedRow"]
+custom_minimum_size = Vector2(60, 60)
+layout_mode = 2
+tooltip_text = "Faster"
+icon = ExtResource("icon_plus")
+icon_alignment = 1
+
+[node name="Buttons" type="HBoxContainer" parent="Rows"]
+layout_mode = 2
+size_flags_vertical = 10
+
+[node name="PlayPause_Button" type="Button" parent="Rows/Buttons"]
+theme_type_variation = &"PrimaryButton"
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Play"
+icon = ExtResource("icon_play")
+script = ExtResource("icon_button")
+
+[node name="Restart_Button" type="Button" parent="Rows/Buttons"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Restart"
+icon = ExtResource("icon_rotate-ccw")
+script = ExtResource("icon_button")
+
+[node name="Exit_Button" type="Button" parent="Rows/Buttons"]
+custom_minimum_size = Vector2(0, 64)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Exit"
+icon = ExtResource("icon_log-out")
+script = ExtResource("icon_button")

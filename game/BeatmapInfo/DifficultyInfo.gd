@@ -1,6 +1,11 @@
 extends RefCounted
 class_name DifficultyInfo
 
+## Mods a map may require that this game plays without (owner, 2026-10-30): Mapping Extensions' precise lanes, rows
+## and angles are read (Utils.precise_measurement, precise_layer, precise_angle_rad); Chroma and Cinema only colour
+## the lights or add a video. Any other required mod (Noodle Extensions, Vivify, ...) makes a difficulty unplayable.
+const PLAYABLE_MODS := ["Mapping Extensions", "Chroma", "Cinema"]
+
 var difficulty: String
 var difficulty_rank: int
 var characteristic: String
@@ -27,6 +32,14 @@ func _init(
 	# not officially part of the spec, but used by mods a lot
 	self.custom_name = custom_name
 	self.characteristic = characteristic
+
+## The first mod the difficulty requires (its "_requirements", or v4's "requirements") that the game doesn't have, or
+## "" when it plays here.
+func missing_mod() -> String:
+	for mod: Variant in Utils.get_array(custom_data, "_requirements", Utils.get_array(custom_data, "requirements", [])):
+		if mod is String and not PLAYABLE_MODS.has(mod):
+			return mod
+	return ""
 
 func get_display_name() -> String:
 	var name := ""

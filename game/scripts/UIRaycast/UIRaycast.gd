@@ -10,6 +10,8 @@ var ui_mesh_length := 1.0
 @onready var ui_raycast_mesh := $RayCastPosition/RayCastMesh as MeshInstance3D
 @onready var ui_raycast_hitmarker := $RayCastPosition/RayCastHitMarker as MeshInstance3D
 
+## Draw the ray only while it points at something it can press (practice's panel while the sabers cut notes).
+var only_on_target := false
 var is_colliding := false
 var colliding_with: Object = null
 
@@ -17,11 +19,10 @@ var colliding_with: Object = null
 func _update_raycasts() -> void:
 	ui_raycast_hitmarker.visible = false
 	
-	ui_raycast_mesh.visible = true
-	
 	ui_raycast.force_raycast_update() # need to update here to get the current position; else the marker laggs behind
 	
 	var c := ui_raycast.get_collider()
+	ui_raycast_mesh.visible = not only_on_target or c is UIRaycastTarget
 	if c != colliding_with and colliding_with != null and colliding_with is UIRaycastTarget:
 		(colliding_with as UIRaycastTarget).ui_raycast_exit()
 	colliding_with = c

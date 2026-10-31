@@ -110,6 +110,10 @@ const DIFFICULTY_SPEED_BIT1 := 0x40000
 const DIFFICULTY_SPEED_BIT2 := 0x80000
 const DIFFICULTY_SPEED_MASK := 0x20000 | 0x40000 | 0x80000
 const SPEEDS := [ [85, "Speed 85%", 1<<DIFFICULTY_SPEED_SHIFT], [100, "Speed 100%", 0], [125, "Speed 125%", 2<<DIFFICULTY_SPEED_SHIFT], [150, "Speed 150%", 3<<DIFFICULTY_SPEED_SHIFT], [175, "Speed 175%", 4<<DIFFICULTY_SPEED_SHIFT]]
+## Practice's song speeds in percent, as Beat Saber's Practice (owner, 2026-10-30: 50-200% in 10% steps).
+const PRACTICE_SPEED_MIN := 50
+const PRACTICE_SPEED_MAX := 200
+const PRACTICE_SPEED_STEP := 10
 # Song list filters: [id, label, min, max], where max <= 0 means no upper limit. Length is in seconds.
 ## The song list's difficulty levels from easiest, computed from how a map plays rather than the mapper's
 ## label: [name, colour, least seconds a note is visible before reaching the player, least median seconds

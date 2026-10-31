@@ -131,6 +131,12 @@ func _ready() -> void:
 	check(env_cards.size() == Settings.ENVIRONMENTS.size() and smallest >= 45.0,
 			"a picture card per environment, each %.0f px or more across (3 degrees is 45 px)" % smallest)
 	menu.show_environments(false)
+	# the Practice button at the left panel's bottom: a target 3 degrees or more tall; a stray saved speed lands on a step
+	check(menu.practice_button.is_visible_in_tree() and menu.practice_button.size.y >= 45.0,
+			"practice: the Practice button shows, %.0f px tall" % menu.practice_button.size.y)
+	Settings.practice_speed = 47
+	check(Settings.practice_speed == 50, "practice: a stray saved speed of 47%% lands on 50%% (got %d)" % Settings.practice_speed)
+	Settings.practice_speed = 100
 	menu._show_tab(MainMenu.Tab.MORE)
 	await _settle()
 	_check_layout(menu, "more tab")
@@ -170,6 +176,58 @@ func _ready() -> void:
 
 	profiles.queue_free()
 
+	# the practice panel beside the player: the longest time and speed, stopped and playing
+	var practice := (load("res://game/ui/PracticePanel.tscn") as PackedScene).instantiate() as PracticePanel
+	_port.add_child(practice)
+	await _settle()
+	practice.show_state(false, 5999.0, 5999.0, 5999.0, 5999.0, Constants.PRACTICE_SPEED_MIN)
+	await _settle()
+	_check_layout(practice, "practice panel, stopped")
+	var slower := practice.get_node(^"Rows/SpeedRow/Slower_Button") as Button
+	check(practice._time.text == "99:59 of 99:59" and practice._bar.label_text(true) == "Start 99:59"
+			and practice._bar.label_text(false) == "End 99:59" and practice._speed.text == "50%" and slower.disabled,
+			"practice panel: \"%s\", \"%s\", \"%s\", \"%s\", slower greyed at the slowest" % [practice._time.text,
+			practice._bar.label_text(true), practice._bar.label_text(false), practice._speed.text])
+	practice.show_state(true, 30.0, 12.0, -1.0, 100.0, 100)
+	await _settle()
+	_check_layout(practice, "practice panel, playing")
+	check(practice._play.text == "Pause" and slower.disabled and practice._faster.disabled,
+			"practice panel: playing shows Pause and greys the speed (got %s)" % practice._play.text)
+	practice.show_time(95.0)
+	check(practice.start_seconds() == 12.0 and practice._bar.label_text(true) == "Start 0:12"
+			and practice._bar.label_rects().size() == 1,
+			"practice panel: the start stays put while the song plays on, no end without Repeat (got %s, %s)" % [
+			practice._bar.label_text(true), practice._bar.label_rects().size()])
+	# one bar: a press on it takes the playhead, a press under it the start marker; Repeat adds the end marker
+	var bar := practice._bar
+	var events: Array = []
+	practice.scrub_started.connect(func() -> void: events.append("grab"))
+	practice.scrub_ended.connect(func(seconds: float) -> void: events.append(roundi(seconds)))
+	practice.start_set.connect(func(seconds: float) -> void: events.append("start %d" % roundi(seconds)))
+	practice.end_set.connect(func(seconds: float) -> void: events.append("end %d" % roundi(seconds)))
+	var half_x := bar._x(50.0)
+	_press_bar(bar, Vector2(half_x, PracticeTimeline.BAR_BAND * 0.5))
+	_press_bar(bar, Vector2(bar._x(40.0), PracticeTimeline.BAR_BAND + 20.0))
+	practice._repeat.button_pressed = true
+	_press_bar(bar, Vector2(bar._x(90.0), PracticeTimeline.BAR_BAND + 20.0))
+	_press_bar(bar, Vector2(bar._x(89.0), PracticeTimeline.BAR_BAND + 20.0))
+	practice._set_start(95.0)
+	practice._repeat.button_pressed = false
+	check(events == ["grab", 50, "start 40", "end 50", "end 90", "end 89", "end 97", "start 95", "end -1"],
+			"practice panel: the bar takes the playhead, under it the nearer marker; Repeat on starts a 10 s part, a start "
+			+ "past the end pushes it on, off clears it (got %s)" % [events])
+	check(bar.size.y >= PracticeTimeline.BAR_BAND + PracticeTimeline.MARKER_BAND,
+			"practice panel: the bar and its markers have their bands (%.0f px)" % bar.size.y)
+	# the markers' labels: inside the bar and apart, even with the two markers at the same second at either end
+	for at: Array in [[0.0, 2.0], [50.0, 52.0], [98.0, 100.0]]:
+		bar.start = at[0]
+		bar.end = at[1]
+		var rects := bar.label_rects()
+		check(rects.size() == 2 and not rects[0].intersects(rects[1]) and rects[0].position.x >= 0.0
+				and rects[1].end.x <= bar.size.x + 0.5,
+				"practice panel: Start and End labels apart and inside the bar with the markers at %s (got %s)" % [at, rects])
+	practice.queue_free()
+
 	# Visuals with the Graphics chips: Low, then one effect changed (Custom)
 	var settings := (load("res://game/ui/settings_Panel.tscn") as PackedScene).instantiate() as SettingsPanel
 	# no controllers here for its sliders' thumbstick scrolling
@@ -179,8 +237,8 @@ func _ready() -> void:
 	Settings.set_graphics_preset("Low")
 	await _settle()
 	check(Settings.msaa == "4x", "Graphics Low picks 4x anti-aliasing")
-	check(settings._graphics_chips["Low"].button_pressed and not settings.glare_control.button_pressed,
-			"Graphics Low lights its chip and turns Glow off")
+	check(settings._graphics_chips["Low"].button_pressed and settings._glow_chips[SettingsPanel.GLOW_OFF].button_pressed,
+			"Graphics Low lights its chip and Glow's Off chip")
 	settings._resolution_chips["Full"].pressed.emit()
 	check(Settings.render_scale() == 1.44 and not settings._resolution_chips["Full"].disabled, "Resolution Full on Low renders at 1.44x")
 	Settings.resolution_cap = "Sharp"
@@ -619,3 +677,12 @@ func _check_children(parent: Control, bounds: Rect2, problems: PackedStringArray
 func _hidden_under_overlay(a: Control, a_rect: Rect2, b: Control, b_rect: Rect2) -> bool:
 	var covers := OVERLAYS + BACKGROUNDS
 	return (String(a.name) in covers and a_rect.encloses(b_rect)) or (String(b.name) in covers and b_rect.encloses(a_rect))
+
+## A pointer press and release at `at` on the practice bar, as the canvas pushes them.
+func _press_bar(bar: PracticeTimeline, at: Vector2) -> void:
+	for pressed: bool in [true, false]:
+		var event := InputEventMouseButton.new()
+		event.button_index = MOUSE_BUTTON_LEFT
+		event.pressed = pressed
+		event.position = at
+		bar._gui_input(event)
