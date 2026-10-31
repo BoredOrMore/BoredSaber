@@ -258,6 +258,14 @@ For a new stage or a new look direction, start with `.claude/skills/creative-dir
 concepts (shape and light expressing a feeling) from `.claude/skills/stage-concept/SKILL.md`, each checked by the
 budget agent (`.claude/agents/budget.md`) before it reaches the owner.
 
+Art style (owner, 2026-10-31):
+- Stylized, not realistic: bold readable shapes, clean silhouettes, flat or simply graded colour from the
+  limited palette; no photo textures or photoreal detail.
+- Solve 3D with 3D: build volume from real geometry and shaders, not image planes (billboards, flat cards,
+  textured quads standing in for clouds, crowds or scenery). Planes show seams, edges and flatness up close
+  in VR (the Monolith clouds showed seams in front of the player). Use a plane only for something truly flat
+  (a screen, a sign) and say why in the change.
+
 Sources: James Gurney, "Color and Light" (luminance and saturation, limited palettes); Richard
 Pilbrow, "Stage Lighting Design" (direction, source and movement of stage light); W3C WCAG 2.2
 success criterion 2.3.1 (https://www.w3.org/WAI/WCAG22/Understanding/three-flashes-or-below-threshold);
