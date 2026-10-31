@@ -209,6 +209,11 @@ Air
   `match` arm in `LightRig.apply`, visibility in `show_scenery_for_mixed_reality`, optional `TrackDeck.SKINS`/
   `FAR_Z_BY_STAGE`, its pictures `thumbs/<id>.png` and `thumbs/<id>_wide.png` (`tools/capture/env_thumbnails.sh`, a `FRAMES` line
   framed on the stage's main unique element; render them again when the stage's look changes, the picker shows them), `stage_capture.gd --env`. Write `doc/world/` entries first.
+- Soft far edges (owner, 2026-10-31: every new stage plans them from its design): each far outline against the sky (60 m
+  and beyond) softens over `EnvSolid.gdshaderinc` `SHELL_BLUR_ANGLE`. Boxes: an `EnvSolidShell`/`EnvSolidCanyonShell`
+  MultiMesh of the same transforms (`NeonGridRig`, `PulseVoid`, `NightCityRig`, `HengeRig`); a model: shell boxes that
+  fit its parts; a baked sky: blur the shapes and any light not switched per cell, and keep a light switched per cell
+  (windows) soft only inside its own cell (`tools/bake_night_city_sky.py`: blurring across cells showed as squares).
 - New light carrier: place lights from a static helper on the rig, hang them in `LightRig.apply`; prefer the cheapest
   option in `doc/world/VISUAL_STYLE.md` "Light carriers" (vertex-mask vent < `LightStrip` < fixture < beam).
 - Haze amount/tint: `HAZE_BASE`, `HAZE_LIGHT_WEIGHT`, `HAZE_NEUTRAL`;
