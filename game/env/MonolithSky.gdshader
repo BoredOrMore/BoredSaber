@@ -16,7 +16,7 @@ const float HORIZON_GLOW = 1.2;
 const float GLOW_FALLOFF = 6.0;
 const float GLOW_WIDTH = 1.5;
 const float SKY_HAZE = 0.04;
-// a neutral grey glow low on the horizon all round (the haze is dark away from the slab), so the valley's terraced
+// a neutral grey glow low on the horizon all round (the haze is dark away from the slab), so the mountains'
 // ridges stand as silhouettes on every side; its peak and how fast it falls off upward
 const float RIDGE_GLOW = 0.12;
 const float RIDGE_FALLOFF = 3.0;

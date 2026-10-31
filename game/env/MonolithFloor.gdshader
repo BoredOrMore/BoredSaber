@@ -2,8 +2,7 @@ shader_type spatial;
 render_mode unshaded, shadows_disabled, fog_disabled;
 
 // Monolith's valley and the player's pillar (MonolithRig.gd): dark ground taking a little of the haze, brighter toward
-// the horizon's glow behind the slab, the terraces' steep faces darker than their treads (RISER) so the steps read as
-// bands, with the slab's shadow falling down the valley toward the player: a wedge from the slab's foot, widening by
+// the horizon's glow behind the slab, steep faces (the pillar) darker than flat ground (RISER), with the slab's shadow falling down the valley toward the player: a wedge from the slab's foot, widening by
 // SHADOW_SPREAD as it nears, fading over SHADOW_LENGTH. Its edges soften with distance (fwidth). Neutral: the ground
 // takes the haze's colour, not the lights'. Below the clouds' level it sinks into them (monolith_cloud.gdshaderinc).
 // BLOCKOUT, untuned.
@@ -17,7 +16,7 @@ uniform vec2 slab_centre = vec2(0.0, -565.0);
 uniform float slab_yaw = 0.0;
 uniform float slab_half_width = 180.0;
 uniform float slab_distance = 520.0;
-// a neutral grey every tread keeps, so the terraces read away from the slab's glow too (the haze is dark there)
+// a neutral grey the ground keeps, so it reads away from the slab's glow too (the haze is dark there)
 const float BASE = 0.06;
 // the ground's own darkness and the glow's share of the haze toward the slab, falling off with the angle away from it
 // and growing out to GLOW_DISTANCE (the horizon's glow lighting the far ground)
