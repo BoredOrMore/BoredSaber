@@ -1,7 +1,7 @@
 shader_type spatial;
 render_mode unshaded, cull_back, blend_mix;
 
-// The default wall (Settings.classic_walls off; DangerWall.gdshader is the classic one). The classic wall's two
+// The wall. The older wall's (DangerWall.gdshader, removed 2026-10-31) two
 // blended faces, wide halo and dense frame filled the screen with red fog when a wall came near (owner, 2026-10-25).
 // One mesh (Wall.frame_mesh: a unit box and twelve bars on its edges, scaled to the wall), one material, so still one
 // draw call per wall. Layers:

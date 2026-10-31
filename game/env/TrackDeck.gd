@@ -8,8 +8,8 @@ class_name TrackDeck
 ## track, joined as one piece): the deck runs on under the 2 m pad (game/floor.tscn: the burn marks and border lights),
 ## where its top sits PAD_DEPTH lower, a frame (platform_frame.glb) rings the pad with the border lights in its channel,
 ## plain plates fill out to the deck's width, the edges run on along its sides and an end stop closes it behind the
-## player. It stands in for the old see-through track sheet, which stays for mixed reality and as the Old track setting
-## (Settings.old_track). EventDriver lays it out for the lanes' width (the Wide modifiers); the pad stays 2 m.
+## player. It stands in for the old see-through track sheet, which stays for mixed reality.
+## EventDriver lays it out for the lanes' width (the Wide modifiers); the pad stays 2 m.
 ## On 90/360 maps the deck and its curbs turn with the notes about the player (turn, EventDriver.TRACK_TURN_TIME); the
 ## platform stays.
 ## Sizes in metres; untuned.

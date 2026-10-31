@@ -40,7 +40,7 @@ before building something new.
   player would see ("how wide the halo is, in metres"), plus its unit. Group them by layer at the top of
   the file, in layer order.
 - `const` for values tuned once; `uniform` only for what the game sets per object; `global uniform` only
-  for what the whole scene shares (`env_haze`, `left_saber_color`, `cut_waves`, `note_style`...). Reuse
+  for what the whole scene shares (`env_haze`, `left_saber_color`, `cut_waves`, `note_max_value`...). Reuse
   those before adding a new one, and reuse the `.gdshaderinc` helpers in `game/env/`
   (`height_fog`, `fog_light`, `player_light`). No colour toning of the darks (gradient mapping, shadow
   tints): the owner had a navy shadow tint removed (2026-10-26); blacks stay black.
@@ -66,7 +66,7 @@ picture for less GPU time, never a different picture.
 - Cheap math: `exp`, `pow`, `smoothstep` are fine in moderation; prefer `mix`, `clamp`, `step` and
   dot products. Avoid `discard` (breaks early depth tests on mobile GPUs) unless the shape needs it.
 - Thin lines: anti-alias with `fwidth` and keep at least `min_pixels` wide, dimming instead of thinning,
-  so they don't shimmer when the head moves (`NeonRibbon.gdshader`, `DangerWall.gdshader`).
+  so they don't shimmer when the head moves (`NeonRibbon.gdshader`).
 - No HDR: values are 0-1 per channel, so brightness comes from contrast and the size of the bright part.
 
 ## 5. Check it

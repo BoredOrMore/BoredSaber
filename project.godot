@@ -60,30 +60,14 @@ window/vsync/vsync_mode=false
 
 import/blender/enabled=false
 
-[gdnative]
-
-singletons=["res://addons/godot-openxr/config/godot_openxr.gdnlib"]
-
 [importer_defaults]
 
 texture={
-"compress/bptc_ldr": 0,
-"compress/hdr_mode": 0,
 "compress/lossy_quality": 0.7,
 "compress/mode": 2,
 "compress/normal_map": 0,
-"detect_3d": true,
-"flags/anisotropic": false,
-"flags/filter": true,
-"flags/mipmaps": true,
-"flags/repeat": true,
-"flags/srgb": 1,
-"process/HDR_as_SRGB": false,
 "process/fix_alpha_border": false,
-"process/invert_color": false,
 "process/premult_alpha": false,
-"size_limit": 0,
-"stream": false,
 "svg/scale": 1.0
 }
 
@@ -137,8 +121,7 @@ ui_end={
 [physics]
 
 common/physics_jitter_fix=0.0
-3d/physics_engine="Bullet"
-common/physics_fps=72
+3d/physics_engine="GodotPhysics3D"
 
 [rendering]
 
@@ -149,24 +132,12 @@ shading/overrides/force_lambert_over_burley=true
 environment/defaults/default_clear_color=Color(0, 0, 0, 1)
 environment/defaults/default_environment="res://default_env.tres"
 shading/overrides/force_vertex_shading.mobile=false
-quality/intended_usage/framebuffer_allocation=3
-vram_compression/import_etc=true
-lights_and_shadows/shadow_atlas/size=2048
-quality/shadows/filter_mode=0
-quality/reflections/texture_array_reflections=false
-quality/reflections/high_quality_ggx=false
-shading/overrides/force_blinn_over_ggx.mobile=false
-quality/depth/hdr=false
 
 [shader_globals]
 
 note_max_value={
 "type": "float",
 "value": 1.0
-}
-note_style={
-"type": "int",
-"value": 2
 }
 left_saber={
 "type": "vec3",
@@ -230,7 +201,6 @@ openxr/environment_blend_mode=0
 openxr/startup_alert=false
 openxr/foveation_level=2
 openxr/foveation_dynamic=false
-openxr/extensions/hand_tracking=true
 shaders/enabled=true
 openxr/extensions/meta/passthrough=true
 openxr/extensions/meta/color_space=false

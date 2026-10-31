@@ -3,12 +3,9 @@ class_name Wall
 
 var despawn_z: float
 var speed: float
-## the default wall (FramedWall.gdshader on frame_mesh(), scaled to the wall) and the classic one (the scene's own box
-## with DangerWall.gdshader), which Settings.classic_walls brings back
+## the wall's look: FramedWall.gdshader on frame_mesh(), scaled to the wall
 const FRAMED_MATERIAL := preload("res://game/notes/Wall/framed_wall.tres")
-const CLASSIC_MATERIAL := preload("res://game/notes/Wall/danger_wall.tres")
 static var _frame_mesh: ArrayMesh
-var _box: BoxMesh
 
 func _physics_process(delta: float) -> void:
 	if Scoreboard.paused: return
@@ -54,9 +51,6 @@ func spawn(wall_info: ObstacleInfo, current_beat: float) -> void:
 	visible = true
 	($WallMeshOrientation/WallArea/CollisionShape3D as CollisionShape3D).set_deferred(&"disabled", false)
 	var mesh := $WallMeshOrientation/WallMesh as MeshInstance3D
-	if _box == null:
-		_box = mesh.mesh as BoxMesh
-	var m := _box
 	var shape := ($WallMeshOrientation/WallArea/CollisionShape3D as CollisionShape3D).shape as BoxShape3D
 	
 	var x_size := wall_info.width * Settings.LANE_DISTANCE_X
@@ -64,21 +58,11 @@ func spawn(wall_info: ObstacleInfo, current_beat: float) -> void:
 	var y_size := Constants.wall_y(wall_info.line_layer + wall_info.height) - bottom
 	var z_size := wall_info.duration * Map.beat_distance
 	var depth := z_size * 0.5
-	m.size.x = x_size
-	shape.size.x = x_size
-	m.size.y = y_size
-	shape.size.y = y_size
-	m.size.z = z_size
-	shape.size.z = z_size
+	shape.size = Vector3(x_size, y_size, z_size)
 	despawn_z = Constants.MISS_Z + depth
-	if Settings.classic_walls:
-		mesh.mesh = _box
-		mesh.material_override = CLASSIC_MATERIAL
-		mesh.scale = Vector3.ONE
-	else:
-		mesh.mesh = frame_mesh()
-		mesh.material_override = FRAMED_MATERIAL
-		mesh.scale = Vector3(x_size, y_size, maxf(z_size, 0.001))
+	mesh.mesh = frame_mesh()
+	mesh.material_override = FRAMED_MATERIAL
+	mesh.scale = Vector3(x_size, y_size, maxf(z_size, 0.001))
 	
 	var x := (0.5 * wall_info.width + wall_info.line_index - 2) * Settings.LANE_DISTANCE_X
 	var y := bottom + 0.5 * y_size
@@ -101,7 +85,7 @@ func spawn(wall_info: ObstacleInfo, current_beat: float) -> void:
 ## A wall standing on the track's level with part of it over the curb beside the deck (TrackDeck: outside the lanes, a
 ## lighting or decor wall) is drawn from the edge strip's top up, so the curb and strip don't run through its bottom
 ## (owner, 2026-10-25). Only its look: its hitbox keeps the whole height. Lane walls, walls wholly past the curb and
-## raised walls stay as they are, and nothing changes with the old track sheet (Old track, mixed reality), which has no
+## raised walls stay as they are, and nothing changes with the old track sheet (mixed reality), which has no
 ## curb. `x` is its middle across the track and `x_size` its width, `bottom` and `y_size` its base and height.
 func _fit_over_curb(mesh: MeshInstance3D, x: float, x_size: float, bottom: float, y_size: float) -> void:
 	var lift := TrackDeck.CURB_RISE + TrackDeck.STRIP_PROUD
@@ -109,13 +93,10 @@ func _fit_over_curb(mesh: MeshInstance3D, x: float, x_size: float, bottom: float
 	var reach := absf(x) + absf(x_size) * 0.5
 	var inner := absf(x) - absf(x_size) * 0.5
 	var over := reach > edge + 0.001 and inner < edge + TrackDeck.CURB_OUT and bottom < 0.01 and y_size > lift \
-		and not (Settings.old_track or Settings.mixed_reality)
+		and not Settings.mixed_reality
 	var height := y_size - lift if over else y_size
 	mesh.position.y = lift * 0.5 if over else 0.0
-	if mesh.mesh == _box:
-		_box.size.y = height
-	else:
-		mesh.scale.y = height
+	mesh.scale.y = height
 
 ## The default wall's mesh, shared by every wall: a unit box (the glass, its faces with their normals) and a bar on each
 ## of its twelve edges, all drawn by FramedWall.gdshader in one draw call. Each vertex sits at a corner of the unit box;
