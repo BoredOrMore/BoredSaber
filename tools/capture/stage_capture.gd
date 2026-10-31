@@ -18,8 +18,8 @@ extends Node3D
 ##   (GameStatePlaying.spawn_due); nobody cuts them, so they pass and are missed, which costs nothing here; 0 leaves them out)
 ##   --note left|right (one note held still NOTE_AHEAD in front of the eye, to look at its shading; pair with
 ##   --seconds 600 to keep the window open)  --note-yaw 0 --note-pitch 0 (degrees, turn it to see its sides and top)
-##   --wall 1 (with --map: the map's walls in the Classic walls look if --wall classic; otherwise a wall held still: WALL_SIZE, its near face --wall-z metres ahead of the eye (default 3; 0.5 to see the
-##   near fade), --wall-x 0.6 to its centre's side; --wall classic for the Classic walls look)  --danger RRGGBB
+##   --wall 1 (with --map: the map's walls; otherwise a wall held still: WALL_SIZE, its near face --wall-z metres ahead of the eye (default 3; 0.5 to see the
+##   near fade), --wall-x 0.6 to its centre's side)  --danger RRGGBB
 ##   --saber left|right (the default saber turned on, held --saber-dist metres in front of the eye, default 0.35, its
 ##   blade leaning away to the side, to look at it up close)
 ##   --bomb 1|classic (with --map: the map's bombs, classic = the two-mesh bomb; otherwise two bombs held still, one
@@ -122,8 +122,6 @@ func _ready() -> void:
 		stage.metal_factory_rig.slam(_beat, CAPTURE_BPM, 1.0)
 	if args.has("animate"):
 		_animated = stage
-	# the Classic walls look for the map's walls too (in memory only; the saved setting is left alone)
-	Settings.classic_walls = args.get("wall", "") == "classic"
 	if args.has("wall") and not args.has("map"):
 		_hold_wall(camera, args)
 	Bomb.classic = args.get("bomb", "") == "classic"
@@ -293,13 +291,9 @@ func _hold_wall(camera: Camera3D, args: Dictionary) -> void:
 	add_child(wall)
 	var mesh := wall.get_node(^"WallMeshOrientation/WallMesh") as MeshInstance3D
 	var danger := Color(args.get("danger", "ff3030") as String)
-	if args["wall"] == "classic":
-		(mesh.mesh as BoxMesh).size = WALL_SIZE
-		mesh.material_override = Wall.CLASSIC_MATERIAL
-	else:
-		mesh.mesh = Wall.frame_mesh()
-		mesh.material_override = Wall.FRAMED_MATERIAL
-		mesh.scale = WALL_SIZE
+	mesh.mesh = Wall.frame_mesh()
+	mesh.material_override = Wall.FRAMED_MATERIAL
+	mesh.scale = WALL_SIZE
 	(mesh.material_override as ShaderMaterial).set_shader_parameter(&"danger_color", danger)
 	wall.position = Vector3(float(args.get("wall-x", "0.6")), WALL_SIZE.y * 0.5,
 		camera.position.z - float(args.get("wall-z", "3")) - WALL_SIZE.z * 0.5)

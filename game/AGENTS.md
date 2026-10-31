@@ -151,7 +151,7 @@ constraints apply here unchanged.
   reset in `BeepCube.gd:74-79`). The cube `ShaderMaterial` is `resource_local_to_scene`
   (`BeepCube.tscn:76`); its collision `BoxShape3D`s are not, yet `BeepCube.gd:55-58` and
   `ChainLink.gd:95-99` resize them per spawn (shared across instances). Report, don't silently "fix".
-- Danger colour (`danger_wall.tres`, `bomb_glow.tres`) and `Arc` materials are shared; set via
+- Danger colour (`framed_wall.tres`, `bomb_glow.tres`) and `Arc` materials are shared; set via
   `_update_danger_color()` and `update_left/right_color()` in `BeepSaber_Game.gd`.
 - Colours: always read `Map.color_left/right` (handedness-aware getters), not `Settings.color_*`, at spawn.
 - Health: all damage goes through `update_health(delta, mistake)` (`BeepSaber_Game.gd:156`);

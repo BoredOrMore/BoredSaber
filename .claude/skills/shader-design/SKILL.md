@@ -66,7 +66,7 @@ picture for less GPU time, never a different picture.
 - Cheap math: `exp`, `pow`, `smoothstep` are fine in moderation; prefer `mix`, `clamp`, `step` and
   dot products. Avoid `discard` (breaks early depth tests on mobile GPUs) unless the shape needs it.
 - Thin lines: anti-alias with `fwidth` and keep at least `min_pixels` wide, dimming instead of thinning,
-  so they don't shimmer when the head moves (`NeonRibbon.gdshader`, `DangerWall.gdshader`).
+  so they don't shimmer when the head moves (`NeonRibbon.gdshader`).
 - No HDR: values are 0-1 per channel, so brightness comes from contrast and the size of the bright part.
 
 ## 5. Check it

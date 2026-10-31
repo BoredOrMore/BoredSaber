@@ -218,7 +218,7 @@ channel), so brightness comes from contrast and the size of bright areas, not fr
 2. Hot core, coloured falloff: a bright emitter burns toward white at its centre and shows its colour in
    the glow around it (overexposure desaturates). Brighten by mixing toward white or widening the
    bright part, never by multiplying a saturated colour past 1 (it clips to a flat, fully saturated
-   colour). Walls already do this (`game/notes/Wall/DangerWall.gdshader`: white-hot frame, red halo).
+   colour). Walls already do this (`game/notes/Wall/FramedWall.gdshader`: white-hot frame, red halo).
 3. Saturation lives in small areas: full note colour only on fixtures, beams and their halos; large
    surfaces (floor, sky, haze, walls' glass) stay dark and low in saturation.
 4. Limited palette: the two note colours, the danger colour, and neutrals (cool or warm grey, white).

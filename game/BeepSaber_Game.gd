@@ -176,7 +176,6 @@ const STAGE_HOLD_SECONDS := 0.35
 var _stage_switching := false
 # the high score saved at the end of the last song
 var _new_record := {}
-const DANGER_WALL_MATERIAL := preload("res://game/notes/Wall/danger_wall.tres")
 ## Mistake sounds (tools/make_hit_sounds.py): a dull buzz for a bad cut or the wrong saber, a boom for a bomb.
 ## A miss gets a soft swipe (tools/make_feedback_sounds.py), quieter than a bad cut.
 const BAD_CUT_SOUND := preload("res://game/data/bad_cut.wav")
@@ -1234,7 +1233,6 @@ func play_miss_sound(at: Vector3) -> void:
 
 ## Colours walls and bombs with the song's danger colour.
 static func _update_danger_color(danger: Color) -> void:
-	(DANGER_WALL_MATERIAL as ShaderMaterial).set_shader_parameter(&"danger_color", danger)
 	(Wall.FRAMED_MATERIAL as ShaderMaterial).set_shader_parameter(&"danger_color", danger)
 	(BOMB_GLOW_MATERIAL as ShaderMaterial).set_shader_parameter(&"danger_color", danger)
 	(Bomb.MERGED_MATERIAL as ShaderMaterial).set_shader_parameter(&"danger_color", danger)

@@ -34,8 +34,8 @@ spawn, cut and miss flow, pooling rules and "Add a note type".
 - `Bomb/` — `Bomb.gd`, `BombGlow.gdshader` + `bomb_glow.tres` (`danger_color`); `BombMerged.gdshader` draws body and
   glow hull in one call (`Bomb.merged_mesh`, the default); `BombMesh.tscn` + `BombBody.gdshader` are the two-mesh
   bomb `Bomb.classic` brings back to compare.
-- `Wall/` — `Wall.gd` (resizes box mesh/shape per wall), `FramedWall.gdshader` (default wall: box plus edge bars, one
-  draw call), `DangerWall.gdshader` + `danger_wall.tres` (classic wall, `Settings.classic_walls`).
+- `Wall/` — `Wall.gd` (resizes box mesh/shape per wall), `FramedWall.gdshader` + `framed_wall.tres` (the wall: box plus
+  edge bars, one draw call).
 
 ## Invariants and gotchas
 
@@ -44,7 +44,7 @@ spawn, cut and miss flow, pooling rules and "Add a note type".
 - The `.material` files here are binary (`RSCC`) and embed their shader's path: moving a shader means re-saving the
   material (load it, set `shader` to the new path, `ResourceSaver.save`), a text edit can't fix it.
   `BeepCube/BeepCube.material` points at a texture that no longer exists and nothing uses it.
-- Danger colour (`danger_wall.tres`, `bomb_glow.tres`) and the arc materials are shared; set from `BeepSaber_Game.gd`.
+- Danger colour (`framed_wall.tres`, `bomb_glow.tres`) and the arc materials are shared; set from `BeepSaber_Game.gd`.
 
 ## Where to change X
 

@@ -45,7 +45,6 @@ signal benchmark_requested()
 @onready var spectator_view_control := $Tabs/Advanced/VBox/spectator_view as CheckButton
 @onready var spectator_hud_control := $Tabs/Advanced/VBox/spectator_hud as CheckButton
 @onready var classic_notes_control := $Tabs/Advanced/VBox/classic_notes as CheckButton
-@onready var classic_walls_control := $Tabs/Advanced/VBox/classic_walls as CheckButton
 @onready var classic_night_city_control := $Tabs/Advanced/VBox/classic_night_city as CheckButton
 @onready var refresh_90_control := $Tabs/Advanced/VBox/refresh_90 as CheckButton
 @onready var background_mode_control := $Tabs/Visuals/VBox/background_mode_grid/background_mode as OptionButton
@@ -185,7 +184,6 @@ func set_controls_from_settings() -> void:
 	spectator_view_control.button_pressed = Settings.spectator_view
 	spectator_hud_control.button_pressed = Settings.spectator_hud
 	classic_notes_control.button_pressed = Settings.classic_notes
-	classic_walls_control.button_pressed = Settings.classic_walls
 	classic_night_city_control.button_pressed = Settings.classic_night_city
 	refresh_90_control.button_pressed = Settings.refresh_90
 
@@ -529,10 +527,6 @@ func _on_spectator_hud_toggled(value: bool) -> void:
 ## Switches between the glossy notes and the older looks (the Note style picked on the Visuals tab).
 func _on_classic_notes_toggled(value: bool) -> void:
 	Settings.classic_notes = value
-
-## Switches between the framed walls and the older ones (walls already flying keep theirs until they respawn).
-func _on_classic_walls_toggled(value: bool) -> void:
-	Settings.classic_walls = value
 
 ## Switches Night City between the building canyon and its classic layout.
 func _on_classic_night_city_toggled(value: bool) -> void:
