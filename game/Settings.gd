@@ -267,11 +267,6 @@ var spectator_view: bool:
 	set(value):
 		spectator_view = value
 		set_and_emit(&"spectator_view", value)
-## the old see-through track sheet instead of the deck with curbs (TrackDeck), to compare them (owner, 2026-10-25)
-var old_track: bool:
-	set(value):
-		old_track = value
-		set_and_emit(&"old_track", value)
 ## the older note looks (Solid or Neon, note_style) instead of the glossy default one (BeepCube.gdshader), to compare
 ## them (owner, 2026-10-25)
 var classic_notes: bool:
@@ -510,7 +505,6 @@ var default_values = {
 	audio_sfx = 0.8,
 	spectator_view = false,
 	spectator_hud = true,
-	old_track = false,
 	classic_notes = false,
 	classic_walls = false,
 	classic_night_city = false,

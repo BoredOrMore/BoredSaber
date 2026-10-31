@@ -812,10 +812,6 @@ text = "Spectator view"
 layout_mode = 2
 text = "Score on spectator view"
 
-[node name="old_track" type="CheckButton" parent="Tabs/Advanced/VBox"]
-layout_mode = 2
-text = "Old track"
-
 [node name="classic_notes" type="CheckButton" parent="Tabs/Advanced/VBox"]
 layout_mode = 2
 text = "Classic notes"
@@ -912,7 +908,6 @@ scroll_without_pointer = true
 [connection signal="toggled" from="Tabs/Advanced/VBox/show_debug" to="." method="_on_show_debug_toggled"]
 [connection signal="toggled" from="Tabs/Advanced/VBox/spectator_view" to="." method="_on_spectator_view_toggled"]
 [connection signal="toggled" from="Tabs/Advanced/VBox/spectator_hud" to="." method="_on_spectator_hud_toggled"]
-[connection signal="toggled" from="Tabs/Advanced/VBox/old_track" to="." method="_on_old_track_toggled"]
 [connection signal="toggled" from="Tabs/Advanced/VBox/classic_notes" to="." method="_on_classic_notes_toggled"]
 [connection signal="toggled" from="Tabs/Advanced/VBox/classic_walls" to="." method="_on_classic_walls_toggled"]
 [connection signal="toggled" from="Tabs/Advanced/VBox/classic_night_city" to="." method="_on_classic_night_city_toggled"]

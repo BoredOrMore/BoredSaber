@@ -120,7 +120,7 @@ Shared scenery
   scenery, sky and track shader, which pass their colour through `fog_dither(fog_result(colour, VERTEX), FRAGCOORD.xy)`.
 - `TrackDeck.gd` (`TrackDeck`): opaque deck (top y 0), curbs housing the thin edge light strips (`STRIP_*`), platform frame, end stops;
   runs to `FAR_Z` -150 (`FAR_Z_BY_STAGE`), fades into haze. `layout(lane_width)` for Wide modifiers; `set_stage` skin.
-  Hidden for `Settings.old_track` and mixed reality (old see-through sheet instead).
+  Hidden in mixed reality (old see-through sheet instead).
   Its deck and curbs sit under a child that `turn(place)` turns with the notes; the platform pieces don't. On 90/360
   maps during a song (`layout(lane_width, true)` from `EventDriver.set_background`) the platform is a black disc
   (`round_radius()`, as far as the square reaches) with a rim, the deck starting where its corners meet the disc

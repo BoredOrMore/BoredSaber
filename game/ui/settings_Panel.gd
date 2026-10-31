@@ -44,7 +44,6 @@ signal benchmark_requested()
 @onready var audio_sfx_control := $Tabs/Audio/VBox/audio/sfx/sfx_slider as HSlider
 @onready var spectator_view_control := $Tabs/Advanced/VBox/spectator_view as CheckButton
 @onready var spectator_hud_control := $Tabs/Advanced/VBox/spectator_hud as CheckButton
-@onready var old_track_control := $Tabs/Advanced/VBox/old_track as CheckButton
 @onready var classic_notes_control := $Tabs/Advanced/VBox/classic_notes as CheckButton
 @onready var classic_walls_control := $Tabs/Advanced/VBox/classic_walls as CheckButton
 @onready var classic_night_city_control := $Tabs/Advanced/VBox/classic_night_city as CheckButton
@@ -185,7 +184,6 @@ func set_controls_from_settings() -> void:
 	audio_sfx_control.value = Settings.audio_sfx
 	spectator_view_control.button_pressed = Settings.spectator_view
 	spectator_hud_control.button_pressed = Settings.spectator_hud
-	old_track_control.button_pressed = Settings.old_track
 	classic_notes_control.button_pressed = Settings.classic_notes
 	classic_walls_control.button_pressed = Settings.classic_walls
 	classic_night_city_control.button_pressed = Settings.classic_night_city
@@ -527,10 +525,6 @@ func _on_spectator_view_toggled(value: bool) -> void:
 
 func _on_spectator_hud_toggled(value: bool) -> void:
 	Settings.spectator_hud = value
-
-## Switches between the old see-through track and the deck with curbs.
-func _on_old_track_toggled(value: bool) -> void:
-	Settings.old_track = value
 
 ## Switches between the glossy notes and the older looks (the Note style picked on the Visuals tab).
 func _on_classic_notes_toggled(value: bool) -> void:

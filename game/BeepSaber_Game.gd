@@ -1160,7 +1160,7 @@ func on_settings_changed(key: StringName) -> void:
 			_update_slash_block()
 		&"width":
 			event_driver.set_background()
-		&"background", &"smoke", &"old_track":
+		&"background", &"smoke":
 			event_driver.set_background()
 		&"background_texture":
 			set_background_texture()
