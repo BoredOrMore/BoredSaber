@@ -107,7 +107,8 @@ Monolith (one colossal slab down a terraced valley, seen from a tall pillar, abs
   its face to the player (`face_material`), standing on the floor of a valley `VALLEY_Y` below the platform that runs
   the same way; the player's pillar down to it; the valley's sides step up in terraces (`_valley_mesh`: a column of
   vertices on each step edge so steps stay sharp, ending `VALLEY_RADIUS` out, inside the far plane; valley and pillar
-  share `floor_material`); two cloud planes (`CLOUD_LAYERS`) among the terraces. Every terrace above y -5 starts
+  share `floor_material`); upright cloud rings (`CLOUD_RINGS`, `_cloud_ring`: a band up from the valley floor whose top
+  is a row of round puffs, built in the mesh) among the terraces. Every terrace above y -5 starts
   beyond r 320 m, bends included; keep it so when changing the valley's numbers. `foot_spot(share)` and
   `up_face(lean)` place the lasers (`LightRig` "monolith": diagonal beams up the face from its foot, waving lasers
   between; no square bars). Nothing within the notes' 300 m fly-in in any direction (owner's rule, 2026-10-31).
@@ -118,8 +119,8 @@ Monolith (one colossal slab down a terraced valley, seen from a tall pillar, abs
   slit, it closes to `MONOLITH_SLIT_REST`). Soft far edges not on yet: planned for the slab's outline, never its lines.
 - `MonolithFloor.gdshader`: the valley and pillar: dark ground with a neutral `BASE`, the horizon's glow on the far
   ground toward the slab, steep faces darker than treads (slope from screen derivatives, no normals), the slab's shadow
-  falling toward the player as a widening wedge. `MonolithCloud.gdshader`: opaque clouds with holes (discard, no
-  blending), domed up by their own noise, two flat tones (edge band and lit top), drifting. `MonolithSky.gdshader`:
+  falling toward the player as a widening wedge. `MonolithCloud.gdshader`: the cloud rings, opaque (outline in the
+  mesh: no discard, no blending), light under the top darkening downward, a thin rim on the puffs, farther rings paler. `MonolithSky.gdshader`:
   black with a neutral horizon glow behind the slab (`SLAB_DIR` must match `MonolithRig.SLAB_YAW`; no `bg_<type>`) and
   a fainter neutral one all round so the ridges stand as silhouettes.
 

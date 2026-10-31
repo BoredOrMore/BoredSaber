@@ -101,7 +101,9 @@ Plain boxes in `HengeRig.gd`, every size a named constant there; for 90 and 360 
   terraces up both sides, 15 m higher every 30 m out (4 m steep faces), to ridges about +295 m at 980 m. The first
   terrace above y -5 starts beyond 325 m. The slab stands on the valley floor (top about 950 m away); its shadow falls
   down the valley toward the player.
-- Clouds: two layers at y -50 and -25, domed up to 14 m, 45% and 60% open air, drifting; all below y -5.
+- Clouds (owner's reference, 2026-10-31: stylized flats): 4 upright rings at 220, 360, 520 and 760 m, each a band up
+  from the valley floor topped by a row of round puffs; the 220 m ring's puffs top out near y -11; beyond 320 m they
+  rise to about +60 m at 760 m, hiding the slab's foot.
 - Lights: drawn on the slab's face (edges 3 m, seams 1.5 m every 90 m, slit 2 m, foot strip 2 m); beam fixtures along
   its foot, 2 m in front of the face.
 - Sky: black, a neutral glow low on the horizon behind the slab and a fainter one all round behind the ridges.

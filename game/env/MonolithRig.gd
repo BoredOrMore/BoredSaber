@@ -4,7 +4,8 @@ extends Node3D
 ## Monolith (doc/world/GAME_BIBLE.md "Monolith"; owner, 2026-10-31): standing before something that was here before you.
 ## Abstract, no story. The player stands on a tall pillar in the middle of a valley (owner, 2026-10-31): the valley floor
 ## lies VALLEY_Y below, its sides step up in terraces to ridges on both sides, and low stylized clouds drift among the
-## terraces (owner's pick B). One colossal black slab (SLAB, 1:4:9) stands on the valley floor SLAB_DISTANCE away, down
+## terraces (owner's pick B), drawn like stage flats (owner's reference, 2026-10-31): upright rings round the player, each
+## a band whose top is a row of round puffs, nearer rings darker, farther ones paler. One colossal black slab (SLAB, 1:4:9) stands on the valley floor SLAB_DISTANCE away, down
 ## the valley SLAB_YAW off straight ahead, its broad face turned to the player: tiny beside something massive, not inside
 ## it or at its centre. Nothing within the notes' fly-in (Cuttable.FLY_DISTANCE, r 320 m) rises above y -5 in any
 ## direction (terraces start high only beyond it, clouds stay below), so it serves 90 and 360 degree maps too.
@@ -17,7 +18,7 @@ extends Node3D
 ## (MonolithCloud.gdshader), so they cost no blending.
 ## Far edges stay sharp in the blockout: the soft-edge layer (AGENTS.md "Soft far edges") goes on the slab's outline
 ## once the look is agreed, never across its per-seam lights.
-## BLOCKOUT: one box, the valley mesh, a pillar and two cloud planes. A tool script, so it shows in the editor too.
+## BLOCKOUT: one box, the valley mesh, a pillar and the cloud rings. A tool script, so it shows in the editor too.
 ## Sizes in metres, untuned.
 
 const FACE_SHADER := preload("res://game/env/MonolithFace.gdshader")
@@ -46,12 +47,18 @@ const VALLEY_BEND_LENGTH := 1600.0
 ## the valley mesh ends VALLEY_RADIUS from the player (inside the far plane), VALLEY_ROWS rows along it
 const VALLEY_RADIUS := 980.0
 const VALLEY_ROWS := 120
-## the clouds: one plane per height in CLOUD_LAYERS, each with that share of open air (CLOUD_OPEN), CLOUD_SIZE a side
-## and CLOUD_CELLS cells a side (the haze is worked out per vertex)
-const CLOUD_LAYERS := [-50.0, -25.0]
-const CLOUD_OPEN := [0.45, 0.6]
-const CLOUD_SIZE := 1960.0
-const CLOUD_CELLS := 48
+## the clouds: one upright ring per entry of CLOUD_RINGS (radius, puffs' base height, their tallest rise above it), from
+## the valley floor up to a row of round puffs CLOUD_PUFF_WIDTH wide (metres at 400 m out, wider farther away), one
+## vertex per CLOUD_STEP metres along the top. Rings within the notes' fly-in (r 320 m) keep their puffs below y -5.
+const CLOUD_RINGS := [Vector3(220.0, -45.0, 26.0), Vector3(360.0, -25.0, 34.0),
+	Vector3(520.0, -12.0, 44.0), Vector3(760.0, 0.0, 60.0)]
+const CLOUD_PUFF_WIDTH := Vector2(40.0, 110.0)
+const CLOUD_STEP := 3.0
+## the puffs' base rises and falls round each ring by this much, CLOUD_SWELLS times round
+const CLOUD_SWELL := 8.0
+const CLOUD_SWELLS := 5
+## the random puffs come from this seed, so every load looks the same
+const CLOUD_SEED := 31
 
 ## the slab face's material (light colours, build-up and slit set each frame by EventDriver) and the floor's
 var face_material: ShaderMaterial
@@ -95,21 +102,66 @@ func _ready() -> void:
 	pillar.material_override = floor_material
 	pillar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(pillar)
-	for i in CLOUD_LAYERS.size():
+	var random := RandomNumberGenerator.new()
+	random.seed = CLOUD_SEED
+	for i in CLOUD_RINGS.size():
 		var material := ShaderMaterial.new()
 		material.shader = CLOUD_SHADER
-		material.set_shader_parameter(&"open", CLOUD_OPEN[i])
-		material.set_shader_parameter(&"seed", float(i) * 37.0)
-		var plane := PlaneMesh.new()
-		plane.size = Vector2(CLOUD_SIZE, CLOUD_SIZE)
-		plane.subdivide_width = CLOUD_CELLS
-		plane.subdivide_depth = CLOUD_CELLS
+		material.set_shader_parameter(&"depth_share", float(i) / (CLOUD_RINGS.size() - 1))
 		var cloud := MeshInstance3D.new()
-		cloud.mesh = plane
-		cloud.position = _around_player(Vector3(0.0, CLOUD_LAYERS[i], 0.0))
+		cloud.mesh = _cloud_ring(CLOUD_RINGS[i], random)
+		cloud.position = _around_player(Vector3.ZERO)
 		cloud.material_override = material
 		cloud.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(cloud)
+
+## One ring of cloud (`ring`: radius, the puffs' base height, their tallest rise): a band from the valley floor up to a
+## row of overlapping round puffs. UV.y holds the metres down from the top, for the cloud's rim and shading.
+func _cloud_ring(ring: Vector3, random: RandomNumberGenerator) -> ArrayMesh:
+	var around := TAU * ring.x
+	var scale := ring.x / 400.0
+	# the puffs: centre along the ring and radius, each overlapping the last
+	var puffs: Array[Vector2] = []
+	var along := 0.0
+	while along < around:
+		var radius := random.randf_range(CLOUD_PUFF_WIDTH.x, CLOUD_PUFF_WIDTH.y) * 0.5 * scale
+		puffs.append(Vector2(along + radius, radius))
+		along += radius * random.randf_range(1.0, 1.6)
+	var tallest := 0.0
+	for puff in puffs:
+		tallest = maxf(tallest, puff.y)
+	var samples := ceili(around / CLOUD_STEP)
+	var vertices := PackedVector3Array()
+	var uvs := PackedVector2Array()
+	var first := 0
+	for i in samples + 1:
+		var s := around * i / samples
+		while first < puffs.size() - 1 and puffs[first].x + puffs[first].y < s:
+			first += 1
+		var top := 0.0
+		for p in range(first, mini(first + 4, puffs.size())):
+			var d := s - puffs[p].x
+			if absf(d) < puffs[p].y:
+				top = maxf(top, sqrt(puffs[p].y * puffs[p].y - d * d))
+		var angle := s / ring.x
+		var height := ring.y + CLOUD_SWELL * sin(angle * CLOUD_SWELLS) + top / tallest * ring.z
+		var out := Vector3(sin(angle), 0.0, -cos(angle)) * ring.x
+		vertices.append(out + Vector3(0.0, height, 0.0))
+		uvs.append(Vector2(0.0, 0.0))
+		vertices.append(out + Vector3(0.0, VALLEY_Y, 0.0))
+		uvs.append(Vector2(0.0, height - VALLEY_Y))
+	var indices := PackedInt32Array()
+	for i in samples:
+		var a := i * 2
+		indices.append_array([a, a + 2, a + 1, a + 1, a + 2, a + 3])
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_TEX_UV] = uvs
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
 
 ## The valley in its own frame (x across, -z down the valley toward the slab): one column of vertices at each edge of
 ## the floor and of every terrace face, so the steps stay sharp, each column reaching as far along as VALLEY_RADIUS allows.
