@@ -56,7 +56,7 @@ See `SPATIAL_LAYOUT.md` (origin, bounds, corridor, exclusion zones) and the root
 - Feeling: standing before something that was here before you. One black slab (1:4:9), 360 m wide, 810 m tall, 90 m
   deep, 520 m away, 30 degrees left of ahead, its face turned to the player, on an open dark plain.
 - Light on the slab only: its two vertical edges (left and right lasers), 8 horizontal seams (square bars), a slit up
-  its middle and a strip along its foot (floor lights), beams up its face from fixtures at its foot (diagonal and
+  its middle and a strip along a ledge 150 m up, above the clouds (floor lights), beams up its face from fixtures on that ledge (diagonal and
   waving). A faint neutral glow on the horizon behind it; its shadow falls across the plain toward the player.
 - Build-up: seams light from the foot up; drop: the slit opens to the top, then closes back low.
 - The main form is one symmetric object placed off-centre on purpose (the point of the stage); props still to come.

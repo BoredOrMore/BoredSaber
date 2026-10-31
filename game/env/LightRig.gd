@@ -243,14 +243,14 @@ func apply(id: String) -> void:
 			for bar in square_bars():
 				bar.visible = false
 		"monolith":
-			# the slab (MonolithRig, blockout): the diagonal lasers' fixtures across its foot, beams up its face leaning out
-			# a little, the waving lasers' between them; its face carries the square bars' light (EventDriver), so the bars
-			# are left out
+			# the slab (MonolithRig, blockout): the diagonal lasers' fixtures across its ledge above the clouds, beams up
+			# its face leaning out a little, the waving lasers' between them; its face carries the square bars' light
+			# (EventDriver), so the bars are left out
 			var diagonal := _d.diagonal_lasers.size()
 			for i in diagonal:
-				aim(_d.diagonal_lasers[i], MonolithRig.foot_spot((i + 0.5) / diagonal), MonolithRig.up_face(MONOLITH_LEAN))
+				aim(_d.diagonal_lasers[i], MonolithRig.ledge_spot((i + 0.5) / diagonal), MonolithRig.up_face(MONOLITH_LEAN))
 			for i in waving.size():
-				waving[i].global_position = MonolithRig.foot_spot((i + 1.0) / (waving.size() + 1.0))
+				waving[i].global_position = MonolithRig.ledge_spot((i + 1.0) / (waving.size() + 1.0))
 			for bar in square_bars():
 				bar.visible = false
 		"metal_factory":

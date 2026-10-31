@@ -11,9 +11,9 @@ extends Node3D
 ## direction (terraces start high only beyond it, clouds stay below), so it serves 90 and 360 degree maps too.
 ## Light only on the slab (AGENTS.md "Light", rule 5), drawn in its face's own shader (MonolithFace.gdshader; flush strip
 ## meshes would fight for depth this far out): its two vertical edges in the left and right lasers' colours, horizontal
-## seams in the square bars' colour lit from the foot up as the show builds, a slit up the middle and a strip along the
-## foot in the floor lights' colour; beams up its face from fixtures at its foot (the diagonal and waving lasers,
-## LightRig). Behind it the horizon glows faintly (MonolithSky) so it stands as a silhouette, and its shadow falls down
+## seams in the square bars' colour lit from the foot up as the show builds, a slit up the middle and a strip along a
+## ledge in the floor lights' colour, LEDGE_HEIGHT up, clear above the clouds; beams up its face from fixtures on that
+## ledge (the diagonal and waving lasers, LightRig; owner, 2026-10-31: moved up out of the clouds). Behind it the horizon glows faintly (MonolithSky) so it stands as a silhouette, and its shadow falls down
 ## the valley toward the player (MonolithFloor.gdshader, on the valley and the pillar). The clouds are opaque with holes
 ## (MonolithCloud.gdshader), so they cost no blending.
 ## Far edges stay sharp in the blockout: the soft-edge layer (AGENTS.md "Soft far edges") goes on the slab's outline
@@ -31,6 +31,9 @@ const CLOUD_EDGE_SHADER := preload("res://game/env/MonolithCloudEdge.gdshader")
 const SLAB := Vector3(360.0, 810.0, 90.0)
 const SLAB_DISTANCE := 520.0
 const SLAB_YAW := deg_to_rad(30.0)
+## the ledge across the slab's face carrying the lasers' fixtures and the floor lights' strip: metres up from its foot,
+## above the clouds' puffs round the slab (up to about +60 m, CLOUD_RINGS)
+const LEDGE_HEIGHT := 150.0
 ## the pillar the player stands on: from under the platform (PILLAR_TOP) down to the valley floor, PILLAR_RADIUS wide
 const PILLAR_TOP := -TrackDeck.DECK_DEPTH
 const PILLAR_RADIUS := 10.0
@@ -52,7 +55,7 @@ const VALLEY_ROWS := 120
 ## the valley floor up to a row of round puffs CLOUD_PUFF_WIDTH wide (metres at 400 m out, wider farther away), one
 ## vertex per CLOUD_STEP metres along the top. Rings within the notes' fly-in (r 320 m) keep their puffs below y -5.
 const CLOUD_RINGS := [Vector3(220.0, -45.0, 26.0), Vector3(360.0, -25.0, 34.0),
-	Vector3(520.0, -12.0, 44.0), Vector3(760.0, 0.0, 60.0)]
+	Vector3(470.0, -12.0, 44.0), Vector3(760.0, 0.0, 60.0)]
 const CLOUD_PUFF_WIDTH := Vector2(40.0, 110.0)
 const CLOUD_STEP := 3.0
 ## the puffs' base rises and falls round each ring by this much, CLOUD_SWELLS times round
@@ -74,6 +77,7 @@ func _ready() -> void:
 	face_material = ShaderMaterial.new()
 	face_material.shader = FACE_SHADER
 	face_material.set_shader_parameter(&"size", SLAB)
+	face_material.set_shader_parameter(&"ledge_height", LEDGE_HEIGHT)
 	var slab := MeshInstance3D.new()
 	var box := BoxMesh.new()
 	box.size = SLAB
@@ -262,13 +266,13 @@ static func slab_place() -> Transform3D:
 	var centre := Vector3(0.0, VALLEY_Y + SLAB.y * 0.5, -SLAB_DISTANCE - SLAB.z * 0.5)
 	return Transform3D(slab_basis(), _around_player(slab_basis() * centre))
 
-## Where a light stands at the slab's foot, just in front of its face, `share` of the way across from its left edge to
+## Where a light stands on the slab's ledge, just in front of its face, `share` of the way across from its left edge to
 ## its right as the player sees it (LightRig: the lasers' fixtures, shining up the face).
-static func foot_spot(share: float) -> Vector3:
+static func ledge_spot(share: float) -> Vector3:
 	var across := (share - 0.5) * SLAB.x
-	return _around_player(slab_basis() * Vector3(across, VALLEY_Y, -SLAB_DISTANCE + 2.0))
+	return _around_player(slab_basis() * Vector3(across, VALLEY_Y + LEDGE_HEIGHT, -SLAB_DISTANCE + 2.0))
 
-## The way up the slab's face, leaning back onto it by `lean` (0 straight up), for the beams at its foot.
+## The way up the slab's face, leaning back onto it by `lean` (0 straight up), for the beams on its ledge.
 static func up_face(lean: float) -> Vector3:
 	return (slab_basis() * Vector3(0.0, 1.0, -lean)).normalized()
 

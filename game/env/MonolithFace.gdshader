@@ -5,8 +5,8 @@ render_mode unshaded, shadows_disabled, fog_disabled;
 // face here rather than as strip meshes (they would fight for depth 500-1000 m out): its left and right vertical edges
 // in the left and right lasers' colours, SEAMS horizontal seams in the square bars' colour lit from the foot up (lit:
 // the share lit, EventDriver._update_monolith, each fading in over its own step), a slit up the middle in the floor
-// lights' colour open from the foot to `slit` of the height (the drop opens it all the way), and a strip along the foot
-// in the same colour. Every line keeps at least MIN_PIXELS across so it doesn't shimmer, dimmed to keep its light;
+// lights' colour open from the foot to `slit` of the height (the drop opens it all the way), and a strip along the
+// ledge carrying the beams' fixtures (`ledge_height` up, MonolithRig.LEDGE_HEIGHT) in the same colour. Every line keeps at least MIN_PIXELS across so it doesn't shimmer, dimmed to keep its light;
 // a white-hot core along its middle (AGENTS.md "Light", rule 2). Its foot sinks into the clouds. BLOCKOUT, untuned.
 global uniform vec4 env_haze;
 #include "res://game/env/fog_light.gdshaderinc"
@@ -19,11 +19,13 @@ uniform vec4 bar_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
 uniform vec4 floor_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
 uniform float lit = 1.0;
 uniform float slit = 0.0;
-// widths in metres: the edge strips, the seams, the slit and the foot strip; the seams' count up the face
+// the ledge carrying the beams' fixtures, metres up from the foot (MonolithRig)
+uniform float ledge_height = 150.0;
+// widths in metres: the edge strips, the seams, the slit and the ledge strip; the seams' count up the face
 const float EDGE_WIDTH = 3.0;
 const float SEAM_WIDTH = 1.5;
 const float SLIT_WIDTH = 2.0;
-const float FOOT_HEIGHT = 2.0;
+const float LEDGE_WIDTH = 2.0;
 const float SEAMS = 8.0;
 const float MIN_PIXELS = 1.5;
 const float CORE_WHITE = 0.5;
@@ -58,7 +60,7 @@ void fragment() {
 	color += bar_color.rgb * line(abs(y - seam * step_height), SEAM_WIDTH) * seam_on;
 	float slit_on = 1.0 - smoothstep(slit * size.y - 4.0, slit * size.y, y);
 	color += floor_color.rgb * line(abs(x), SLIT_WIDTH) * slit_on;
-	color += floor_color.rgb * line(abs(y - FOOT_HEIGHT * 0.5), FOOT_HEIGHT);
+	color += floor_color.rgb * line(abs(y - ledge_height), LEDGE_WIDTH);
 	color *= front;
 	float peak = max(color.r, max(color.g, color.b));
 	// its foot sinks into the clouds (monolith_cloud.gdshaderinc)

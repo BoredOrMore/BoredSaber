@@ -5,7 +5,7 @@
 
 // the cloud rings round the player (cloud_centre, world xz): their radii and their level (the puffs' middle height),
 // set by MonolithRig from its CLOUD_RINGS
-uniform vec4 cloud_radii = vec4(220.0, 360.0, 520.0, 760.0);
+uniform vec4 cloud_radii = vec4(220.0, 360.0, 470.0, 760.0);
 uniform vec4 cloud_levels = vec4(-32.0, -8.0, 10.0, 30.0);
 uniform vec2 cloud_centre = vec2(0.0, 1.0);
 // the body: a neutral grey plus this many times the haze, just under the top (x) and CLOUD_DARK_DEPTH metres down (y)

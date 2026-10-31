@@ -109,12 +109,13 @@ Monolith (one colossal slab down a terraced valley, seen from a tall pillar, abs
   vertices on each step edge so steps stay sharp, ending `VALLEY_RADIUS` out, inside the far plane; valley and pillar
   share `floor_material`); upright cloud rings (`CLOUD_RINGS`, `_cloud_ring`: a band up from the valley floor whose top
   is a row of round puffs, built in the mesh) among the terraces. Every terrace above y -5 starts
-  beyond r 320 m, bends included; keep it so when changing the valley's numbers. `foot_spot(share)` and
-  `up_face(lean)` place the lasers (`LightRig` "monolith": diagonal beams up the face from its foot, waving lasers
+  beyond r 320 m, bends included; keep it so when changing the valley's numbers. `ledge_spot(share)` and
+  `up_face(lean)` place the lasers (`LightRig` "monolith": diagonal beams up the face from its ledge `LEDGE_HEIGHT`
+  up, above the clouds (owner, 2026-10-31), waving lasers
   between; no square bars). Nothing within the notes' 300 m fly-in in any direction (owner's rule, 2026-10-31).
 - `MonolithFace.gdshader`: the slab's lights drawn on its front face (strip meshes would z-fight 500-1000 m out), each
   line at least `MIN_PIXELS` wide: edges in the left/right lasers' colours, `SEAMS` seams in the square bars' lit from
-  the foot by `lit`, a slit up the middle open to `slit` and a foot strip in the floor lights' colour
+  the foot by `lit`, a slit up the middle open to `slit` and a ledge strip in the floor lights' colour
   (`EventDriver._update_monolith`: `_built` x `MONOLITH_BUILT_SHARE`, a drop by Henge's `henge_drop` rule opens the
   slit, it closes to `MONOLITH_SLIT_REST`). Soft far edges not on yet: planned for the slab's outline, never its lines.
 - `MonolithFloor.gdshader`: the valley and pillar: dark ground with a neutral `BASE`, the horizon's glow on the far
