@@ -82,6 +82,8 @@ Night City (canyon default, classic layout optional)
   towers' bodies and the landmark, drawn from inside, fading out over `SHELL_BLUR_ANGLE` from their outline, so far
   edges melt into the sky with no screen read; nothing nearer than `SHELL_NEAR_FAR.x`. The sky's own skyline gets the
   same softness baked in (`tools/bake_night_city_sky.py` `EDGE_BLUR`). Untuned, not measured on the headset.
+- `EnvSolidShell.gdshader`: the same layer 10 without `CANYON`, for Henge's slabs (`HengeRig`, one shell per quadrant),
+  drawn flat black through `shell_color` so the haze doesn't ring them in a light line.
 - `CityBillboard.gdshader`: procedural shape billboards on the tower wall, square bars' light (`billboard_material`).
 - `CloudSea.gdshader`: opaque heaving cloud plane below the roofs (no blending); EnvSolid's canyon fog meets it.
 - `NightCitySky.gdshader`: tower skyline from `night_city_sky_sharp/soft.png` (`tools/bake_night_city_sky.py`).

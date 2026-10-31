@@ -45,7 +45,7 @@
 //      pixels fade out with how far their line of sight passes from the box (silhouette_gap), so a far box's outline
 //      melts into the sky over SHELL_BLUR_ANGLE, as distant things blur in the air, with no read of the screen (rule
 //      10). Its colour is the box's own at the outline (a side face's form). Nothing from SHELL_NEAR in, full at
-//      SHELL_FAR. Axis-aligned boxes only (BoxMesh, scaled, not turned)
+//      SHELL_FAR. Boxes only (BoxMesh, scaled and turned, not sheared)
 // The scene has no real lights (AGENTS.md "Light", rule 10), so layers 2-4 are faked here. Everything but the edge's
 // falloff is worked out per vertex: the faces are flat, so per pixel would give the same picture. Values untuned.
 // Each stage's shader (EnvSolid*.gdshader) defines only the layers it uses, so the GPU runs none of the others: one
@@ -143,6 +143,9 @@ const float SHELL_BLUR_ANGLE = 0.007;
 const vec2 SHELL_NEAR_FAR = vec2(60.0, 200.0);
 // the steps of the search for the line of sight's nearest pass to the box
 const int SHELL_STEPS = 12;
+// a flat colour for the outline instead of the shading, as much as its alpha: for boxes drawn flat (Henge's black
+// slabs, whose haze would otherwise ring them in a light line)
+uniform vec4 shell_color = vec4(0.0);
 #endif
 
 // 5. haze: per metre
@@ -181,18 +184,18 @@ varying vec3 vent;
 #endif
 // 7. how lit this vertex is after its baked occlusion
 varying float ao;
+#ifdef SHELL
+// 10. the eye and this point in the box's own axes from its centre, and the box's half size, in metres
+varying vec3 box_eye;
+varying vec3 box_point;
+varying vec3 box_half;
+#endif
 #ifdef CANYON
 // 9. the position and the face's direction in the world, for the windows
 varying vec3 world_pos;
 varying vec3 world_normal;
 // the haze lit from the key light, per vertex (as the sky's)
 varying vec3 haze_v;
-#ifdef SHELL
-// 10. the eye and this point from the box's centre, and the box's half size, in metres
-varying vec3 box_eye;
-varying vec3 box_point;
-varying vec3 box_half;
-#endif
 #ifdef WINDOWS
 // 0 near, where each window is drawn, to 1 far, where the windows' average is
 varying float window_far;
@@ -269,10 +272,11 @@ void vertex() {
 	}
 #ifdef SHELL
 	// 10. blown up by the widest blur any part of it can need, so the fade has room around the outline
-	box_half = abs(vec3(MODEL_MATRIX[0][0], MODEL_MATRIX[1][1], MODEL_MATRIX[2][2])) * 0.5;
-	box_eye = CAMERA_POSITION_WORLD - MODEL_MATRIX[3].xyz;
+	box_half = vec3(length(MODEL_MATRIX[0].xyz), length(MODEL_MATRIX[1].xyz), length(MODEL_MATRIX[2].xyz)) * 0.5;
+	box_eye = (inverse(MODEL_MATRIX) * vec4(CAMERA_POSITION_WORLD, 1.0)).xyz * box_half * 2.0;
 	float reach = shell_blur(length(box_eye) + length(box_half));
 	VERTEX *= 1.0 + reach / box_half;
+	box_point = VERTEX * box_half * 2.0;
 #endif
 	vec3 world = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	vec3 normal = normalize((MODEL_MATRIX * vec4(NORMAL, 0.0)).xyz);
@@ -282,7 +286,6 @@ void vertex() {
 #ifdef SHELL
 	// 10. the faces seen from inside are the box's far ones: shade it as a side face, as most of an outline is
 	form = FORM_SIDE;
-	box_point = world - MODEL_MATRIX[3].xyz;
 #endif
 #ifdef CANYON
 	// 2b. the canyon's shading
@@ -410,5 +413,6 @@ void fragment() {
 	}
 	float gap = silhouette_gap(box_eye, normalize(box_point - box_eye), box_half, blur);
 	ALPHA = 1.0 - smoothstep(0.0, blur, gap);
+	ALBEDO = mix(ALBEDO, shell_color.rgb, shell_color.a);
 #endif
 }

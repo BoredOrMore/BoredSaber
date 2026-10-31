@@ -16,6 +16,8 @@ extends Node3D
 const STRIP_SHADER := preload("res://game/env/HengeStrip.gdshader")
 const FLOOR_SHADER := preload("res://game/env/HengeFloor.gdshader")
 const RING_SHADER := preload("res://game/env/LightStrip.gdshader")
+## a see-through copy of the slabs that softens their outlines against the sky (EnvSolid layer 10), black as they are
+const SHELL_SHADER := preload("res://game/env/EnvSolidShell.gdshader")
 ## the monoliths: how many round the circle, their inner faces' distance from the player, their size (across, up, deep);
 ## the gaps between are about 27 m
 const SLAB_COUNT := 24
@@ -47,6 +49,9 @@ func _ready() -> void:
 	var slab_material := StandardMaterial3D.new()
 	slab_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	slab_material.albedo_color = Color.BLACK
+	var shell_material := ShaderMaterial.new()
+	shell_material.shader = SHELL_SHADER
+	shell_material.set_shader_parameter(&"shell_color", Color.BLACK)
 	strip_material = ShaderMaterial.new()
 	strip_material.shader = STRIP_SHADER
 	for q in QUADRANTS:
@@ -57,6 +62,7 @@ func _ready() -> void:
 			for side in [-1.0, 1.0]:
 				strips.append(edge_strip_place(i, side))
 		_add_boxes(slabs, slab_material)
+		_add_boxes(slabs, shell_material)
 		_add_boxes(strips, strip_material)
 	var floor_disc := MeshInstance3D.new()
 	floor_disc.mesh = _floor_mesh()
