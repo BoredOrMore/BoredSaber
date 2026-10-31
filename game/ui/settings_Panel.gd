@@ -13,7 +13,7 @@ signal benchmark_requested()
 @onready var saber_thickness := $Tabs/Visuals/VBox/SaberThicknessRow/saber_thickness as HSlider
 @onready var cut_blocks := $Tabs/Visuals/VBox/cut_blocks as CheckButton
 @onready var cut_flash_control := $Tabs/Visuals/VBox/cut_flash as CheckButton
-@onready var saber_clash_control := $Tabs/Gameplay/VBox/saber_clash_rumble as CheckButton
+@onready var saber_clash_control := $Tabs/Visuals/VBox/saber_clash_rumble as CheckButton
 @onready var left_saber_col := $Tabs/Visuals/VBox/SaberColorsRow/left_saber_col as ColorPickerButton
 @onready var right_saber_col := $Tabs/Visuals/VBox/SaberColorsRow/right_saber_col as ColorPickerButton
 @onready var show_debug_control := $Tabs/Advanced/VBox/show_debug as CheckButton
@@ -43,7 +43,7 @@ signal benchmark_requested()
 @onready var audio_sfx_control := $Tabs/Audio/VBox/audio/sfx/sfx_slider as HSlider
 @onready var spectator_view_control := $Tabs/Advanced/VBox/spectator_view as CheckButton
 @onready var spectator_hud_control := $Tabs/Advanced/VBox/spectator_hud as CheckButton
-@onready var refresh_90_control := $Tabs/Advanced/VBox/refresh_90 as CheckButton
+@onready var refresh_90_control := $Tabs/Visuals/VBox/refresh_90 as CheckButton
 @onready var background_mode_control := $Tabs/Visuals/VBox/background_mode_grid/background_mode as OptionButton
 @onready var background_texture_control := $Tabs/Visuals/VBox/background_texture_grid/background_texture as OptionButton
 @onready var darker_notes_control := $Tabs/Visuals/VBox/darker_notes as CheckButton
@@ -307,21 +307,33 @@ var _msaa_hint := Label.new()
 var _glow_chips := {}
 var _glow_hint := Label.new()
 
-## At the top of Visuals: "Graphics: Low | Normal" chips setting the effects below (a third chip, Custom, can't be
-## picked and lights up when the effects match neither), then "Resolution: Normal | Sharp | Full", on any preset.
+## Visuals' sections (MenuSection) after Quality: [title, the Visuals rows they hold, in order]
+const VISUAL_SECTIONS := [
+	["Look", ["ColorPresetRow", "SaberColorsRow", "SaberTypeRow", "SaberThicknessRow", "darker_notes"]],
+	["Effects", ["effects_hint", "smoke", "saber_tail", "cut_blocks", "cut_flash", "saber_clash_rumble",
+		"background_mode_grid", "background_texture_grid", "mixed_reality"]],
+]
+
+## At the top of Visuals, its Quality section: "Graphics: Low | Normal" chips setting the effects below (a third
+## chip, Custom, can't be picked and lights up when the effects match neither), then "Resolution: Normal | Sharp |
+## Full", on any preset, anti-aliasing, glow, atmosphere and the refresh rate; then the Look and Effects sections.
 func _add_graphics_row() -> void:
-	_graphics_chips = _add_chip_row(0, "Graphics", Settings.GRAPHICS_PRESETS.keys() + [Settings.GRAPHICS_CUSTOM],
+	var visuals := $Tabs/Visuals/VBox as VBoxContainer
+	var quality_section := MenuSection.make("Quality")
+	visuals.add_child(quality_section)
+	visuals.move_child(quality_section, 0)
+	_graphics_chips = _add_chip_row(quality_section, "Graphics", Settings.GRAPHICS_PRESETS.keys() + [Settings.GRAPHICS_CUSTOM],
 			Settings.set_graphics_preset, _graphics_hint)
 	var custom := _graphics_chips[Settings.GRAPHICS_CUSTOM] as Button
 	# lit when it applies, but the pointer can't pick it (a disabled button wouldn't light up)
 	custom.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	custom.focus_mode = Control.FOCUS_NONE
-	_resolution_chips = _add_chip_row(2, "Resolution", Settings.RESOLUTIONS.map(func(r: Array) -> String: return r[0]),
+	_resolution_chips = _add_chip_row(quality_section, "Resolution", Settings.RESOLUTIONS.map(func(r: Array) -> String: return r[0]),
 			func(resolution: String) -> void: Settings.resolution = resolution, _resolution_hint)
-	_msaa_chips = _add_chip_row(4, "Anti-aliasing", Settings.MSAA_LEVELS.map(func(m: Array) -> String: return m[0]),
+	_msaa_chips = _add_chip_row(quality_section, "Anti-aliasing", Settings.MSAA_LEVELS.map(func(m: Array) -> String: return m[0]),
 			func(level: String) -> void: Settings.msaa = level, _msaa_hint)
-	_glow_chips = _add_chip_row(6, "Glow", [GLOW_OFF] + Settings.GLOW_QUALITIES, _pick_glow, _glow_hint)
-	_atmosphere_chips = _add_chip_row(8, "Atmosphere", Settings.ATMOSPHERES,
+	_glow_chips = _add_chip_row(quality_section, "Glow", [GLOW_OFF] + Settings.GLOW_QUALITIES, _pick_glow, _glow_hint)
+	_atmosphere_chips = _add_chip_row(quality_section, "Atmosphere", Settings.ATMOSPHERES,
 			func(atmosphere: String) -> void: Settings.atmosphere = atmosphere, _atmosphere_hint)
 	for quality: String in GLOW_LABELS:
 		(_glow_chips[quality] as Button).text = GLOW_LABELS[quality]
@@ -329,6 +341,13 @@ func _add_graphics_row() -> void:
 		if key in [&"resolution", &"msaa", &"glow_quality", &"atmosphere"] or key in Settings.GRAPHICS_PRESETS["Low"]:
 			_sync_graphics())
 	_sync_graphics()
+	refresh_90_control.reparent(quality_section, false)
+	MenuSection.section_list(visuals)
+	for group: Array in VISUAL_SECTIONS:
+		var section := MenuSection.make(group[0] as String)
+		visuals.add_child(section)
+		for row_name: String in group[1]:
+			visuals.get_node(NodePath(row_name)).reparent(section, false)
 
 ## Turns glow off for the Off chip, else on in the chip's look.
 func _pick_glow(chip_name: String) -> void:
@@ -338,10 +357,9 @@ func _pick_glow(chip_name: String) -> void:
 	Settings.glow_quality = chip_name
 	Settings.glare = true
 
-## A row of chips under a row label at index in Visuals, each calling pick with its name, and hint under it;
+## A row of chips with its row label at the end of section, each calling pick with its name, and hint under it;
 ## returns the chips by name.
-func _add_chip_row(index: int, title: String, names: Array, pick: Callable, hint: Label) -> Dictionary:
-	var visuals := $Tabs/Visuals/VBox as VBoxContainer
+func _add_chip_row(section: MenuSection, title: String, names: Array, pick: Callable, hint: Label) -> Dictionary:
 	var row_label := $Tabs/Visuals/VBox/ColorPresetRow/color_preset_label as Label
 	var row := HBoxContainer.new()
 	var label := Label.new()
@@ -361,13 +379,11 @@ func _add_chip_row(index: int, title: String, names: Array, pick: Callable, hint
 		chip.pressed.connect(pick.bind(chip_name))
 		row.add_child(chip)
 		chips[chip_name] = chip
-	visuals.add_child(row)
-	visuals.move_child(row, index)
+	section.add_child(row)
 	hint.add_theme_stylebox_override(&"normal", row_label.get_theme_stylebox(&"normal"))
 	hint.add_theme_color_override(&"font_color", Constants.UI_TEXT_MUTED)
 	hint.add_theme_font_size_override(&"font_size", 22)
-	visuals.add_child(hint)
-	visuals.move_child(hint, index + 1)
+	section.add_child(hint)
 	UI_AudioEngine.attach_children(row)
 	return chips
 

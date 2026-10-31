@@ -234,10 +234,6 @@ text = "Score by swing and distance"
 layout_mode = 2
 text = "Explain scores"
 
-[node name="saber_clash_rumble" type="CheckButton" parent="Tabs/Gameplay/VBox"]
-layout_mode = 2
-text = "Sparks and buzz when sabers touch"
-
 [node name="player_height_offset" type="HBoxContainer" parent="Tabs/Gameplay/VBox"]
 layout_mode = 2
 
@@ -365,7 +361,7 @@ layout_mode = 2
 theme_override_styles/normal = SubResource("row_label")
 theme_override_colors/font_color = Color(0.6, 0.63, 0.67, 1)
 theme_override_font_sizes/font_size = 22
-text = "Graphics above sets the effects below; change any of them to make your own mix."
+text = "Graphics (under Quality) sets Glow and these; change any of them to make your own mix."
 autowrap_mode = 3
 
 [node name="smoke" type="CheckButton" parent="Tabs/Visuals/VBox"]
@@ -383,6 +379,10 @@ text = "Cut pieces"
 [node name="cut_flash" type="CheckButton" parent="Tabs/Visuals/VBox"]
 layout_mode = 2
 text = "Cut sparks"
+
+[node name="saber_clash_rumble" type="CheckButton" parent="Tabs/Visuals/VBox"]
+layout_mode = 2
+text = "Sparks and buzz when sabers touch"
 
 [node name="background_mode_grid" type="GridContainer" parent="Tabs/Visuals/VBox"]
 theme_override_constants/h_separation = 16
@@ -417,6 +417,10 @@ layout_mode = 2
 [node name="mixed_reality" type="CheckButton" parent="Tabs/Visuals/VBox"]
 layout_mode = 2
 text = "Mixed reality"
+
+[node name="refresh_90" type="CheckButton" parent="Tabs/Visuals/VBox"]
+layout_mode = 2
+text = "90 Hz display"
 
 [node name="Audio" type="ScrollContainer" parent="Tabs"]
 visible = false
@@ -793,10 +797,6 @@ text = "Spectator view"
 layout_mode = 2
 text = "Score on spectator view"
 
-[node name="refresh_90" type="CheckButton" parent="Tabs/Advanced/VBox"]
-layout_mode = 2
-text = "90 Hz display"
-
 [node name="defaults" type="Button" parent="."]
 layout_mode = 0
 offset_left = 24.0
@@ -842,7 +842,7 @@ scroll_without_pointer = true
 [connection signal="button_up" from="Tabs/Gameplay/VBox/recenter" to="." method="_on_recenter_button_up"]
 [connection signal="toggled" from="Tabs/Visuals/VBox/cut_blocks" to="." method="_on_cut_blocks_toggled"]
 [connection signal="toggled" from="Tabs/Visuals/VBox/cut_flash" to="." method="_on_cut_flash_toggled"]
-[connection signal="toggled" from="Tabs/Gameplay/VBox/saber_clash_rumble" to="." method="_on_saber_clash_rumble_toggled"]
+[connection signal="toggled" from="Tabs/Visuals/VBox/saber_clash_rumble" to="." method="_on_saber_clash_rumble_toggled"]
 [connection signal="toggled" from="Tabs/Visuals/VBox/smoke" to="." method="_on_smoke_toggled"]
 [connection signal="toggled" from="Tabs/Visuals/VBox/darker_notes" to="." method="_on_darker_notes_toggled"]
 [connection signal="toggled" from="Tabs/Visuals/VBox/saber_tail" to="." method="_on_saber_tail_toggled"]
@@ -876,6 +876,6 @@ scroll_without_pointer = true
 [connection signal="toggled" from="Tabs/Advanced/VBox/show_debug" to="." method="_on_show_debug_toggled"]
 [connection signal="toggled" from="Tabs/Advanced/VBox/spectator_view" to="." method="_on_spectator_view_toggled"]
 [connection signal="toggled" from="Tabs/Advanced/VBox/spectator_hud" to="." method="_on_spectator_hud_toggled"]
-[connection signal="toggled" from="Tabs/Advanced/VBox/refresh_90" to="." method="_on_refresh_90_toggled"]
+[connection signal="toggled" from="Tabs/Visuals/VBox/refresh_90" to="." method="_on_refresh_90_toggled"]
 [connection signal="confirmed" from="defaults" to="." method="_restore_defaults"]
 [connection signal="pressed" from="apply" to="." method="_on_apply_pressed"]
