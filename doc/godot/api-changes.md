@@ -20,7 +20,7 @@ when upgrading. Repo search on 2026-10-29 (`game/`, `OQ_Toolkit/`, `tools/`, `te
 | Glow runs before tonemapping (4.6) | `WorldEnvironment` glow in `game/BeepSaber_Game.tscn`; already tuned on 4.6, nothing to redo |
 | Dual focus (4.6): `grab_focus()` sets keyboard/gamepad focus only | `keyboard._text_edit.grab_focus()` in `BeatSaverPanel.gd`, `ProfilesPanel.gd`, `BeepSaberMainMenu.gd`, `OQ_UI2DKeyboard.gd`; check with the laser pointer when editing them |
 | `duplicate()` keeps shallow copies of nested resources (4.5 adds `duplicate_deep()`) | 40 `duplicate()` calls, mostly materials and meshes; use `duplicate_deep()` only where nested sub-resources must be per instance |
-| Jolt default for new projects (4.6) | `project.godot` has `3d/physics_engine="Bullet"`, a Godot 3 value; which engine actually runs has not been checked |
+| Jolt default for new projects (4.6) | `project.godot` names `3d/physics_engine="GodotPhysics3D"`, the engine that ran under the old Godot 3 value "Bullet" (checked 2026-10-31); switching to Jolt changes collisions and needs a headset test |
 | 4.7 GDScript and API breaks (table below) | No uses found of `device == 0`, `draw_line`/`draw_polyline`/`draw_arc`, `RichTextLabel.add_image`, `tap_back_pos`, `area_mask`, `is_class()`, `Quaternion()`, `LookAtModifier3D`, `SoftBody3D`, `WorldBoundaryShape3D`, `OpenXRExtensionWrapper` |
 
 ## Upgrading to 4.7

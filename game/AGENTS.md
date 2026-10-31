@@ -165,9 +165,9 @@ constraints apply here unchanged.
   Playing waits for `_audio_synced_after_restart` before processing the map.
 - Arcs move in `_process`, everything else in `_physics_process`; keep new movement in physics so it
   lines up with saber collisions.
-- Physics rate: `project.godot` sets `common/physics_fps=72`, the Godot 3 key name; Godot 4 reads
-  `physics/common/physics_ticks_per_second` (default 60). Unverified which one applies; if physics runs at
-  60 Hz on the 72 Hz Pico display, physics-driven notes judder. Check before tuning motion.
+- Physics rate: `project.godot` doesn't set `physics/common/physics_ticks_per_second`, so it is Godot's 60 until
+  `vr.apply_refresh_rate()` sets it to the display rate (72, or 90) once XR starts; desktop runs and headless
+  tests stay at 60 (checked with Godot 4.6.2, 2026-10-31). Physics is GodotPhysics3D.
 - `LightSaber._physics_process` writes `left_saber`/`right_saber` globals (declared in
   `project.godot` `[shader_globals]`); renaming them breaks `Arc.gdshader`.
 - Compatibility renderer only (root `AGENTS.md`): no Vulkan-only shader features; GPU particles are
