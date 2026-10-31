@@ -104,14 +104,24 @@ def windows(rng, towers, index, az, y, top, px):
     row = np.floor(y / WINDOW_ROW)
     fx = local_x / WINDOW_COLUMN - col
     fy = y / WINDOW_ROW - row
-    shape_x = smoothstep(0.0, px / WINDOW_COLUMN, fx) * (1.0 - smoothstep(WINDOW_FILL[0] - px / WINDOW_COLUMN, WINDOW_FILL[0], fx))
-    shape_y = smoothstep(0.0, px / WINDOW_ROW, fy) * (1.0 - smoothstep(WINDOW_FILL[1] - px / WINDOW_ROW, WINDOW_FILL[1], fy))
+    # each window centred in its cell, its edges soft over EDGE_BLUR but never past its own cell: the light switches
+    # on and off with its cell's random number, so light spread into a neighbour's cell would switch with the
+    # neighbour's and show as squares (owner on the headset, 2026-10-31: "pixelated")
+    shape_x = window_shape(fx, WINDOW_FILL[0], max(px, EDGE_BLUR) / WINDOW_COLUMN)
+    shape_y = window_shape(fy, WINDOW_FILL[1], max(px, EDGE_BLUR) / WINDOW_ROW)
     # a hash of tower, column and row gives each window its own random number
     h = np.sin(index * 127.1 + col * 311.7 + row * 74.7) * 43758.5453
     rand = h - np.floor(h)
     exists = (rand < WINDOW_SHARE) & (index >= 0) & (y > 0.004) & (y < top - WINDOW_ROW)
     # the random number fills the whole cell, so filtering at a window's edge doesn't blend it with a neighbour's
     return np.where(exists, shape_x * shape_y, 0.0), np.clip(rand / WINDOW_SHARE, 0.0, 1.0)
+
+
+def window_shape(f, fill, soft):
+    """How lit a window filling fill of its cell is at f across the cell (0-1), its edges soft over soft (cells), at
+    most up to the cell's edge."""
+    soft = min(soft, 1.0 - fill) * 0.5
+    return 1.0 - smoothstep(fill * 0.5 - soft, fill * 0.5 + soft, np.abs(f - 0.5))
 
 
 def masks(width, height):
@@ -153,10 +163,10 @@ def masks(width, height):
     rim += STREET_GLOW * np.exp(-np.maximum(y, 0.0) * STREET_SHARPNESS) * open_sky
     band = BAND_STRENGTH * np.exp(-np.abs(y - BAND_ELEVATION) * BAND_SHARPNESS) * open_sky
     glow = CENTRE_GLOW * np.exp(-np.abs(az) / CENTRE_WIDTH) * np.exp(-np.maximum(y, 0.0) * 6.0) * open_sky
-    # everything at that distance soft alike, lights too (owner, 2026-10-31); each window's random number fills its
-    # whole cell, so its spread-out light still switches with it
+    # everything at that distance soft alike, lights too (owner, 2026-10-31); the windows are softened in their own
+    # cells (windows), not here
     sigma = (EDGE_BLUR / (2 * np.pi / width), EDGE_BLUR / (np.pi * (V_BOTTOM - V_TOP) / height))
-    haze, lit, rim = blur(haze, *sigma), blur(lit, *sigma), blur(rim, *sigma)
+    haze, rim = blur(haze, *sigma), blur(rim, *sigma)
     return dict(haze=haze, lit=lit, rand=rand, rim=rim, band=band, glow=glow)
 
 
