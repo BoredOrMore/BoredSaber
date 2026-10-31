@@ -6,9 +6,7 @@ in `game/` point into it, and the canvas behaviour below is tuned for Pico 4 per
 
 ## File map
 
-- `vr_autoload.gd`: autoload `vr` (`project.godot` `[autoload]`). XR init, logging, controller refs,
-  refresh rate (`apply_refresh_rate`) and the runtime's CPU/GPU levels (`set_play_performance`: sustained high while
-  `Playing`, sustained low from `MapSelection`).
+- `vr_autoload.gd`: autoload `vr` (`project.godot` `[autoload]`). XR init, logging, controller refs.
 - `OQ_UI2D/OQ_UI2DCanvas.tscn` + `scripts/OQ_UI2DCanvas.gd`: renders a child `Control` into a `SubViewport` on a quad.
   Scene has `SubViewport`, `UIArea` (`helper_UIArea.gd`, collision layer 2) and `update_once` (`update_viewport_once.gd`).
 - `OQ_UI2D/OQ_UI2DKeyboard.tscn` + `scripts/OQ_UI2DKeyboard.gd`: two canvases, a `TextEdit` and the

@@ -5,11 +5,6 @@ extends Node
 signal pose_recentered
 
 const UI_PIXELS_TO_METER := 1.0 / 1024 # defines the (auto) size of UI elements in 3D
-## CPU and GPU levels asked of the runtime while a song plays (XR_EXT_performance_settings), so it doesn't clock down
-## mid-song; untuned, being measured on the Pico 4 (2026-10-31).
-const PLAY_PERF_LEVEL := OpenXRInterface.PERF_SETTINGS_LEVEL_SUSTAINED_HIGH
-## CPU and GPU levels asked in the menus, to save battery and heat.
-const MENU_PERF_LEVEL := OpenXRInterface.PERF_SETTINGS_LEVEL_SUSTAINED_LOW
 
 var toolkit_version := "0.4.3_dev"
 
@@ -133,17 +128,6 @@ func apply_refresh_rate() -> void:
 	xr_interface.set_display_refresh_rate(rate)
 	Engine.set_physics_ticks_per_second(int(rate))
 	log_info("display refresh rate " + str(rate))
-
-## Asks the OpenXR runtime for the CPU and GPU levels of play (`playing`) or of the menus; does nothing on other
-## interfaces, and the runtime ignores it without XR_EXT_performance_settings.
-func set_play_performance(playing: bool) -> void:
-	var openxr := xr_interface as OpenXRInterface
-	if not openxr or not openxr.is_initialized():
-		return
-	var level := PLAY_PERF_LEVEL if playing else MENU_PERF_LEVEL
-	openxr.set_cpu_level(level)
-	openxr.set_gpu_level(level)
-	log_info("performance level " + str(level))
 
 func load_json_file(filename: String) -> Dictionary:
 	var save := FileAccess.open(filename, FileAccess.READ)
