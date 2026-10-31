@@ -38,12 +38,13 @@ class BeatSaverSongInfo extends RefCounted:
 		score = Utils.get_float(Utils.get_dict(song_info, "stats", {}), "score", 0.0)
 		curated = song_info.get("curatedAt") != null
 		tags = PackedStringArray(Utils.get_array(song_info, "tags", []))
-		# difficulties that need a mod this game doesn't have (Noodle Extensions, Mapping Extensions,
-		# Vivify) don't play right here, and ones too tangled to swing aren't listed, so both are left out
+		# difficulties that need a mod this game doesn't have (Noodle Extensions, Vivify) don't play right here, and
+		# ones too tangled to swing aren't listed, so both are left out; Mapping Extensions plays here
+		# (DifficultyInfo.PLAYABLE_MODS)
 		if not versions.is_empty() and versions[0] is Dictionary:
 			var version := versions[0] as Dictionary
 			version["diffs"] = Utils.get_array(version, "diffs", []).filter(func(diff: Variant) -> bool:
-				return diff is Dictionary and not (diff.get("ne", false) or diff.get("me", false) or diff.get("vivify", false)) \
+				return diff is Dictionary and not (diff.get("ne", false) or diff.get("vivify", false)) \
 					and parity_percent(diff as Dictionary) < Constants.FLOW_HIDDEN_PERCENT)
 			for wanted: String in MODES:
 				if (version["diffs"] as Array).any(func(diff: Dictionary) -> bool:
@@ -335,11 +336,15 @@ const STYLE_TITLE := "Style"
 const DIFFICULTY_TITLE := "Difficulty"
 const LENGTH_TITLE := "Length"
 const GENRE_TITLE := "Genre"
+## Last on the filters page, not a filter: how maps download (Settings.not_music_dl; moved from Settings, owner
+## 2026-10-31)
+const DOWNLOADS_TITLE := "Downloads"
+const WITHOUT_MUSIC_TEXT := "Without music"
 
 ## BeatSaver's own filter for maps needing a mod. It takes one such filter at a time, the others ignored (measured
 ## 2026-10-30, top 100 by rating: with none 28 maps need a mod; noodle=false 4, with Vivify gone too; me=false 27;
-## both 27), and no noodle map there had a plain difficulty to lose. The rest (Mapping Extensions) is still cut per
-## difficulty when a page arrives (BeatSaverSongInfo._init).
+## both 27), and no noodle map there had a plain difficulty to lose. Vivify difficulties left are still cut per
+## difficulty when a page arrives (BeatSaverSongInfo._init); Mapping Extensions plays here.
 const MOD_FILTER := "&noodle=false"
 
 ## The Include AI maps chip (Settings.beatsaver_include_ai), its words, and the AI note in a map's details.
@@ -376,6 +381,9 @@ func _build_filter_chips() -> void:
 		Constants.LENGTH_FILTERS.slice(1).map(func(choice: Array) -> String: return str(choice[1])), pick_length)
 	_style_chips = FilterChips.add_section(page, STYLE_TITLE, STYLES.slice(1).map(label), pick_style)
 	_genre_chips = FilterChips.add_section(page, GENRE_TITLE, GENRES.slice(1).map(label), pick_genre)
+	var without_music := FilterChips.add_section(page, DOWNLOADS_TITLE, [WITHOUT_MUSIC_TEXT],
+		func(index: int) -> void: Settings.not_music_dl = index == 0)[0]
+	without_music.set_pressed_no_signal(Settings.not_music_dl)
 
 ## Shows the filters on their chips and as chips above the list; a mapper's list ("More by") isn't filtered, so its
 ## chips are greyed out then.

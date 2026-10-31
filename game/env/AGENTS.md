@@ -25,14 +25,14 @@ Read the root `AGENTS.md` first ("Light", "Colour rules", "Pico 4 constraints").
   `Constants.MAP_ENVIRONMENTS` (map's Beat Saber env name), then `TAG_ENVIRONMENTS` (genre), then a folder-name hash
   into `AUTO_ENVIRONMENTS` (Metal Factory is never auto-picked). Called from `BeepSaber_Game.gd:173` (song start)
   and `:758` (menu).
-- "Canyon" is not its own stage: it is Night City's default layout; `Settings.classic_night_city` swaps in the old
-  row-of-buildings layout (`NightCityRig.build`, rebuilt on that setting's `changed`).
+- "Canyon" is not its own stage: it is Night City's layout (`NightCityRig.build`; the old row-of-buildings layout
+  was removed 2026-10-31).
 - `set_environment(id)`: lazily builds the stage's sky `ShaderMaterial` (`SKY_SHADERS`,
   `SKY_TEXTURES`; Classic keeps the scene's sky), copies the `bg_<type>_tint/intensity` params over, sets the
   Stinger bus reverb, `_rig.apply(id)` (`LightRig.gd`), `track_deck.set_stage(id)`, visibility, `set_background()`.
 - `LightRig.apply(id)` (`LightRig.gd`, made by EventDriver as `_rig`): resets every laser/bar to its Classic transform (`classic_places`),
   then re-places them on the stage's carriers via the rig's static helpers (`ClassicRig.moving_head_spot/follow_spot/
-  scaffold_bar`, `NeonGridRig.floodlight_bases/crane_lights/SURVEY_MASTS`, `NightCityRig.buildings/roof_at`,
+  scaffold_bar`, `NeonGridRig.floodlight_bases/crane_lights/SURVEY_MASTS`,
   `LightRig._hang_canyon`, `PulseVoid.leg_floodlight/rim_beacon`, `MetalFactoryRig.RAIL_X/RAIL_TOP`). Also sets sky scale
   (`NEON_SKY_SCALE`/`CANYON_SKY_SCALE`), `fog_key` (`FOG_KEYS`), Pulse Void's narrower beams, fixture kind per laser.
 - Light events: `Playing.gd:73-75` sets `show_beat` and calls `process_event(EventInfo)` (no look-ahead). Types 0-4
@@ -73,11 +73,18 @@ Neon Grid
 - `NeonGridSky.gdshader`: sunset sky from baked masks `neon_grid_sky_sharp/soft.png` (`tools/bake_neon_grid_sky.py`;
   per-pixel version cost ~4.5 ms GPU).
 
-Night City (canyon default, classic layout optional)
-- `NightCityRig.gd` (tool): canyon (tower wall on `WALL_SIDE`, low roofs opposite, far city, landmark) or the classic
-  rows (`Settings.classic_night_city`); `buildings`/`roof_at`/`wall_*_spot` place lights; `set_windows` feeds layer 9.
+Night City (canyon)
+- `NightCityRig.gd` (tool): canyon (tower wall on `WALL_SIDE`, low roofs opposite, far city, landmark);
+  `wall_*_spot` place lights; `set_windows` feeds layer 9.
 - `EnvSolidCanyon.gdshader`: EnvSolid with `CANYON` + `WINDOWS`. `EnvSolidCanyonPlain.gdshader`: `CANYON` only, for
   near pieces that never show windows (saves the per-pixel window cost).
+- `EnvSolidCanyonShell.gdshader`: EnvSolid with `CANYON` + `SHELL` (layer 10): a blown-up, see-through copy of the
+  towers' bodies and the landmark, drawn from inside, fading out over `SHELL_BLUR_ANGLE` from their outline, so far
+  edges melt into the sky with no screen read; nothing nearer than `SHELL_NEAR_FAR.x`. The sky's own skyline gets the
+  same softness baked in (`tools/bake_night_city_sky.py` `EDGE_BLUR`). Untuned, not measured on the headset.
+- `EnvSolidShell.gdshader`: the same layer 10 without `CANYON`, for Henge's slabs (`HengeRig`, one shell per quadrant,
+  drawn flat black through `shell_color` so the haze doesn't ring them in a light line), Neon Grid's arches
+  (`NeonGridRig`, the arch boxes) and Pulse Void's rim (`PulseVoid`, its segments' boxes).
 - `CityBillboard.gdshader`: procedural shape billboards on the tower wall, square bars' light (`billboard_material`).
 - `CloudSea.gdshader`: opaque heaving cloud plane below the roofs (no blending); EnvSolid's canyon fog meets it.
 - `NightCitySky.gdshader`: tower skyline from `night_city_sky_sharp/soft.png` (`tools/bake_night_city_sky.py`).
@@ -94,7 +101,7 @@ Henge (24 monoliths round the player, for 90/360 maps; BLOCKOUT 2026-10-29)
   `slab_top(i)` places the lasers (`LightRig` "henge": diagonal beams straight up, waving lasers between; no square bars).
 - `HengeStrip.gdshader`: the edge strips, left or right lasers' colour by which side of the track's turned line the
   slab stands (`track_turn.gdshaderinc`; `strip_material` params set each frame by EventDriver); `lit` lights the
-  slabs one by one round the ring from straight ahead (`EventDriver._update_henge`: `_built` x `HENGE_BUILT_SHARE`,
+  slabs one by one from straight ahead out to both sides alike, meeting behind (`EventDriver._update_henge`: `_built` x `HENGE_BUILT_SHARE`,
   all the way over a drop's run-up, `build_up`). Drops come from the show intensity with a hold (`henge_drop`:
   past `STRIP_DROP`, held `HENGE_DROP_HOLD_SECONDS`, released under `HENGE_DROP_RELEASE`); no light events, dark.
 - `HengeFloor.gdshader`: dark ground plus vertex-colour bands of the haze's colour; `flood` (the drop, eased) brightens
@@ -120,7 +127,7 @@ Shared scenery
   scenery, sky and track shader, which pass their colour through `fog_dither(fog_result(colour, VERTEX), FRAGCOORD.xy)`.
 - `TrackDeck.gd` (`TrackDeck`): opaque deck (top y 0), curbs housing the thin edge light strips (`STRIP_*`), platform frame, end stops;
   runs to `FAR_Z` -150 (`FAR_Z_BY_STAGE`), fades into haze. `layout(lane_width)` for Wide modifiers; `set_stage` skin.
-  Hidden for `Settings.old_track` and mixed reality (old see-through sheet instead).
+  Hidden in mixed reality (old see-through sheet instead).
   Its deck and curbs sit under a child that `turn(place)` turns with the notes; the platform pieces don't. On 90/360
   maps during a song (`layout(lane_width, true)` from `EventDriver.set_background`) the platform is a black disc
   (`round_radius()`, as far as the square reaches) with a rim, the deck starting where its corners meet the disc
@@ -202,6 +209,11 @@ Air
   `match` arm in `LightRig.apply`, visibility in `show_scenery_for_mixed_reality`, optional `TrackDeck.SKINS`/
   `FAR_Z_BY_STAGE`, its pictures `thumbs/<id>.png` and `thumbs/<id>_wide.png` (`tools/capture/env_thumbnails.sh`, a `FRAMES` line
   framed on the stage's main unique element; render them again when the stage's look changes, the picker shows them), `stage_capture.gd --env`. Write `doc/world/` entries first.
+- Soft far edges (owner, 2026-10-31: every new stage plans them from its design): each far outline against the sky (60 m
+  and beyond) softens over `EnvSolid.gdshaderinc` `SHELL_BLUR_ANGLE`. Boxes: an `EnvSolidShell`/`EnvSolidCanyonShell`
+  MultiMesh of the same transforms (`NeonGridRig`, `PulseVoid`, `NightCityRig`, `HengeRig`); a model: shell boxes that
+  fit its parts; a baked sky: blur the shapes and any light not switched per cell, and keep a light switched per cell
+  (windows) soft only inside its own cell (`tools/bake_night_city_sky.py`: blurring across cells showed as squares).
 - New light carrier: place lights from a static helper on the rig, hang them in `LightRig.apply`; prefer the cheapest
   option in `doc/world/VISUAL_STYLE.md` "Light carriers" (vertex-mask vent < `LightStrip` < fixture < beam).
 - Haze amount/tint: `HAZE_BASE`, `HAZE_LIGHT_WEIGHT`, `HAZE_NEUTRAL`;

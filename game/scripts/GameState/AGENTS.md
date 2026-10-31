@@ -15,6 +15,10 @@ All flow logic (start, fail, end, pause, resume) lives in `game/BeepSaber_Game.g
 - `Paused.gd` - `GameStatePaused`: pause menu, HUD kept, track hidden, sabers sheathed; stops the song.
 - `MapComplete.gd` - `GameStateMapComplete`: end score + this map's highscores.
 - `NewHighscore.gd` - `GameStateNewHighScore`: like MapComplete, for a run that made the board ("Saved as <player>").
+- `PracticeHold.gd` - `GameStatePracticeHold`: practice stopped (`BeepSaber_Game._practice_hold`): the practice panel,
+  track and sabers shown, pointers on, swingcasts off, HUD accuracy only; the left thumbstick scrubs
+  (`_practice_stick`). Playing in practice keeps the panel and draws the pointer only while it points at it
+  (`UIRaycast.only_on_target`, reset by `_transition_game_state`); its B/Y/menu holds instead of pausing.
 - `BodyTest.gd` - `GameStateBodyTest`: hides menus, sabers and pointers, runs a `game/BodyTest.gd` node and
   returns to MapSelection when it emits `finished`.
 
@@ -46,6 +50,8 @@ Transitions (callers wired in `BeepSaber_Game.tscn:340-362`):
 
 ## Flows
 
+- Practice: the lead-in counts down the same way and the song plays from `song_start` (not 0); the restart sync
+  waits for a position under `song_start + 0.5` (`Playing.gd`).
 - Lead-in: `start_map` stops the song and sets `lead_in = max(LEAD_IN_MIN_SECONDS, half_jump_beats / beats_per_second)`
   (`BeepSaber_Game.gd:136-138`). `Playing._count_down_lead_in` subtracts physics delta, shows whole seconds on
   `pause_countdown`, then `song_player.play(0.0)` (`Playing.gd:48-58`). Notes spawn during it because

@@ -1,6 +1,6 @@
 [gd_scene load_steps=7 format=3 uid="uid://iglrdadxsqw4"]
 
-[ext_resource type="Material" path="res://game/notes/Wall/danger_wall.tres" id="1"]
+[ext_resource type="Material" path="res://game/notes/Wall/framed_wall.tres" id="1"]
 [ext_resource type="Script" path="res://game/notes/Wall/Wall.gd" id="2"]
 
 [sub_resource type="BoxMesh" id="1"]

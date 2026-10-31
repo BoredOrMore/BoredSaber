@@ -312,12 +312,6 @@ func _ready() -> void:
 				else right_waving_lasers_material)
 	_fixtures.setup(fixture_lasers, fixture_materials)
 	$Level.add_child(_fixtures)
-	# Night City's layout follows its Classic switch, the lights hung again on the one shown
-	Settings.changed.connect(func(key: StringName) -> void:
-		if key == &"classic_night_city":
-			night_city_rig.build(Settings.classic_night_city)
-			if environment == "night_city":
-				_rig.apply(environment))
 	# each group's bars in one draw call (LaserBatch)
 	for holder: Node3D in [diagonal_lasers_holder, square_lasers_holder, left_waving_lasers_holder, right_waving_lasers_holder]:
 		LaserBatch.make(holder, $Level)
@@ -461,7 +455,7 @@ const RIB_QUIET := 0.2
 const RIB_SWEEP_SECONDS := 1.2
 const RIB_FADE_SECONDS := 4.0
 var _rib_sweep := 0.0
-## the edge light strips' transforms along the old track, put back with the Old track setting
+## the edge light strips' transforms along the old track, put back in mixed reality
 var _strip_rest := {}
 
 ## the canyon's windows: how many the menu shows lit and how bright, and how bright they stay in a song's quiet parts
@@ -526,8 +520,8 @@ func set_background() -> void:
 	($Level/TrackTurn/floor/line4).global_transform.origin.x = -2 * Settings.LANE_DISTANCE_X
 	($Level/TrackTurn/floor).scale.z = 1
 	# the deck with its curbs (TrackDeck), whose curbs house the edge light strips; or the old see-through sheet, with
-	# its strips at its edges, in mixed reality (the room must show through) and with the Old track setting
-	var old_track := Settings.old_track or Settings.mixed_reality
+	# its strips at its edges, in mixed reality (the room must show through)
+	var old_track := Settings.mixed_reality
 	($Level/TrackTurn/floor as Node3D).visible = old_track
 	# the old track's far end piece; the deck ends in its own low stop (it rose over the horizon straight ahead)
 	end_path.visible = old_track
@@ -641,7 +635,7 @@ func _process(delta: float) -> void:
 				right_waving_lasers_material.get_shader_parameter(&"light_color"))
 	_update_show(delta)
 	_update_sweep(delta)
-	if environment == "night_city" and not Settings.classic_night_city:
+	if environment == "night_city":
 		# the canyon's windows: the rooms the show has built light up (the menu shows a few), dimmer in quiet parts
 		var level := MENU_WINDOWS if menu_focus else _built
 		var glow := MENU_WINDOWS if menu_focus else lerpf(WINDOWS_QUIET, 1.0, _intensity)
@@ -818,7 +812,7 @@ func _update_show(delta: float) -> void:
 		metal_factory_rig.breathe(show_beat, _show_bpm, _intensity)
 
 ## Henge's show (doc/world/GAME_BIBLE.md: held breath, then release), from the show's intensity (intensity_curve, the
-## map's light events): the slabs' edges light one by one round the ring as the show builds (HENGE_BUILT_SHARE of the
+## map's light events): the slabs' edges light one by one from straight ahead out to both sides as the show builds (HENGE_BUILT_SHARE of the
 ## ring by _built) and all the way round over the run-up to a drop (build_up); on the drop every gap floods
 ## (HengeFloor.gdshader's flood), easing in over HENGE_FLOOD_RISE_SECONDS and out over HENGE_FLOOD_FALL_SECONDS, never
 ## a flash. The intensity hovers at STRIP_DROP for a while (desktop run over 18 maps: drops of under a second, on and
@@ -843,11 +837,12 @@ func _update_henge(delta: float) -> void:
 		lit = 1.0 if _henge_drop else maxf(_built * HENGE_BUILT_SHARE, build_up(_intensity_curve, show_beat, _show_bpm))
 	_henge_flood = move_toward(_henge_flood, 1.0 if _henge_drop else 0.0,
 			delta / (HENGE_FLOOD_RISE_SECONDS if _henge_drop else HENGE_FLOOD_FALL_SECONDS))
-	var strips := henge_rig.strip_material
-	strips.set_shader_parameter(&"left_color", left_waving_lasers_material.get_shader_parameter(&"light_color"))
-	strips.set_shader_parameter(&"right_color", right_waving_lasers_material.get_shader_parameter(&"light_color"))
-	strips.set_shader_parameter(&"track_angle", track_angle)
-	strips.set_shader_parameter(&"lit", lit)
+	# the strips, and the floor they light (HengeFloor.gdshader)
+	for material: ShaderMaterial in [henge_rig.strip_material, henge_rig.floor_material]:
+		material.set_shader_parameter(&"left_color", left_waving_lasers_material.get_shader_parameter(&"light_color"))
+		material.set_shader_parameter(&"right_color", right_waving_lasers_material.get_shader_parameter(&"light_color"))
+		material.set_shader_parameter(&"track_angle", track_angle)
+		material.set_shader_parameter(&"lit", lit)
 	henge_rig.floor_material.set_shader_parameter(&"flood", _henge_flood)
 	henge_rig.ring_material.set_shader_parameter(&"light_color", track_lights_material.get_shader_parameter(&"light_color"))
 

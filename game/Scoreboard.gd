@@ -22,6 +22,9 @@ var no_fail_spent: bool
 ## The most points the notes so far could have given: each at its best score, with an unbroken combo.
 ## Accuracy is points over this, as in Beat Saber (bsmg.wiki/ranking-guide.html).
 var max_points: int
+## The most points the whole song can give (song_progress()), before modifiers: every note and chain link at its best
+## score with an unbroken combo. Counted from Map's stacks at restart().
+var song_best: int
 var _notes_scored: int
 var full_combo: bool
 var paused: bool
@@ -55,6 +58,7 @@ func restart() -> void:
 	_cut_sum = 0.0
 	_cut_best_sum = 0.0
 	_lost_notes = 0
+	song_best = _song_best()
 	full_combo = true
 	in_wall = false
 	no_fail_spent = false
@@ -107,6 +111,35 @@ func exit_wall() -> void:
 ## Points over the most the notes so far could have given (1 before any note).
 func accuracy() -> float:
 	return clampf(float(points) / max_points, 0.0, 1.0) if max_points > 0 else 1.0
+
+## Points over the most the whole song can give: 0 at the start, climbing through the song to the accuracy at its
+## end (owner, 2026-10-30: the HUD's percent climbs instead of showing 100% then dropping at the first note).
+func song_progress() -> float:
+	var most := song_best * _modifier_scale()
+	return clampf(float(points) / most, 0.0, 1.0) if most > 0.0 else 0.0
+
+## The most the notes and chain links in Map's stacks can give, in beat order, each at the multiplier a perfect
+## combo has by then (as _count_note), before modifiers. A chain head gives what add_swing_score's chain_head allows.
+func _song_best() -> int:
+	var head_best := note_best_score() - Constants.SWING_FOLLOWTHROUGH_SCORE if Settings.swing_scoring else note_best_score()
+	var heads := {}
+	var scored: Array[Vector2] = [] # (beat, best)
+	for chain: ChainInfo in Map.chain_stack:
+		if chain.slice_count <= 1:
+			continue
+		heads[Vector3(chain.head_beat, chain.head_line_index, chain.head_line_layer)] = true
+		for link in range(1, chain.slice_count):
+			var lerp_factor := float(link) / float(chain.slice_count - 1) * chain.squish_factor
+			scored.append(Vector2(lerpf(chain.head_beat, chain.tail_beat, lerp_factor), chain_link_best_score()))
+	for note: ColorNoteInfo in Map.note_stack:
+		var is_head := heads.has(Vector3(note.beat, note.line_index, note.line_layer))
+		scored.append(Vector2(note.beat, head_best if is_head else note_best_score()))
+	scored.sort_custom(func(a: Vector2, b: Vector2) -> bool: return a.x < b.x)
+	var total := 0
+	for n in scored.size():
+		var perfect_multiplier := 1 if n == 0 else 2 if n < 5 else 4 if n < 13 else 8
+		total += int(scored[n].y) * perfect_multiplier
+	return total
 
 ## The best score one note can get in the current scoring mode.
 func note_best_score() -> float:

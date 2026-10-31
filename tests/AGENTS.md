@@ -14,7 +14,9 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
 
 - `test_menu_layout.tscn` / `.gd` - lays out the song menu (Song tab, More modifiers, More tab) and "Who's playing?"
   headless with worst-case content (every modifier changed, a long player name and title, eight characteristic
-  tabs, five numbered levels, two stats lines, six players with a delete question; on the Download page every filter
+  tabs, five numbered levels, two stats lines, six players with a delete question; the practice panel stopped and
+  playing, with its time, start, end, speed and greyed speed buttons, the start staying put, and
+  pointer presses on its one bar (the playhead on the bar, the nearer marker under it, Repeat's end); on the Download page every filter
   and a long search as chips, a map with long names and five levels, its Details, a download and the open filters) and fails when a visible control
   spills out of its parent or the panel, or two controls placed with offsets are closer than `MIN_GAP` (4 px). A
   control wholly under an open overlay (`OVERLAYS`: More, More modifiers) counts as hidden. Content inside a
@@ -34,7 +36,8 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
   each format, plain and mirrored (`Settings.flip`); `half_jump_beats_for`/`set_note_jump`; gradual rotation; v2 rotation events adding up in degrees; where the track turns (`get_turns`, `track_rotation`) and the turn cue (`cue_rotation`); 90/360
   maps play on Henge (`EventDriver.pick_environment`); a v4 map
   takes its lights from its lightshow file (`data/beatmap/v4_lightshow.dat`, skipping an event past its data) and,
-  without one, leaves no lights from the last map; a stray non-object v2 note is skipped (it once looped forever).
+  without one, leaves no lights from the last map; a stray non-object v2 note is skipped (it once looped forever);
+  practice: `Map.skip_before`, `Map.snapshot`/`restore` (jumping back) and the practice speed in `beats_per_second`.
 - `test_scoreboard.tscn` / `.gd` - `Scoreboard`: multiplier steps (2, 6, 14 hits) and halving, combo, max points and
   accuracy, modifier shares and No Fail, bad cuts, walls, chain links, `restart`. A `FakeGame` stands in for
   `GlobalReferences.main_game_scene`. Not covered: `note_cut` (needs a real saber).

@@ -26,7 +26,7 @@ spawn, cut and miss flow, pooling rules and "Add a note type".
 - `BeepCube/` — `BeepCube.gd` (note; `cutted` signal, scoring, rumble), `BeepCube_CutPiece.gd`
   (`CutPiece` RigidBody halves, `MAX_LIFETIME` 0.3 s), `BeepCube_SliceParticles.gd/.tscn` (GPU particles freed
   on Android/Web), `BeepCube.gdshader` (`color`, `is_dot`, `arrows_enabled`, `is_chain_head`, cut uniforms),
-  `note_gloss.gdshaderinc` (the default glossy note look, shared with `ChainLink.gdshader`).
+  `note_gloss.gdshaderinc` (the glossy note look, shared with `ChainLink.gdshader`).
   `BeepCubeTest.tscn` is a standalone test scene.
 - `Chain/` — `ChainLink.gd` (bezier link placement, lenient hitbox, link scoring), shader, mesh.
 - `Arc/` — `Arc.gd` (mesh from `ArcInfo.mesh_arrays`, magnet material on head cut), `Arc.gdshader`
@@ -34,8 +34,8 @@ spawn, cut and miss flow, pooling rules and "Add a note type".
 - `Bomb/` — `Bomb.gd`, `BombGlow.gdshader` + `bomb_glow.tres` (`danger_color`); `BombMerged.gdshader` draws body and
   glow hull in one call (`Bomb.merged_mesh`, the default); `BombMesh.tscn` + `BombBody.gdshader` are the two-mesh
   bomb `Bomb.classic` brings back to compare.
-- `Wall/` — `Wall.gd` (resizes box mesh/shape per wall), `FramedWall.gdshader` (default wall: box plus edge bars, one
-  draw call), `DangerWall.gdshader` + `danger_wall.tres` (classic wall, `Settings.classic_walls`).
+- `Wall/` — `Wall.gd` (resizes box mesh/shape per wall), `FramedWall.gdshader` + `framed_wall.tres` (the wall: box plus
+  edge bars, one draw call).
 
 ## Invariants and gotchas
 
@@ -44,14 +44,14 @@ spawn, cut and miss flow, pooling rules and "Add a note type".
 - The `.material` files here are binary (`RSCC`) and embed their shader's path: moving a shader means re-saving the
   material (load it, set `shader` to the new path, `ResourceSaver.save`), a text edit can't fix it.
   `BeepCube/BeepCube.material` points at a texture that no longer exists and nothing uses it.
-- Danger colour (`danger_wall.tres`, `bomb_glow.tres`) and the arc materials are shared; set from `BeepSaber_Game.gd`.
+- Danger colour (`framed_wall.tres`, `bomb_glow.tres`) and the arc materials are shared; set from `BeepSaber_Game.gd`.
 
 ## Where to change X
 
 - Note look: `BeepCube.gdshader` + `note_gloss.gdshaderinc` (shared with `ChainLink.gdshader`); mesh `note_round.glb`
   from `tools/models/note_round.py -- game/notes/BeepCube`.
 - Cut accuracy and points: `BeepCube.cut`, `ChainLink.cut`; the score rules: `game/Scoreboard.gd`, `game/Constants.gd`.
-- Wall or bomb look: `FramedWall.gdshader` / `BombMerged.gdshader` (defaults), the classic ones beside them.
+- Wall or bomb look: `FramedWall.gdshader` / `BombMerged.gdshader` (the bomb's classic one beside it).
 - A new note type: "Add a note type" in `game/AGENTS.md`.
 
 ## Checking a change

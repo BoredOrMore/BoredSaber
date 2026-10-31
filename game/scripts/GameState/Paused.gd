@@ -9,12 +9,13 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.show_MapSourceDialogs(false)
 	game.endscore._hide()
 	game.pause_menu._show()
+	game.practice_canvas._hide()
 	game.pause_countdown.visible = false
 	game.highscore_canvas._hide()
 	game.multiplier_label.visible = true
 	game.point_label.visible = true
 	# the far HUD of 90/360 maps carries the energy bar instead
-	game.health_rails.visible = Settings.health_mode and not game.hud.far
+	game.health_rails.visible = Settings.health_mode and not game.hud.far and not Map.practice
 	game.track.visible = false
 	game.left_ui_raycast.visible = true
 	game.right_ui_raycast.visible = true

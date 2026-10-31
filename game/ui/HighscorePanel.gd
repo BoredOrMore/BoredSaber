@@ -7,7 +7,8 @@ class_name HighscorePanel
 ## nothing but the song list scrolls on that page (owner, 2026-10-28): the best ones, the current player's best
 ## in the last row when it's further down, its place before the name.
 @export var compact := false
-const COMPACT_ROWS := 6
+## 5 since the Practice button took the left panel's bottom (owner's choice A, 2026-10-30)
+const COMPACT_ROWS := 5
 
 # keep a copy of the base row for regeneration later
 @onready var _base_row = $Margin/VBox/LeftRight/ScrollContainer/Margin/HighscoresList/BaseRecordRow.duplicate()

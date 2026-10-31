@@ -16,6 +16,8 @@ class_name NeonGridRig
 ## Sizes in metres, blockout, untuned. A tool script, so the arches show in the editor too (built, not saved: no owner).
 
 const ENV_SOLID := preload("res://game/env/EnvSolid.gdshader")
+## a see-through copy of the arches' boxes that softens their outlines against the sky (EnvSolid layer 10)
+const ENV_SOLID_SHELL := preload("res://game/env/EnvSolidShell.gdshader")
 const ARCH_STRIP := preload("res://game/env/ArchStrip.gdshader")
 ## The arches' light strips (ArchStrip.gdshader): a segment on each of an arch's boxes, along the underside of its curve
 ## (its inner face; owner, 2026-10-27: on the side facing the player they read as beside the arch), this wide (part of
@@ -112,7 +114,7 @@ func _ready() -> void:
 
 ## The arches (doc/assets/arch_parts/spec.md): their sections along each curve (one MultiMesh, the section model
 ## turned from Blender's axes to the boxes' x across, y inward, z along: ARCH_SECTION_AXES), the footings under each
-## built leg (one MultiMesh) and the scaffold round C's unfinished end.
+## built leg (one MultiMesh), the soft outlines round their boxes (one MultiMesh) and the scaffold round C's unfinished end.
 func _add_arches(material: ShaderMaterial) -> void:
 	var sections: Array[Transform3D] = []
 	var footings: Array[Transform3D] = []
@@ -138,6 +140,22 @@ func _add_arches(material: ShaderMaterial) -> void:
 		instance.material_override = material
 		instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 		add_child(instance)
+	var shells: Array[Transform3D] = []
+	for arch: Array in ARCHES:
+		shells.append_array(arch_boxes(arch))
+	var shell_material := material.duplicate() as ShaderMaterial
+	shell_material.shader = ENV_SOLID_SHELL
+	var shell_multimesh := MultiMesh.new()
+	shell_multimesh.transform_format = MultiMesh.TRANSFORM_3D
+	shell_multimesh.mesh = BoxMesh.new()
+	shell_multimesh.instance_count = shells.size()
+	for i in shells.size():
+		shell_multimesh.set_instance_transform(i, shells[i])
+	var shell_instance := MultiMeshInstance3D.new()
+	shell_instance.multimesh = shell_multimesh
+	shell_instance.material_override = shell_material
+	shell_instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(shell_instance)
 	var scaffold := MeshInstance3D.new()
 	scaffold.mesh = LaserFixtures._model_mesh(ARCH_SCAFFOLD)
 	scaffold.position = arch_point(ARCH_C, PI * float(ARCH_C[4])).origin - Vector3(0.0, SCAFFOLD_BELOW_END, 0.0)

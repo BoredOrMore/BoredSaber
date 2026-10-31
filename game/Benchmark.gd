@@ -128,12 +128,11 @@ static func requested() -> Variant:
 ## settings): if the game closes mid-run, the next launch puts them back (restore_interrupted).
 const BACKUP_FILE := "benchmark_settings.json"
 const SAVED_KEYS: Array[StringName] = [&"glare", &"smoke", &"saber_tail", &"cube_cuts_falloff", &"background", &"health_mode",
-		&"msaa", &"glow_quality", &"atmosphere", &"environment", &"classic_night_city"]
+		&"msaa", &"glow_quality", &"atmosphere", &"environment"]
 
 ## The fog mode's stage: Night City's canyon (environment is put back with the rest of the saved settings).
 func _night_city() -> void:
 	Settings.environment = "night_city"
-	Settings.classic_night_city = false
 
 ## The glow image's height before the run, and the lighter glow's share of it.
 var _glow_height := LowResGlow.height

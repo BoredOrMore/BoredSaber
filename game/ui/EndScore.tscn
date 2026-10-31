@@ -150,6 +150,12 @@ transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.3, -0.52, 0.01)
 size = Vector2(0.5, 0.12)
 text = "Main Menu"
 
+[node name="Practice" parent="." instance=ExtResource("4_n4s7s")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.6, -0.52, 0.01)
+visible = false
+size = Vector2(0.5, 0.12)
+text = "Practice this part"
+
 [node name="ChangePlayer" parent="." instance=ExtResource("4_n4s7s")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.6, -0.36, 0.012)
 visible = false
@@ -239,4 +245,5 @@ shape = SubResource("BoxShape3D_iqqq6")
 
 [connection signal="released" from="Repeat" to="." method="_on_Repeat_button_up"]
 [connection signal="released" from="MainMenu" to="." method="_on_MainMenu_button_up"]
+[connection signal="released" from="Practice" to="." method="_on_Practice_button_up"]
 [connection signal="released" from="ChangePlayer" to="." method="_on_ChangePlayer_button_up"]

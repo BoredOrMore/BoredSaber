@@ -18,22 +18,21 @@ extends Node3D
 ##   (GameStatePlaying.spawn_due); nobody cuts them, so they pass and are missed, which costs nothing here; 0 leaves them out)
 ##   --note left|right (one note held still NOTE_AHEAD in front of the eye, to look at its shading; pair with
 ##   --seconds 600 to keep the window open)  --note-yaw 0 --note-pitch 0 (degrees, turn it to see its sides and top)
-##   --wall 1 (with --map: the map's walls in the Classic walls look if --wall classic; otherwise a wall held still: WALL_SIZE, its near face --wall-z metres ahead of the eye (default 3; 0.5 to see the
-##   near fade), --wall-x 0.6 to its centre's side; --wall classic for the Classic walls look)  --danger RRGGBB
+##   --wall 1 (with --map: the map's walls; otherwise a wall held still: WALL_SIZE, its near face --wall-z metres ahead of the eye (default 3; 0.5 to see the
+##   near fade), --wall-x 0.6 to its centre's side)  --danger RRGGBB
 ##   --saber left|right (the default saber turned on, held --saber-dist metres in front of the eye, default 0.35, its
 ##   blade leaning away to the side, to look at it up close)
 ##   --bomb 1|classic (with --map: the map's bombs, classic = the two-mesh bomb; otherwise two bombs held still, one
 ##   --bomb-dist metres ahead (default 0.8) and one at play distance, 6 m)
 ##   --audit 1 (with --stats: what is drawn, grouped by where it sits in the tree, each visible mesh, MultiMesh or
 ##   particle system in view counted once, and every viewport that renders)
-##   --classic-city 1 (Night City's classic layout instead of the building canyon)
 ##   --build-up 0..1 (the moving heads' sweep before a drop, EventDriver.BUILD_UP_SECONDS: a made-up show whose drop is
 ##   that close, 1 = now; pair with --lights on)
 ##   --result fail|clear (the result moment's mood, EventDriver.result_mood: the red or warm air, a clear's sparks; it
 ##   fades in over a second, so pair with --seconds 3, or 0.5 to catch the sparks)
 ##   --failed-word 1 (the big FAILED of a fail in the play space, ResultMoment; pair with --result fail)
 ##   --stats 1 (print the frame's triangles, draw calls and objects as drawn, RenderingServer's counters, one view)
-##   --dot 1 (a dot note)  --note-style 2 (0 Solid, 1 Neon: the Classic notes looks; 2 the glossy default)
+##   --dot 1 (a dot note)
 
 const ENVIRONMENT_SCENE := preload("res://game/event_driver.tscn")
 const FLOOR_SCENE := preload("res://game/floor.tscn")
@@ -77,10 +76,7 @@ func _ready() -> void:
 	var right := Color(args.get("right", Settings.color_right.to_html(false)) as String)
 	RenderingServer.global_shader_parameter_set(&"left_saber_color", left)
 	RenderingServer.global_shader_parameter_set(&"right_saber_color", right)
-	RenderingServer.global_shader_parameter_set(&"note_style", int(args.get("note-style", "2")))
 
-	# Night City's classic layout (in memory only; the saved setting is left alone)
-	Settings.classic_night_city = args.get("classic-city", "0") == "1"
 	var world := WorldEnvironment.new()
 	world.environment = _game_environment()
 	add_child(world)
@@ -122,8 +118,6 @@ func _ready() -> void:
 		stage.metal_factory_rig.slam(_beat, CAPTURE_BPM, 1.0)
 	if args.has("animate"):
 		_animated = stage
-	# the Classic walls look for the map's walls too (in memory only; the saved setting is left alone)
-	Settings.classic_walls = args.get("wall", "") == "classic"
 	if args.has("wall") and not args.has("map"):
 		_hold_wall(camera, args)
 	Bomb.classic = args.get("bomb", "") == "classic"
@@ -293,13 +287,9 @@ func _hold_wall(camera: Camera3D, args: Dictionary) -> void:
 	add_child(wall)
 	var mesh := wall.get_node(^"WallMeshOrientation/WallMesh") as MeshInstance3D
 	var danger := Color(args.get("danger", "ff3030") as String)
-	if args["wall"] == "classic":
-		(mesh.mesh as BoxMesh).size = WALL_SIZE
-		mesh.material_override = Wall.CLASSIC_MATERIAL
-	else:
-		mesh.mesh = Wall.frame_mesh()
-		mesh.material_override = Wall.FRAMED_MATERIAL
-		mesh.scale = WALL_SIZE
+	mesh.mesh = Wall.frame_mesh()
+	mesh.material_override = Wall.FRAMED_MATERIAL
+	mesh.scale = WALL_SIZE
 	(mesh.material_override as ShaderMaterial).set_shader_parameter(&"danger_color", danger)
 	wall.position = Vector3(float(args.get("wall-x", "0.6")), WALL_SIZE.y * 0.5,
 		camera.position.z - float(args.get("wall-z", "3")) - WALL_SIZE.z * 0.5)
@@ -314,9 +304,6 @@ func _hold_note(camera: Camera3D, color: Color, args: Dictionary) -> void:
 	var material := note.mi.material_override as ShaderMaterial
 	material.set_shader_parameter(&"color", color)
 	material.set_shader_parameter(&"is_dot", args.get("dot", "0") == "1")
-	# the Classic notes looks come with the classic mesh, as in the game
-	if args.get("note-style", "2") != "2":
-		note._set_mesh(note._classic)
 
 ## Sets up the notes' pools on a track at the hit plane, as BeepSaber_Game does, and drops what comes before
 ## `start_beat` (the song starts there; they would all fly in at once). The notes show in the deck as in the game
