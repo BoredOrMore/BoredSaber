@@ -153,6 +153,13 @@ using the same pattern. Fix them together where they share the cause, and say in
 Get songs list took a dozen rounds: each patch fixed one path while the page's covers, page loads, filter changes,
 canvas redraws and the stage behind it each kept their own stall; doc/research/get-songs-list-plan.md.)
 
+Judge a function by how the game uses it, not by its body alone (owner, 2026-10-31): find every caller, how often it
+runs (once, per event, per frame, per note, per pixel) and what it loops over, and look for work nobody sees (a
+see-through mesh left drawing at opacity 0, a hidden-looking node still `visible`, a viewport left updating). For each
+finding say whether the fix changes the Big-O (how the cost grows with notes, objects, pixels or list length) or only
+the constant (the same work done cheaper), and rank by both: a constant-factor fix on something that runs once per
+pixel can beat a Big-O fix on a list of ten.
+
 ## Research before changing game feel
 
 Anything that changes how the game feels to play must be researched before it is implemented or tuned:
