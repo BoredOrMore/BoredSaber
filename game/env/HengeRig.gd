@@ -32,7 +32,7 @@ const FLOOR_Y := -TrackDeck.DECK_DEPTH
 const BAND_STEPS := 6
 ## how wide (radians round the player) the shadows' sides fade from shadow to band, as far edges blur in the air: the
 ## same angle as the slabs' soft outlines (EnvSolid.gdshaderinc SHELL_BLUR_ANGLE). Untuned.
-const SHADOW_BLUR := 0.02
+const SHADOW_BLUR := 0.007
 ## the floor's ring strip in the floor lights' colour: its radius, width and height above the floor
 const RING_STRIP_RADIUS := 140.0
 const RING_STRIP := Vector2(0.6, 0.05)
