@@ -60,6 +60,9 @@ See `SPATIAL_LAYOUT.md` (origin, bounds, corridor, exclusion zones) and the root
   waving). A faint neutral glow on the horizon behind it; its shadow falls across the plain toward the player.
 - Build-up: seams light from the foot up; drop: the slit opens to the top, then closes back low.
 - The main form is one symmetric object placed off-centre on purpose (the point of the stage); props still to come.
+- Setting (owner, 2026-10-31): the player stands on a tall pillar in the middle of a valley, looking down on terraces
+  stepping away below, the slab ahead down the valley, stylized low clouds drifting among the terraces (owner's pick
+  "clouds among terraces" over "above a sea of cloud" and "clouds only far away").
 
 ## Stage stories (agreed with the owner, 2026-10-24, as a first version)
 - Classic: a steel tunnel where a lighting crew rehearses its show. The rings are calibration gates; the moving

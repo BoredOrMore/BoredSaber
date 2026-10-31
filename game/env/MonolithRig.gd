@@ -2,30 +2,56 @@
 class_name MonolithRig
 extends Node3D
 ## Monolith (doc/world/GAME_BIBLE.md "Monolith"; owner, 2026-10-31): standing before something that was here before you.
-## Abstract, no story. The player stands on an open dark plain; one colossal black slab (SLAB, 1:4:9) stands SLAB_DISTANCE
-## away, SLAB_YAW off straight ahead, its broad face turned to the player: tiny beside something massive, not inside it
-## or at its centre (owner, 2026-10-31). Nothing stands within the notes' fly-in (Cuttable.FLY_DISTANCE) in any
-## direction, so it serves 90 and 360 degree maps too. Light only on the slab (AGENTS.md "Light", rule 5), drawn in its
-## face's own shader (MonolithFace.gdshader; flush strip meshes would fight for depth this far out): its two vertical
-## edges in the left and right lasers' colours, horizontal seams in the square bars' colour lit from the foot up as the
-## show builds, a slit up the middle and a strip along the foot in the floor lights' colour; beams up its face from
-## fixtures at its foot (the diagonal and waving lasers, LightRig). Behind it the horizon glows faintly (MonolithSky)
-## so it stands as a silhouette, and its shadow falls across the plain toward the player (MonolithFloor.gdshader).
+## Abstract, no story. The player stands on a tall pillar in the middle of a valley (owner, 2026-10-31): the valley floor
+## lies VALLEY_Y below, its sides step up in terraces to ridges on both sides, and low stylized clouds drift among the
+## terraces (owner's pick B). One colossal black slab (SLAB, 1:4:9) stands on the valley floor SLAB_DISTANCE away, down
+## the valley SLAB_YAW off straight ahead, its broad face turned to the player: tiny beside something massive, not inside
+## it or at its centre. Nothing within the notes' fly-in (Cuttable.FLY_DISTANCE, r 320 m) rises above y -5 in any
+## direction (terraces start high only beyond it, clouds stay below), so it serves 90 and 360 degree maps too.
+## Light only on the slab (AGENTS.md "Light", rule 5), drawn in its face's own shader (MonolithFace.gdshader; flush strip
+## meshes would fight for depth this far out): its two vertical edges in the left and right lasers' colours, horizontal
+## seams in the square bars' colour lit from the foot up as the show builds, a slit up the middle and a strip along the
+## foot in the floor lights' colour; beams up its face from fixtures at its foot (the diagonal and waving lasers,
+## LightRig). Behind it the horizon glows faintly (MonolithSky) so it stands as a silhouette, and its shadow falls down
+## the valley toward the player (MonolithFloor.gdshader, on the valley and the pillar). The clouds are opaque with holes
+## (MonolithCloud.gdshader), so they cost no blending.
 ## Far edges stay sharp in the blockout: the soft-edge layer (AGENTS.md "Soft far edges") goes on the slab's outline
 ## once the look is agreed, never across its per-seam lights.
-## BLOCKOUT: one box and a disc. A tool script, so it shows in the editor too. Sizes in metres, untuned.
+## BLOCKOUT: one box, the valley mesh, a pillar and two cloud planes. A tool script, so it shows in the editor too.
+## Sizes in metres, untuned.
 
 const FACE_SHADER := preload("res://game/env/MonolithFace.gdshader")
 const FLOOR_SHADER := preload("res://game/env/MonolithFloor.gdshader")
+const CLOUD_SHADER := preload("res://game/env/MonolithCloud.gdshader")
 ## the slab: its size (across, up, deep), its front face's distance from the player and its turn left of straight ahead
-## (radians); its top front corners stand about 980 m away, inside the camera's far plane (1024 m)
+## (radians), which is also the way the valley runs; its top front corners stand about 950 m away, inside the camera's
+## far plane (1024 m)
 const SLAB := Vector3(360.0, 810.0, 90.0)
 const SLAB_DISTANCE := 520.0
 const SLAB_YAW := deg_to_rad(30.0)
-## the floor: a disc FLOOR_RADIUS out, its top FLOOR_Y below the track, under the platform's base
-const FLOOR_RADIUS := 1000.0
-const FLOOR_Y := -TrackDeck.DECK_DEPTH
-const FLOOR_SEGMENTS := 96
+## the pillar the player stands on: from under the platform (PILLAR_TOP) down to the valley floor, PILLAR_RADIUS wide
+const PILLAR_TOP := -TrackDeck.DECK_DEPTH
+const PILLAR_RADIUS := 10.0
+const PILLAR_SIDES := 6
+## the valley: its floor's height and half width, then terraces up both sides, each TERRACE_RISE higher than the last,
+## TERRACE_TREAD deep with a TERRACE_RISER wide face; the first one above y -5 starts beyond the notes' fly-in (r 320 m)
+## even where the valley bends (VALLEY_BEND metres either way, one bend every VALLEY_BEND_LENGTH metres along it)
+const VALLEY_Y := -80.0
+const VALLEY_HALF_WIDTH := 230.0
+const TERRACE_RISE := 15.0
+const TERRACE_TREAD := 30.0
+const TERRACE_RISER := 4.0
+const VALLEY_BEND := 25.0
+const VALLEY_BEND_LENGTH := 1600.0
+## the valley mesh ends VALLEY_RADIUS from the player (inside the far plane), VALLEY_ROWS rows along it
+const VALLEY_RADIUS := 980.0
+const VALLEY_ROWS := 120
+## the clouds: one plane per height in CLOUD_LAYERS, each with that share of open air (CLOUD_OPEN), CLOUD_SIZE a side
+## and CLOUD_CELLS cells a side (the haze is worked out per vertex)
+const CLOUD_LAYERS := [-50.0, -25.0]
+const CLOUD_OPEN := [0.45, 0.6]
+const CLOUD_SIZE := 1960.0
+const CLOUD_CELLS := 48
 
 ## the slab face's material (light colours, build-up and slit set each frame by EventDriver) and the floor's
 var face_material: ShaderMaterial
@@ -49,34 +75,92 @@ func _ready() -> void:
 	floor_material.set_shader_parameter(&"slab_yaw", SLAB_YAW)
 	floor_material.set_shader_parameter(&"slab_half_width", SLAB.x * 0.5)
 	floor_material.set_shader_parameter(&"slab_distance", SLAB_DISTANCE)
-	var floor_disc := MeshInstance3D.new()
-	var disc := CylinderMesh.new()
-	disc.top_radius = FLOOR_RADIUS
-	disc.bottom_radius = FLOOR_RADIUS
-	disc.height = 0.0
-	disc.radial_segments = FLOOR_SEGMENTS
-	disc.rings = 0
-	disc.cap_bottom = false
-	floor_disc.mesh = disc
-	floor_disc.position = _around_player(Vector3(0.0, FLOOR_Y, 0.0))
-	floor_disc.material_override = floor_material
-	floor_disc.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	add_child(floor_disc)
+	var valley := MeshInstance3D.new()
+	valley.mesh = _valley_mesh()
+	valley.transform = Transform3D(slab_basis(), _around_player(Vector3.ZERO))
+	valley.material_override = floor_material
+	valley.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(valley)
+	var pillar := MeshInstance3D.new()
+	var column := CylinderMesh.new()
+	column.top_radius = PILLAR_RADIUS
+	column.bottom_radius = PILLAR_RADIUS
+	column.height = PILLAR_TOP - VALLEY_Y
+	column.radial_segments = PILLAR_SIDES
+	column.rings = 0
+	column.cap_top = false
+	column.cap_bottom = false
+	pillar.mesh = column
+	pillar.position = _around_player(Vector3(0.0, (PILLAR_TOP + VALLEY_Y) * 0.5, 0.0))
+	pillar.material_override = floor_material
+	pillar.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	add_child(pillar)
+	for i in CLOUD_LAYERS.size():
+		var material := ShaderMaterial.new()
+		material.shader = CLOUD_SHADER
+		material.set_shader_parameter(&"open", CLOUD_OPEN[i])
+		material.set_shader_parameter(&"seed", float(i) * 37.0)
+		var plane := PlaneMesh.new()
+		plane.size = Vector2(CLOUD_SIZE, CLOUD_SIZE)
+		plane.subdivide_width = CLOUD_CELLS
+		plane.subdivide_depth = CLOUD_CELLS
+		var cloud := MeshInstance3D.new()
+		cloud.mesh = plane
+		cloud.position = _around_player(Vector3(0.0, CLOUD_LAYERS[i], 0.0))
+		cloud.material_override = material
+		cloud.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(cloud)
+
+## The valley in its own frame (x across, -z down the valley toward the slab): one column of vertices at each edge of
+## the floor and of every terrace face, so the steps stay sharp, each column reaching as far along as VALLEY_RADIUS allows.
+func _valley_mesh() -> ArrayMesh:
+	var profile: Array[Vector2] = [Vector2(0.0, VALLEY_Y)]
+	var edge := VALLEY_HALF_WIDTH
+	var step := 0
+	while edge < VALLEY_RADIUS:
+		profile.append(Vector2(edge, VALLEY_Y + step * TERRACE_RISE))
+		step += 1
+		profile.append(Vector2(minf(edge + TERRACE_RISER, VALLEY_RADIUS), VALLEY_Y + step * TERRACE_RISE))
+		edge += TERRACE_TREAD
+	var columns: Array[Vector2] = []
+	for i in range(profile.size() - 1, 0, -1):
+		columns.append(Vector2(-profile[i].x, profile[i].y))
+	columns.append_array(profile)
+	var vertices := PackedVector3Array()
+	for column in columns:
+		var reach := sqrt(maxf(VALLEY_RADIUS * VALLEY_RADIUS - column.x * column.x, 1.0))
+		for row in VALLEY_ROWS + 1:
+			var along := lerpf(-reach, reach, float(row) / VALLEY_ROWS)
+			var bend := VALLEY_BEND * sin(along * TAU / VALLEY_BEND_LENGTH)
+			vertices.append(Vector3(column.x + bend, column.y, along))
+	var indices := PackedInt32Array()
+	for c in columns.size() - 1:
+		for row in VALLEY_ROWS:
+			var a := c * (VALLEY_ROWS + 1) + row
+			var b := a + VALLEY_ROWS + 1
+			indices.append_array([a, b, a + 1, a + 1, b, b + 1])
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var mesh := ArrayMesh.new()
+	mesh.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	return mesh
 
 ## The slab's turn round the player: straight ahead (-z) turned SLAB_YAW to the left.
 static func slab_basis() -> Basis:
 	return Basis(Vector3.UP, SLAB_YAW)
 
-## Where the slab stands: its front face SLAB_DISTANCE from the player, facing them, its foot on the floor.
+## Where the slab stands: its front face SLAB_DISTANCE from the player, facing them, its foot on the valley floor.
 static func slab_place() -> Transform3D:
-	var centre := Vector3(0.0, FLOOR_Y + SLAB.y * 0.5, -SLAB_DISTANCE - SLAB.z * 0.5)
+	var centre := Vector3(0.0, VALLEY_Y + SLAB.y * 0.5, -SLAB_DISTANCE - SLAB.z * 0.5)
 	return Transform3D(slab_basis(), _around_player(slab_basis() * centre))
 
 ## Where a light stands at the slab's foot, just in front of its face, `share` of the way across from its left edge to
 ## its right as the player sees it (LightRig: the lasers' fixtures, shining up the face).
 static func foot_spot(share: float) -> Vector3:
 	var across := (share - 0.5) * SLAB.x
-	return _around_player(slab_basis() * Vector3(across, FLOOR_Y, -SLAB_DISTANCE + 2.0))
+	return _around_player(slab_basis() * Vector3(across, VALLEY_Y, -SLAB_DISTANCE + 2.0))
 
 ## The way up the slab's face, leaning back onto it by `lean` (0 straight up), for the beams at its foot.
 static func up_face(lean: float) -> Vector3:

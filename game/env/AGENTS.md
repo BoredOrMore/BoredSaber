@@ -101,9 +101,14 @@ Henge (24 monoliths round the player, for 90/360 maps; BLOCKOUT 2026-10-29)
   the bands and adds `FLOOD_LEVEL` grey, capped at `FLOOR_MAX` below the notes. `HengeSky.gdshader`: dark with a
   neutral horizon glow (no `bg_<type>`). Picked only in the menu or for 90/360 maps; never by Follow map.
 
-Monolith (one colossal slab beside an open plain, abstract; in the Auto pool; BLOCKOUT 2026-10-31)
+Monolith (one colossal slab down a terraced valley, seen from a tall pillar, abstract; in the Auto pool; BLOCKOUT
+2026-10-31)
 - `MonolithRig.gd` (tool, `MonolithRig`): one black box `SLAB` (1:4:9) `SLAB_DISTANCE` out, `SLAB_YAW` left of ahead,
-  its face to the player (`face_material`); a floor disc `FLOOR_RADIUS` out (`floor_material`). `foot_spot(share)` and
+  its face to the player (`face_material`), standing on the floor of a valley `VALLEY_Y` below the platform that runs
+  the same way; the player's pillar down to it; the valley's sides step up in terraces (`_valley_mesh`: a column of
+  vertices on each step edge so steps stay sharp, ending `VALLEY_RADIUS` out, inside the far plane; valley and pillar
+  share `floor_material`); two cloud planes (`CLOUD_LAYERS`) among the terraces. Every terrace above y -5 starts
+  beyond r 320 m, bends included; keep it so when changing the valley's numbers. `foot_spot(share)` and
   `up_face(lean)` place the lasers (`LightRig` "monolith": diagonal beams up the face from its foot, waving lasers
   between; no square bars). Nothing within the notes' 300 m fly-in in any direction (owner's rule, 2026-10-31).
 - `MonolithFace.gdshader`: the slab's lights drawn on its front face (strip meshes would z-fight 500-1000 m out), each
@@ -111,9 +116,12 @@ Monolith (one colossal slab beside an open plain, abstract; in the Auto pool; BL
   the foot by `lit`, a slit up the middle open to `slit` and a foot strip in the floor lights' colour
   (`EventDriver._update_monolith`: `_built` x `MONOLITH_BUILT_SHARE`, a drop by Henge's `henge_drop` rule opens the
   slit, it closes to `MONOLITH_SLIT_REST`). Soft far edges not on yet: planned for the slab's outline, never its lines.
-- `MonolithFloor.gdshader`: dark plain, the horizon's glow on the far ground toward the slab, the slab's shadow falling
-  toward the player as a widening wedge. `MonolithSky.gdshader`: black with a neutral horizon glow behind the slab
-  (`SLAB_DIR` must match `MonolithRig.SLAB_YAW`; no `bg_<type>`).
+- `MonolithFloor.gdshader`: the valley and pillar: dark ground with a neutral `BASE`, the horizon's glow on the far
+  ground toward the slab, steep faces darker than treads (slope from screen derivatives, no normals), the slab's shadow
+  falling toward the player as a widening wedge. `MonolithCloud.gdshader`: opaque clouds with holes (discard, no
+  blending), domed up by their own noise, two flat tones (edge band and lit top), drifting. `MonolithSky.gdshader`:
+  black with a neutral horizon glow behind the slab (`SLAB_DIR` must match `MonolithRig.SLAB_YAW`; no `bg_<type>`) and
+  a fainter neutral one all round so the ridges stand as silhouettes.
 
 Metal Factory (underground power plant)
 - `MetalFactoryRig.gd` (tool): pistons over anvils, gear rings, energy rails, wall kit with vents, vault, drive gears.
