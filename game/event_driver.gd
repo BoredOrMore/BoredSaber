@@ -90,6 +90,7 @@ const SKY_SHADERS := {
 	"night_city": preload("res://game/env/NightCitySky.gdshader"),
 	"metal_factory": preload("res://game/env/MetalFactorySky.gdshader"),
 	"henge": preload("res://game/env/HengeSky.gdshader"),
+	"monolith": preload("res://game/env/MonolithSky.gdshader"),
 }
 
 var ring_rot_speed := 0.0
@@ -122,6 +123,10 @@ const STINGER_ROOMS := {
 	# Henge: open ground ringed by stone 150 m out, near dry, one far slap off the slabs (about 0.9 s there and back)
 	"henge": [{&"room_size": 0.2, &"damping": 0.6, &"wet": 0.05},
 			{&"tap1_active": true, &"tap1_delay_ms": 870.0, &"tap1_level_db": -22.0, &"tap1_pan": 0.0,
+			&"tap2_active": false}],
+	# Monolith: an open plain, near dry, one late slap off the slab 520 m away (about 3 s there and back, faint), to its side
+	"monolith": [{&"room_size": 0.15, &"damping": 0.6, &"wet": 0.04},
+			{&"tap1_active": true, &"tap1_delay_ms": 3000.0, &"tap1_level_db": -26.0, &"tap1_pan": -0.5,
 			&"tap2_active": false}]
 }
 
@@ -284,6 +289,7 @@ const PLATFORM_LIGHTS := preload("res://game/env/platform_lights.tres")
 @onready var night_city_rig := $Level/NightCityRig as NightCityRig
 @onready var metal_factory_rig := $Level/MetalFactoryRig as MetalFactoryRig
 @onready var henge_rig := $Level/HengeRig as HengeRig
+@onready var monolith_rig := $Level/MonolithRig as MonolithRig
 
 @onready var ring_anim_player := $Level/rings/AnimationPlayer as AnimationPlayer
 @onready var left_laser_anim_player := $Level/LeftWavingLasers/AnimationPlayer as AnimationPlayer
@@ -501,6 +507,7 @@ func show_scenery_for_mixed_reality() -> void:
 	night_city_rig.visible = environment == "night_city" and not Settings.mixed_reality
 	metal_factory_rig.visible = environment == "metal_factory" and not Settings.mixed_reality
 	henge_rig.visible = environment == "henge" and not Settings.mixed_reality
+	monolith_rig.visible = environment == "monolith" and not Settings.mixed_reality
 	stage_smoke.visible = Settings.smoke and not Settings.mixed_reality
 	_dust.visible = not Settings.mixed_reality
 	# Metal Factory has no moving heads: its lights glow in the wall vents
@@ -629,6 +636,8 @@ func _process(delta: float) -> void:
 		track_deck.deck_material.set_shader_parameter(&"light_color", floor_material.albedo_color)
 	if henge_rig.visible:
 		_update_henge(delta)
+	if monolith_rig.visible:
+		_update_monolith(delta)
 	if environment == "metal_factory":
 		metal_factory_rig.set_vent_colors(diagonal_lasers_material.get_shader_parameter(&"light_color"),
 				left_waving_lasers_material.get_shader_parameter(&"light_color"),
@@ -794,6 +803,8 @@ func start_show(events: Array[EventInfo], bpm: float) -> void:
 	_built = 0.0
 	_henge_drop = false
 	_henge_flood = 0.0
+	_monolith_drop = false
+	_monolith_slit = 0.0
 	show_beat = 0.0
 	classic_rig.set_built(0.0)
 
@@ -851,6 +862,38 @@ static func henge_drop(was: bool, intensity: float, held: float) -> bool:
 	if intensity > STRIP_DROP:
 		return true
 	return was and (intensity >= HENGE_DROP_RELEASE or held < HENGE_DROP_HOLD_SECONDS)
+
+## Monolith's show (doc/world/GAME_BIBLE.md: standing before something that was here before you), from the show's
+## intensity like Henge's: the slab's seams light from its foot up as the show builds (MONOLITH_BUILT_SHARE of them by
+## _built) and all the way over the run-up to a drop (build_up); a drop (henge_drop's rule and hold) opens the slit up
+## its face to the top, easing over MONOLITH_SLIT_RISE_SECONDS and closing to MONOLITH_SLIT_REST over
+## MONOLITH_SLIT_FALL_SECONDS after. A map without light events builds nothing: the slab stays dark (the owner's rule).
+## Untuned.
+const MONOLITH_BUILT_SHARE := 0.5
+const MONOLITH_SLIT_REST := 0.15
+const MONOLITH_SLIT_RISE_SECONDS := 1.5
+const MONOLITH_SLIT_FALL_SECONDS := 4.0
+var _monolith_drop := false
+var _monolith_drop_seconds := 0.0
+var _monolith_slit := 0.0
+
+## Lights the Monolith's face: its edges in the left and right lasers' colours, its seams in the square bars' with the
+## build-up, its slit and foot strip in the floor lights' with the drop.
+func _update_monolith(delta: float) -> void:
+	_monolith_drop_seconds = _monolith_drop_seconds + delta if _monolith_drop else 0.0
+	_monolith_drop = not menu_focus and henge_drop(_monolith_drop, _intensity, _monolith_drop_seconds)
+	var lit := 1.0
+	if not menu_focus:
+		lit = 1.0 if _monolith_drop else maxf(_built * MONOLITH_BUILT_SHARE, build_up(_intensity_curve, show_beat, _show_bpm))
+	_monolith_slit = move_toward(_monolith_slit, 1.0 if _monolith_drop else MONOLITH_SLIT_REST,
+			delta / (MONOLITH_SLIT_RISE_SECONDS if _monolith_drop else MONOLITH_SLIT_FALL_SECONDS))
+	var face := monolith_rig.face_material
+	face.set_shader_parameter(&"left_color", left_waving_lasers_material.get_shader_parameter(&"light_color"))
+	face.set_shader_parameter(&"right_color", right_waving_lasers_material.get_shader_parameter(&"light_color"))
+	face.set_shader_parameter(&"bar_color", square_lasers_material.get_shader_parameter(&"light_color"))
+	face.set_shader_parameter(&"floor_color", track_lights_material.get_shader_parameter(&"light_color"))
+	face.set_shader_parameter(&"lit", lit)
+	face.set_shader_parameter(&"slit", _monolith_slit)
 
 ## How close the drop after `beat` in `curve` (intensity_curve at `bpm`) is: 0 when none comes within BUILD_UP_SECONDS,
 ## rising to 1 as it arrives.

@@ -93,6 +93,15 @@ Plain boxes in `HengeRig.gd`, every size a named constant there; for 90 and 360 
 - Note corridor: nothing stands within 140 m in any direction. Notes fly in from up to about 300 m
   (`Cuttable.FLY_DISTANCE`), so their fly-in crosses the slab ring; not yet checked on the headset.
 
+## Monolith (BLOCKOUT 2026-10-31, `game/env/MonolithRig.gd`)
+- Slab: 360 m wide, 810 m tall, 90 m deep; front face 520 m from the player, 30 degrees left of ahead, facing them; its
+  top front corners about 980 m away (camera far 1024 m).
+- Floor: a dark disc 1000 m out at y -0.4 (under the platform's base); the slab's shadow on it toward the player.
+- Lights: drawn on the slab's face (edges 3 m, seams 1.5 m every 90 m, slit 2 m, foot strip 2 m); beam fixtures along
+  its foot, 2 m in front of the face.
+- Sky: black, a neutral glow low on the horizon behind the slab.
+- Note corridor: nothing within 520 m in any direction above the floor; the notes' 300 m fly-in is clear.
+
 ## Exclusion zones
 - The note corridor: lanes ±1.2 m (more when wide), y 0 to 2.5, from the player to the far spawn. No scenery,
   particles or bright light inside it.

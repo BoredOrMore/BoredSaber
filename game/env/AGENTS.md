@@ -9,7 +9,7 @@ Read the root `AGENTS.md` first ("Light", "Colour rules", "Pico 4 constraints").
 
 - Scene: `game/event_driver.tscn` (`Level/`): the sky `Sphere`, the five light-group holders (`DiagonalLasers`,
   `SquareLasers`, `Left/RightWavingLasers`, `TrackTurn/TrackLights`), the old `rings`, `ClassicRig`, `NeonGridRig`,
-  `NightCityRig`, `MetalFactoryRig`, `PulseVoid`, `NeonGrid` floor, `TrackDeck`, `StageSmoke`. Every rig is built at load
+  `NightCityRig`, `MetalFactoryRig`, `PulseVoid`, `HengeRig`, `MonolithRig`, `NeonGrid` floor, `TrackDeck`, `StageSmoke`. Every rig is built at load
   (tool scripts, `_ready`) and stays in memory; only visibility changes.
 - The track turns with the notes on 90/360 maps (`EventDriver._turn_track`): `Level/TrackTurn` (the edge light strips,
   the old see-through track `floor` and its `Endpath`) and `TrackDeck.turn` (deck and curbs) turn about the player's
@@ -19,7 +19,7 @@ Read the root `AGENTS.md` first ("Light", "Colour rules", "Pico 4 constraints").
   The turn cue (`TrackDeck.set_cue`, a chevron on the floor) eases the same way to `Map.cue_rotation(show_beat)`, the
   map's rotation events, so it leads the lanes (inner class `Turn` eases both).
 - Stage choice: `Settings.ENVIRONMENTS` (`Settings.gd:35`, ids `classic`, `neon_grid`, `pulse_void`, `night_city`,
-  `metal_factory`, `henge`, plus `auto`). `EventDriver.pick_environment(map)`: a 90/360 difficulty
+  `metal_factory`, `henge`, `monolith`, plus `auto`). `EventDriver.pick_environment(map)`: a 90/360 difficulty
   (`Map.TURNING_CHARACTERISTICS`) always gets `henge`, the only stage ready for them (owner, 2026-10-29); else the
   player's pick, else `map_environment`:
   `Constants.MAP_ENVIRONMENTS` (map's Beat Saber env name), then `TAG_ENVIRONMENTS` (genre), then a folder-name hash
@@ -100,6 +100,20 @@ Henge (24 monoliths round the player, for 90/360 maps; BLOCKOUT 2026-10-29)
 - `HengeFloor.gdshader`: dark ground plus vertex-colour bands of the haze's colour; `flood` (the drop, eased) brightens
   the bands and adds `FLOOD_LEVEL` grey, capped at `FLOOR_MAX` below the notes. `HengeSky.gdshader`: dark with a
   neutral horizon glow (no `bg_<type>`). Picked only in the menu or for 90/360 maps; never by Follow map.
+
+Monolith (one colossal slab beside an open plain, abstract; in the Auto pool; BLOCKOUT 2026-10-31)
+- `MonolithRig.gd` (tool, `MonolithRig`): one black box `SLAB` (1:4:9) `SLAB_DISTANCE` out, `SLAB_YAW` left of ahead,
+  its face to the player (`face_material`); a floor disc `FLOOR_RADIUS` out (`floor_material`). `foot_spot(share)` and
+  `up_face(lean)` place the lasers (`LightRig` "monolith": diagonal beams up the face from its foot, waving lasers
+  between; no square bars). Nothing within the notes' 300 m fly-in in any direction (owner's rule, 2026-10-31).
+- `MonolithFace.gdshader`: the slab's lights drawn on its front face (strip meshes would z-fight 500-1000 m out), each
+  line at least `MIN_PIXELS` wide: edges in the left/right lasers' colours, `SEAMS` seams in the square bars' lit from
+  the foot by `lit`, a slit up the middle open to `slit` and a foot strip in the floor lights' colour
+  (`EventDriver._update_monolith`: `_built` x `MONOLITH_BUILT_SHARE`, a drop by Henge's `henge_drop` rule opens the
+  slit, it closes to `MONOLITH_SLIT_REST`). Soft far edges not on yet: planned for the slab's outline, never its lines.
+- `MonolithFloor.gdshader`: dark plain, the horizon's glow on the far ground toward the slab, the slab's shadow falling
+  toward the player as a widening wedge. `MonolithSky.gdshader`: black with a neutral horizon glow behind the slab
+  (`SLAB_DIR` must match `MonolithRig.SLAB_YAW`; no `bg_<type>`).
 
 Metal Factory (underground power plant)
 - `MetalFactoryRig.gd` (tool): pistons over anvils, gear rings, energy rails, wall kit with vents, vault, drive gears.

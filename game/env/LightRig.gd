@@ -93,7 +93,12 @@ const FOG_KEYS := {
 	"metal_factory": Vector4(0.0, 0.05, -1.0, 0.04),
 	# Henge: the glow low on the horizon all round, gently (HengeSky.gdshader)
 	"henge": Vector4(0.0, 0.05, -1.0, 0.04),
+	# Monolith: the horizon's glow behind the slab, 30 degrees left of ahead, gently (MonolithSky.gdshader)
+	"monolith": Vector4(-0.5, 0.05, -0.866, 0.06),
 }
+
+## Monolith's diagonal beams: how far they lean out from the slab's face as they rise (untuned)
+const MONOLITH_LEAN := -0.08
 
 ## Pulse Void's beams: their width and brightness, parts of the beams' own (untuned)
 const VOID_BEAM_WIDTH := 0.5
@@ -150,7 +155,7 @@ func apply(id: String) -> void:
 	var sky_scale := 1.0
 	if id == "night_city":
 		sky_scale = CANYON_SKY_SCALE
-	elif id == "neon_grid" or id == "classic" or id == "pulse_void" or id == "henge":
+	elif id == "neon_grid" or id == "classic" or id == "pulse_void" or id == "henge" or id == "monolith":
 		# Classic's tunnel runs 600 m ahead (ClassicRig): the sky behind its far end
 		sky_scale = NEON_SKY_SCALE
 	(_d.get_node(^"Level/Sphere") as Node3D).scale = Vector3.ONE * sky_scale
@@ -235,6 +240,17 @@ func apply(id: String) -> void:
 			for i in waving.size():
 				waving[i].global_position = HengeRig.slab_top(
 					roundi((i + 0.5) * HengeRig.SLAB_COUNT / waving.size()) % HengeRig.SLAB_COUNT)
+			for bar in square_bars():
+				bar.visible = false
+		"monolith":
+			# the slab (MonolithRig, blockout): the diagonal lasers' fixtures across its foot, beams up its face leaning out
+			# a little, the waving lasers' between them; its face carries the square bars' light (EventDriver), so the bars
+			# are left out
+			var diagonal := _d.diagonal_lasers.size()
+			for i in diagonal:
+				aim(_d.diagonal_lasers[i], MonolithRig.foot_spot((i + 0.5) / diagonal), MonolithRig.up_face(MONOLITH_LEAN))
+			for i in waving.size():
+				waving[i].global_position = MonolithRig.foot_spot((i + 1.0) / (waving.size() + 1.0))
 			for bar in square_bars():
 				bar.visible = false
 		"metal_factory":

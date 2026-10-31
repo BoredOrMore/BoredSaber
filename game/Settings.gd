@@ -30,7 +30,7 @@ const COLOR_PRESETS := [
 const NOTE_DARK_VALUE := 0.7
 ## the scenery around the track, picked on the song menu's Song tab; "auto" follows the environment each map was made for
 ## (EventDriver.pick_environment)
-const ENVIRONMENTS := [ ["auto", "Follow map"], ["classic", "Classic"], ["neon_grid", "Neon Grid"], ["pulse_void", "Pulse Void"], ["night_city", "Night City"], ["metal_factory", "Metal Factory"], ["henge", "Henge"] ]
+const ENVIRONMENTS := [ ["auto", "Follow map"], ["classic", "Classic"], ["neon_grid", "Neon Grid"], ["pulse_void", "Pulse Void"], ["night_city", "Night City"], ["metal_factory", "Metal Factory"], ["henge", "Henge"], ["monolith", "Monolith"] ]
 ## Graphics presets in Settings > Visuals: the effects each sets (Settings key: value). Glow was the only one
 ## measured to cost much on the headset (about 6 of a 13.9 ms frame). Both keep the light show (about 0.2 ms) and the
 ## slash note's light (about 0.3 ms): players missed them off.
