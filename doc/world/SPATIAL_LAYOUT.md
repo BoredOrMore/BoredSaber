@@ -97,12 +97,15 @@ Plain boxes in `HengeRig.gd`, every size a named constant there; for 90 and 360 
 - Slab: 360 m wide, 810 m tall, 90 m deep; front face 520 m from the player, 30 degrees left of ahead, facing them; its
   top front corners about 980 m away (camera far 1024 m).
 - Pillar: the platform stands on a column 10 m round down to the valley floor at y -80.
-- Valley: runs the slab's way (30 degrees left of ahead); its floor 460 m wide at y -80, bending 25 m either way; then
-  terraces up both sides, 15 m higher every 30 m out (4 m steep faces), to ridges about +295 m at 980 m. The first
-  terrace above y -5 starts beyond 325 m. The slab stands on the valley floor (top about 950 m away); its shadow falls
+- Valley: runs the slab's way (30 degrees left of ahead); a flat floor at y -80 under the clouds. Mountains (owner,
+  2026-10-31: layered silhouette flats in place of the first terraces): 3 upright rings at 380, 650 and 950 m with
+  jagged ridges, low along the valley's line (-30, -10, +10 m, so they hide in the clouds toward the slab and behind
+  the player) and high at its sides (+100, +220, +380 m), so each farther layer stands higher to the eye; nothing of
+  them within 320 m, none touching the slab. The slab stands on the valley floor (top about 950 m away); its shadow falls
   down the valley toward the player.
-- Clouds (owner's reference, 2026-10-31: stylized flats): 4 upright rings at 220, 360, 470 and 760 m (none crossing the slab), each a band up
-  from the valley floor topped by a row of round puffs; the 220 m ring's puffs top out near y -11; beyond 320 m they
+- Clouds (owner's reference, 2026-10-31: stylized flats): 6 upright rings at 80, 150, 230, 340, 470 and 760 m (none crossing the slab; the
+  nearest three added 2026-10-31 so the clouds reach close to the player), each a band up from the valley floor topped
+  by a row of round puffs; inside 320 m the puffs top out below y -5 (the 230 m ring near y -9, its soft edge -6); beyond 320 m they
   rise to about +60 m at 760 m, hiding the slab's foot. Edges soft (a fringe 0.012 rad wide, owner 2026-10-31);
   terrain, pillar and slab below the clouds' level take the cloud's tone, so nothing pokes through a cloud.
 - Lights: drawn on the slab's face (edges 3 m, seams 1.5 m every 90 m, slit 2 m); beam fixtures along a

@@ -3,8 +3,9 @@ render_mode unshaded, cull_disabled, shadows_disabled, fog_disabled;
 
 // Monolith's clouds (MonolithRig.gd; owner, 2026-10-31: stylized like his reference, flats with rows of round puffs):
 // one upright ring of cloud whose top is the puffs' outline (in the mesh, so no discard and no blending). UV.y holds the
-// metres down from the top. Layers:
-//   1. body: a neutral grey plus the haze's colour, lightest just under the top and darkening toward the valley, paler
+// metres down from the top, UV.x the metres down from the line of the tallest puffs. Layers:
+//   1. body: a neutral grey plus the haze's colour, lightest at the tallest puffs and darkening toward the valley
+//      (measured from that smooth line, not each puff's top, so no crease runs down from the dips between puffs), paler
 //      and closer to the haze on farther rings (depth_share 0 near to 1 far) so the layers stand apart
 //      (monolith_cloud.gdshaderinc, shared with what sinks into the clouds)
 //   2. rim: a thin bright line along the puffs' outline, at least MIN_PIXELS wide, under the soft edge
@@ -31,6 +32,6 @@ void fragment() {
 	float width = max(RIM_WIDTH, fwidth(down) * MIN_PIXELS);
 	float rim = 1.0 - smoothstep(width * 0.5, width, down);
 	vec3 rim_color = cloud_far(vec3(RIM_TONE.x) + haze_v * RIM_TONE.y, haze_v, depth_share);
-	vec3 color = mix(cloud_tone(haze_v, down, depth_share), rim_color, rim);
+	vec3 color = mix(cloud_tone(haze_v, UV.x, depth_share), rim_color, rim);
 	ALBEDO = fog_dither(fog_result(color, VERTEX), FRAGCOORD.xy);
 }

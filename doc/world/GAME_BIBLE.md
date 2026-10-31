@@ -60,9 +60,10 @@ See `SPATIAL_LAYOUT.md` (origin, bounds, corridor, exclusion zones) and the root
   waving; the ledge's own light strip was taken off, owner 2026-10-31). A faint neutral glow on the horizon behind it; its shadow falls across the plain toward the player.
 - Build-up: seams light from the foot up; drop: the slit opens to the top, then closes back low.
 - The main form is one symmetric object placed off-centre on purpose (the point of the stage); props still to come.
-- Setting (owner, 2026-10-31): the player stands on a tall pillar in the middle of a valley, looking down on terraces
-  stepping away below, the slab ahead down the valley, stylized low clouds drifting among the terraces (owner's pick
-  "clouds among terraces" over "above a sea of cloud" and "clouds only far away"). The clouds are stylized like the
+- Setting (owner, 2026-10-31): the player stands on a tall pillar in the middle of a valley, looking down on low clouds
+  filling it, mountains rising out of them on both sides as layered dark silhouettes (owner, 2026-10-31, in place of
+  the first terraces), the slab ahead down the valley (owner's pick "clouds among terraces" over "above a sea of
+  cloud" and "clouds only far away"). The clouds are stylized like the
   owner's reference: layered upright flats with rows of round puffs on top and a thin bright rim, paler with distance.
 
 ## Stage stories (agreed with the owner, 2026-10-24, as a first version)
