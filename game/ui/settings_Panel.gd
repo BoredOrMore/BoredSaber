@@ -44,7 +44,6 @@ signal benchmark_requested()
 @onready var audio_sfx_control := $Tabs/Audio/VBox/audio/sfx/sfx_slider as HSlider
 @onready var spectator_view_control := $Tabs/Advanced/VBox/spectator_view as CheckButton
 @onready var spectator_hud_control := $Tabs/Advanced/VBox/spectator_hud as CheckButton
-@onready var classic_night_city_control := $Tabs/Advanced/VBox/classic_night_city as CheckButton
 @onready var refresh_90_control := $Tabs/Advanced/VBox/refresh_90 as CheckButton
 @onready var background_mode_control := $Tabs/Visuals/VBox/background_mode_grid/background_mode as OptionButton
 @onready var background_texture_control := $Tabs/Visuals/VBox/background_texture_grid/background_texture as OptionButton
@@ -175,7 +174,6 @@ func set_controls_from_settings() -> void:
 	audio_sfx_control.value = Settings.audio_sfx
 	spectator_view_control.button_pressed = Settings.spectator_view
 	spectator_hud_control.button_pressed = Settings.spectator_hud
-	classic_night_city_control.button_pressed = Settings.classic_night_city
 	refresh_90_control.button_pressed = Settings.refresh_90
 
 func _restore_defaults() -> void:
@@ -514,10 +512,6 @@ func _on_spectator_view_toggled(value: bool) -> void:
 
 func _on_spectator_hud_toggled(value: bool) -> void:
 	Settings.spectator_hud = value
-
-## Switches Night City between the building canyon and its classic layout.
-func _on_classic_night_city_toggled(value: bool) -> void:
-	Settings.classic_night_city = value
 
 ## The display at 90 Hz instead of 72.
 func _on_refresh_90_toggled(value: bool) -> void:

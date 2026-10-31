@@ -26,7 +26,6 @@ extends Node3D
 ##   --bomb-dist metres ahead (default 0.8) and one at play distance, 6 m)
 ##   --audit 1 (with --stats: what is drawn, grouped by where it sits in the tree, each visible mesh, MultiMesh or
 ##   particle system in view counted once, and every viewport that renders)
-##   --classic-city 1 (Night City's classic layout instead of the building canyon)
 ##   --build-up 0..1 (the moving heads' sweep before a drop, EventDriver.BUILD_UP_SECONDS: a made-up show whose drop is
 ##   that close, 1 = now; pair with --lights on)
 ##   --result fail|clear (the result moment's mood, EventDriver.result_mood: the red or warm air, a clear's sparks; it
@@ -78,8 +77,6 @@ func _ready() -> void:
 	RenderingServer.global_shader_parameter_set(&"left_saber_color", left)
 	RenderingServer.global_shader_parameter_set(&"right_saber_color", right)
 
-	# Night City's classic layout (in memory only; the saved setting is left alone)
-	Settings.classic_night_city = args.get("classic-city", "0") == "1"
 	var world := WorldEnvironment.new()
 	world.environment = _game_environment()
 	add_child(world)

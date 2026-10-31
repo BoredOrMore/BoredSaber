@@ -148,7 +148,7 @@ func apply(id: String) -> void:
 	# there it is drawn CANYON_SKY_SCALE or NEON_SKY_SCALE times as far; elsewhere at its size, where it hides the beams'
 	# far ends
 	var sky_scale := 1.0
-	if id == "night_city" and not Settings.classic_night_city:
+	if id == "night_city":
 		sky_scale = CANYON_SKY_SCALE
 	elif id == "neon_grid" or id == "classic" or id == "pulse_void" or id == "henge":
 		# Classic's tunnel runs 600 m ahead (ClassicRig): the sky behind its far end
@@ -213,32 +213,8 @@ func apply(id: String) -> void:
 			# left out
 			for bar in square_bars():
 				bar.visible = false
-		"night_city" when not Settings.classic_night_city:
-			_hang_canyon(waving)
 		"night_city":
-			# diagonal lasers cross from the roofs' inner edges, one every 6 m along each row of buildings
-			for i in _d.diagonal_lasers.size():
-				var pairs := _d.diagonal_lasers.size() >> 1
-				var side := -1.0 if i < pairs else 1.0
-				var z := -18.0 - 8.0 * (i % pairs)
-				var roof := maxf(NightCityRig.roof_at(side, z), 1.0)
-				aim(_d.diagonal_lasers[i], Vector3(side * NightCityRig.INNER_FACE_X, roof, z), Vector3(-side * 0.35, 1.0, 0.1))
-			# searchlights stand in the middle of each roof
-			for i in waving.size():
-				var side := -1.0 if i < half else 1.0
-				var b: Vector3 = NightCityRig.buildings(side)[i % half]
-				waving[i].global_position = Vector3(side * (NightCityRig.INNER_FACE_X + NightCityRig.DEPTH_X * 0.5), b.z + 0.3, b.x)
-			# roof trim: the horizontal bars run along the top of the buildings' inner faces; the vertical ones are left out
-			var sign_i := 0
-			for bar in square_bars():
-				if bar.get_parent() != _d.square_lasers_holder:
-					bar.visible = false
-					continue
-				var side := -1.0 if sign_i % 2 == 0 else 1.0
-				var b: Vector3 = NightCityRig.buildings(side)[(sign_i >> 1) % NightCityRig.LEFT.size()]
-				bar.global_transform = Transform3D(RAIL_BASIS,
-					Vector3(side * (NightCityRig.INNER_FACE_X - ROOF_TRIM_OFFSET), b.z - ROOF_TRIM_DROP, b.x))
-				sign_i += 1
+			_hang_canyon(waving)
 		"pulse_void":
 			# the giant receiving dish (PulseVoid): floodlights on the feed legs, beacons on the rim masts; the dish's seam rows
 			# carry the square bars' light (_update_strips), so the bars are left out

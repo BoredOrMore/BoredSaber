@@ -265,12 +265,6 @@ var spectator_view: bool:
 	set(value):
 		spectator_view = value
 		set_and_emit(&"spectator_view", value)
-## Night City's classic layout (rows of buildings on both sides) instead of the giant building canyon (NightCityRig),
-## to compare them (owner, 2026-10-25)
-var classic_night_city: bool:
-	set(value):
-		classic_night_city = value
-		set_and_emit(&"classic_night_city", value)
 ## The display at 90 Hz instead of 72 when the headset offers it (vr.apply_refresh_rate): 72 is the default for every
 ## scene, a 13.9 ms frame (owner, 2026-10-26)
 var refresh_90: bool:
@@ -487,7 +481,6 @@ var default_values = {
 	audio_sfx = 0.8,
 	spectator_view = false,
 	spectator_hud = true,
-	classic_night_city = false,
 	refresh_90 = false,
 	background = "dynamic",
 	environment = "auto",

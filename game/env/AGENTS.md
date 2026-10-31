@@ -25,14 +25,14 @@ Read the root `AGENTS.md` first ("Light", "Colour rules", "Pico 4 constraints").
   `Constants.MAP_ENVIRONMENTS` (map's Beat Saber env name), then `TAG_ENVIRONMENTS` (genre), then a folder-name hash
   into `AUTO_ENVIRONMENTS` (Metal Factory is never auto-picked). Called from `BeepSaber_Game.gd:173` (song start)
   and `:758` (menu).
-- "Canyon" is not its own stage: it is Night City's default layout; `Settings.classic_night_city` swaps in the old
-  row-of-buildings layout (`NightCityRig.build`, rebuilt on that setting's `changed`).
+- "Canyon" is not its own stage: it is Night City's layout (`NightCityRig.build`; the old row-of-buildings layout
+  was removed 2026-10-31).
 - `set_environment(id)`: lazily builds the stage's sky `ShaderMaterial` (`SKY_SHADERS`,
   `SKY_TEXTURES`; Classic keeps the scene's sky), copies the `bg_<type>_tint/intensity` params over, sets the
   Stinger bus reverb, `_rig.apply(id)` (`LightRig.gd`), `track_deck.set_stage(id)`, visibility, `set_background()`.
 - `LightRig.apply(id)` (`LightRig.gd`, made by EventDriver as `_rig`): resets every laser/bar to its Classic transform (`classic_places`),
   then re-places them on the stage's carriers via the rig's static helpers (`ClassicRig.moving_head_spot/follow_spot/
-  scaffold_bar`, `NeonGridRig.floodlight_bases/crane_lights/SURVEY_MASTS`, `NightCityRig.buildings/roof_at`,
+  scaffold_bar`, `NeonGridRig.floodlight_bases/crane_lights/SURVEY_MASTS`,
   `LightRig._hang_canyon`, `PulseVoid.leg_floodlight/rim_beacon`, `MetalFactoryRig.RAIL_X/RAIL_TOP`). Also sets sky scale
   (`NEON_SKY_SCALE`/`CANYON_SKY_SCALE`), `fog_key` (`FOG_KEYS`), Pulse Void's narrower beams, fixture kind per laser.
 - Light events: `Playing.gd:73-75` sets `show_beat` and calls `process_event(EventInfo)` (no look-ahead). Types 0-4
@@ -73,9 +73,9 @@ Neon Grid
 - `NeonGridSky.gdshader`: sunset sky from baked masks `neon_grid_sky_sharp/soft.png` (`tools/bake_neon_grid_sky.py`;
   per-pixel version cost ~4.5 ms GPU).
 
-Night City (canyon default, classic layout optional)
-- `NightCityRig.gd` (tool): canyon (tower wall on `WALL_SIDE`, low roofs opposite, far city, landmark) or the classic
-  rows (`Settings.classic_night_city`); `buildings`/`roof_at`/`wall_*_spot` place lights; `set_windows` feeds layer 9.
+Night City (canyon)
+- `NightCityRig.gd` (tool): canyon (tower wall on `WALL_SIDE`, low roofs opposite, far city, landmark);
+  `wall_*_spot` place lights; `set_windows` feeds layer 9.
 - `EnvSolidCanyon.gdshader`: EnvSolid with `CANYON` + `WINDOWS`. `EnvSolidCanyonPlain.gdshader`: `CANYON` only, for
   near pieces that never show windows (saves the per-pixel window cost).
 - `CityBillboard.gdshader`: procedural shape billboards on the tower wall, square bars' light (`billboard_material`).

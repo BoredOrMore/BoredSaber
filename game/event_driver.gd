@@ -312,12 +312,6 @@ func _ready() -> void:
 				else right_waving_lasers_material)
 	_fixtures.setup(fixture_lasers, fixture_materials)
 	$Level.add_child(_fixtures)
-	# Night City's layout follows its Classic switch, the lights hung again on the one shown
-	Settings.changed.connect(func(key: StringName) -> void:
-		if key == &"classic_night_city":
-			night_city_rig.build(Settings.classic_night_city)
-			if environment == "night_city":
-				_rig.apply(environment))
 	# each group's bars in one draw call (LaserBatch)
 	for holder: Node3D in [diagonal_lasers_holder, square_lasers_holder, left_waving_lasers_holder, right_waving_lasers_holder]:
 		LaserBatch.make(holder, $Level)
@@ -641,7 +635,7 @@ func _process(delta: float) -> void:
 				right_waving_lasers_material.get_shader_parameter(&"light_color"))
 	_update_show(delta)
 	_update_sweep(delta)
-	if environment == "night_city" and not Settings.classic_night_city:
+	if environment == "night_city":
 		# the canyon's windows: the rooms the show has built light up (the menu shows a few), dimmer in quiet parts
 		var level := MENU_WINDOWS if menu_focus else _built
 		var glow := MENU_WINDOWS if menu_focus else lerpf(WINDOWS_QUIET, 1.0, _intensity)
