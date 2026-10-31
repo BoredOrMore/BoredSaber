@@ -129,9 +129,9 @@ func _add_boxes(places: Array[Transform3D], material: Material) -> void:
 	instance.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(instance)
 
-## The floor disc: four wedges a slab, the slab's shadow (vertex colour 0), a SHADOW_BLUR wide fade into the gap's
+## The floor disc: four wedges a slab, the slab's shadow (vertex colour red 0), a SHADOW_BLUR wide fade into the gap's
 ## band of light (1 at the ring, falling off toward the player and past the slabs), the band, and a fade back, in
-## BAND_STEPS rings.
+## BAND_STEPS rings. Green is the band's falloff alone, shadow or not, for the light that reaches into the shadows.
 static func _floor_mesh() -> ArrayMesh:
 	var tool := SurfaceTool.new()
 	tool.begin(Mesh.PRIMITIVE_TRIANGLES)
@@ -152,7 +152,7 @@ static func _floor_mesh() -> ArrayMesh:
 					_floor_point(r1, edge[1])]
 				for k: int in [0, 2, 1, 1, 2, 3]:
 					var band := _band(r1 if k >= 2 else r0)
-					tool.set_color(Color(band * float(edge[3] if k % 2 == 1 else edge[2]), 0.0, 0.0))
+					tool.set_color(Color(band * float(edge[3] if k % 2 == 1 else edge[2]), band, 0.0))
 					tool.add_vertex(p[k])
 	return tool.commit()
 
