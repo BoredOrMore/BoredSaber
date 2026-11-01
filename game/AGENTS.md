@@ -74,6 +74,9 @@ constraints apply here unchanged.
 - `Map.gd` — beatmap v2/v3/v4 parsing into stacks, note jump (`set_note_jump`), `beats_per_second()`
   (includes `Settings.music_speed`), map/custom colours with handedness overrides.
 - `Constants.gd` — layout, scoring, health, fail modes, modifier bitmasks, UI/danger colours.
+- TEST BRANCH test/gpt-cloud-sea only: `models/monolith_cloud/` the GPT cloud sea for Monolith (see `env/AGENTS.md`):
+  `MonolithCloudVolume.gd` loads it and binds its height map, `cloud_body.gdshader` its body, `cloud_proxy.gdshader`
+  unused, `cloud_surface.gdshaderinc` its tones and `under_cloud`. Not for merging.
 - `Settings.gd` — persisted `config.ini` options; every setter calls `set_and_emit()` -> `changed(name)`.
 - `Scoreboard.gd` — points, combo/multiplier, accuracy, wall/miss/bomb penalties; signals
   `score_changed`, `points_awarded`.
