@@ -130,8 +130,6 @@ func _ready() -> void:
 	add_child(pillar)
 	# TEST (test/gpt-cloud-sea): the GPT cloud sea (game/models/monolith_cloud/) in place of the cloud rings; what lies
 	# below it sinks in through its height map (MonolithCloudVolume.bind_material)
-	var random := RandomNumberGenerator.new()
-	random.seed = CLOUD_SEED
 	cloud_volume = CLOUD_VOLUME.new()
 	cloud_volume.position = _around_player(Vector3.ZERO)
 	cloud_volume.add_to_group(&"cloud_haze")
@@ -139,22 +137,7 @@ func _ready() -> void:
 	assert(cloud_volume.initialized)
 	cloud_volume.bind_material(face_material)
 	cloud_volume.bind_material(floor_material)
-	for i in RIDGE_RINGS.size():
-		var material := ShaderMaterial.new()
-		material.shader = RIDGE_SHADER
-		material.set_shader_parameter(&"depth_share", float(i) / (RIDGE_RINGS.size() - 1))
-		cloud_volume.bind_material(material)
-		var edge_material := ShaderMaterial.new()
-		edge_material.shader = CLOUD_EDGE_SHADER
-		edge_material.set_shader_parameter(&"depth_share", float(i) / (RIDGE_RINGS.size() - 1))
-		edge_material.set_shader_parameter(&"tone", RIDGE_EDGE_TONE)
-		var ridge := MeshInstance3D.new()
-		ridge.mesh = _ridge_ring(RIDGE_RINGS[i], random)
-		ridge.position = _around_player(Vector3.ZERO)
-		ridge.set_surface_override_material(0, material)
-		ridge.set_surface_override_material(1, edge_material)
-		ridge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		add_child(ridge)
+	# TEST (test/gpt-cloud-sea): no ridge rings (owner: none of our mountains), only the GPT cloud sea
 
 ## Gives `material` the cloud rings' radii and levels (the puffs' middle height), so what lies below them sinks in
 ## (monolith_cloud.gdshaderinc).
