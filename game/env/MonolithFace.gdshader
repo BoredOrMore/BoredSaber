@@ -10,7 +10,7 @@ render_mode unshaded, shadows_disabled, fog_disabled;
 // "Light", rule 2). Its foot sinks into the clouds. BLOCKOUT, untuned.
 global uniform vec4 env_haze;
 #include "res://game/env/fog_light.gdshaderinc"
-#include "res://game/env/monolith_cloud.gdshaderinc"
+#include "res://game/models/monolith_cloud/cloud_surface.gdshaderinc"
 
 uniform vec3 size = vec3(360.0, 810.0, 90.0);
 uniform vec4 left_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);

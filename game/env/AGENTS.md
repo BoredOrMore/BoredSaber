@@ -130,6 +130,11 @@ Monolith (one colossal slab down a cloud-filled valley between mountains, seen f
   the foot by `lit`, a slit up the middle open to `slit` in the floor lights' colour (no strip on the ledge: owner, 2026-10-31)
   (`EventDriver._update_monolith`: `_built` x `MONOLITH_BUILT_SHARE`, a drop by Henge's `henge_drop` rule opens the
   slit, it closes to `MONOLITH_SLIT_REST`). Soft far edges not on yet: planned for the slab's outline, never its lines.
+- TEST BRANCH test/gpt-cloud-sea only: Monolith as on main (flat ridges, `MonolithCloudEdge.gdshader`: the ridges'
+  see-through soft edge) with the GPT cloud sea in place of the cloud rings: `game/models/monolith_cloud/` (`cloud.glb`,
+  `heightfield.bin/.json`, `MonolithCloudVolume.gd` the node that loads it and binds the height map,
+  `cloud_body.gdshader` its body, `cloud_proxy.gdshader` unused, `cloud_surface.gdshaderinc` the tones and `under_cloud`
+  that the slab, floor and ridges include). For a headset comparison; not for merging.
 - `MonolithFloor.gdshader`: the valley and pillar: dark ground with a neutral `BASE`, the horizon's glow on the far
   ground toward the slab, steep faces darker than treads (slope from screen derivatives, no normals), the slab's shadow
   falling toward the player as a widening wedge. `MonolithCloud.gdshader`: the cloud banks, opaque, light at each bank's top darkening downward,

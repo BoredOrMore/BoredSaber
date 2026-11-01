@@ -8,7 +8,7 @@ render_mode unshaded, shadows_disabled, fog_disabled;
 // BLOCKOUT, untuned.
 global uniform vec4 env_haze;
 #include "res://game/env/fog_light.gdshaderinc"
-#include "res://game/env/monolith_cloud.gdshaderinc"
+#include "res://game/models/monolith_cloud/cloud_surface.gdshaderinc"
 
 // the slab's centre on the floor (world xz), its turn left of straight ahead, half its width and its front face's
 // distance from the player (MonolithRig)

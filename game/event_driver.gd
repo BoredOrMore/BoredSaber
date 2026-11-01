@@ -697,6 +697,7 @@ func _update_haze() -> void:
 		haze *= Constants.EERIE_HAZE_TINT
 	haze.a = 1.0
 	RenderingServer.global_shader_parameter_set(&"env_haze", haze)
+	get_tree().call_group(&"cloud_haze", &"set_haze", haze)
 	var air := _result_density * _result_weight()
 	RenderingServer.global_shader_parameter_set(&"result_air", Vector4(_result_color.r, _result_color.g, _result_color.b, air))
 	light = light.clamp()
