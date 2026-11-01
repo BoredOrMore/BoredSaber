@@ -36,7 +36,7 @@ const HUD_LANE_MARGIN := 0.7
 const HUD_LAID_OUT_DISTANCE := 4.0
 ## On 90/360 maps the HUD is one small cluster far down the track above the notes, like Beat Saber's 360 HUD (owner,
 ## 2026-10-29: the side panels covered incoming notes; "above the lane, far enough to read without losing the notes"):
-## FAR_DISTANCE from the eye, centred over the lane, turning with the track. Its lowest line sits FAR_MARGIN_DEG over
+## FAR_DISTANCE from the eye, centred over the lane, following the player's head (FOLLOW_*). Its lowest line sits FAR_MARGIN_DEG over
 ## the highest note's top seen from there (notes_top; the notes beyond fly in under it, measured on our 90/360 maps at no
 ## more than +6 degrees past 5.8 m), worked out at the song's start from the real eye and the map. In it, in degrees
 ## from its centre (the score): the "Combo" caption and count on the left, the multiplier ring on the right, the energy
@@ -60,6 +60,18 @@ const FAR_TIME := Vector2(0.0, -3.3)
 ## how far below its centre the cluster's lowest line reaches (the time's bottom), degrees
 const FAR_BELOW_DEG := 3.9
 const FAR_RENDER_PRIORITY := 10
+## The far cluster follows the head lazily (owner's pick, 2026-11-01: turning by itself with the track made players
+## dizzy): it stays put while the head faces within FOLLOW_DEADZONE_DEG of it; past that it eases toward where the head
+## faces (FOLLOW_SECONDS to close most of the gap, at most FOLLOW_MAX_DEG_PER_S) until within FOLLOW_SETTLE_DEG. It
+## only moves when the player turns, so what the eyes see agrees with what the body feels (sensory conflict theory,
+## Reason & Brand 1975; self-caused motion sickens less, Stanney & Hash 1998); Unity XRI's LazyFollow and MRTK's Follow
+## solver work the same way. The deadzone keeps it inside the no-head-turn zone (30 degrees). Untuned.
+const FOLLOW_DEADZONE_DEG := 20.0
+const FOLLOW_SETTLE_DEG := 2.0
+const FOLLOW_SECONDS := 0.4
+const FOLLOW_MAX_DEG_PER_S := 120.0
+## the head is ignored while it looks steeper than this up or down (its facing across the floor is unreliable)
+const FOLLOW_MAX_PITCH_DEG := 60.0
 ## half a note's height at block size 100, and the bombs' and chain links' too
 const HUD_NOTE_HALF := 0.25
 ## The smallest lines are 0.11 m at 4 m (capitals about 1.1 degrees); the old HUD's text was 0.15 m.
@@ -109,11 +121,14 @@ var _combo: ComboHud
 var _percent_indicator: PercentIndicator
 var _left: Node3D
 var _right: Node3D
-## On 90/360 maps the HUD turns with the track about the player (turn, EventDriver.track_turned), keeping its angles and
-## distance to the track's direction: where place() put the panels, the score and the combo with the track straight,
-## and how far the track has turned
+## On 90/360 maps the HUD turns about the player after the head (turn, follow), keeping its angles and distance: where
+## place() put the panels, the score and the combo facing straight down the track, how far it has turned, and whether
+## it is easing after the head now
 var _placed: Array[Transform3D] = []
 var _turn := 0.0
+var _following := false
+## the player's head, which the far cluster follows (set by the game)
+var head: Node3D
 ## the far cluster on 90/360 maps (place); its "Combo" caption and energy bar, and the bar's fullness
 var far := false
 var _caption: MeshInstance3D
@@ -213,10 +228,11 @@ func place(eye := HUD_EYE) -> void:
 		_time_label.position = Vector3(HUD_TIME.x, HUD_TIME.y, 0.0)
 	_combo.rest_at(_combo.position)
 	_placed = [_left.global_transform, _right.global_transform, _point_label.global_transform, _combo.global_transform]
-	turn(_turn)
+	_following = false
+	turn(0.0)
 
-## Turns the panels, the score and the combo `angle` radians about the player's standing point with the track
-## (TrackDeck.turned), from where place() put them.
+## Turns the panels, the score and the combo `angle` radians about the player's standing point (TrackDeck.turned),
+## from where place() put them.
 func turn(angle: float) -> void:
 	_turn = angle
 	var turned := TrackDeck.turned(angle)
@@ -225,6 +241,19 @@ func turn(angle: float) -> void:
 	_point_label.global_transform = turned * _placed[2]
 	_combo.global_transform = turned * _placed[3]
 	_combo.rest_at(_combo.position)
+
+## One step of the far cluster's lazy follow (FOLLOW_*) toward `head_angle`, the head's facing in radians the way
+## turn() counts them, `delta` seconds after the last.
+func follow(head_angle: float, delta: float) -> void:
+	var gap := angle_difference(_turn, head_angle)
+	if absf(gap) > deg_to_rad(FOLLOW_DEADZONE_DEG):
+		_following = true
+	elif absf(gap) < deg_to_rad(FOLLOW_SETTLE_DEG):
+		_following = false
+	if not _following:
+		return
+	var most := deg_to_rad(FOLLOW_MAX_DEG_PER_S) * delta
+	turn(_turn + clampf(gap * (1.0 - exp(-delta / FOLLOW_SECONDS)), -most, most))
 
 ## Practice's HUD is the accuracy alone (owner's choice 3A, 2026-10-30), at the score's place and size in its colour;
 ## otherwise every line, as _set_far left them.
@@ -394,8 +423,13 @@ func show_points(points: int, played: int, length: int, accuracy: float) -> void
 	_grade = grade
 	_percent_indicator.update_percent(accuracy)
 
-## The rumble at A, S and SS: the letter shakes and tilts around its spot (alongside a pop's growing), brighter.
+## On 90/360 maps the far cluster follows the head; elsewhere the rumble at A, S and SS: the letter shakes and tilts
+## around its spot (alongside a pop's growing), brighter.
 func _process(delta: float) -> void:
+	if far and head != null:
+		var facing := -head.global_basis.z.normalized()
+		if absf(facing.y) < sin(deg_to_rad(FOLLOW_MAX_PITCH_DEG)):
+			follow(atan2(facing.x, -facing.z), delta)
 	if not _left.visible or far or Map.practice:
 		return
 	var home := Vector3(HUD_GRADE.x, HUD_GRADE.y, 0.0)
