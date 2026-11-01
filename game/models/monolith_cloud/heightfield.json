@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "resolution": 512,
+  "format": "RGBA8; RG=packed normalized uint16 height; B=valid mask; A=255",
+  "bounds_xz_m": [
+    -980.0,
+    -980.0,
+    1960.0,
+    1960.0
+  ],
+  "height_range_m": [
+    -61.733306884765625,
+    66.90719604492188
+  ],
+  "outer_radius_m": 980.0,
+  "inner_hole_extrapolation": "Mean of actual GLB inner-edge heights, limited to r<12m",
+  "source_sha256": "b5a4a0929b7b2e6397b4f450cdf1a655d493347e2642b5eef129eb48f2c944d6",
+  "data_bytes": 1048576
+}

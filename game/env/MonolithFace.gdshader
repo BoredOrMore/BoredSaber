@@ -10,7 +10,7 @@ render_mode unshaded, shadows_disabled, fog_disabled;
 // "Light", rule 2). Its foot sinks into the clouds. BLOCKOUT, untuned.
 global uniform vec4 env_haze;
 #include "res://game/env/fog_light.gdshaderinc"
-#include "res://game/env/monolith_cloud.gdshaderinc"
+#include "res://game/env/monolith_cloud_sea.gdshaderinc"
 
 uniform vec3 size = vec3(360.0, 810.0, 90.0);
 uniform vec4 left_color : source_color = vec4(0.0, 0.0, 0.0, 1.0);
@@ -59,6 +59,6 @@ void fragment() {
 	color += floor_color.rgb * line(abs(x), SLIT_WIDTH) * slit_on;
 	color *= front;
 	float peak = max(color.r, max(color.g, color.b));
-	// its foot sinks into the clouds (monolith_cloud.gdshaderinc)
+	// its foot sinks into the clouds (monolith_cloud_sea.gdshaderinc)
 	ALBEDO = fog_result(under_cloud(mix(color, vec3(peak), CORE_WHITE * peak), haze_v, world), VERTEX);
 }

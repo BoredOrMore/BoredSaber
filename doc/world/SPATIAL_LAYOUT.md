@@ -97,18 +97,15 @@ Plain boxes in `HengeRig.gd`, every size a named constant there; for 90 and 360 
 - Slab: 360 m wide, 810 m tall, 90 m deep; front face 520 m from the player, 30 degrees left of ahead, facing them; its
   top front corners about 980 m away (camera far 1024 m).
 - Pillar: the platform stands on a column 10 m round down to the valley floor at y -80.
-- Valley: runs the slab's way (30 degrees left of ahead); a flat floor at y -80 under the clouds. Mountains (owner,
-  2026-10-31: 3D low-poly peaks, no two alike, in place of the silhouette flats): six model variants placed round rings
-  at 380, 650 and 950 m, each scaled to the ring's height there: low along the valley's line (-30, -10, +10 m; none is
-  placed under 80 m above the floor, so the valley toward the slab and behind the player stays open) and high at its
-  sides (+100, +220, +380 m), so each farther layer stands higher to the eye; nothing of them within 320 m, none
-  touching the slab. The slab stands on the valley floor (top about 950 m away); its shadow falls down the valley
-  toward the player.
-- Clouds (owner's reference, 2026-10-31: 3D cumulus banks, no two alike, drifting slowly): six model variants laid in
-  two rows round each of 6 bands at 80, 150, 230, 340, 470 and 760 m, joining into one cloud sea; inside 320 m every
-  top stays below y -6; beyond it they rise to about +60 m at 760 m, hiding the slab's foot. No bank crosses the slab.
-  Each band turns round the player at about 1.5 m/s (0.7-1.3x per band, one way). Terrain, pillar and slab below the
-  clouds' level take the cloud's tone, so nothing pokes through a cloud.
+- Valley: runs the slab's way (30 degrees left of ahead); a flat floor at y -80 under the clouds. Hills (owner,
+  2026-11-01: GPT's version, picked on the headset over the 3D mountains): 3 smooth upright rings at 380, 650 and 950 m,
+  low along the valley's line (-30, -10, +10 m, so they hide in the clouds toward the slab and behind the player) and
+  high at its sides (+100, +220, +380 m), so each farther layer stands higher to the eye; nothing of them within
+  320 m. The slab stands on the valley floor (top about 950 m away); its shadow falls down the valley toward the player.
+- Clouds (owner, 2026-11-01: GPT's cloud sea, picked on the headset over the 3D banks): one continuous sheet round the
+  player out to 980 m with broad swells; inside 320 m it tops out at y -10, beyond it rises to about +28 m by 470 m and
+  +67 m by 760-980 m, hiding the slab's foot. Terrain, pillar, hills and slab below its surface take its tone (from its
+  baked height map), so nothing pokes through a cloud.
 - Lights: drawn on the slab's face (edges 3 m, seams 1.5 m every 90 m, slit 2 m); beam fixtures along a
   ledge 150 m up (y +70, above the clouds), 2 m in front of the face.
 - Sky: black, a neutral glow low on the horizon behind the slab and a fainter one all round behind the ridges.
