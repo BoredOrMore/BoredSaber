@@ -23,8 +23,10 @@ arrangement (owner, 2026-10-27).
   (`notes_top`) seen from there, worked out at song start from the real eye. Combo left, score centre, multiplier
   ring right, energy bar (`show_health`; the `HealthRails` strips are hidden there) and time under the score; accuracy
   and grade move to Pause (`GameStatePaused`) and the score screen. `ComboHud.calm`: no shake, pops or shockwaves.
-  Drawn over walls (`FAR_RENDER_PRIORITY`, alpha) while notes in front still hide it. `EventDriver.track_turned`
-  turns it (`Hud.turn`) about the player's standing point with the track (`TrackDeck.turned`).
+  Drawn over walls (`FAR_RENDER_PRIORITY`, alpha) while notes in front still hide it. It follows the
+  player's head lazily (owner, 2026-11-01: turning by itself with the track made players dizzy; `Hud.follow`,
+  `FOLLOW_*`, untuned): still within 20° of the head's facing, then easing after it about the player's standing point
+  (`Hud.turn`, `TrackDeck.turned`). `EventDriver.track_turned` no longer turns it.
 - Owner exception (Bored, 2026-10-29), the far 90/360 HUD only: text at Beat Saber's sizes (`FAR_SCORE_DEG` 1.1,
   `FAR_COMBO_DEG` 1.4, `FAR_SMALL_DEG` 1.2 degrees), below the 1.85 degree minimum everywhere else.
 

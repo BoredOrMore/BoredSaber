@@ -3,7 +3,7 @@ extends Node
 # for any eye, clear of the lanes on the Wide modifiers, grown so the lines keep their size in view; and that a fail's
 # fade (Hud.fade_out, HealthRails.fade_out) fades the panels and the energy strips, hides them and leaves them whole
 # for the next song; and that on 90/360 maps the HUD is one far cluster over the lane above every note (Hud.far_cluster)
-# that turns with the track about the player (Hud.turn).
+# that turns about the player (Hud.turn) and follows the head lazily (Hud.follow).
 # Run: godot --headless --path . res://tests/test_hud.tscn
 
 var failures := 0
@@ -54,6 +54,7 @@ func _ready() -> void:
 			"the live grade starts at F and climbs a step every 5 notes, never above the accuracy's grade")
 	await check_fade_out()
 	check_turn()
+	check_follow()
 	check_raised()
 	print("%d failure(s)" % failures)
 	get_tree().quit(1 if failures > 0 else 0)
@@ -104,6 +105,38 @@ func check_fade_out() -> void:
 	check(not rails.visible and float(bar.get_shader_parameter(&"fade")) == 1.0 and rails._icon.modulate.a == 1.0,
 			"after the fade the energy strips are hidden and whole again for the next song")
 	rails.queue_free()
+
+## Builds a HUD from stand-ins and follows a head: still while the head stays inside the deadzone, then easing after
+## it until close, without overshooting, and still again for a small look back.
+func check_follow() -> void:
+	var point_label := MeshInstance3D.new()
+	point_label.mesh = TextMesh.new()
+	point_label.material_override = StandardMaterial3D.new()
+	var combo := ComboHud.new()
+	combo.mesh = TextMesh.new()
+	combo.material_override = StandardMaterial3D.new()
+	var percent := preload("res://game/hud/PercentIndicator.tscn").instantiate() as PercentIndicator
+	for node: Node in [point_label, combo, percent]:
+		add_child(node)
+	var hud := Hud.new(point_label, combo, percent)
+	add_child(hud)
+	var inside := deg_to_rad(Hud.FOLLOW_DEADZONE_DEG - 5.0)
+	for i in 100:
+		hud.follow(inside, 1.0 / 72.0)
+	check(hud._turn == 0.0, "a look inside the deadzone leaves the HUD still: %.3f" % hud._turn)
+	var target := deg_to_rad(90.0)
+	var most := 0.0
+	for i in 72 * 3:
+		hud.follow(target, 1.0 / 72.0)
+		most = maxf(most, hud._turn)
+	check(absf(hud._turn - target) < deg_to_rad(Hud.FOLLOW_SETTLE_DEG) and most <= target,
+		"a 90 degree turn of the head brings the HUD after it without overshooting: %.1f deg" % rad_to_deg(hud._turn))
+	var settled := hud._turn
+	hud.follow(target - inside, 1.0 / 72.0)
+	check(hud._turn == settled, "settled, a small look back leaves it still")
+	hud.queue_free()
+	for node: Node in [point_label, combo, percent]:
+		node.queue_free()
 
 ## Builds a HUD from stand-ins and turns it with the track: each part turned about the player's standing point, the
 ## panels still facing the eye turned with them, and back where it was when the track points ahead again.

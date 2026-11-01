@@ -957,12 +957,12 @@ func _ready() -> void:
 	Scoreboard.score_changed.connect(_display_points)
 	(multiplier_label as ComboHud).milestone_reached.connect(_on_combo_milestone)
 	hud = Hud.new(point_label, multiplier_label as ComboHud, percent_indicator)
+	hud.head = $XROrigin3D/XRCamera3D as Node3D
 	add_child(hud)
 	_floor_reflection = FloorReflection.new(track, [left_saber, right_saber], event_driver.track_deck)
 	event_driver.platform = standing_ground
-	# the HUD and the energy strips beside the track turn with it on 90/360 maps
+	# the energy strips beside the track turn with it on 90/360 maps (the HUD follows the head instead)
 	event_driver.track_turned.connect(func(angle: float) -> void:
-		hud.turn(angle)
 		health_rails.transform = TrackDeck.turned(angle)
 		practice_canvas.transform = TrackDeck.turned(angle) * _practice_panel_placed)
 	add_child(_floor_reflection)
