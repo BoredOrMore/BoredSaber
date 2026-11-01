@@ -27,6 +27,7 @@ extends Node3D
 const FACE_SHADER := preload("res://game/env/MonolithFace.gdshader")
 const FLOOR_SHADER := preload("res://game/env/MonolithFloor.gdshader")
 const CLOUD_SHADER := preload("res://game/env/MonolithCloud.gdshader")
+const HILL_SHADER := preload("res://game/models/monolith_cloud/cloud_proxy.gdshader")
 const CLOUD_VOLUME := preload("res://game/models/monolith_cloud/MonolithCloudVolume.gd")
 const RIDGE_SHADER := preload("res://game/env/MonolithRidge.gdshader")
 const CLOUD_EDGE_SHADER := preload("res://game/env/MonolithCloudEdge.gdshader")
@@ -137,7 +138,39 @@ func _ready() -> void:
 	assert(cloud_volume.initialized)
 	cloud_volume.bind_material(face_material)
 	cloud_volume.bind_material(floor_material)
-	# TEST (test/gpt-cloud-sea): no ridge rings (owner: none of our mountains), only the GPT cloud sea
+	# TEST (test/gpt-cloud-sea): GPT's proxy hills in place of the ridge rings (stylized-3d-agent
+	# tools/cloud_shading_review.gd): one smooth upright ring per RIDGE_RINGS entry, tallest beside the slab, flat dark
+	# cloud_proxy tone, sinking into the cloud sea
+	for layer in RIDGE_RINGS.size():
+		var ring: Vector3 = RIDGE_RINGS[layer]
+		var positions := PackedVector3Array()
+		var indices := PackedInt32Array()
+		for i in 128:
+			var angle := TAU * i / 128.0
+			var top := ring.y + (ring.z - ring.y) * pow(absf(sin(angle - PI * 0.5 - SLAB_YAW)), 1.5)
+			top += (ring.z - ring.y) * 0.08 * sin(angle * 17.0 + layer)
+			positions.append(Vector3(ring.x * cos(angle), top, -ring.x * sin(angle)))
+			positions.append(Vector3(ring.x * cos(angle), -80.0, -ring.x * sin(angle)))
+		for i in 128:
+			var a := 2 * i
+			var b := 2 * ((i + 1) % 128)
+			indices.append_array([a, a + 1, b, a + 1, b + 1, b])
+		var arrays := []
+		arrays.resize(Mesh.ARRAY_MAX)
+		arrays[Mesh.ARRAY_VERTEX] = positions
+		arrays[Mesh.ARRAY_INDEX] = indices
+		var hills := ArrayMesh.new()
+		hills.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		var material := ShaderMaterial.new()
+		material.shader = HILL_SHADER
+		material.set_shader_parameter(&"tone", 0.006 + 0.007 * layer)
+		cloud_volume.bind_material(material)
+		var ridge := MeshInstance3D.new()
+		ridge.mesh = hills
+		ridge.position = _around_player(Vector3.ZERO)
+		ridge.material_override = material
+		ridge.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(ridge)
 
 ## Gives `material` the cloud rings' radii and levels (the puffs' middle height), so what lies below them sinks in
 ## (monolith_cloud.gdshaderinc).
