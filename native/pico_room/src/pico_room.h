@@ -105,6 +105,8 @@ private:
 	bool focused = false;
 	bool loading = false;
 	int capture_frames = 0;
+	// Frames the app has had focus, counted up to CAPTURE_DELAY_FRAMES.
+	int focused_frames = 0;
 	int capture_tries = 0;
 	int load_frames = 0;
 	int load_tries = 0;

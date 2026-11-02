@@ -22,7 +22,8 @@ static const uint32_t TYPE_EVENT_ANCHOR_ENTITY_LOADED = 1200006350;
 static const uint32_t TYPE_SPATIAL_SCENE_FILTER = 1200006362;
 static const uint64_t ALL_SCENE_TYPES = 0xFF;
 // PICO refused to switch to its scene capture when asked the moment the session got focus (710b57e log:
-// checkAppSwitchAllowed false) and allowed it 3 s later (9dd67b0). So ask once the app has had focus this long, and
+// checkAppSwitchAllowed false) and allowed it 3 s later (9dd67b0). So ask once the app has had focus this long (at once
+// when it already has, as when the player presses Scan room), and
 // ask again if focus hasn't gone to the capture this long after, up to CAPTURE_TRIES times (frames at 72 Hz).
 static const int CAPTURE_DELAY_FRAMES = 72 * 3;
 static const int CAPTURE_CHECK_FRAMES = 72 * 5;
@@ -158,12 +159,16 @@ void PicoRoom::_on_state_focused() {
 
 void PicoRoom::_on_state_visible() {
 	focused = false;
+	focused_frames = 0;
 	if (scanning && capture_asked) {
 		capture_opened = true;
 	}
 }
 
 void PicoRoom::_on_process() {
+	if (focused && focused_frames < CAPTURE_DELAY_FRAMES) {
+		focused_frames++;
+	}
 	if (!scanning || !focused || task_id != 0) {
 		return;
 	}
@@ -175,7 +180,7 @@ void PicoRoom::_on_process() {
 		return;
 	}
 	capture_frames++;
-	if (capture_frames < (capture_asked ? CAPTURE_CHECK_FRAMES : CAPTURE_DELAY_FRAMES)) {
+	if (capture_asked ? capture_frames < CAPTURE_CHECK_FRAMES : focused_frames < CAPTURE_DELAY_FRAMES) {
 		return;
 	}
 	capture_frames = 0;
