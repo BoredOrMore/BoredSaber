@@ -6,7 +6,8 @@ extends Node3D
 ##   godot --path . res://tools/capture/portal_capture.tscn -- --out /tmp/portal.png [options]
 ## Options: --portal 1.6x1.4 (width x height, m)  --wall 2.5 (m ahead of the eye)
 ##   --centre 1.5 (the portal's centre height, m)  --eye 1.6  --yaw 0 --pitch 0 (degrees)  --fov 90 (vertical)
-##   --color RRGGBB (the rim's and the world's light colour, env_light)  --left RRGGBB --right RRGGBB (the note colours)  --world res://path.tscn (a scene placed behind the wall, root at the
+##   --color RRGGBB (the rim's and the world's light colour, env_light)  --left RRGGBB --right RRGGBB (the note colours)
+##   --haze RRGGBB (the air's colour, env_haze)  --world res://path.tscn (a scene placed behind the wall, root at the
 ##   origin; default a dark backdrop)  --size 1280x720  --seconds 0.5
 
 const RIM_SHADER := preload("res://game/env/PortalRim.gdshader")
@@ -40,6 +41,7 @@ func _ready() -> void:
 	material.set_shader_parameter(&"portal_size_m", portal)
 	material.set_shader_parameter(&"light_color", Color(args.get("color", "ffffff")))
 	RenderingServer.global_shader_parameter_set(&"env_light", Color(args.get("color", "ffffff")))
+	RenderingServer.global_shader_parameter_set(&"env_haze", Color(args.get("haze", "000000")))
 	RenderingServer.global_shader_parameter_set(&"left_saber_color", Color(args.get("left", "ffffff")))
 	RenderingServer.global_shader_parameter_set(&"right_saber_color", Color(args.get("right", "ffffff")))
 	rim.material_override = material
