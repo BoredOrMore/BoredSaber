@@ -157,7 +157,9 @@ code that reads the walls and cuts the portals lives on its own branch)
   Builds a `SKY_RADIUS` sphere with `MRSpaceSky.gdshader` and `DUST_COUNT` points of `MRSpaceDust.gdshader` kept out of
   the notes' path. The sky is geometry because mixed reality draws no `WorldEnvironment` sky. Blockout, untuned.
 - `MRSpaceSky.gdshader`: black space, stars worked out from the view direction (at least `STAR_MIN_PIXELS` wide, dimmed
-  to match), a faint neutral dust band, and the notes' source down -z: a white-hot core in an `env_light` glow.
+  to match), a faint neutral dust band with a nebula in the two note colours (`left_saber_color`, `right_saber_color`,
+  pulled toward grey), two planets ray-traced as spheres (a moon on `PLANET_BIG`, a ring on `PLANET_RINGED`, rims in
+  `env_light`), `METEOR_COUNT` shooting stars, and the notes' source down -z: a white-hot core in an `env_light` glow.
 - `MRSpaceDust.gdshader`: soft points facing the eye, at least `MIN_PIXELS` wide, added on top; they give depth as the
   player moves.
 
