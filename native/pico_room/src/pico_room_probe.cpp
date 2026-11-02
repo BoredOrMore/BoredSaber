@@ -12,7 +12,7 @@ using namespace godot;
 // A stage's marker is written before its private calls and removed when they return: if it is still there at the next
 // launch, that stage crashed the game, so the probe skips it (and everything after it) instead of crashing on every
 // launch. Bump the version with each probe build so a new build tries again.
-static const char *MARKER_PREFIX = "user://pico_room_v5_";
+static const char *MARKER_PREFIX = "user://pico_room_v6_";
 // Most anchors to load: a room has a floor, a ceiling, a few walls, doors, windows and furniture boxes.
 static const uint32_t MAX_ANCHORS = 64;
 // Load timeout handed to the runtime (unit undocumented).
@@ -21,19 +21,12 @@ static const uint64_t LOAD_TIMEOUT = 5000;
 static const uint32_t LOCATION_LOCAL = 1;
 // The loaded event's type.
 static const uint32_t TYPE_EVENT_ANCHOR_ENTITY_LOADED = 1200006350;
-// Filter attempts, in order, until one loads anchors: the spatial scene filter (type 1200006362, every surface kind:
-// unknown, floor, ceiling, wall, door, window, opening, object), then the component filter (type 1200006349, anchors
-// with a scene label). Type values from the runtime's code; flag meanings from PICO's Unity SDK enums.
-struct FilterAttempt {
-	const char *name;
-	uint32_t type;
-	uint64_t flags;
-};
-static const FilterAttempt FILTER_ATTEMPTS[] = {
-	{ "scene", 1200006362, 0xFF },
-	{ "component", 1200006349, 0x4 },
-};
-static const int FILTER_ATTEMPT_COUNT = sizeof(FILTER_ATTEMPTS) / sizeof(FILTER_ATTEMPTS[0]);
+// The spatial scene filter (type 1200006362 from the runtime's code) with every surface kind (PICO's Unity SDK flags:
+// unknown, floor, ceiling, wall, door, window, opening, object).
+static const uint32_t TYPE_SPATIAL_SCENE_FILTER = 1200006362;
+static const uint64_t ALL_SCENE_TYPES = 0xFF;
+// PICO's own event types start here; the probe logs them raw to learn the scene capture events.
+static const uint32_t FIRST_PICO_EVENT_TYPE = 1200000000;
 // 64-bit words in each scratch buffer handed to a function whose struct layout isn't known yet. Big enough that a
 // runtime writing a larger struct than guessed stays inside it.
 static const int SCRATCH_WORDS = 64;
@@ -99,6 +92,7 @@ void PicoRoomProbe::_on_instance_created(uint64_t p_instance) {
 	get_plane_boundary = resolve<GetAnchorValue>(api, "xrGetAnchorPlaneBoundaryInfoBD");
 	get_box = resolve<GetAnchorValue>(api, "xrGetAnchorBoxInfoBD");
 	locate_space = resolve<PFN_xrLocateSpace>(api, "xrLocateSpace");
+	start_scene_capture = resolve<StartSpatialSceneCapture>(api, "xrStartSpatialSceneCaptureBD");
 }
 
 void PicoRoomProbe::_on_session_created(uint64_t p_session) {
@@ -121,11 +115,12 @@ void PicoRoomProbe::_leave_stage(const char *p_stage) {
 }
 
 void PicoRoomProbe::_on_state_focused() {
-	if (load_started) {
-		return;
+	// First focus: load the saved room. Focus coming back after PICO's capture app closed: load again.
+	if (!load_started || (capture_started && !reloaded)) {
+		reloaded = load_started;
+		load_started = true;
+		_start_load();
 	}
-	load_started = true;
-	_start_load();
 }
 
 void PicoRoomProbe::_start_load() {
@@ -133,28 +128,43 @@ void PicoRoomProbe::_start_load() {
 		UtilityFunctions::print("PicoRoom: load functions missing, nothing to try");
 		return;
 	}
-	const FilterAttempt &filter_attempt = FILTER_ATTEMPTS[attempt];
-	String stage = String("load_") + filter_attempt.name;
-	if (_enter_stage(stage.utf8().get_data())) {
+	const char *stage = reloaded ? "reload" : "load";
+	if (_enter_stage(stage)) {
 		return;
 	}
-	PicoAnchorEntityLoadFilter filter = { filter_attempt.type, nullptr, filter_attempt.flags };
+	PicoAnchorEntityLoadFilter filter = { TYPE_SPATIAL_SCENE_FILTER, nullptr, ALL_SCENE_TYPES };
 	PicoAnchorEntityLoadInfo info = { 0, nullptr, MAX_ANCHORS, LOAD_TIMEOUT, LOCATION_LOCAL, &filter };
 	uint64_t task = 0;
 	XrResult result = load_anchor_entity(session, &info, &task);
-	_leave_stage(stage.utf8().get_data());
-	UtilityFunctions::print("PicoRoom: load ", filter_attempt.name, " result ", (int64_t)result, " task ", (int64_t)task);
+	_leave_stage(stage);
+	UtilityFunctions::print("PicoRoom: ", stage, " result ", (int64_t)result, " task ", (int64_t)task);
 	task_id = XR_SUCCEEDED(result) ? task : 0;
+}
+
+void PicoRoomProbe::_start_capture() {
+	if (start_scene_capture == nullptr || _enter_stage("capture")) {
+		return;
+	}
+	uint64_t task = 0;
+	XrResult result = start_scene_capture(session, &task);
+	_leave_stage("capture");
+	capture_started = XR_SUCCEEDED(result);
+	UtilityFunctions::print("PicoRoom: start scene capture result ", (int64_t)result, " task ", (int64_t)task);
 }
 
 bool PicoRoomProbe::_on_event_polled(const void *p_event) {
 	const XrEventDataBaseHeader *header = (const XrEventDataBaseHeader *)p_event;
-	if ((uint32_t)header->type != TYPE_EVENT_ANCHOR_ENTITY_LOADED) {
+	uint32_t type = (uint32_t)header->type;
+	if (type < FIRST_PICO_EVENT_TYPE) {
+		return false;
+	}
+	if (type != TYPE_EVENT_ANCHOR_ENTITY_LOADED) {
+		UtilityFunctions::print("PicoRoom: event type ", (int64_t)type, " words ", dump_words(p_event, DUMP_WORDS));
 		return false;
 	}
 	const PicoEventAnchorEntityLoaded *loaded = (const PicoEventAnchorEntityLoaded *)p_event;
 	UtilityFunctions::print("PicoRoom: loaded event task ", (int64_t)loaded->task_id, " result ", loaded->result,
-			" total ", (int64_t)loaded->total, " words ", dump_words(p_event, DUMP_WORDS));
+			" total ", (int64_t)loaded->total);
 	if (task_id == 0 || loaded->task_id != task_id) {
 		return false;
 	}
@@ -162,13 +172,10 @@ bool PicoRoomProbe::_on_event_polled(const void *p_event) {
 	if (loaded->total > 0) {
 		task_id = loaded->task_id;
 		_read_results();
-		return false;
-	}
-	attempt++;
-	if (attempt < FILTER_ATTEMPT_COUNT) {
-		_start_load();
+	} else if (!capture_started) {
+		_start_capture();
 	} else {
-		UtilityFunctions::print("PicoRoom: no filter found any anchors");
+		UtilityFunctions::print("PicoRoom: still no anchors after the scene capture");
 	}
 	return false;
 }

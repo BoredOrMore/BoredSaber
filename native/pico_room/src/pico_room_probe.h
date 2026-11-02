@@ -55,9 +55,9 @@ public:
 	void _on_instance_created(uint64_t p_instance) override;
 	/// Keeps the session handle for the room calls.
 	void _on_session_created(uint64_t p_session) override;
-	/// Asks the runtime for the saved room the first time the app gets focus.
+	/// Loads the saved room the first time the app gets focus, and again when it returns from PICO's scene capture.
 	void _on_state_focused() override;
-	/// Logs every runtime event raw; reads the load results when the event carrying the load's task id arrives.
+	/// Logs PICO's events raw; on the loaded event reads the results, or opens the scene capture when there are none.
 	bool _on_event_polled(const void *p_event) override;
 
 protected:
@@ -69,8 +69,10 @@ private:
 	bool _enter_stage(const char *p_stage);
 	/// Removes the stage's marker: the stage returned.
 	void _leave_stage(const char *p_stage);
-	/// Calls xrLoadAnchorEntityBD with the session and the filter for the current attempt.
+	/// Calls xrLoadAnchorEntityBD with the session and the spatial scene filter (every surface kind).
 	void _start_load();
+	/// Opens PICO's scene capture from inside the game (xrStartSpatialSceneCaptureBD).
+	void _start_capture();
 	/// Reads the load results and logs every anchor.
 	void _read_results();
 	/// Logs one anchor's label, component flags, plane, box and pose.
@@ -79,6 +81,8 @@ private:
 	typedef XrResult(XRAPI_PTR *LoadAnchorEntity)(XrSession, const PicoAnchorEntityLoadInfo *, uint64_t *);
 	typedef XrResult(XRAPI_PTR *GetAnchorEntityLoadResults)(XrSession, uint64_t, void *);
 	typedef XrResult(XRAPI_PTR *GetAnchorValue)(XrSession, uint64_t, void *);
+	// Signature from PICO's Unity SDK (Pxr_StartSpatialSceneCapture(out taskId)) plus the session, like the load call.
+	typedef XrResult(XRAPI_PTR *StartSpatialSceneCapture)(XrSession, uint64_t *);
 
 	// Godot writes true into these when the runtime offers the extension (names as the runtime lists them).
 	bool spatial_scene = false;
@@ -92,8 +96,9 @@ private:
 
 	XrSession session = XR_NULL_HANDLE;
 	uint64_t task_id = 0;
-	int attempt = 0; // Index into the filter attempts.
 	bool load_started = false;
+	bool capture_started = false;
+	bool reloaded = false;
 
 	LoadAnchorEntity load_anchor_entity = nullptr;
 	GetAnchorEntityLoadResults get_load_results = nullptr;
@@ -102,4 +107,5 @@ private:
 	GetAnchorValue get_plane_boundary = nullptr;
 	GetAnchorValue get_box = nullptr;
 	PFN_xrLocateSpace locate_space = nullptr;
+	StartSpatialSceneCapture start_scene_capture = nullptr;
 };
