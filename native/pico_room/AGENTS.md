@@ -7,7 +7,7 @@ can't call raw OpenXR functions. The owner approved this native dependency (2026
 
 Stage: probe only (tag `PicoRoom:` in logcat). It logs which room extensions Godot enabled and which of PICO's room
 functions resolve, then, once the app has focus, tries to load the room the player saved in PICO's own room setup
-(`xrLoadAnchorEntityBD`, no filter) and logs each anchor's scene label, plane, box and pose, plus every runtime event
+(`xrLoadAnchorEntityBD` with the session and a scene filter) and logs each anchor's scene label, plane, box and pose, plus every runtime event
 raw. Not for merging until it reads rooms.
 
 ## File map
@@ -36,6 +36,8 @@ Linux x86_64 (only so the headless import and tests load it cleanly). Locally:
   `XR_BD_room_scene`, `XR_BD_semi_auto_room_capture` (function names from the runtime's strings). PICO publishes no C
   header for it: struct layouts come from PICO's Unity SDK C# (`PXR_Plugin.cs`) and signatures from the community
   dump https://github.com/thoricelli/PICO-documentation (xrAPI/README.md); whether the first argument is the instance
-  or the session isn't known yet, so the probe tries both. Anchor handles are `XrSpace`s (the runtime destroys them
+  is the session (the instance gives -12), and the include filter must not be null (null crashed inside the runtime,
+build cbe237d). A marker file (`user://pico_room_load_attempt_vN`) skips the call after a crash so the game doesn't
+crash on every launch. Anchor handles are `XrSpace`s (the runtime destroys them
   with `xrDestroySpace`).
 - `com.picovr.permission.SPATIAL_DATA` is unknown to OS 5.12 (logcat `NameNotFoundException`).

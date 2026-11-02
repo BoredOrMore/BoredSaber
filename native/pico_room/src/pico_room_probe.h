@@ -25,6 +25,13 @@ struct PxrAnchorEntityLoadInfo {
 	const void *exclude;
 };
 
+// Filter by scene label (PxrAnchorEntityLoadSpatialSceneFilter). The runtime reads the include filter without a null
+// check (build cbe237d crashed at address 0x4 with include = nullptr), so one is always passed.
+struct PxrAnchorEntityLoadSpatialSceneFilter {
+	int32_t type; // PXR_TYPE_ANCHOR_ENTITY_LOAD_SPATIAL_SCENE_FILTER.
+	uint64_t type_flags; // PxrSpatialSceneDataTypeFlags: floor, ceiling, wall, door, window, opening, object.
+};
+
 struct PxrAnchorEntityLoadResult {
 	uint64_t anchor; // The runtime destroys it with xrDestroySpace, so it is an XrSpace.
 	PxrUuid uuid;
@@ -69,10 +76,12 @@ protected:
 	static void _bind_methods() {}
 
 private:
-	/// Calls xrLoadAnchorEntityBD with the instance and, if the runtime rejects that handle, with the session.
+	/// Calls xrLoadAnchorEntityBD with the session and a filter that keeps every kind of room surface.
 	void _start_load();
 	/// Asks for the load results; logs every anchor once they are in. Returns true when the probe is done.
 	bool _read_results();
+	/// Marks the probe finished and removes the crash marker.
+	void _finish();
 	/// Logs one anchor's label, components, plane, box and pose.
 	void _log_anchor(uint64_t p_anchor);
 
@@ -95,7 +104,7 @@ private:
 
 	uint64_t instance = 0;
 	uint64_t session = 0;
-	uint64_t handle = 0; // Whichever of instance or session the runtime accepted.
+	uint64_t handle = 0; // The session: the runtime rejects the instance (-12, "session ==" check in its log).
 	uint64_t task_id = 0;
 	bool load_started = false;
 	bool done = false;

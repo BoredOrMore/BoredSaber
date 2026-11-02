@@ -1,5 +1,7 @@
 #include "pico_room_probe.h"
 
+#include <godot_cpp/classes/dir_access.hpp>
+#include <godot_cpp/classes/file_access.hpp>
 #include <godot_cpp/classes/open_xrapi_extension.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
@@ -13,6 +15,14 @@ static const uint32_t MAX_ANCHORS = 64;
 static const uint64_t LOAD_TIMEOUT = 5000;
 // PxrPersistLocation.Local: anchors saved on the headset.
 static const int32_t LOCATION_LOCAL = 1;
+// Written just before the first private call and removed when the probe finishes: if it's still there at the next launch, the last
+// attempt crashed the game, so the probe skips the call instead of crashing on every launch. Bump the suffix
+// with each new probe build so it tries again.
+static const char *ATTEMPT_MARKER = "user://pico_room_load_attempt_v3";
+// PxrStructureType.AnchorEntityLoadSpatialSceneFilter in PICO's Unity SDK.
+static const int32_t TYPE_SPATIAL_SCENE_FILTER = 128;
+// Every PxrSpatialSceneDataTypeFlags bit: unknown, floor, ceiling, wall, door, window, opening, object.
+static const uint64_t ALL_SCENE_TYPES = 0xFF;
 // Frames between two checks for the load result (about 4 a second at 72 Hz).
 static const int CHECK_EVERY_FRAMES = 18;
 // Frames to wait for the load result before giving up (about 30 s at 72 Hz).
@@ -85,20 +95,29 @@ void PicoRoomProbe::_start_load() {
 		done = true;
 		return;
 	}
-	PxrAnchorEntityLoadInfo info = { MAX_ANCHORS, LOAD_TIMEOUT, LOCATION_LOCAL, nullptr, nullptr };
-	const uint64_t handles[2] = { instance, session };
-	const char *names[2] = { "instance", "session" };
-	for (int i = 0; i < 2; i++) {
-		uint64_t task = 0;
-		XrResult result = load_anchor_entity(handles[i], &info, &task);
-		UtilityFunctions::print("PicoRoom: load with ", names[i], " result ", (int64_t)result, " task ", (int64_t)task);
-		if (XR_SUCCEEDED(result)) {
-			handle = handles[i];
-			task_id = task;
-			return;
-		}
+	PxrAnchorEntityLoadSpatialSceneFilter filter = { TYPE_SPATIAL_SCENE_FILTER, ALL_SCENE_TYPES };
+	PxrAnchorEntityLoadInfo info = { MAX_ANCHORS, LOAD_TIMEOUT, LOCATION_LOCAL, &filter, nullptr };
+	handle = session;
+	if (FileAccess::file_exists(ATTEMPT_MARKER)) {
+		UtilityFunctions::print("PicoRoom: skipped, the last load attempt crashed the game");
+		done = true;
+		return;
 	}
+	FileAccess::open(ATTEMPT_MARKER, FileAccess::WRITE).unref();
+	uint64_t task = 0;
+	UtilityFunctions::print("PicoRoom: loading with the session and a scene filter");
+	XrResult result = load_anchor_entity(handle, &info, &task);
+	UtilityFunctions::print("PicoRoom: load result ", (int64_t)result, " task ", (int64_t)task);
+	if (XR_SUCCEEDED(result)) {
+		task_id = task;
+		return;
+	}
+	_finish();
+}
+
+void PicoRoomProbe::_finish() {
 	done = true;
+	DirAccess::remove_absolute(ATTEMPT_MARKER);
 }
 
 void PicoRoomProbe::_on_process() {
@@ -113,7 +132,7 @@ void PicoRoomProbe::_on_process() {
 		if (frames_waited >= MAX_WAIT_FRAMES) {
 			UtilityFunctions::print("PicoRoom: gave up waiting for the load result");
 		}
-		done = true;
+		_finish();
 	}
 }
 
