@@ -40,6 +40,10 @@ All four parse `--key value` pairs after `--` (`OS.get_cmdline_user_args()`), so
 - `highscore_capture.gd` / `highscore_capture.tscn`: renders `game/ui/HighscorePanel.tscn` at menu size.
   `--out(/tmp/hs.png) --table highscores.json --key "[artist,song,,mapper]" --rank(1) --names long --rows(10)
   --mods 1` (all modifiers on in memory, longest title).
+- `portal_capture.gd` / `portal_capture.tscn`: a mixed-reality portal (`game/env/PortalRim.gdshader`) cut in a grey
+  stand-in room wall, from the eye. `--out(user://portal_capture.png) --portal 1.6x1.4 --wall 2.5 --centre 1.5 --eye 1.6
+  --yaw --pitch --fov(90) --color RRGGBB --world res://scene.tscn (behind the wall; default a dark backdrop)
+  --size 1280x720 --seconds 0.5`.
 - `peak_objects.gd` / `peak_objects.tscn`: scans every map in `Constants.APPDATA_PATH + "Songs/"` and prints the
   busiest moment by triangles and by notes (game spawn rules, nothing cut), plus `MESH` triangle counts. Headless:
   `godot --headless --path . res://tools/capture/peak_objects.tscn`. `TRIS` (`peak_objects.gd:9`) is hand-kept.
@@ -50,6 +54,14 @@ Run: `blender -b -P tools/models/<script>.py -- game/models` (`OUT_DIR` = first 
 `note_round.py -- game/notes/BeepCube`. Each header names its spec `doc/assets/<name>/spec.md`; follow
 `.claude/skills/game-model-creator/SKILL.md` and `tools/asset_pipeline/`.
 
+- `run_asset.py`: one command per model round (`doc/assets/README.md`, Runner): reads `doc/assets/<asset>/spec.json`,
+  runs the build script in-process, reloads each `.glb` and checks triangles, size, vertex colour and textures, the
+  notes' path for the spec's `placements`, then the Godot import (`GODOT` or `godot` on PATH; reverts the `.uid` and
+  `.import` files the import adds, keeping the outputs' own `.glb.import`). Writes `doc/assets/<asset>/run/`
+  (gitignored: `report.md`, `<output>_contact.png` 640 px of four views, logs) and appends `doc/assets/runs.csv`.
+  `blender -b -P tools/models/run_asset.py -- <asset> [--variant A] [--out DIR] [--no-godot]`, or in the cloud
+  `python3 tools/models/run_asset.py <asset> ...` (pip `bpy==5.2.2`). Exits 1 on any FAIL. `--variant` reaches the
+  script as env `ASSET_VARIANT` (blockouts); `--out` outside `game/models` skips the Godot check.
 - `model_export.py`: shared `bake_and_export(obj, out_dir, name)`: AO baked to vertex red, face attr `glow` 1/2 to
   green/blue (EnvSolid vents), flat shading, GLB Y-up, prints triangles.
 - Using it: `ac_unit`, `antenna`, `dish_panel`, `dish_props`, `feed_cabin`, `feed_leg`, `hanging_scaffold`, `platform_frame`, `site_props`,

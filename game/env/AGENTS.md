@@ -146,6 +146,25 @@ the Auto pool; BLOCKOUT 2026-10-31; cloud sea and hills from GPT, owner 2026-11-
   black with a neutral horizon glow behind the slab (`SLAB_DIR` must match `MonolithRig.SLAB_YAW`; no `bg_<type>`) and
   a fainter neutral one all round so the hills stand as silhouettes.
 
+Room-aware mixed reality (portals in the real walls; plan https://claude.ai/artifact/GGNL7bgEiekk4VeT4G3aVy; the room
+code that reads the walls and cuts the portals lives on its own branch)
+- `PortalRim.gdshader`: the rim round a portal, on one `QuadMesh` 1 x 1 per portal (centred, facing into the room, +y
+  up) that it stretches by the uniform `portal_size_m` (width, height in metres) plus `RIM_REACH`; a white-hot strip on
+  the cut edge with a `light_color` glow fading out over the wall, the hole left clear (owner's pick of three, the
+  thin strip, 2026-11-02). Desktop check: `tools/capture/portal_capture.tscn`. Untuned, not yet on the headset.
+- `MRSpace.tscn` / `MRSpace.gd`: the world seen through the portals (owner's concept C, "the room floats in space",
+  2026-11-02). Root at the origin, nothing near it, no track or deck; the room code instances it behind the portals.
+  Builds a `SKY_RADIUS` sphere with `MRSpaceSky.gdshader`, Monolith's cloud sea (`MonolithCloudSea`, owner's pick)
+  dropped by `SEA_DROP` so its rim stays under the notes' source and dimmed to `SEA_BRIGHTNESS` (the sea's
+  `brightness`, 1 in Monolith), and `DUST_COUNT` points of `MRSpaceDust.gdshader` kept out of
+  the notes' path. The sky is geometry because mixed reality draws no `WorldEnvironment` sky. Blockout, untuned.
+- `MRSpaceSky.gdshader`: black space, stars worked out from the view direction (at least `STAR_MIN_PIXELS` wide, dimmed
+  to match), a faint neutral dust band with a nebula in the two note colours (`left_saber_color`, `right_saber_color`,
+  pulled toward grey), two planets ray-traced as spheres (a moon on `PLANET_BIG`, a ring on `PLANET_RINGED`, rims in
+  `env_light`), `METEOR_COUNT` shooting stars, and the notes' source down -z: a white-hot core in an `env_light` glow.
+- `MRSpaceDust.gdshader`: soft points facing the eye, at least `MIN_PIXELS` wide, added on top; they give depth as the
+  player moves.
+
 Metal Factory (underground power plant)
 - `MetalFactoryRig.gd` (tool): pistons over anvils, gear rings, energy rails, wall kit with vents, vault, drive gears.
   No beams or moving heads: diagonal/waving light goes to vents (`set_vent_colors`); `slam`/`breathe`/`turn_gears`

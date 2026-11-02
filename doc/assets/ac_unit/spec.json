@@ -1,0 +1,11 @@
+{
+	"asset": "ac_unit",
+	"script": "tools/models/ac_unit.py",
+	"outputs": ["ac_unit"],
+	"budget_tris": {"ac_unit": 200},
+	"size_m": {"ac_unit": [1.2, 1.24, 0.95]},
+	"note_path": "none",
+	"status": "done",
+	"owner_pick": "",
+	"refs": {"R01": "common rooftop condensing unit (spec.md)"}
+}
