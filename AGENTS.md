@@ -277,6 +277,9 @@ Found from headset logs on Pico OS 5.12 (OpenXR runtime 2.1.12); don't undo them
 - Renderer stays Compatibility (`gl_compatibility`): the Vulkan path segfaults inside the Pico runtime at startup.
 - `xr/openxr/target_api_version` stays `1.0.0`, and the Pico profiles in `openxr_action_map.tres` must not bind
   `grip_surface/pose`: the runtime rejects the path and drops the whole profile, so the controllers stop tracking.
+- Budget per stage (owner, 2026-11-02): up to 250k triangles, and the stage's GPU time in play at or under ~10 ms of
+  the 13.9 ms frame at 72 Hz; fill and overdraw usually cost more than triangles. 250k is not yet measured on the
+  headset: measure every stage that grows (`tools/bench.sh`).
 - Builds are signed with `.github/debug.keystore` so new APKs install over old ones; don't regenerate it.
 
 ## Checking a change

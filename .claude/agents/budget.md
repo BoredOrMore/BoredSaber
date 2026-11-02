@@ -18,6 +18,7 @@ Read what the proposal touches, only the parts you need:
 ## Known numbers (headset unless marked; re-check the docs, they move)
 - Budget: 13.9 ms GPU at 72 Hz. Stages in play: Classic ~10.0 ms, Neon Grid ~9.9, Night City ~10, Pulse Void ~9.1.
   Keep a new stage at or under ~10 ms in play so notes, walls, sparks and the HUD fit in the rest.
+- Triangle budget (owner, 2026-11-02): up to 250k for a stage, not yet measured on the headset.
 - Peak gameplay load (Mac count): ~30k triangles per eye, ~60-105 draw calls with notes; scene ~11.5k tris.
   Lasers merged into one MultiMesh per light group: stages draw 14-20 calls with lights on.
 - Glow costs ~0.9-2 ms; MSAA 4x nearly free; fill of huge opaque towers cost ~4.5 ms in Night City (overdraw and
