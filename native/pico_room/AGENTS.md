@@ -7,7 +7,7 @@ can't call raw OpenXR functions. The owner approved this native dependency (2026
 
 Stage: probe only (tag `PicoRoom:` in logcat). Once the app has focus it loads the room the player saved in PICO's own
 room setup (`xrLoadAnchorEntityBD` with the spatial scene filter), and loads again every 5 s and on each local map state
-event until it finds anchors; after a minute without them it opens PICO's scene capture (`xrStartSpatialSceneCaptureBD`). When the loaded event (type
+event until it finds anchors. It opens PICO's scene capture (`xrStartSpatialSceneCaptureBD`) on the first focus, every time (Bored, 2026-11-02: PICO only recognises the room after it), then loads when focus returns. For each anchor it also tries `xrCreateAnchorSpaceBD` (guessed: session, info with the anchor id at +0x10, XrSpace out) and `xrLocateSpace` in the play space, logged raw (v10). When the loaded event (type
 1200006350) reports anchors, it reads the results and logs each anchor's label, component flags, plane and box, raw. Not for
 merging until it reads rooms.
 

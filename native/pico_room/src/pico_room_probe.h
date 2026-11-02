@@ -53,11 +53,11 @@ public:
 	void _on_instance_created(uint64_t p_instance) override;
 	/// Keeps the session handle for the room calls.
 	void _on_session_created(uint64_t p_session) override;
-	/// Loads the saved room the first time the app gets focus.
+	/// Opens PICO's scene capture the first time the app gets focus.
 	void _on_state_focused() override;
 	/// Notes that the app lost focus (for example to PICO's scene capture), which pauses the retries.
 	void _on_state_visible() override;
-	/// Retries the load every few seconds until anchors are found; opens PICO's scene capture after a minute.
+	/// Retries the load every few seconds until anchors are found.
 	void _on_process() override;
 	/// Logs PICO's events raw; loads again when the room localization state changes; reads results when a load
 	/// finds anchors.
@@ -78,12 +78,14 @@ private:
 	void _start_capture();
 	/// Reads the load results and logs every anchor.
 	void _read_results();
-	/// Logs one anchor's label, component flags, plane and box, raw.
+	/// Logs one anchor's label, component flags, plane, box and pose, raw.
 	void _log_anchor(uint64_t p_anchor);
 
 	typedef XrResult(XRAPI_PTR *LoadAnchorEntity)(XrSession, const PicoAnchorEntityLoadInfo *, uint64_t *);
 	typedef XrResult(XRAPI_PTR *GetAnchorEntityLoadResults)(XrSession, uint64_t, void *);
 	typedef XrResult(XRAPI_PTR *GetAnchorValue)(XrSession, uint64_t, void *);
+	// Guessed: session, info, XrSpace out.
+	typedef XrResult(XRAPI_PTR *CreateAnchorSpace)(XrSession, void *, void *);
 	// Guessed: session, info, task id out (two arguments crashed).
 	typedef XrResult(XRAPI_PTR *StartSpatialSceneCapture)(XrSession, void *, uint64_t *);
 
@@ -113,4 +115,6 @@ private:
 	GetAnchorValue get_plane_boundary = nullptr;
 	GetAnchorValue get_box = nullptr;
 	StartSpatialSceneCapture start_scene_capture = nullptr;
+	CreateAnchorSpace create_anchor_space = nullptr;
+	PFN_xrLocateSpace locate_space = nullptr;
 };

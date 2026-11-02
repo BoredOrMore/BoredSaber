@@ -12,7 +12,7 @@ using namespace godot;
 // A stage's marker is written before its private calls and removed when they return: if it is still there at the next
 // launch, that stage crashed the game, so the probe skips it (and everything after it) instead of crashing on every
 // launch. Bump the version with each probe build so a new build tries again.
-static const char *MARKER_PREFIX = "user://pico_room_v9_";
+static const char *MARKER_PREFIX = "user://pico_room_v10_";
 // Most anchors to load: a room has a floor, a ceiling, a few walls, doors, windows and furniture boxes.
 static const uint32_t MAX_ANCHORS = 64;
 // Load timeout handed to the runtime (unit undocumented).
@@ -28,10 +28,10 @@ static const uint64_t ALL_SCENE_TYPES = 0xFF;
 // PICO's local map (room localization) state event; the runtime logs on_local_map_state_changed with it. The probe
 // loads again whenever it arrives, since anchors only load once the headset has recognised the saved room.
 static const uint32_t TYPE_EVENT_LOCAL_MAP_STATE = 1200006303;
-// Frames between load retries while no anchors are found (about 5 s at 72 Hz), and how many retries before opening
-// PICO's scene capture (about 60 s): time for the headset to recognise the room while the player looks around.
+// Frames between load retries while no anchors are found (about 5 s at 72 Hz).
 static const int RETRY_EVERY_FRAMES = 72 * 5;
-static const int RETRIES_BEFORE_CAPTURE = 12;
+// Below this a returned handle is an id, not a pointer xrLocateSpace could read (anchor ids were 260 and up).
+static const uint64_t MIN_POINTER = 0x10000;
 // PICO's own event types start here; the probe logs them raw to learn the scene capture events.
 static const uint32_t FIRST_PICO_EVENT_TYPE = 1200000000;
 // 64-bit words in each scratch buffer handed to a function whose struct layout isn't known yet. Big enough that a
@@ -100,6 +100,8 @@ void PicoRoomProbe::_on_instance_created(uint64_t p_instance) {
 	get_component_flags = resolve<GetAnchorValue>(api, "xrGetAnchorComponentFlagsBD");
 	get_plane_boundary = resolve<GetAnchorValue>(api, "xrGetAnchorPlaneBoundaryInfoBD");
 	get_box = resolve<GetAnchorValue>(api, "xrGetAnchorBoxInfoBD");
+	create_anchor_space = resolve<CreateAnchorSpace>(api, "xrCreateAnchorSpaceBD");
+	locate_space = resolve<PFN_xrLocateSpace>(api, "xrLocateSpace");
 	start_scene_capture = resolve<StartSpatialSceneCapture>(api, "xrStartSpatialSceneCaptureBD");
 }
 
@@ -125,8 +127,9 @@ void PicoRoomProbe::_leave_stage(const char *p_stage) {
 void PicoRoomProbe::_on_state_focused() {
 	focused = true;
 	if (!load_started) {
+		// Bored (2026-11-02): PICO only finds the room after its scene capture, so open it first, every time.
 		load_started = true;
-		_start_load();
+		_start_capture();
 	}
 }
 
@@ -141,12 +144,6 @@ void PicoRoomProbe::_on_process() {
 	frames_since_load++;
 	if (frames_since_load < RETRY_EVERY_FRAMES) {
 		return;
-	}
-	retries++;
-	if (retries == RETRIES_BEFORE_CAPTURE && !capture_started) {
-		UtilityFunctions::print("PicoRoom: room not recognised after ", retries, " tries, opening the scene capture");
-		_start_capture();
-		retries = 0;
 	}
 	_start_load();
 }
@@ -254,6 +251,23 @@ void PicoRoomProbe::_log_anchor(uint64_t p_anchor) {
 	uint64_t box[SCRATCH_WORDS] = {};
 	XrResult box_result = get_box(session, p_anchor, box);
 	UtilityFunctions::print("PicoRoom:   box (", (int64_t)box_result, ") ", dump_floats(box, 16));
-	// The anchor handles are small ids (260, 261...), not XrSpace pointers, so xrLocateSpace can't take them; the
-	// pose needs xrCreateAnchorSpaceBD, whose signature isn't known yet.
+	if (create_anchor_space != nullptr) {
+		// Guessed like the load call: session, an OpenXR-style info with the anchor id at +0x10, then the XrSpace out.
+		uint64_t info[SCRATCH_WORDS] = {};
+		info[2] = p_anchor;
+		uint64_t space[SCRATCH_WORDS] = {};
+		XrResult space_result = create_anchor_space(session, info, space);
+		UtilityFunctions::print("PicoRoom:   space (", (int64_t)space_result, ") ", dump_words(space, 2), " info ",
+				dump_words(info, 4));
+		Ref<OpenXRAPIExtension> api = get_openxr_api();
+		if (XR_SUCCEEDED(space_result) && space[0] > MIN_POINTER && locate_space != nullptr && api.is_valid()) {
+			XrSpaceLocation location = { XR_TYPE_SPACE_LOCATION };
+			XrResult result = locate_space((XrSpace)space[0], (XrSpace)api->get_play_space(),
+					(XrTime)api->get_predicted_display_time(), &location);
+			const XrPosef &pose = location.pose;
+			UtilityFunctions::print("PicoRoom:   pose (", (int64_t)result, ") flags ", (int64_t)location.locationFlags,
+					" pos ", pose.position.x, " ", pose.position.y, " ", pose.position.z, " rot ", pose.orientation.x,
+					" ", pose.orientation.y, " ", pose.orientation.z, " ", pose.orientation.w);
+		}
+	}
 }
