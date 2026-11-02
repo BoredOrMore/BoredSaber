@@ -55,9 +55,14 @@ public:
 	void _on_instance_created(uint64_t p_instance) override;
 	/// Keeps the session handle for the room calls.
 	void _on_session_created(uint64_t p_session) override;
-	/// Loads the saved room the first time the app gets focus, and again when it returns from PICO's scene capture.
+	/// Loads the saved room the first time the app gets focus.
 	void _on_state_focused() override;
-	/// Logs PICO's events raw; on the loaded event reads the results, or opens the scene capture when there are none.
+	/// Notes that the app lost focus (for example to PICO's scene capture), which pauses the retries.
+	void _on_state_visible() override;
+	/// Retries the load every few seconds until anchors are found; opens PICO's scene capture after a minute.
+	void _on_process() override;
+	/// Logs PICO's events raw; loads again when the room localization state changes; reads results when a load
+	/// finds anchors.
 	bool _on_event_polled(const void *p_event) override;
 
 protected:
@@ -98,7 +103,10 @@ private:
 	uint64_t task_id = 0;
 	bool load_started = false;
 	bool capture_started = false;
-	bool reloaded = false;
+	bool focused = false;
+	bool found = false;
+	int frames_since_load = 0;
+	int retries = 0;
 
 	LoadAnchorEntity load_anchor_entity = nullptr;
 	GetAnchorEntityLoadResults get_load_results = nullptr;

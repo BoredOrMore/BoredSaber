@@ -6,8 +6,8 @@ standard spatial entity path (`XR_EXT_spatial_entity`) isn't offered by the Pico
 can't call raw OpenXR functions. The owner approved this native dependency (2026-11-02).
 
 Stage: probe only (tag `PicoRoom:` in logcat). Once the app has focus it loads the room the player saved in PICO's own
-room setup (`xrLoadAnchorEntityBD` with the spatial scene filter). If that finds nothing it opens PICO's scene capture
-(`xrStartSpatialSceneCaptureBD`) and loads again when the game gets focus back. When the loaded event (type
+room setup (`xrLoadAnchorEntityBD` with the spatial scene filter), and loads again every 5 s and on each local map state
+event until it finds anchors; after a minute without them it opens PICO's scene capture (`xrStartSpatialSceneCaptureBD`). When the loaded event (type
 1200006350) reports anchors, it reads the results and logs each anchor's label, component flags, plane and box, raw. Not for
 merging until it reads rooms.
 
@@ -48,6 +48,9 @@ Linux x86_64 (only so the headless import and tests load it cleanly). Locally:
   u32 written at +0x14, entries pointer at +0x18; each entry is 40 bytes (type, next, anchor id at +0x10, UUID). Anchor
   handles are small ids (260...), not `XrSpace`s: never pass them to `xrLocateSpace`. Calling the capture with
   (session, &task) crashed at address 0; the probe now passes (session, zeroed info, &task).
+- Anchors only load while the headset has recognised (localised in) the saved room: the runtime's local map state
+  (event type 1200006303, logged as on_local_map_state_changed) was 1 when 11 anchors loaded and 0 when the same room
+  gave 0 (457bd49). `xrStartSpatialSceneCaptureBD(session, info, &task)` returns 0 without crashing.
 - Each risky stage writes a marker file (`user://pico_room_vN_<stage>`) and removes it when it returns, so after a
   crash the next launch skips that stage instead of crashing on every launch. Bump vN with each probe build.
 - `com.picovr.permission.SPATIAL_DATA` is unknown to OS 5.12 (logcat `NameNotFoundException`).

@@ -12,7 +12,7 @@ using namespace godot;
 // A stage's marker is written before its private calls and removed when they return: if it is still there at the next
 // launch, that stage crashed the game, so the probe skips it (and everything after it) instead of crashing on every
 // launch. Bump the version with each probe build so a new build tries again.
-static const char *MARKER_PREFIX = "user://pico_room_v7_";
+static const char *MARKER_PREFIX = "user://pico_room_v8_";
 // Most anchors to load: a room has a floor, a ceiling, a few walls, doors, windows and furniture boxes.
 static const uint32_t MAX_ANCHORS = 64;
 // Load timeout handed to the runtime (unit undocumented).
@@ -25,6 +25,13 @@ static const uint32_t TYPE_EVENT_ANCHOR_ENTITY_LOADED = 1200006350;
 // unknown, floor, ceiling, wall, door, window, opening, object).
 static const uint32_t TYPE_SPATIAL_SCENE_FILTER = 1200006362;
 static const uint64_t ALL_SCENE_TYPES = 0xFF;
+// PICO's local map (room localization) state event; the runtime logs on_local_map_state_changed with it. The probe
+// loads again whenever it arrives, since anchors only load once the headset has recognised the saved room.
+static const uint32_t TYPE_EVENT_LOCAL_MAP_STATE = 1200006303;
+// Frames between load retries while no anchors are found (about 5 s at 72 Hz), and how many retries before opening
+// PICO's scene capture (about 60 s): time for the headset to recognise the room while the player looks around.
+static const int RETRY_EVERY_FRAMES = 72 * 5;
+static const int RETRIES_BEFORE_CAPTURE = 12;
 // PICO's own event types start here; the probe logs them raw to learn the scene capture events.
 static const uint32_t FIRST_PICO_EVENT_TYPE = 1200000000;
 // 64-bit words in each scratch buffer handed to a function whose struct layout isn't known yet. Big enough that a
@@ -116,12 +123,32 @@ void PicoRoomProbe::_leave_stage(const char *p_stage) {
 }
 
 void PicoRoomProbe::_on_state_focused() {
-	// First focus: load the saved room. Focus coming back after PICO's capture app closed: load again.
-	if (!load_started || (capture_started && !reloaded)) {
-		reloaded = load_started;
+	focused = true;
+	if (!load_started) {
 		load_started = true;
 		_start_load();
 	}
+}
+
+void PicoRoomProbe::_on_state_visible() {
+	focused = false;
+}
+
+void PicoRoomProbe::_on_process() {
+	if (!load_started || found || !focused || task_id != 0) {
+		return;
+	}
+	frames_since_load++;
+	if (frames_since_load < RETRY_EVERY_FRAMES) {
+		return;
+	}
+	retries++;
+	if (retries == RETRIES_BEFORE_CAPTURE && !capture_started) {
+		UtilityFunctions::print("PicoRoom: room not recognised after ", retries, " tries, opening the scene capture");
+		_start_capture();
+		retries = 0;
+	}
+	_start_load();
 }
 
 void PicoRoomProbe::_start_load() {
@@ -129,7 +156,8 @@ void PicoRoomProbe::_start_load() {
 		UtilityFunctions::print("PicoRoom: load functions missing, nothing to try");
 		return;
 	}
-	const char *stage = reloaded ? "reload" : "load";
+	const char *stage = "load";
+	frames_since_load = 0;
 	if (_enter_stage(stage)) {
 		return;
 	}
@@ -165,23 +193,23 @@ bool PicoRoomProbe::_on_event_polled(const void *p_event) {
 	}
 	if (type != TYPE_EVENT_ANCHOR_ENTITY_LOADED) {
 		UtilityFunctions::print("PicoRoom: event type ", (int64_t)type, " words ", dump_words(p_event, DUMP_WORDS));
+		if (type == TYPE_EVENT_LOCAL_MAP_STATE && load_started && !found && task_id == 0) {
+			_start_load();
+		}
 		return false;
 	}
 	const PicoEventAnchorEntityLoaded *loaded = (const PicoEventAnchorEntityLoaded *)p_event;
 	UtilityFunctions::print("PicoRoom: loaded event task ", (int64_t)loaded->task_id, " result ", loaded->result,
-			" total ", (int64_t)loaded->total);
+			" total ", (int64_t)loaded->total, " words ", dump_words(p_event, 7));
 	if (task_id == 0 || loaded->task_id != task_id) {
 		return false;
 	}
-	task_id = 0;
+	// The event's total field isn't certain (it read 1 when the runtime logged 11), so only a nonzero total is
+	// trusted; the results call gives the real count.
 	if (loaded->total > 0) {
-		task_id = loaded->task_id;
 		_read_results();
-	} else if (!capture_started) {
-		_start_capture();
-	} else {
-		UtilityFunctions::print("PicoRoom: still no anchors after the scene capture");
 	}
+	task_id = 0;
 	return false;
 }
 
@@ -200,6 +228,7 @@ void PicoRoomProbe::_read_results() {
 	XrResult result = get_load_results(session, task_id, buffer);
 	_leave_stage("results");
 	uint32_t count = (uint32_t)(buffer[2] >> 32);
+	found = XR_SUCCEEDED(result) && count > 0;
 	UtilityFunctions::print("PicoRoom: results result ", (int64_t)result, " count ", (int64_t)count);
 	if (XR_FAILED(result)) {
 		return;
