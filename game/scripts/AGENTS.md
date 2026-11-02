@@ -18,6 +18,8 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
   the `STYLES` / `GENRES` both filter panels offer. An AI-made map (BeatSaver's `automapper`) keeps `AI_TAG` with its
   tags (`tags_from`, also on download), so both song lists put `AI_MARK` "AI · " before its name and the song menu " (AI)" after its mapper (`is_ai`).
 - `MixedReality.gd` (autoload) - `set_mixed_reality(mr)`: passthrough on/off plus floor/HUD material tweaks.
+- `RoomProbe.gd` (autoload `RoomProbe`, test build only) - logs the play area, OpenXR spatial capabilities and plane
+  trackers (walls, floor, table) to logcat as `RoomProbe:` for the room-aware Mixed Reality plan.
 - `PlayCountTable.gd` (autoload `PlayCount`) - play counts, favourite flag, last difficulty per map.
 - `HighscoreTable/HighscoreTable.gd` (autoload `Highscores`) - top-10 records per map + modifier set.
   Tested by `tests/test_highscores.gd`.
