@@ -63,6 +63,7 @@ func _scan_room(mr: bool) -> void:
 	if not room.is_connected("room_loaded", _on_room_loaded):
 		room.connect("room_loaded", _on_room_loaded)
 		room.connect("room_not_found", _on_room_not_found)
+		vr.pose_recentered.connect(_on_recentered)
 	room.call("scan_room")
 
 
@@ -74,6 +75,12 @@ func _on_room_loaded(pieces: Array) -> void:
 		_room_outline = RoomOutline.new()
 		get_node("/root/BeepSaber/XROrigin3D").add_child(_room_outline)
 	_room_outline.show_room(pieces)
+
+
+## Reads the room again after a recenter, which moves the play space the outline is drawn in.
+func _on_recentered() -> void:
+	if Settings.mixed_reality and _room_outline and _room_outline.visible:
+		Engine.get_singleton("PicoRoom").call("reload_room")
 
 
 ## Notes a scan that found no room (the room setup screen will offer to scan again).

@@ -23,7 +23,7 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
 - `RoomOutline.gd` (class `RoomOutline`, a child of `XROrigin3D`) - the real room as lines over the passthrough: walls,
   doors and windows in `UI_TEXT`, furniture boxes in `UI_TEXT_MUTED`, and the portal frame in `UI_ACCENT` where the
   note path meets the nearest wall (`find_portal`; its size constants are UNTUNED placeholders). Poses are in the
-  play space, so a recenter leaves the outline stale until the next scan.
+  play space, so on a recenter `MixedReality` reads the room again (`PicoRoom.reload_room`) and redraws it.
 - `RoomProbe.gd` (autoload `RoomProbe`, test build only) - logs the play area, OpenXR spatial capabilities and plane
   trackers (walls, floor, table) to logcat as `RoomProbe:` for the room-aware Mixed Reality plan.
 - `PlayCountTable.gd` (autoload `PlayCount`) - play counts, favourite flag, last difficulty per map.

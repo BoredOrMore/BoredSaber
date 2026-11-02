@@ -12,7 +12,8 @@ switch: 710b57e `checkAppSwitchAllowed ... allowed : false`), asks again every 5
 (6 tries, then loads anyway), and loads the room (`xrLoadAnchorEntityBD`, spatial scene filter) when focus comes back,
 up to 3 times 3 s apart (a load during the capture found 0). Each anchor becomes a piece: its label, the centre's
 Transform3D in the play space (`xrCreateAnchorSpaceBD` + `xrLocateSpace`, space destroyed after) and its size (plane
-width/height, or box extent). The game side is `game/scripts/MixedReality.gd` and `RoomOutline.gd`.
+width/height, or box extent). `reload_room()` loads again without the capture (the room is already recognised),
+half a second after a recenter moved the play space. The game side is `game/scripts/MixedReality.gd` and `RoomOutline.gd`.
 
 ## File map
 

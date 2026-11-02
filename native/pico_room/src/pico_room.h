@@ -66,6 +66,9 @@ public:
 	/// Opens PICO's scene capture, then loads the room when the player comes back; ends in room_loaded or
 	/// room_not_found.
 	void scan_room();
+	/// Reads the already recognised room again without PICO's capture (after a recenter moved the play space); ends in
+	/// room_loaded or room_not_found.
+	void reload_room();
 
 protected:
 	/// Binds the methods and signals the game uses.

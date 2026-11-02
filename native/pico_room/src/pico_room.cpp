@@ -31,6 +31,8 @@ static const int CAPTURE_TRIES = 6;
 // frames apart, before telling the game the room wasn't found.
 static const int LOAD_TRIES = 3;
 static const int LOAD_RETRY_FRAMES = 72 * 3;
+// After a recenter, wait this long (half a second) before reading the room so the runtime has moved the play space.
+static const int RELOAD_DELAY_FRAMES = 36;
 // 64-bit words in each buffer handed to a getter. Bigger than any struct the runtime writes, so a runtime that writes
 // a larger struct than measured stays inside it.
 static const int SCRATCH_WORDS = 64;
@@ -60,6 +62,7 @@ static T resolve(const Ref<OpenXRAPIExtension> &p_api, const char *p_name) {
 void PicoRoom::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("is_supported"), &PicoRoom::is_supported);
 	ClassDB::bind_method(D_METHOD("scan_room"), &PicoRoom::scan_room);
+	ClassDB::bind_method(D_METHOD("reload_room"), &PicoRoom::reload_room);
 	// Each piece: {"label": int (1 floor, 2 ceiling, 3 wall, 4 door, 5 window, 6 opening, 7 furniture),
 	// "transform": Transform3D of its centre in the play space (XROrigin3D's space), "size": Vector3}. A plane lies in
 	// its local XY (size x, y, z = 0) with local +Z pointing out of the room; a box's local Z is vertical.
@@ -125,6 +128,21 @@ void PicoRoom::scan_room() {
 	capture_tries = 0;
 	capture_frames = 0;
 	loading = false;
+}
+
+void PicoRoom::reload_room() {
+	if (!is_supported() || session == XR_NULL_HANDLE) {
+		call_deferred("emit_signal", "room_not_found");
+		return;
+	}
+	if (scanning) {
+		return;
+	}
+	scanning = true;
+	capture_opened = false;
+	loading = true;
+	load_tries = 0;
+	load_frames = LOAD_RETRY_FRAMES - RELOAD_DELAY_FRAMES;
 }
 
 void PicoRoom::_on_state_focused() {
