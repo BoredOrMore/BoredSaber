@@ -12,7 +12,7 @@ using namespace godot;
 // A stage's marker is written before its private calls and removed when they return: if it is still there at the next
 // launch, that stage crashed the game, so the probe skips it (and everything after it) instead of crashing on every
 // launch. Bump the version with each probe build so a new build tries again.
-static const char *MARKER_PREFIX = "user://pico_room_v8_";
+static const char *MARKER_PREFIX = "user://pico_room_v9_";
 // Most anchors to load: a room has a floor, a ceiling, a few walls, doors, windows and furniture boxes.
 static const uint32_t MAX_ANCHORS = 64;
 // Load timeout handed to the runtime (unit undocumented).
@@ -204,8 +204,6 @@ bool PicoRoomProbe::_on_event_polled(const void *p_event) {
 	if (task_id == 0 || loaded->task_id != task_id) {
 		return false;
 	}
-	// The event's total field isn't certain (it read 1 when the runtime logged 11), so only a nonzero total is
-	// trusted; the results call gives the real count.
 	if (loaded->total > 0) {
 		_read_results();
 	}

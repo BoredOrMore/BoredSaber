@@ -32,18 +32,16 @@ struct PicoAnchorEntityLoadFilter {
 	uint64_t flags; // +0x10
 };
 
-// The loaded event (type 1200006350) as logged on the headset: header, then task id, result, location and total.
+// The loaded event (type 1200006350) as logged on the headset: header, then task id, result, total and location.
 struct PicoEventAnchorEntityLoaded {
 	uint32_t type;
 	const void *next;
 	uint64_t task_id; // +0x10
 	int32_t result; // +0x18
-	uint32_t padding_1c;
+	uint32_t total; // +0x1C (matches the runtime's own on_anchor_load_completed log)
 	uint32_t location; // +0x20
-	uint32_t padding_24;
-	uint64_t total; // +0x28
 };
-static_assert(offsetof(PicoEventAnchorEntityLoaded, total) == 0x28, "layout must match the runtime");
+static_assert(offsetof(PicoEventAnchorEntityLoaded, total) == 0x1C, "layout must match the runtime");
 
 class PicoRoomProbe : public godot::OpenXRExtensionWrapperExtension {
 	GDCLASS(PicoRoomProbe, godot::OpenXRExtensionWrapperExtension);

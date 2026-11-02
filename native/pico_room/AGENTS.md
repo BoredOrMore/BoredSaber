@@ -40,7 +40,7 @@ Linux x86_64 (only so the headless import and tests load it cleanly). Locally:
   pointer at +0x28; filter types 1200006348 UUID / 1200006349 component / 1200006362 spatial scene, flags at +0x10).
   The anchor store the app sees was empty ("GetAnchor Total = 0") even though the room was scanned in PICO's
   Settings: scene filter and component filter both found 0 (b984b09). A null filter runs as a UUID load with 0 UUIDs and finds nothing. The loaded event is type 1200006350: task id at
-  +0x10, result +0x18, location +0x20, total +0x28. The other functions'
+  +0x10, result i32 +0x18, total u32 +0x1C, location +0x20. The other functions'
   layouts are still guesses (PICO's Unity SDK C#), so the probe hands them oversized zeroed buffers and logs them raw.
   The instance gives -12 (the runtime checks for a session); a wrong layout crashes inside the runtime.
 - After a scan in PICO's room capture (opened from the game by `xrStartSpatialSceneCaptureBD`; it runs as its own app,
@@ -50,7 +50,8 @@ Linux x86_64 (only so the headless import and tests load it cleanly). Locally:
   (session, &task) crashed at address 0; the probe now passes (session, zeroed info, &task).
 - Anchors only load while the headset has recognised (localised in) the saved room: the runtime's local map state
   (event type 1200006303, logged as on_local_map_state_changed) was 1 when 11 anchors loaded and 0 when the same room
-  gave 0 (457bd49). `xrStartSpatialSceneCaptureBD(session, info, &task)` returns 0 without crashing.
+  gave 0 (457bd49). Standing and looking around for a minute didn't bring it to 1 (0fb0406); opening PICO's scene
+  capture did (total 11 on every load after it). `xrStartSpatialSceneCaptureBD(session, info, &task)` returns 0 without crashing.
 - Each risky stage writes a marker file (`user://pico_room_vN_<stage>`) and removes it when it returns, so after a
   crash the next launch skips that stage instead of crashing on every launch. Bump vN with each probe build.
 - `com.picovr.permission.SPATIAL_DATA` is unknown to OS 5.12 (logcat `NameNotFoundException`).
