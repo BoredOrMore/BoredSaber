@@ -6,8 +6,8 @@ standard spatial entity path (`XR_EXT_spatial_entity`) isn't offered by the Pico
 can't call raw OpenXR functions. The owner approved this native dependency (2026-11-02).
 
 Stage: probe only (tag `PicoRoom:` in logcat). Once the app has focus it loads the room the player saved in PICO's own
-room setup (`xrLoadAnchorEntityBD`, no filter), logs every runtime event raw, and when the event carrying the load's
-task id arrives, reads the results and logs each anchor's label, component flags, plane, box and pose, raw. Not for
+room setup (`xrLoadAnchorEntityBD` with the spatial scene filter, then the component filter if that finds nothing), and when the
+loaded event (type 1200006350) reports anchors, reads the results and logs each anchor's label, component flags, plane, box and pose, raw. Not for
 merging until it reads rooms.
 
 ## File map
@@ -36,7 +36,9 @@ Linux x86_64 (only so the headless import and tests load it cleanly). Locally:
   `XR_BD_room_scene`, `XR_BD_semi_auto_room_capture` (function names from the runtime's strings). PICO publishes no C
   header for it. Known from the runtime's code: `xrLoadAnchorEntityBD(XrSession, info*, uint64_t* task)`, the info is
   OpenXR-style (type, next, then u32 maxResult at +0x10, u64 timeout at +0x18, u32 location at +0x20, include filter
-  pointer at +0x28; null loads everything; filter types 1200006348/1200006349/1200006362). The other functions'
+  pointer at +0x28; filter types 1200006348 UUID / 1200006349 component / 1200006362 spatial scene, flags at +0x10).
+  A null filter runs as a UUID load with 0 UUIDs and finds nothing. The loaded event is type 1200006350: task id at
+  +0x10, result +0x18, location +0x20, total +0x28. The other functions'
   layouts are still guesses (PICO's Unity SDK C#), so the probe hands them oversized zeroed buffers and logs them raw.
   The instance gives -12 (the runtime checks for a session); a wrong layout crashes inside the runtime.
 - Each risky stage writes a marker file (`user://pico_room_vN_<stage>`) and removes it when it returns, so after a

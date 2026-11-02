@@ -9,6 +9,7 @@
 #include <godot_cpp/variant/dictionary.hpp>
 #include <godot_cpp/variant/string.hpp>
 
+#include <cstddef>
 #include <cstdint>
 
 // xrLoadAnchorEntityBD's info, as the runtime reads it (libpxrruntime.so, OS 5.12): an OpenXR-style header, then
@@ -23,6 +24,26 @@ struct PicoAnchorEntityLoadInfo {
 	const void *include; // +0x28
 };
 static_assert(sizeof(PicoAnchorEntityLoadInfo) == 0x30, "layout must match the runtime");
+
+// An include filter as the runtime reads it: OpenXR-style header, then a 64-bit value at +0x10 (flags).
+struct PicoAnchorEntityLoadFilter {
+	uint32_t type;
+	const void *next;
+	uint64_t flags; // +0x10
+};
+
+// The loaded event (type 1200006350) as logged on the headset: header, then task id, result, location and total.
+struct PicoEventAnchorEntityLoaded {
+	uint32_t type;
+	const void *next;
+	uint64_t task_id; // +0x10
+	int32_t result; // +0x18
+	uint32_t padding_1c;
+	uint32_t location; // +0x20
+	uint32_t padding_24;
+	uint64_t total; // +0x28
+};
+static_assert(offsetof(PicoEventAnchorEntityLoaded, total) == 0x28, "layout must match the runtime");
 
 class PicoRoomProbe : public godot::OpenXRExtensionWrapperExtension {
 	GDCLASS(PicoRoomProbe, godot::OpenXRExtensionWrapperExtension);
@@ -48,7 +69,7 @@ private:
 	bool _enter_stage(const char *p_stage);
 	/// Removes the stage's marker: the stage returned.
 	void _leave_stage(const char *p_stage);
-	/// Calls xrLoadAnchorEntityBD with the session and no filter.
+	/// Calls xrLoadAnchorEntityBD with the session and the filter for the current attempt.
 	void _start_load();
 	/// Reads the load results and logs every anchor.
 	void _read_results();
@@ -71,8 +92,8 @@ private:
 
 	XrSession session = XR_NULL_HANDLE;
 	uint64_t task_id = 0;
+	int attempt = 0; // Index into the filter attempts.
 	bool load_started = false;
-	bool results_read = false;
 
 	LoadAnchorEntity load_anchor_entity = nullptr;
 	GetAnchorEntityLoadResults get_load_results = nullptr;

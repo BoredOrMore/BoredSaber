@@ -12,13 +12,28 @@ using namespace godot;
 // A stage's marker is written before its private calls and removed when they return: if it is still there at the next
 // launch, that stage crashed the game, so the probe skips it (and everything after it) instead of crashing on every
 // launch. Bump the version with each probe build so a new build tries again.
-static const char *MARKER_PREFIX = "user://pico_room_v4_";
+static const char *MARKER_PREFIX = "user://pico_room_v5_";
 // Most anchors to load: a room has a floor, a ceiling, a few walls, doors, windows and furniture boxes.
 static const uint32_t MAX_ANCHORS = 64;
 // Load timeout handed to the runtime (unit undocumented).
 static const uint64_t LOAD_TIMEOUT = 5000;
 // PxrPersistLocation.Local: anchors saved on the headset.
 static const uint32_t LOCATION_LOCAL = 1;
+// The loaded event's type.
+static const uint32_t TYPE_EVENT_ANCHOR_ENTITY_LOADED = 1200006350;
+// Filter attempts, in order, until one loads anchors: the spatial scene filter (type 1200006362, every surface kind:
+// unknown, floor, ceiling, wall, door, window, opening, object), then the component filter (type 1200006349, anchors
+// with a scene label). Type values from the runtime's code; flag meanings from PICO's Unity SDK enums.
+struct FilterAttempt {
+	const char *name;
+	uint32_t type;
+	uint64_t flags;
+};
+static const FilterAttempt FILTER_ATTEMPTS[] = {
+	{ "scene", 1200006362, 0xFF },
+	{ "component", 1200006349, 0x4 },
+};
+static const int FILTER_ATTEMPT_COUNT = sizeof(FILTER_ATTEMPTS) / sizeof(FILTER_ATTEMPTS[0]);
 // 64-bit words in each scratch buffer handed to a function whose struct layout isn't known yet. Big enough that a
 // runtime writing a larger struct than guessed stays inside it.
 static const int SCRATCH_WORDS = 64;
@@ -118,34 +133,42 @@ void PicoRoomProbe::_start_load() {
 		UtilityFunctions::print("PicoRoom: load functions missing, nothing to try");
 		return;
 	}
-	if (_enter_stage("load")) {
+	const FilterAttempt &filter_attempt = FILTER_ATTEMPTS[attempt];
+	String stage = String("load_") + filter_attempt.name;
+	if (_enter_stage(stage.utf8().get_data())) {
 		return;
 	}
-	PicoAnchorEntityLoadInfo info = { 0, nullptr, MAX_ANCHORS, LOAD_TIMEOUT, LOCATION_LOCAL, nullptr };
+	PicoAnchorEntityLoadFilter filter = { filter_attempt.type, nullptr, filter_attempt.flags };
+	PicoAnchorEntityLoadInfo info = { 0, nullptr, MAX_ANCHORS, LOAD_TIMEOUT, LOCATION_LOCAL, &filter };
 	uint64_t task = 0;
 	XrResult result = load_anchor_entity(session, &info, &task);
-	_leave_stage("load");
-	UtilityFunctions::print("PicoRoom: load result ", (int64_t)result, " task ", (int64_t)task);
-	if (XR_SUCCEEDED(result)) {
-		task_id = task;
-	}
+	_leave_stage(stage.utf8().get_data());
+	UtilityFunctions::print("PicoRoom: load ", filter_attempt.name, " result ", (int64_t)result, " task ", (int64_t)task);
+	task_id = XR_SUCCEEDED(result) ? task : 0;
 }
 
 bool PicoRoomProbe::_on_event_polled(const void *p_event) {
 	const XrEventDataBaseHeader *header = (const XrEventDataBaseHeader *)p_event;
-	UtilityFunctions::print("PicoRoom: event type ", (int64_t)header->type, " words ", dump_words(p_event, DUMP_WORDS));
-	if (task_id == 0 || results_read) {
+	if ((uint32_t)header->type != TYPE_EVENT_ANCHOR_ENTITY_LOADED) {
 		return false;
 	}
-	// The loaded event's layout isn't known: look for the task id in its first words.
-	const uint64_t *words = (const uint64_t *)p_event;
-	for (int i = 1; i < DUMP_WORDS; i++) {
-		if (words[i] == task_id) {
-			UtilityFunctions::print("PicoRoom: event carries the load task id at word ", i);
-			results_read = true;
-			_read_results();
-			break;
-		}
+	const PicoEventAnchorEntityLoaded *loaded = (const PicoEventAnchorEntityLoaded *)p_event;
+	UtilityFunctions::print("PicoRoom: loaded event task ", (int64_t)loaded->task_id, " result ", loaded->result,
+			" total ", (int64_t)loaded->total, " words ", dump_words(p_event, DUMP_WORDS));
+	if (task_id == 0 || loaded->task_id != task_id) {
+		return false;
+	}
+	task_id = 0;
+	if (loaded->total > 0) {
+		task_id = loaded->task_id;
+		_read_results();
+		return false;
+	}
+	attempt++;
+	if (attempt < FILTER_ATTEMPT_COUNT) {
+		_start_load();
+	} else {
+		UtilityFunctions::print("PicoRoom: no filter found any anchors");
 	}
 	return false;
 }
