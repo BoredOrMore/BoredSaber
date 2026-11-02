@@ -75,14 +75,14 @@ private:
 	void _start_capture();
 	/// Reads the load results and logs every anchor.
 	void _read_results();
-	/// Logs one anchor's label, component flags, plane, box and pose.
+	/// Logs one anchor's label, component flags, plane and box, raw.
 	void _log_anchor(uint64_t p_anchor);
 
 	typedef XrResult(XRAPI_PTR *LoadAnchorEntity)(XrSession, const PicoAnchorEntityLoadInfo *, uint64_t *);
 	typedef XrResult(XRAPI_PTR *GetAnchorEntityLoadResults)(XrSession, uint64_t, void *);
 	typedef XrResult(XRAPI_PTR *GetAnchorValue)(XrSession, uint64_t, void *);
-	// Signature from PICO's Unity SDK (Pxr_StartSpatialSceneCapture(out taskId)) plus the session, like the load call.
-	typedef XrResult(XRAPI_PTR *StartSpatialSceneCapture)(XrSession, uint64_t *);
+	// Guessed: session, info, task id out (two arguments crashed).
+	typedef XrResult(XRAPI_PTR *StartSpatialSceneCapture)(XrSession, void *, uint64_t *);
 
 	// Godot writes true into these when the runtime offers the extension (names as the runtime lists them).
 	bool spatial_scene = false;
@@ -106,6 +106,5 @@ private:
 	GetAnchorValue get_component_flags = nullptr;
 	GetAnchorValue get_plane_boundary = nullptr;
 	GetAnchorValue get_box = nullptr;
-	PFN_xrLocateSpace locate_space = nullptr;
 	StartSpatialSceneCapture start_scene_capture = nullptr;
 };

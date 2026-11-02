@@ -8,7 +8,7 @@ can't call raw OpenXR functions. The owner approved this native dependency (2026
 Stage: probe only (tag `PicoRoom:` in logcat). Once the app has focus it loads the room the player saved in PICO's own
 room setup (`xrLoadAnchorEntityBD` with the spatial scene filter). If that finds nothing it opens PICO's scene capture
 (`xrStartSpatialSceneCaptureBD`) and loads again when the game gets focus back. When the loaded event (type
-1200006350) reports anchors, it reads the results and logs each anchor's label, component flags, plane, box and pose, raw. Not for
+1200006350) reports anchors, it reads the results and logs each anchor's label, component flags, plane and box, raw. Not for
 merging until it reads rooms.
 
 ## File map
@@ -43,6 +43,11 @@ Linux x86_64 (only so the headless import and tests load it cleanly). Locally:
   +0x10, result +0x18, location +0x20, total +0x28. The other functions'
   layouts are still guesses (PICO's Unity SDK C#), so the probe hands them oversized zeroed buffers and logs them raw.
   The instance gives -12 (the runtime checks for a session); a wrong layout crashes inside the runtime.
+- After a scan in PICO's room capture (opened from the game by `xrStartSpatialSceneCaptureBD`; it runs as its own app,
+  `com.pvr.roomcapture`), the scene-filter load found 11 anchors (ad4c718). Results struct: capacity u32 at +0x10, count
+  u32 written at +0x14, entries pointer at +0x18; each entry is 40 bytes (type, next, anchor id at +0x10, UUID). Anchor
+  handles are small ids (260...), not `XrSpace`s: never pass them to `xrLocateSpace`. Calling the capture with
+  (session, &task) crashed at address 0; the probe now passes (session, zeroed info, &task).
 - Each risky stage writes a marker file (`user://pico_room_vN_<stage>`) and removes it when it returns, so after a
   crash the next launch skips that stage instead of crashing on every launch. Bump vN with each probe build.
 - `com.picovr.permission.SPATIAL_DATA` is unknown to OS 5.12 (logcat `NameNotFoundException`).

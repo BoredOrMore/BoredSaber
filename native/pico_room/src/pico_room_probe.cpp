@@ -12,7 +12,7 @@ using namespace godot;
 // A stage's marker is written before its private calls and removed when they return: if it is still there at the next
 // launch, that stage crashed the game, so the probe skips it (and everything after it) instead of crashing on every
 // launch. Bump the version with each probe build so a new build tries again.
-static const char *MARKER_PREFIX = "user://pico_room_v6_";
+static const char *MARKER_PREFIX = "user://pico_room_v7_";
 // Most anchors to load: a room has a floor, a ceiling, a few walls, doors, windows and furniture boxes.
 static const uint32_t MAX_ANCHORS = 64;
 // Load timeout handed to the runtime (unit undocumented).
@@ -30,8 +30,10 @@ static const uint32_t FIRST_PICO_EVENT_TYPE = 1200000000;
 // 64-bit words in each scratch buffer handed to a function whose struct layout isn't known yet. Big enough that a
 // runtime writing a larger struct than guessed stays inside it.
 static const int SCRATCH_WORDS = 64;
-// Bytes reserved per result entry (the guessed entry is 24 bytes: anchor handle + 16-byte UUID).
-static const int RESULT_STRIDE_WORDS = 8;
+// One result entry as the runtime writes it (b984b09 log): OpenXR-style header (type, next), the anchor handle at
+// +0x10, then the 16-byte UUID: 40 bytes, five 64-bit words.
+static const int RESULT_STRIDE_WORDS = 5;
+static const int RESULT_ANCHOR_WORD = 2;
 // 64-bit words of each buffer and event to log raw.
 static const int DUMP_WORDS = 12;
 
@@ -91,7 +93,6 @@ void PicoRoomProbe::_on_instance_created(uint64_t p_instance) {
 	get_component_flags = resolve<GetAnchorValue>(api, "xrGetAnchorComponentFlagsBD");
 	get_plane_boundary = resolve<GetAnchorValue>(api, "xrGetAnchorPlaneBoundaryInfoBD");
 	get_box = resolve<GetAnchorValue>(api, "xrGetAnchorBoxInfoBD");
-	locate_space = resolve<PFN_xrLocateSpace>(api, "xrLocateSpace");
 	start_scene_capture = resolve<StartSpatialSceneCapture>(api, "xrStartSpatialSceneCaptureBD");
 }
 
@@ -145,11 +146,15 @@ void PicoRoomProbe::_start_capture() {
 	if (start_scene_capture == nullptr || _enter_stage("capture")) {
 		return;
 	}
+	// b984b09 crashed at address 0 inside this call with (session, &task): the runtime probably takes an info
+	// pointer before the task id, like the load call. A zeroed info then &task works for either signature.
+	uint64_t info[SCRATCH_WORDS] = {};
 	uint64_t task = 0;
-	XrResult result = start_scene_capture(session, &task);
+	XrResult result = start_scene_capture(session, info, &task);
 	_leave_stage("capture");
 	capture_started = XR_SUCCEEDED(result);
-	UtilityFunctions::print("PicoRoom: start scene capture result ", (int64_t)result, " task ", (int64_t)task);
+	UtilityFunctions::print("PicoRoom: start scene capture result ", (int64_t)result, " task ", (int64_t)task,
+			" info ", dump_words(info, 2));
 }
 
 bool PicoRoomProbe::_on_event_polled(const void *p_event) {
@@ -184,30 +189,26 @@ void PicoRoomProbe::_read_results() {
 	if (_enter_stage("results")) {
 		return;
 	}
-	// The results struct's layout isn't known. Fill the buffer so both likely layouts read a capacity of MAX_ANCHORS
-	// and a valid array: PICO's Unity layout {u32 capacity, u32 count, entries*} at offset 0, and an OpenXR-style
-	// {type, next, u32 capacity, u32 count, entries*} with the capacity at 0x10 and the pointer at 0x18.
+	// The results struct as the runtime fills it: OpenXR-style header, u32 capacity at +0x10, u32 count written at
+	// +0x14, entries pointer at +0x18.
 	static uint64_t entries[MAX_ANCHORS * RESULT_STRIDE_WORDS];
 	uint64_t buffer[SCRATCH_WORDS];
 	memset(entries, 0, sizeof(entries));
 	memset(buffer, 0, sizeof(buffer));
-	buffer[0] = MAX_ANCHORS;
-	buffer[1] = (uint64_t)entries;
 	buffer[2] = MAX_ANCHORS;
 	buffer[3] = (uint64_t)entries;
 	XrResult result = get_load_results(session, task_id, buffer);
 	_leave_stage("results");
-	UtilityFunctions::print("PicoRoom: results result ", (int64_t)result, " buffer ", dump_words(buffer, 6));
-	UtilityFunctions::print("PicoRoom: entries ", dump_words(entries, 24));
+	uint32_t count = (uint32_t)(buffer[2] >> 32);
+	UtilityFunctions::print("PicoRoom: results result ", (int64_t)result, " count ", (int64_t)count);
 	if (XR_FAILED(result)) {
 		return;
 	}
 	if (_enter_stage("anchors")) {
 		return;
 	}
-	// The guessed entry: a 64-bit anchor handle, then a 16-byte UUID (24 bytes, three words).
-	for (uint32_t i = 0; i < MAX_ANCHORS && entries[i * 3] != 0; i++) {
-		_log_anchor(entries[i * 3]);
+	for (uint32_t i = 0; i < count && i < MAX_ANCHORS; i++) {
+		_log_anchor(entries[i * RESULT_STRIDE_WORDS + RESULT_ANCHOR_WORD]);
 	}
 	_leave_stage("anchors");
 	UtilityFunctions::print("PicoRoom: done");
@@ -219,22 +220,13 @@ void PicoRoomProbe::_log_anchor(uint64_t p_anchor) {
 	uint64_t flags[SCRATCH_WORDS] = {};
 	XrResult flags_result = get_component_flags(session, p_anchor, flags);
 	UtilityFunctions::print("PicoRoom: anchor ", String::num_uint64(p_anchor, 16), " label (", (int64_t)label_result,
-			") ", dump_words(label, 2), " flags (", (int64_t)flags_result, ") ", dump_words(flags, 2));
+			") ", dump_words(label, 4), " flags (", (int64_t)flags_result, ") ", dump_words(flags, 4));
 	uint64_t plane[SCRATCH_WORDS] = {};
 	XrResult plane_result = get_plane_boundary(session, p_anchor, plane);
-	UtilityFunctions::print("PicoRoom:   plane (", (int64_t)plane_result, ") ", dump_floats(plane, 12));
+	UtilityFunctions::print("PicoRoom:   plane (", (int64_t)plane_result, ") ", dump_floats(plane, 16));
 	uint64_t box[SCRATCH_WORDS] = {};
 	XrResult box_result = get_box(session, p_anchor, box);
-	UtilityFunctions::print("PicoRoom:   box (", (int64_t)box_result, ") ", dump_floats(box, 12));
-	Ref<OpenXRAPIExtension> api = get_openxr_api();
-	if (locate_space == nullptr || api.is_null()) {
-		return;
-	}
-	XrSpaceLocation location = { XR_TYPE_SPACE_LOCATION };
-	XrResult result = locate_space((XrSpace)p_anchor, (XrSpace)api->get_play_space(),
-			(XrTime)api->get_predicted_display_time(), &location);
-	const XrPosef &pose = location.pose;
-	UtilityFunctions::print("PicoRoom:   pose (", (int64_t)result, ") flags ", (int64_t)location.locationFlags, " pos ",
-			pose.position.x, " ", pose.position.y, " ", pose.position.z, " rot ", pose.orientation.x, " ",
-			pose.orientation.y, " ", pose.orientation.z, " ", pose.orientation.w);
+	UtilityFunctions::print("PicoRoom:   box (", (int64_t)box_result, ") ", dump_floats(box, 16));
+	// The anchor handles are small ids (260, 261...), not XrSpace pointers, so xrLocateSpace can't take them; the
+	// pose needs xrCreateAnchorSpaceBD, whose signature isn't known yet.
 }
