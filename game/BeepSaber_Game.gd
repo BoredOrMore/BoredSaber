@@ -1283,14 +1283,22 @@ func _display_points() -> void:
 const MENU_NODES: Array[NodePath] = [^"MainMenu_OQ_UI2DCanvas", ^"PauseMenu_canvas", ^"Pause_countdown",
 	^"Settings_canvas", ^"MapSourceDialogs", ^"Keyboard_online_search", ^"Keyboard_highscore", ^"Profiles_canvas",
 	^"EndScore", ^"WarningIcon", ^"MenuClock"]
+## A headset lower than this above the floor isn't tracked yet (it sits at the floor's origin).
+const EYE_TRACKED_MIN_HEIGHT := 0.5
 ## how far the menus are raised for the player's eye (Hud.HUD_EYE is 0)
 var menu_lift := 0.0
+## whether menu_lift was taken from a tracked headset; until then the menus stay at Hud.HUD_EYE
+var _menu_lift_measured := false
 ## each menu node's laid-out place
 var _menu_rest := {}
 
-## Raises the menus to the player's eye height now (on every game state change, so a menu opens where it's seen).
+## Puts the menus at the eye height measured once (at the first tracked game state change or Recenter), so they
+## don't jump when the player switches screens sitting or lying down (owner, 2026-11-02).
 func _place_menus() -> void:
-	menu_lift = _eye().y - Hud.HUD_EYE.y
+	var eye := ($XROrigin3D/XRCamera3D as XRCamera3D).global_position
+	if not _menu_lift_measured and eye.y > EYE_TRACKED_MIN_HEIGHT:
+		menu_lift = eye.y - Hud.HUD_EYE.y
+		_menu_lift_measured = true
 	for path in MENU_NODES:
 		var node := get_node_or_null(path) as Node3D
 		if node == null:
@@ -1306,7 +1314,7 @@ func lifted(t: Transform3D) -> Transform3D:
 ## The player's eye now: the headset's place, or Hud.HUD_EYE while it isn't tracked yet (at the floor's origin).
 func _eye() -> Vector3:
 	var eye := ($XROrigin3D/XRCamera3D as XRCamera3D).global_position
-	return eye if eye.y > 0.5 else Hud.HUD_EYE
+	return eye if eye.y > EYE_TRACKED_MIN_HEIGHT else Hud.HUD_EYE
 
 ## Whole seconds left in the current map, for the clock under the score.
 func _seconds_left() -> int:
@@ -1661,10 +1669,13 @@ func _on_ScenePool_new_scene_instanced(obj: Node3D, during_presizing: bool) -> v
 		else:
 			obj.visible = false
 
+## Turns and moves the play space to face the headset, and measures the menus' eye height again from it.
 func recenter():
 	var xr_camera := $XROrigin3D/XRCamera3D as XRCamera3D
 	xr_origin.rotation.y -= xr_camera.global_rotation.y
 	xr_origin.position -= (xr_camera.global_position * Vector3(1,0,1)) - Vector3(0,0,1)
+	_menu_lift_measured = false
+	_place_menus()
 
 func _set_hand(right: bool, hand: bool) -> void:
 	var angle_offset := -45. if hand else 0.
