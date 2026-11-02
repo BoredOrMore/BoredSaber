@@ -12,7 +12,7 @@ using namespace godot;
 // A stage's marker is written before its private calls and removed when they return: if it is still there at the next
 // launch, that stage crashed the game, so the probe skips it (and everything after it) instead of crashing on every
 // launch. Bump the version with each probe build so a new build tries again.
-static const char *MARKER_PREFIX = "user://pico_room_v10_";
+static const char *MARKER_PREFIX = "user://pico_room_v11_";
 // Most anchors to load: a room has a floor, a ceiling, a few walls, doors, windows and furniture boxes.
 static const uint32_t MAX_ANCHORS = 64;
 // Load timeout handed to the runtime (unit undocumented).
@@ -30,6 +30,12 @@ static const uint64_t ALL_SCENE_TYPES = 0xFF;
 static const uint32_t TYPE_EVENT_LOCAL_MAP_STATE = 1200006303;
 // Frames between load retries while no anchors are found (about 5 s at 72 Hz).
 static const int RETRY_EVERY_FRAMES = 72 * 5;
+// PICO refused to switch to its scene capture when asked the moment the session got focus (710b57e log:
+// checkAppSwitchAllowed false), and allowed it after ~70 s of focus. So wait this long after focus before asking,
+// and ask again if focus hasn't gone to the capture this long after, up to CAPTURE_TRIES times.
+static const int CAPTURE_DELAY_FRAMES = 72 * 3;
+static const int CAPTURE_CHECK_FRAMES = 72 * 5;
+static const int CAPTURE_TRIES = 6;
 // Below this a returned handle is an id, not a pointer xrLocateSpace could read (anchor ids were 260 and up).
 static const uint64_t MIN_POINTER = 0x10000;
 // PICO's own event types start here; the probe logs them raw to learn the scene capture events.
@@ -126,18 +132,42 @@ void PicoRoomProbe::_leave_stage(const char *p_stage) {
 
 void PicoRoomProbe::_on_state_focused() {
 	focused = true;
-	if (!load_started) {
-		// Bored (2026-11-02): PICO only finds the room after its scene capture, so open it first, every time.
+	if (capture_started && !capture_opened) {
+		// Focus came back without the capture ever taking it.
+		return;
+	}
+	if (capture_started) {
+		// Back from PICO's scene capture: the room should be recognised now.
 		load_started = true;
-		_start_capture();
+		_start_load();
 	}
 }
 
 void PicoRoomProbe::_on_state_visible() {
 	focused = false;
+	if (capture_started) {
+		capture_opened = true;
+	}
 }
 
 void PicoRoomProbe::_on_process() {
+	// Bored (2026-11-02): PICO only finds the room after its scene capture, so open it first, every time.
+	if (focused && !capture_opened && capture_tries < CAPTURE_TRIES) {
+		capture_frames++;
+		int wait = capture_started ? CAPTURE_CHECK_FRAMES : CAPTURE_DELAY_FRAMES;
+		if (capture_frames >= wait) {
+			capture_frames = 0;
+			capture_tries++;
+			UtilityFunctions::print("PicoRoom: asking for the scene capture, try ", capture_tries);
+			_start_capture();
+		}
+		return;
+	}
+	if (focused && !capture_opened && !load_started) {
+		UtilityFunctions::print("PicoRoom: the scene capture never opened, loading anyway");
+		load_started = true;
+		_start_load();
+	}
 	if (!load_started || found || !focused || task_id != 0) {
 		return;
 	}

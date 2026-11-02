@@ -53,11 +53,11 @@ public:
 	void _on_instance_created(uint64_t p_instance) override;
 	/// Keeps the session handle for the room calls.
 	void _on_session_created(uint64_t p_session) override;
-	/// Opens PICO's scene capture the first time the app gets focus.
+	/// Notes focus; loads the room when focus comes back from PICO's scene capture.
 	void _on_state_focused() override;
 	/// Notes that the app lost focus (for example to PICO's scene capture), which pauses the retries.
 	void _on_state_visible() override;
-	/// Retries the load every few seconds until anchors are found.
+	/// Asks for PICO's scene capture a few seconds after focus until it opens, then retries the load every few seconds until anchors are found.
 	void _on_process() override;
 	/// Logs PICO's events raw; loads again when the room localization state changes; reads results when a load
 	/// finds anchors.
@@ -103,6 +103,10 @@ private:
 	uint64_t task_id = 0;
 	bool load_started = false;
 	bool capture_started = false;
+	// Focus left the app after the capture was asked for, so PICO's capture screen took it.
+	bool capture_opened = false;
+	int capture_frames = 0;
+	int capture_tries = 0;
 	bool focused = false;
 	bool found = false;
 	int frames_since_load = 0;
