@@ -20,8 +20,12 @@ Before building, write down and show the user (or put on the style frame):
 - size in metres (1 unit = 1 m), pivot (a fixture's pivot is where the light leaves it, `game/AGENTS.md`),
   which way is forward
 - silhouette: what shape reads at the distance the player sees it from
-- budget: triangles (small props under 500, a repeated scenery piece under 200 per copy, everything in a
-  scene's view well under 50k), one material, no texture unless the look needs it (then 256 px or less)
+- budget (owner, 2026-11-02: triangles were capped tighter than the headset needs): the limit is the stage's GPU
+  time in play, at or under ~10 ms of the 13.9 ms frame (`.claude/agents/budget.md`), and fill and overdraw usually
+  cost far more than triangles. Set `budget_tris` per asset from the stage's headroom (measured scenes so far: 11-35k
+  triangles in view), keep large see-through or overlapping surfaces small, and measure GPU on the headset before
+  and after; triangle counts are a guide, not the limit. One material, no texture unless the look needs it (then
+  256 px or less)
 - collision: none for scenery; simple shapes (box, capsule) for anything cut or hit
 - acceptance: how it should look on the headset next to the style frame
 
