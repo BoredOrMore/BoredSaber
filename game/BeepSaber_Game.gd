@@ -44,6 +44,8 @@ var current_health := Constants.HEALTH_START
 @onready var settings_panel := settings_canvas.ui_control as SettingsPanel
 @onready var profiles_canvas := $Profiles_canvas as OQ_UI2DCanvas
 @onready var profiles_panel := profiles_canvas.ui_control as ProfilesPanel
+@onready var room_setup_canvas := $RoomSetup_canvas as OQ_UI2DCanvas
+@onready var room_setup_panel := room_setup_canvas.ui_control as RoomSetupPanel
 @onready var highscore_canvas := $Highscores_Canvas as OQ_UI2DCanvas
 @onready var highscore_panel := highscore_canvas.ui_control as HighscorePanel
 ## Where the record table stands on the score screen: next to the score panel (its place in the scene).
@@ -1282,6 +1284,7 @@ func _display_points() -> void:
 ## eye), so each keeps the angle it was laid out at. The slash note places itself (SlashBlock.set_shown).
 const MENU_NODES: Array[NodePath] = [^"MainMenu_OQ_UI2DCanvas", ^"PauseMenu_canvas", ^"Pause_countdown",
 	^"Settings_canvas", ^"MapSourceDialogs", ^"Keyboard_online_search", ^"Keyboard_highscore", ^"Profiles_canvas",
+	^"RoomSetup_canvas",
 	^"EndScore", ^"WarningIcon", ^"MenuClock"]
 ## A headset lower than this above the floor isn't tracked yet (it sits at the floor's origin).
 const EYE_TRACKED_MIN_HEIGHT := 0.5
@@ -1510,6 +1513,24 @@ func _open_profiles() -> void:
 	profiles_panel.refresh()
 	profiles_canvas._show()
 	main_menu.disable_collision = true
+	_update_slash_block()
+
+## Shows "Set up your room" (mixed reality turned on) 10 cm in front of the menus, which take no pointer input
+## meanwhile.
+func open_room_setup() -> void:
+	room_setup_panel.start()
+	room_setup_canvas._show()
+	main_menu.disable_collision = true
+	settings_canvas.disable_collision = true
+	# also called from _ready (vr.initialize), before the slash block has its sabers
+	_update_slash_block.call_deferred()
+
+## Closes the room setup and gives the menus their pointer input back; Settings shows whether mixed reality stayed on.
+func _close_room_setup() -> void:
+	room_setup_canvas._hide()
+	main_menu.disable_collision = false
+	settings_canvas.disable_collision = false
+	settings_panel.mixed_reality_control.set_pressed_no_signal(Settings.mixed_reality)
 	_update_slash_block()
 
 ## "Not you?" on the score screen (owner, 2026-10-28): "Who's playing?" opens in its place; whoever is picked (or added)

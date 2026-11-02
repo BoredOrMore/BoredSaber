@@ -31,7 +31,7 @@ func room() -> Array:
 
 ## Runs every check and quits with the failure count.
 func _ready() -> void:
-	var portal := RoomOutline.find_portal(room(), Vector3(0, 0, -1))
+	var portal := RoomOutline.find_portal(room(), Vector3.ZERO, Vector3(0, 0, -1))
 	check(not portal.is_empty(), "a wall is ahead")
 	var place := portal.get("transform", Transform3D()) as Transform3D
 	check(absf(place.origin.z + 3.67) < 0.1, "portal on the front wall, 3.67 m ahead (got %.2f)" % place.origin.z)
@@ -41,14 +41,17 @@ func _ready() -> void:
 	var bottom := place.origin.y - size.y / 2
 	var top := place.origin.y + size.y / 2
 	check(bottom >= -0.08 and top <= 2.57, "portal between floor and ceiling (%.2f to %.2f)" % [bottom, top])
-	check(RoomOutline.find_portal(room(), Vector3(0, 0, 1)).get("transform", Transform3D()).origin.z > 1.5,
+	var turned := RoomOutline.find_portal(room(), Vector3(0, 0, 0.5), Vector3(-1, 0.2, 0))
+	check(absf((turned.get("transform", Transform3D()) as Transform3D).origin.x + 2.02) < 0.1,
+		"facing left (path kept level), the portal is on the left wall")
+	check(RoomOutline.find_portal(room(), Vector3.ZERO, Vector3(0, 0, 1)).get("transform", Transform3D()).origin.z > 1.5,
 		"facing back, the portal is on the wall behind")
-	check(RoomOutline.find_portal([], Vector3(0, 0, -1)).is_empty(), "no walls, no portal")
+	check(RoomOutline.find_portal([], Vector3.ZERO, Vector3(0, 0, -1)).is_empty(), "no walls, no portal")
 	var outline := RoomOutline.new()
 	add_child(outline)
-	outline.show_room(room())
+	outline.show_room(room(), Vector3.ZERO, Vector3(0, 0, -1))
 	check(outline.mesh.get_surface_count() == 1 and outline.visible, "outline drawn")
-	outline.show_room([])
+	outline.show_room([], Vector3.ZERO, Vector3(0, 0, -1))
 	check(not outline.visible, "empty room hides the outline")
 	print("FAILURES: ", failures)
 	get_tree().quit(1 if failures > 0 else 0)

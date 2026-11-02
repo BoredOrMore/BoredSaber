@@ -30,8 +30,9 @@ func _ready() -> void:
 	material_override = material
 
 
-## Draws `pieces` (PicoRoom's room_loaded list) and the portal frame on the wall the notes come from.
-func show_room(pieces: Array) -> void:
+## Draws `pieces` (PicoRoom's room_loaded list) and the portal frame where the track, from `spot` along
+## `direction` (both in this node's space), meets a wall.
+func show_room(pieces: Array, spot: Vector3, direction: Vector3) -> void:
 	_mesh.clear_surfaces()
 	visible = not pieces.is_empty()
 	if pieces.is_empty():
@@ -46,20 +47,21 @@ func show_room(pieces: Array) -> void:
 		elif label != LABEL_FLOOR and label != LABEL_CEILING:
 			# The floor and ceiling come as 1 m squares; the walls' edges outline them instead.
 			_add_rect(place, Vector2(size.x, size.y), Constants.UI_TEXT)
-	var portal := find_portal(pieces, Vector3(0, 0, -1))
+	var portal := find_portal(pieces, spot, direction)
 	if not portal.is_empty():
 		_add_rect(portal["transform"] as Transform3D, portal["size"] as Vector2, Constants.UI_ACCENT)
 	_mesh.surface_end()
 
 
-## Returns the portal frame where a path along `direction` (flat, from above the player's floor spot) meets the
-## nearest wall: {"transform": its centre on the wall, "size": Vector2}, or {} when no wall is ahead.
-static func find_portal(pieces: Array, direction: Vector3) -> Dictionary:
+## Returns the portal frame where the note path, from above `spot` on the floor along `direction` (kept level), meets
+## the nearest wall: {"transform": its centre on the wall, "size": Vector2}, or {} when no wall is ahead.
+static func find_portal(pieces: Array, spot: Vector3, direction: Vector3) -> Dictionary:
+	direction = Vector3(direction.x, 0, direction.z).normalized()
 	var floor_y := 0.0
 	for piece: Dictionary in pieces:
 		if piece["label"] == LABEL_FLOOR:
 			floor_y = (piece["transform"] as Transform3D).origin.y
-	var start := Vector3(0, floor_y + PORTAL_PATH_HEIGHT, 0)
+	var start := Vector3(spot.x, floor_y + PORTAL_PATH_HEIGHT, spot.z)
 	var best := {}
 	var best_distance := INF
 	for piece: Dictionary in pieces:

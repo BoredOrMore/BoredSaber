@@ -18,8 +18,10 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
   the `STYLES` / `GENRES` both filter panels offer. An AI-made map (BeatSaver's `automapper`) keeps `AI_TAG` with its
   tags (`tags_from`, also on download), so both song lists put `AI_MARK` "AI · " before its name and the song menu " (AI)" after its mapper (`is_ai`).
 - `MixedReality.gd` (autoload) - `set_mixed_reality(mr)`: passthrough on/off plus floor/HUD material tweaks; turning it
-  on scans the real room through the `PicoRoom` engine singleton (`native/pico_room/`, PICO only; Bored 2026-11-02:
-  every time) and draws it with `RoomOutline`.
+  on opens the room setup (`game/ui/RoomSetupPanel`) when the headset can scan the room (`can_scan_room`: the
+  `PicoRoom` engine singleton, `native/pico_room/`, PICO only; Bored 2026-11-02: every time). `scan_room` ends in
+  `room_found(pieces)` or `room_missing`; the room is kept and drawn with `RoomOutline`, shown only while the setup
+  checks it (`show_room_outline`).
 - `RoomOutline.gd` (class `RoomOutline`, a child of `XROrigin3D`) - the real room as lines over the passthrough: walls,
   doors and windows in `UI_TEXT`, furniture boxes in `UI_TEXT_MUTED`, and the portal frame in `UI_ACCENT` where the
   note path meets the nearest wall (`find_portal`; its size constants are UNTUNED placeholders). Poses are in the

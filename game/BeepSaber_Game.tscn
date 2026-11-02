@@ -35,6 +35,7 @@
 [ext_resource type="Script" path="res://game/hud/HealthRails.gd" id="38_rails"]
 [ext_resource type="Script" path="res://game/hud/ComboHud.gd" id="39_combo"]
 [ext_resource type="PackedScene" path="res://game/ui/ProfilesPanel.tscn" id="40_profiles"]
+[ext_resource type="PackedScene" path="res://game/ui/RoomSetupPanel.tscn" id="41_room_setup"]
 [ext_resource type="Script" path="res://game/SlashBlock.gd" id="41_slash"]
 
 [ext_resource type="PackedScene" path="res://game/ui/PracticePanel.tscn" id="practice_panel"]
@@ -281,6 +282,14 @@ visible = false
 [node name="ProfilesPanel" parent="Profiles_canvas" node_paths=PackedStringArray("keyboard") instance=ExtResource("40_profiles")]
 keyboard = NodePath("../../Keyboard_highscore")
 
+[node name="RoomSetup_canvas" parent="." instance=ExtResource("3")]
+transform = Transform3D(2.4, 0, 0, 0, 2.4, 0, 0, 0, 1, 0, 1.6, -0.9)
+curve_radius = 1.9
+round_corners = true
+visible = false
+
+[node name="RoomSetupPanel" parent="RoomSetup_canvas" instance=ExtResource("41_room_setup")]
+
 [node name="BeepCubePool" parent="." unique_id=834836976 instance=ExtResource("27")]
 scene = ExtResource("33_nc705")
 
@@ -319,6 +328,7 @@ main_menu_ref = NodePath("../MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu")
 [connection signal="play_ready_changed" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="_update_slash_block"]
 [connection signal="slashed" from="SlashBlock" to="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" method="play_selected"]
 [connection signal="close_requested" from="Profiles_canvas/ProfilesPanel" to="." method="_close_profiles"]
+[connection signal="close_requested" from="RoomSetup_canvas/RoomSetupPanel" to="." method="_close_room_setup"]
 [connection signal="start_map" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="start_map"]
 [connection signal="start_practice" from="MainMenu_OQ_UI2DCanvas/BeepSaberMainMenu" to="." method="start_practice"]
 [connection signal="mainmenu" from="EndScore" to="." method="_main_menu_button"]
