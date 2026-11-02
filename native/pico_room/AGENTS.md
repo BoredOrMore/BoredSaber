@@ -5,8 +5,10 @@ Reality mode (plan: https://claude.ai/artifact/GGNL7bgEiekk4VeT4G3aVy). Godot 4.
 standard spatial entity path (`XR_EXT_spatial_entity`) isn't offered by the Pico 4 runtime on OS 5.12, and GDScript
 can't call raw OpenXR functions. The owner approved this native dependency (2026-11-02).
 
-Stage: probe only. It logs (tag `PicoRoom:` in logcat) every extension the runtime offers with its version, and which
-of the room extensions Godot could enable. Not for merging until it reads rooms.
+Stage: probe only (tag `PicoRoom:` in logcat). It logs which room extensions Godot enabled and which of PICO's room
+functions resolve, then, once the app has focus, tries to load the room the player saved in PICO's own room setup
+(`xrLoadAnchorEntityBD`, no filter) and logs each anchor's scene label, plane, box and pose, plus every runtime event
+raw. Not for merging until it reads rooms.
 
 ## File map
 
@@ -30,4 +32,10 @@ Linux x86_64 (only so the headless import and tests load it cleanly). Locally:
 - The runtime's library names PICO-specific extensions (`XR_BD_room_scene`, `XR_BD_semi_auto_room_capture`,
   `XR_BD_spatial_localization_and_tracking`) and lacks the Khronos `XR_BD_spatial_sensing` base and `XR_EXT_future`
   by name (strings in `libpxrruntime*.so`, 2026-11-02). Trust the probe's list over the Khronos headers.
+- The Pico 4 runtime (OS 5.12) offers only PICO's older private room API: `XR_BD_anchor_entity`,
+  `XR_BD_room_scene`, `XR_BD_semi_auto_room_capture` (function names from the runtime's strings). PICO publishes no C
+  header for it: struct layouts come from PICO's Unity SDK C# (`PXR_Plugin.cs`) and signatures from the community
+  dump https://github.com/thoricelli/PICO-documentation (xrAPI/README.md); whether the first argument is the instance
+  or the session isn't known yet, so the probe tries both. Anchor handles are `XrSpace`s (the runtime destroys them
+  with `xrDestroySpace`).
 - `com.picovr.permission.SPATIAL_DATA` is unknown to OS 5.12 (logcat `NameNotFoundException`).
