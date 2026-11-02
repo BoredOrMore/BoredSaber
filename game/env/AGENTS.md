@@ -108,19 +108,33 @@ Henge (24 monoliths round the player, for 90/360 maps; BLOCKOUT 2026-10-29)
   the bands and adds `FLOOD_LEVEL` grey, capped at `FLOOR_MAX` below the notes. `HengeSky.gdshader`: dark with a
   neutral horizon glow (no `bg_<type>`). Picked only in the menu or for 90/360 maps; never by Follow map.
 
-Monolith (one colossal slab down a cloud-filled valley between mountains, seen from a tall pillar, abstract; in the Auto pool; BLOCKOUT
-2026-10-31)
+Monolith (one colossal slab down a valley filled by a cloud sea between hills, seen from a tall pillar, abstract; in
+the Auto pool; BLOCKOUT 2026-10-31; cloud sea and hills from GPT, owner 2026-11-01)
 - `MonolithRig.gd` (tool, `MonolithRig`): one black box `SLAB` (1:4:9) `SLAB_DISTANCE` out, `SLAB_YAW` left of ahead,
   its face to the player (`face_material`), standing on the floor of a valley `VALLEY_Y` below the platform that runs
   the same way; the player's pillar down to it; a flat valley floor out to `VALLEY_RADIUS` (valley and pillar share
-  `floor_material`); mountain rings (`RIDGE_RINGS`, `_ridge_ring`: a band up from the valley floor to a jagged ridge,
-  low along the valley's line and high at its sides; owner, 2026-10-31: layered silhouettes in place of terraces); upright cloud rings (`CLOUD_RINGS`, `_cloud_ring`: a band up from the valley floor whose top
-  is a row of round puffs, built in the mesh and closed round the ring with no step) , the nearest 80 m out (owner, 2026-10-31:
-  clouds closer). Clouds and mountains share `_upright_ring` (band plus soft-edge fringe). Every mountain ring stays
-  beyond r 320 m and clear of the slab, and every cloud inside it below y -5; keep it so when changing the numbers. `ledge_spot(share)` and
-  `up_face(lean)` place the lasers (`LightRig` "monolith": diagonal beams up the face from its ledge `LEDGE_HEIGHT`
-  up, above the clouds (owner, 2026-10-31), waving lasers
-  between; no square bars). Nothing within the notes' 300 m fly-in in any direction (owner's rule, 2026-10-31).
+  `floor_material`); the cloud sea (`MonolithCloudSea`) round the player; hills (`_hill_ring`): one smooth upright ring
+  per `HILL_RINGS` entry (380, 650, 950 m), low along the valley's line and high at its sides, flat `HILL_TONE` greys
+  (`MonolithHill.gdshader`), each bound to the sea so it sinks in. The cloud sea and hills were picked by the owner on
+  the headset over our 3D banks and mountains (2026-11-01): made with GPT in the owner's `stylized-3d-agent` folder on
+  the Mac (the sea from its run `monolith_cloud_shading_surface_20261101T061046Z_a4ef3c43`, the hills ported from its
+  review scene `tools/cloud_shading_review.gd`); the generator scripts live there, not in this repo. Nothing rises
+  above y -5 within the notes' 300 m fly-in in any direction (owner's rule, 2026-10-31): the sea's highest point
+  inside 320 m is y -10 and the nearest hill ring is 380 m out; keep it so when changing either. `ledge_spot(share)`
+  and `up_face(lean)` place the lasers (`LightRig` "monolith": diagonal beams up the face from its ledge
+  `LEDGE_HEIGHT` up, above the clouds (owner, 2026-10-31), waving lasers between; no square bars).
+- `MonolithCloudSea.gd` (tool, `MonolithCloudSea`): loads `game/models/monolith_cloud/cloud.glb` (one sheet, r 980 m,
+  17,280 triangles, no vertex colours) with `MonolithCloudSea.gdshader`, and its height map `heightfield.bin`
+  (512x512 RGBA8, described by `heightfield.json`; listed in the Pico 4 export preset's `include_filter`, since Godot
+  doesn't export a `.bin` on its own). `bind_material(material)` gives a material the map and where the sea lies, and
+  updates it when the sea moves (translation and yaw only). The map is a data texture, the one exception to the
+  stage's vertex-colour-only models (owner's pick, 2026-11-01).
+- `monolith_cloud_sea.gdshaderinc`: the sea's tones (`SEA_TONE` darkening `DARK_DEPTH` m below its surface, a fixed
+  `KEY` light, paler toward the haze with distance) and `under_cloud(color, haze, world)`, used by the slab, the valley,
+  the pillar and the hills: below the sea's surface (read from the height map) a surface takes the sea's tone, so
+  nothing pokes hard through a cloud or shows beneath one (owner, 2026-10-31). Its tones are linear and
+  `mcloud_output` encodes them to sRGB (the sea and the hills; the slab and floor keep the stage's convention).
+  `MonolithCloudSea.gdshader`: the sea's body. `MonolithHill.gdshader`: the hills.
 - `MonolithFace.gdshader`: the slab's lights drawn on its front face (strip meshes would z-fight 500-1000 m out), each
   line at least `MIN_PIXELS` wide: edges in the left/right lasers' colours, `SEAMS` seams in the square bars' lit from
   the foot by `lit`, a slit up the middle open to `slit` in the floor lights' colour (no strip on the ledge: owner, 2026-10-31)
@@ -128,18 +142,9 @@ Monolith (one colossal slab down a cloud-filled valley between mountains, seen f
   slit, it closes to `MONOLITH_SLIT_REST`). Soft far edges not on yet: planned for the slab's outline, never its lines.
 - `MonolithFloor.gdshader`: the valley and pillar: dark ground with a neutral `BASE`, the horizon's glow on the far
   ground toward the slab, steep faces darker than treads (slope from screen derivatives, no normals), the slab's shadow
-  falling toward the player as a widening wedge. `MonolithCloud.gdshader`: the cloud rings, opaque (outline in the
-  mesh: no discard, no blending), light at the tallest puffs' line darkening downward (from that
-  smooth line, not each puff's top, so no crease runs down from the dips between puffs), a thin rim on the puffs, farther rings paler.
-  `MonolithRidge.gdshader`: the mountain rings, opaque dark flat silhouettes with a thin lighter
-  ridge line, paler with distance, sinking into the clouds below their level. `MonolithCloudEdge.gdshader`: the clouds'
-  and mountains' soft edge (owner, 2026-10-31), a see-through fringe `CLOUD_BLUR` or `RIDGE_BLUR` (an angle) out from
-  the outline in the `tone` MonolithRig sets, the stage's only blending. `monolith_cloud.gdshaderinc`: the clouds' tones and
-  `under_cloud`, used by the clouds, the mountains, the valley, the pillar and the slab: below the clouds' level (`CLOUD_RINGS`' puffs'
-  middle, set by `_sink_into_clouds`, `CLOUD_RING_COUNT` rings, 6) a surface takes the cloud's tone, so nothing pokes hard through
-  a cloud or shows beneath one (owner, 2026-10-31). `MonolithSky.gdshader`:
+  falling toward the player as a widening wedge. `MonolithSky.gdshader`:
   black with a neutral horizon glow behind the slab (`SLAB_DIR` must match `MonolithRig.SLAB_YAW`; no `bg_<type>`) and
-  a fainter neutral one all round so the ridges stand as silhouettes.
+  a fainter neutral one all round so the hills stand as silhouettes.
 
 Metal Factory (underground power plant)
 - `MetalFactoryRig.gd` (tool): pistons over anvils, gear rings, energy rails, wall kit with vents, vault, drive gears.
