@@ -5,30 +5,27 @@
 #include <godot_cpp/classes/open_xrapi_extension.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
-#include <vector>
+#include <cstring>
 
 using namespace godot;
 
+// A stage's marker is written before its private calls and removed when they return: if it is still there at the next
+// launch, that stage crashed the game, so the probe skips it (and everything after it) instead of crashing on every
+// launch. Bump the version with each probe build so a new build tries again.
+static const char *MARKER_PREFIX = "user://pico_room_v4_";
 // Most anchors to load: a room has a floor, a ceiling, a few walls, doors, windows and furniture boxes.
 static const uint32_t MAX_ANCHORS = 64;
-// Load timeout handed to the runtime (unit undocumented; PICO's Unity SDK passes milliseconds-sized values).
+// Load timeout handed to the runtime (unit undocumented).
 static const uint64_t LOAD_TIMEOUT = 5000;
 // PxrPersistLocation.Local: anchors saved on the headset.
-static const int32_t LOCATION_LOCAL = 1;
-// Written just before the first private call and removed when the probe finishes: if it's still there at the next launch, the last
-// attempt crashed the game, so the probe skips the call instead of crashing on every launch. Bump the suffix
-// with each new probe build so it tries again.
-static const char *ATTEMPT_MARKER = "user://pico_room_load_attempt_v3";
-// PxrStructureType.AnchorEntityLoadSpatialSceneFilter in PICO's Unity SDK.
-static const int32_t TYPE_SPATIAL_SCENE_FILTER = 128;
-// Every PxrSpatialSceneDataTypeFlags bit: unknown, floor, ceiling, wall, door, window, opening, object.
-static const uint64_t ALL_SCENE_TYPES = 0xFF;
-// Frames between two checks for the load result (about 4 a second at 72 Hz).
-static const int CHECK_EVERY_FRAMES = 18;
-// Frames to wait for the load result before giving up (about 30 s at 72 Hz).
-static const int MAX_WAIT_FRAMES = 72 * 30;
-// Bytes of each runtime event to log raw.
-static const int EVENT_DUMP_WORDS = 12;
+static const uint32_t LOCATION_LOCAL = 1;
+// 64-bit words in each scratch buffer handed to a function whose struct layout isn't known yet. Big enough that a
+// runtime writing a larger struct than guessed stays inside it.
+static const int SCRATCH_WORDS = 64;
+// Bytes reserved per result entry (the guessed entry is 24 bytes: anchor handle + 16-byte UUID).
+static const int RESULT_STRIDE_WORDS = 8;
+// 64-bit words of each buffer and event to log raw.
+static const int DUMP_WORDS = 12;
 
 /// Resolves one runtime function by name and logs whether the runtime has it.
 template <typename T>
@@ -36,6 +33,26 @@ static T resolve(const Ref<OpenXRAPIExtension> &p_api, const char *p_name) {
 	T function = (T)p_api->get_instance_proc_addr(p_name);
 	UtilityFunctions::print("PicoRoom: fn ", p_name, function != nullptr ? " found" : " MISSING");
 	return function;
+}
+
+/// Returns the first words of a buffer as hex, for the log.
+static String dump_words(const void *p_data, int p_words) {
+	const uint64_t *words = (const uint64_t *)p_data;
+	String text;
+	for (int i = 0; i < p_words; i++) {
+		text += String::num_uint64(words[i], 16) + " ";
+	}
+	return text;
+}
+
+/// Returns the first floats of a buffer, for the log.
+static String dump_floats(const void *p_data, int p_floats) {
+	const float *floats = (const float *)p_data;
+	String text;
+	for (int i = 0; i < p_floats; i++) {
+		text += String::num(floats[i], 3) + " ";
+	}
+	return text;
 }
 
 Dictionary PicoRoomProbe::_get_requested_extensions() {
@@ -52,11 +69,9 @@ Dictionary PicoRoomProbe::_get_requested_extensions() {
 }
 
 void PicoRoomProbe::_on_instance_created(uint64_t p_instance) {
-	instance = p_instance;
-	UtilityFunctions::print("PicoRoom: enabled spatial_scene ", spatial_scene, " room_scene ", room_scene,
-			" semi_auto_room_capture ", semi_auto_room_capture, " spatial_anchor ", spatial_anchor, " anchor_entity ",
-			anchor_entity, " anchor_entity_persistence ", anchor_entity_persistence, " mr_management ", mr_management,
-			" async_task ", async_task);
+	UtilityFunctions::print("PicoRoom: enabled anchor_entity ", anchor_entity, " anchor_entity_persistence ",
+			anchor_entity_persistence, " room_scene ", room_scene, " spatial_scene ", spatial_scene, " mr_management ",
+			mr_management);
 	Ref<OpenXRAPIExtension> api = get_openxr_api();
 	if (api.is_null()) {
 		UtilityFunctions::push_error("PicoRoom: no OpenXR API");
@@ -64,21 +79,30 @@ void PicoRoomProbe::_on_instance_created(uint64_t p_instance) {
 	}
 	load_anchor_entity = resolve<LoadAnchorEntity>(api, "xrLoadAnchorEntityBD");
 	get_load_results = resolve<GetAnchorEntityLoadResults>(api, "xrGetAnchorEntityLoadResultsBD");
-	get_scene_label = resolve<GetAnchorSceneLabel>(api, "xrGetAnchorSceneLabelBD");
-	get_component_flags = resolve<GetAnchorComponentFlags>(api, "xrGetAnchorComponentFlagsBD");
-	get_plane_boundary = resolve<GetAnchorPlaneBoundaryInfo>(api, "xrGetAnchorPlaneBoundaryInfoBD");
-	get_box = resolve<GetAnchorBoxInfo>(api, "xrGetAnchorBoxInfoBD");
+	get_scene_label = resolve<GetAnchorValue>(api, "xrGetAnchorSceneLabelBD");
+	get_component_flags = resolve<GetAnchorValue>(api, "xrGetAnchorComponentFlagsBD");
+	get_plane_boundary = resolve<GetAnchorValue>(api, "xrGetAnchorPlaneBoundaryInfoBD");
+	get_box = resolve<GetAnchorValue>(api, "xrGetAnchorBoxInfoBD");
 	locate_space = resolve<PFN_xrLocateSpace>(api, "xrLocateSpace");
-	// Only logged, for the next step (starting a scan from inside the game).
-	resolve<void *>(api, "xrStartSpatialSceneCaptureBD");
-	resolve<void *>(api, "xrStartSemiAutoRoomCaptureBD");
-	resolve<void *>(api, "xrStartRoomCaptureBD");
-	resolve<void *>(api, "xrLoadRoomSceneBD");
-	resolve<void *>(api, "xrGetBoundaryGeometryPICO");
 }
 
 void PicoRoomProbe::_on_session_created(uint64_t p_session) {
-	session = p_session;
+	session = (XrSession)p_session;
+}
+
+bool PicoRoomProbe::_enter_stage(const char *p_stage) {
+	String marker = String(MARKER_PREFIX) + p_stage;
+	if (FileAccess::file_exists(marker)) {
+		UtilityFunctions::print("PicoRoom: skipped stage ", p_stage, ", it crashed the game last launch");
+		return true;
+	}
+	FileAccess::open(marker, FileAccess::WRITE).unref();
+	UtilityFunctions::print("PicoRoom: stage ", p_stage);
+	return false;
+}
+
+void PicoRoomProbe::_leave_stage(const char *p_stage) {
+	DirAccess::remove_absolute(String(MARKER_PREFIX) + p_stage);
 }
 
 void PicoRoomProbe::_on_state_focused() {
@@ -92,94 +116,86 @@ void PicoRoomProbe::_on_state_focused() {
 void PicoRoomProbe::_start_load() {
 	if (load_anchor_entity == nullptr || get_load_results == nullptr) {
 		UtilityFunctions::print("PicoRoom: load functions missing, nothing to try");
-		done = true;
 		return;
 	}
-	PxrAnchorEntityLoadSpatialSceneFilter filter = { TYPE_SPATIAL_SCENE_FILTER, ALL_SCENE_TYPES };
-	PxrAnchorEntityLoadInfo info = { MAX_ANCHORS, LOAD_TIMEOUT, LOCATION_LOCAL, &filter, nullptr };
-	handle = session;
-	if (FileAccess::file_exists(ATTEMPT_MARKER)) {
-		UtilityFunctions::print("PicoRoom: skipped, the last load attempt crashed the game");
-		done = true;
+	if (_enter_stage("load")) {
 		return;
 	}
-	FileAccess::open(ATTEMPT_MARKER, FileAccess::WRITE).unref();
+	PicoAnchorEntityLoadInfo info = { 0, nullptr, MAX_ANCHORS, LOAD_TIMEOUT, LOCATION_LOCAL, nullptr };
 	uint64_t task = 0;
-	UtilityFunctions::print("PicoRoom: loading with the session and a scene filter");
-	XrResult result = load_anchor_entity(handle, &info, &task);
+	XrResult result = load_anchor_entity(session, &info, &task);
+	_leave_stage("load");
 	UtilityFunctions::print("PicoRoom: load result ", (int64_t)result, " task ", (int64_t)task);
 	if (XR_SUCCEEDED(result)) {
 		task_id = task;
-		return;
-	}
-	_finish();
-}
-
-void PicoRoomProbe::_finish() {
-	done = true;
-	DirAccess::remove_absolute(ATTEMPT_MARKER);
-}
-
-void PicoRoomProbe::_on_process() {
-	if (!load_started || done) {
-		return;
-	}
-	frames_waited++;
-	if (frames_waited % CHECK_EVERY_FRAMES != 0) {
-		return;
-	}
-	if (_read_results() || frames_waited >= MAX_WAIT_FRAMES) {
-		if (frames_waited >= MAX_WAIT_FRAMES) {
-			UtilityFunctions::print("PicoRoom: gave up waiting for the load result");
-		}
-		_finish();
 	}
 }
 
-bool PicoRoomProbe::_read_results() {
-	PxrAnchorEntityLoadResults count_query = { 0, 0, nullptr };
-	XrResult result = get_load_results(handle, task_id, &count_query);
-	if (result != last_result) {
-		UtilityFunctions::print("PicoRoom: results count call result ", (int64_t)result, " count ",
-				(int64_t)count_query.output_count);
-		last_result = result;
-	}
-	if (XR_FAILED(result) || count_query.output_count == 0) {
+bool PicoRoomProbe::_on_event_polled(const void *p_event) {
+	const XrEventDataBaseHeader *header = (const XrEventDataBaseHeader *)p_event;
+	UtilityFunctions::print("PicoRoom: event type ", (int64_t)header->type, " words ", dump_words(p_event, DUMP_WORDS));
+	if (task_id == 0 || results_read) {
 		return false;
 	}
-	std::vector<PxrAnchorEntityLoadResult> anchors(count_query.output_count);
-	PxrAnchorEntityLoadResults query = { (uint32_t)anchors.size(), 0, anchors.data() };
-	result = get_load_results(handle, task_id, &query);
-	UtilityFunctions::print("PicoRoom: results call result ", (int64_t)result, " count ", (int64_t)query.output_count);
+	// The loaded event's layout isn't known: look for the task id in its first words.
+	const uint64_t *words = (const uint64_t *)p_event;
+	for (int i = 1; i < DUMP_WORDS; i++) {
+		if (words[i] == task_id) {
+			UtilityFunctions::print("PicoRoom: event carries the load task id at word ", i);
+			results_read = true;
+			_read_results();
+			break;
+		}
+	}
+	return false;
+}
+
+void PicoRoomProbe::_read_results() {
+	if (_enter_stage("results")) {
+		return;
+	}
+	// The results struct's layout isn't known. Fill the buffer so both likely layouts read a capacity of MAX_ANCHORS
+	// and a valid array: PICO's Unity layout {u32 capacity, u32 count, entries*} at offset 0, and an OpenXR-style
+	// {type, next, u32 capacity, u32 count, entries*} with the capacity at 0x10 and the pointer at 0x18.
+	static uint64_t entries[MAX_ANCHORS * RESULT_STRIDE_WORDS];
+	uint64_t buffer[SCRATCH_WORDS];
+	memset(entries, 0, sizeof(entries));
+	memset(buffer, 0, sizeof(buffer));
+	buffer[0] = MAX_ANCHORS;
+	buffer[1] = (uint64_t)entries;
+	buffer[2] = MAX_ANCHORS;
+	buffer[3] = (uint64_t)entries;
+	XrResult result = get_load_results(session, task_id, buffer);
+	_leave_stage("results");
+	UtilityFunctions::print("PicoRoom: results result ", (int64_t)result, " buffer ", dump_words(buffer, 6));
+	UtilityFunctions::print("PicoRoom: entries ", dump_words(entries, 24));
 	if (XR_FAILED(result)) {
-		return true;
+		return;
 	}
-	for (uint32_t i = 0; i < query.output_count && i < anchors.size(); i++) {
-		_log_anchor(anchors[i].anchor);
+	if (_enter_stage("anchors")) {
+		return;
 	}
+	// The guessed entry: a 64-bit anchor handle, then a 16-byte UUID (24 bytes, three words).
+	for (uint32_t i = 0; i < MAX_ANCHORS && entries[i * 3] != 0; i++) {
+		_log_anchor(entries[i * 3]);
+	}
+	_leave_stage("anchors");
 	UtilityFunctions::print("PicoRoom: done");
-	return true;
 }
 
 void PicoRoomProbe::_log_anchor(uint64_t p_anchor) {
-	int32_t label = -1;
-	XrResult label_result = get_scene_label != nullptr ? get_scene_label(handle, p_anchor, &label) : XR_ERROR_FUNCTION_UNSUPPORTED;
-	uint64_t flags = 0;
-	XrResult flags_result = get_component_flags != nullptr ? get_component_flags(handle, p_anchor, &flags) : XR_ERROR_FUNCTION_UNSUPPORTED;
-	UtilityFunctions::print("PicoRoom: anchor ", (int64_t)p_anchor, " label ", label, " (", (int64_t)label_result,
-			") flags ", (int64_t)flags, " (", (int64_t)flags_result, ")");
-	PxrAnchorPlaneBoundaryInfo plane = {};
-	if (get_plane_boundary != nullptr) {
-		XrResult result = get_plane_boundary(handle, p_anchor, &plane);
-		UtilityFunctions::print("PicoRoom:   plane (", (int64_t)result, ") center ", plane.center[0], " ", plane.center[1],
-				" ", plane.center[2], " size ", plane.width, " x ", plane.height);
-	}
-	PxrAnchorVolumeInfo box = {};
-	if (get_box != nullptr) {
-		XrResult result = get_box(handle, p_anchor, &box);
-		UtilityFunctions::print("PicoRoom:   box (", (int64_t)result, ") center ", box.center[0], " ", box.center[1], " ",
-				box.center[2], " extent ", box.extent[0], " ", box.extent[1], " ", box.extent[2]);
-	}
+	uint64_t label[SCRATCH_WORDS] = {};
+	XrResult label_result = get_scene_label(session, p_anchor, label);
+	uint64_t flags[SCRATCH_WORDS] = {};
+	XrResult flags_result = get_component_flags(session, p_anchor, flags);
+	UtilityFunctions::print("PicoRoom: anchor ", String::num_uint64(p_anchor, 16), " label (", (int64_t)label_result,
+			") ", dump_words(label, 2), " flags (", (int64_t)flags_result, ") ", dump_words(flags, 2));
+	uint64_t plane[SCRATCH_WORDS] = {};
+	XrResult plane_result = get_plane_boundary(session, p_anchor, plane);
+	UtilityFunctions::print("PicoRoom:   plane (", (int64_t)plane_result, ") ", dump_floats(plane, 12));
+	uint64_t box[SCRATCH_WORDS] = {};
+	XrResult box_result = get_box(session, p_anchor, box);
+	UtilityFunctions::print("PicoRoom:   box (", (int64_t)box_result, ") ", dump_floats(box, 12));
 	Ref<OpenXRAPIExtension> api = get_openxr_api();
 	if (locate_space == nullptr || api.is_null()) {
 		return;
@@ -191,15 +207,4 @@ void PicoRoomProbe::_log_anchor(uint64_t p_anchor) {
 	UtilityFunctions::print("PicoRoom:   pose (", (int64_t)result, ") flags ", (int64_t)location.locationFlags, " pos ",
 			pose.position.x, " ", pose.position.y, " ", pose.position.z, " rot ", pose.orientation.x, " ",
 			pose.orientation.y, " ", pose.orientation.z, " ", pose.orientation.w);
-}
-
-bool PicoRoomProbe::_on_event_polled(const void *p_event) {
-	const XrEventDataBaseHeader *header = (const XrEventDataBaseHeader *)p_event;
-	const uint32_t *words = (const uint32_t *)p_event;
-	String dump;
-	for (int i = 0; i < EVENT_DUMP_WORDS; i++) {
-		dump += String::num_int64(words[i]) + " ";
-	}
-	UtilityFunctions::print("PicoRoom: event type ", (int64_t)header->type, " words ", dump);
-	return false;
 }
