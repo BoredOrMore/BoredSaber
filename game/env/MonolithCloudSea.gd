@@ -12,6 +12,9 @@ const BODY_SHADER := preload("res://game/env/MonolithCloudSea.gdshader")
 const HEIGHT_MAP := "res://game/models/monolith_cloud/heightfield.bin"
 const HEIGHT_INFO := "res://game/models/monolith_cloud/heightfield.json"
 
+## the body's brightness, 1 as in Monolith; set before the sea enters the tree
+var brightness := 1.0
+
 var _height_texture: ImageTexture
 var _bounds: Vector4
 var _heights: Vector2
@@ -34,6 +37,7 @@ func _ready() -> void:
 	var body: MeshInstance3D = bodies[0]
 	var material := ShaderMaterial.new()
 	material.shader = BODY_SHADER
+	material.set_shader_parameter(&"brightness", brightness)
 	body.material_override = material
 	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(scene)
