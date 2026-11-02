@@ -1,6 +1,6 @@
 #include "pico_room_probe.h"
 
-#include <godot_cpp/classes/open_xr_api_extension.hpp>
+#include <godot_cpp/classes/open_xrapi_extension.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
 #include <vector>

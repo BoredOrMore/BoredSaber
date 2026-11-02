@@ -21,13 +21,12 @@ static void initialize_pico_room(ModuleInitializationLevel p_level) {
 	probe->register_extension_wrapper();
 }
 
-/// Frees the probe when the library unloads.
+/// Forgets the probe when the library unloads. Godot's OpenXR module owns a registered wrapper and frees it itself
+/// (freeing it here too crashed the headless import on exit: "double free or corruption").
 static void uninitialize_pico_room(ModuleInitializationLevel p_level) {
-	if (p_level != MODULE_INITIALIZATION_LEVEL_CORE || probe == nullptr) {
-		return;
+	if (p_level == MODULE_INITIALIZATION_LEVEL_CORE) {
+		probe = nullptr;
 	}
-	memdelete(probe);
-	probe = nullptr;
 }
 
 extern "C" GDExtensionBool GDE_EXPORT pico_room_library_init(GDExtensionInterfaceGetProcAddress p_get_proc_address,
