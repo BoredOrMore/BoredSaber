@@ -55,3 +55,15 @@ Linux x86_64 (only so the headless import and tests load it cleanly). Locally:
 - Each risky stage writes a marker file (`user://pico_room_vN_<stage>`) and removes it when it returns, so after a
   crash the next launch skips that stage instead of crashing on every launch. Bump vN with each probe build.
 - `com.picovr.permission.SPATIAL_DATA` is unknown to OS 5.12 (logcat `NameNotFoundException`).
+
+## Anchor pose (9dd67b0, Pico 4 OS 5.12, 2026-11-02)
+
+- `xrCreateAnchorSpaceBD(session, info, &space)` with the anchor id at info+0x10 returns 0 and a real XrSpace pointer;
+  `xrLocateSpace(space, play_space, predicted_time)` gives flags 3 (position and orientation valid). Same result on a
+  second load a minute later.
+- Asking for the scene capture 3 s after focus opened it on the first try (`checkAppSwitchAllowed ... allowed : true`).
+  A load during the capture found 0, the load on return found 11. `on_local_map_state_changed` stayed newState 0 the
+  whole time, so it is not a usable "room recognised" signal.
+- Poses in the play space: floor y -0.070, ceiling y 2.566 (room 2.635 m), wall centres all at y 1.248 (half height),
+  walls rotated only around Y. Objects carry a ~90° X rotation, so their box extents are in that rotated frame.
+- The floor and ceiling planes still report 1×1; the room outline can come from the walls instead.
