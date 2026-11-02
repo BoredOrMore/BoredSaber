@@ -1,31 +1,34 @@
-// Registers the PICO room probe with Godot's OpenXR module. It has to be registered at the core level, before
+// Registers PicoRoom with Godot's OpenXR module and as the engine singleton "PicoRoom". It has to be registered at the core level, before
 // OpenXR creates its instance, or its extensions are never requested.
-#include "pico_room_probe.h"
+#include "pico_room.h"
 
 #include <gdextension_interface.h>
 #include <godot_cpp/core/class_db.hpp>
+#include <godot_cpp/classes/engine.hpp>
 #include <godot_cpp/core/memory.hpp>
 #include <godot_cpp/godot.hpp>
 
 using namespace godot;
 
-static PicoRoomProbe *probe = nullptr;
+static PicoRoom *room = nullptr;
 
-/// Creates the probe and hands it to Godot's OpenXR module.
+/// Creates PicoRoom, hands it to Godot's OpenXR module and lets the game reach it as a singleton.
 static void initialize_pico_room(ModuleInitializationLevel p_level) {
 	if (p_level != MODULE_INITIALIZATION_LEVEL_CORE) {
 		return;
 	}
-	GDREGISTER_CLASS(PicoRoomProbe);
-	probe = memnew(PicoRoomProbe);
-	probe->register_extension_wrapper();
+	GDREGISTER_CLASS(PicoRoom);
+	room = memnew(PicoRoom);
+	room->register_extension_wrapper();
+	Engine::get_singleton()->register_singleton("PicoRoom", room);
 }
 
-/// Forgets the probe when the library unloads. Godot's OpenXR module owns a registered wrapper and frees it itself
+/// Forgets PicoRoom when the library unloads. Godot's OpenXR module owns a registered wrapper and frees it itself
 /// (freeing it here too crashed the headless import on exit: "double free or corruption").
 static void uninitialize_pico_room(ModuleInitializationLevel p_level) {
 	if (p_level == MODULE_INITIALIZATION_LEVEL_CORE) {
-		probe = nullptr;
+		Engine::get_singleton()->unregister_singleton("PicoRoom");
+		room = nullptr;
 	}
 }
 

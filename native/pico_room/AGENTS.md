@@ -5,19 +5,22 @@ Reality mode (plan: https://claude.ai/artifact/GGNL7bgEiekk4VeT4G3aVy). Godot 4.
 standard spatial entity path (`XR_EXT_spatial_entity`) isn't offered by the Pico 4 runtime on OS 5.12, and GDScript
 can't call raw OpenXR functions. The owner approved this native dependency (2026-11-02).
 
-Stage: probe only (tag `PicoRoom:` in logcat). Once the app has focus it loads the room the player saved in PICO's own
-room setup (`xrLoadAnchorEntityBD` with the spatial scene filter), and loads again every 5 s and on each local map state
-event until it finds anchors. It opens PICO's scene capture (`xrStartSpatialSceneCaptureBD`) every launch (Bored, 2026-11-02: PICO only recognises the room after it), then loads when focus returns. Asked the moment the session is focused, PICO refuses the app switch (710b57e: `checkAppSwitchAllowed ... allowed : false`), so the probe waits 3 s after focus and asks again every 5 s until focus leaves for the capture (v11). For each anchor it also tries `xrCreateAnchorSpaceBD` (guessed: session, info with the anchor id at +0x10, XrSpace out) and `xrLocateSpace` in the play space, logged raw (v10). When the loaded event (type
-1200006350) reports anchors, it reads the results and logs each anchor's label, component flags, plane and box, raw. Not for
-merging until it reads rooms.
+Stage: first game use. `PicoRoom` (engine singleton "PicoRoom", tag `PicoRoom:` in logcat) has `is_supported()`,
+`scan_room()` and the signals `room_loaded(pieces)` / `room_not_found`. `scan_room()` asks for PICO's scene capture
+(`xrStartSpatialSceneCaptureBD`) once the app has had focus 3 s (asked at the moment of focus, PICO refuses the app
+switch: 710b57e `checkAppSwitchAllowed ... allowed : false`), asks again every 5 s until focus leaves for the capture
+(6 tries, then loads anyway), and loads the room (`xrLoadAnchorEntityBD`, spatial scene filter) when focus comes back,
+up to 3 times 3 s apart (a load during the capture found 0). Each anchor becomes a piece: its label, the centre's
+Transform3D in the play space (`xrCreateAnchorSpaceBD` + `xrLocateSpace`, space destroyed after) and its size (plane
+width/height, or box extent). The game side is `game/scripts/MixedReality.gd` and `RoomOutline.gd`.
 
 ## File map
 
 - `SConstruct` - builds `game/native/bin/libpicoroom.<platform>.<target>.<arch>.so` against godot-cpp (`GODOT_CPP`) and
   the Khronos OpenXR-SDK headers (`OPENXR_INCLUDE`).
-- `src/register_types.cpp` - entry `pico_room_library_init`; registers the probe at the core level (before OpenXR
-  makes its instance, or its extensions are never requested).
-- `src/pico_room_probe.h`, `src/pico_room_probe.cpp` - `PicoRoomProbe` (`OpenXRExtensionWrapperExtension`).
+- `src/register_types.cpp` - entry `pico_room_library_init`; registers `PicoRoom` at the core level (before OpenXR
+  makes its instance, or its extensions are never requested) and as the engine singleton "PicoRoom".
+- `src/pico_room.h`, `src/pico_room.cpp` - `PicoRoom` (`OpenXRExtensionWrapperExtension`): the room scan above.
 - `game/native/pico_room.gdextension` - tells Godot where the built libraries are; the export puts the arm64 one in
   the APK. `game/native/bin/` is built by CI and git-ignored.
 
@@ -52,8 +55,9 @@ Linux x86_64 (only so the headless import and tests load it cleanly). Locally:
   (event type 1200006303, logged as on_local_map_state_changed) was 1 when 11 anchors loaded and 0 when the same room
   gave 0 (457bd49). Standing and looking around for a minute didn't bring it to 1 (0fb0406); opening PICO's scene
   capture did (total 11 on every load after it). `xrStartSpatialSceneCaptureBD(session, info, &task)` returns 0 without crashing.
-- Each risky stage writes a marker file (`user://pico_room_vN_<stage>`) and removes it when it returns, so after a
-  crash the next launch skips that stage instead of crashing on every launch. Bump vN with each probe build.
+- The probe builds (up to 9dd67b0) guarded each risky stage with a marker file (`user://pico_room_vN_<stage>`) so a
+  crash wasn't repeated every launch. Every layout above is now measured, so `PicoRoom` has no markers; bring them
+  back when trying an unmeasured call.
 - `com.picovr.permission.SPATIAL_DATA` is unknown to OS 5.12 (logcat `NameNotFoundException`).
 
 ## Anchor pose (9dd67b0, Pico 4 OS 5.12, 2026-11-02)
