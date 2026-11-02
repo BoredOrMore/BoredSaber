@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode unshaded, blend_add, cull_disabled, depth_draw_never, shadows_disabled, fog_disabled;
+render_mode unshaded, blend_premul_alpha, cull_disabled, depth_draw_never, shadows_disabled, fog_disabled;
 
 // The swept sheet behind a saber (tail.gd), added in the saber's colour. UV.x is the age along the sheet (0 at the
 // blade, 1 the oldest), UV.y the opacity there, from how fast the blade swept (0 at rest, 1 on a full swing).
@@ -19,4 +19,7 @@ float age_fade(float x) {
 
 void fragment() {
 	ALBEDO = color.rgb * age_fade(UV.x) * UV.y * energy;
+	// Added as pure light: premultiplied blend with alpha 0 adds the colour and leaves the frame's alpha alone, so in
+	// mixed reality the room stays visible through it (blend_add wrote alpha 1 over the whole quad: a black box).
+	ALPHA = 0.0;
 }

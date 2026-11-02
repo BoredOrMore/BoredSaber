@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode unshaded, blend_add, depth_draw_never, cull_back, shadows_disabled, fog_disabled;
+render_mode unshaded, blend_premul_alpha, depth_draw_never, cull_back, shadows_disabled, fog_disabled;
 
 // The sabers light the floor around the player: a soft pool of each blade's colour under its tip, small and bright
 // near the floor, wider and dimmer higher up, as a real light would. Drawn added on top of whatever floor the
@@ -33,4 +33,7 @@ void fragment() {
 	vec2 square = abs(UV * 2.0 - 1.0);
 	float edge = 1.0 - smoothstep(0.6, 1.0, max(square.x, square.y));
 	ALBEDO = (left_saber_color.rgb * pool(left_saber) + right_saber_color.rgb * pool(right_saber)) * POOL_GAIN * edge;
+	// Added as pure light: premultiplied blend with alpha 0 adds the colour and leaves the frame's alpha alone, so in
+	// mixed reality the room stays visible through it (blend_add wrote alpha 1 over the whole quad: a black box).
+	ALPHA = 0.0;
 }

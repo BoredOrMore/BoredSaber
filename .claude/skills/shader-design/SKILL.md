@@ -33,6 +33,9 @@ before building something new.
   (`global uniform int debug_view`, see `DebugView` in the game) that shows that layer alone.
 - Combine the way light does: emitted light adds (additive layers, `blend_add`, or `+`), surfaces and
   haze mix (`mix`). Brighten toward white, never multiply a saturated colour past 1 (Light rule 2).
+- An additive material uses `blend_premul_alpha` with `ALPHA = 0.0`, never `blend_add`: `blend_add` also adds the
+  quad's alpha to the frame, and in mixed reality the headset hides the room wherever alpha is set, so the whole quad
+  shows as a black box around the light.
 
 ## 3. Name the knobs
 

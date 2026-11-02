@@ -5,7 +5,7 @@ shader_type spatial;
 //   2. a soft round falloff, white-hot at the centre and the beam's colour around it (rule 2), as bright as the beam
 // Light, so added on top (blend_add) and never written to depth. The beam's colour is the copy's custom data; black
 // (light off) adds nothing. Values untuned.
-render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
+render_mode unshaded, blend_premul_alpha, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 
 // 1. metres toward the eye
 const float TOWARD_EYE = 0.3;
@@ -33,4 +33,7 @@ void fragment() {
 	float glow = exp(-dot(p, p) * FALLOFF);
 	float level = max(beam.r, max(beam.g, beam.b));
 	ALBEDO = mix(beam, vec3(level), CORE_WHITE * glow) * glow * GAIN;
+	// Added as pure light: premultiplied blend with alpha 0 adds the colour and leaves the frame's alpha alone, so in
+	// mixed reality the room stays visible through it (blend_add wrote alpha 1 over the whole quad: a black box).
+	ALPHA = 0.0;
 }
