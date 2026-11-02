@@ -72,8 +72,10 @@ Before building, write down and show the user (or put on the style frame):
 1. **Spec**: write `doc/assets/<asset>/spec.md` (the brief) and `spec.json` (what the runner checks, fields in
    `doc/assets/README.md`). Give references ids (`R01`...) and refer to them by id afterwards.
 2. **Blockout first**: for a new shape, build two or three variants in one script (read `ASSET_VARIANT`), run each
-   with `--variant A --out <scratch>`, and show the owner the contact sheets side by side. Detail starts only after the
-   owner picks; record the pick in `spec.json` (`owner_pick`).
+   with `--variant A --out <scratch>`, and show the owner the contact sheets side by side, plus one
+   `stage_capture` per variant from the player's eye: the contact sheet shows the shape lit on grey, the stage shows
+   what the player can actually see (Henge's slab tops vanished into the black sky, 2026-11-02). Detail starts only
+   after the owner picks; record the pick in `spec.json` (`owner_pick`).
 3. **Rounds**: change the script or the spec, then run `tools/models/run_asset.py <asset>` (cloud:
    `python3 tools/models/run_asset.py <asset>`; Mac: `blender -b -P tools/models/run_asset.py -- <asset>`). Read only
    `run/report.md` and `run/<output>_contact.png` (640 px, four views). Open `build.log`, `godot.log` or a
