@@ -17,7 +17,13 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
   pick an environment by genre offline (`EventDriver.map_environment`), and the song menu can filter by them; it holds
   the `STYLES` / `GENRES` both filter panels offer. An AI-made map (BeatSaver's `automapper`) keeps `AI_TAG` with its
   tags (`tags_from`, also on download), so both song lists put `AI_MARK` "AI · " before its name and the song menu " (AI)" after its mapper (`is_ai`).
-- `MixedReality.gd` (autoload) - `set_mixed_reality(mr)`: passthrough on/off plus floor/HUD material tweaks.
+- `MixedReality.gd` (autoload) - `set_mixed_reality(mr)`: passthrough on/off plus floor/HUD material tweaks; turning it
+  on scans the real room through the `PicoRoom` engine singleton (`native/pico_room/`, PICO only; Bored 2026-11-02:
+  every time) and draws it with `RoomOutline`.
+- `RoomOutline.gd` (class `RoomOutline`, a child of `XROrigin3D`) - the real room as lines over the passthrough: walls,
+  doors and windows in `UI_TEXT`, furniture boxes in `UI_TEXT_MUTED`, and the portal frame in `UI_ACCENT` where the
+  note path meets the nearest wall (`find_portal`; its size constants are UNTUNED placeholders). Poses are in the
+  play space, so a recenter leaves the outline stale until the next scan.
 - `RoomProbe.gd` (autoload `RoomProbe`, test build only) - logs the play area, OpenXR spatial capabilities and plane
   trackers (walls, floor, table) to logcat as `RoomProbe:` for the room-aware Mixed Reality plan.
 - `PlayCountTable.gd` (autoload `PlayCount`) - play counts, favourite flag, last difficulty per map.

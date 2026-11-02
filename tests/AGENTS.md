@@ -24,6 +24,9 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
   (`FilterChips.SCROLL_NAME`, owner 2026-10-30) may scroll, and the filters are checked scrolled to their end on both pages. Run it after any change to these panels or the theme. It also drags the song
   list with pointer events pushed into a `SubViewport` (as the game's canvases receive them): 1:1, no pick after a
   drag, a short press still picks.
+- `test_room_outline.tscn` / `.gd` - `RoomOutline.find_portal` on the room read on the headset (2026-11-02): the
+  portal lands on the front wall 3.67 m ahead, inside the wall, between floor and ceiling; facing back finds the wall
+  behind; no walls, no portal; the outline draws and an empty room hides it.
 - `test_song_search.tscn` / `.gd` - `SongSearch` (the song menu's search): kana read as romaji, case, spaces,
   punctuation, long vowels and doubled letters alike, every typed word, tags; `BeatSaverPanel.close_query`; the AI
   mark in saved tags; Get songs listing a 360°-only map by its 360° difficulties.

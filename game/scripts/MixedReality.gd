@@ -1,7 +1,11 @@
 extends Node
 
 var floor_albedo_texture : Texture2D = null
-	
+## The real room's outline, made on the first room scan (PICO headsets only).
+var _room_outline: RoomOutline = null
+
+
+## Turns passthrough and the see-through floor on or off; turning it on scans the real room.
 func set_mixed_reality(mr: bool):
 	var xr_interface := XRServer.find_interface("OpenXR") as XRInterface
 	if xr_interface and xr_interface.is_passthrough_supported():
@@ -43,4 +47,35 @@ func set_mixed_reality(mr: bool):
 		else:
 			gradient.set_color(i, Color(c.r,c.g,c.b))
 
-		
+	_scan_room(mr)
+
+
+## Opens PICO's room scan when mixed reality turns on (Bored, 2026-11-02: every time), and hides the room's outline
+## when it turns off. Headsets without PICO's room functions skip it.
+func _scan_room(mr: bool) -> void:
+	if _room_outline:
+		_room_outline.visible = false
+	if not mr or not Engine.has_singleton("PicoRoom"):
+		return
+	var room := Engine.get_singleton("PicoRoom")
+	if not room.call("is_supported"):
+		return
+	if not room.is_connected("room_loaded", _on_room_loaded):
+		room.connect("room_loaded", _on_room_loaded)
+		room.connect("room_not_found", _on_room_not_found)
+	room.call("scan_room")
+
+
+## Draws the scanned room over the passthrough.
+func _on_room_loaded(pieces: Array) -> void:
+	if not Settings.mixed_reality:
+		return
+	if _room_outline == null:
+		_room_outline = RoomOutline.new()
+		get_node("/root/BeepSaber/XROrigin3D").add_child(_room_outline)
+	_room_outline.show_room(pieces)
+
+
+## Notes a scan that found no room (the room setup screen will offer to scan again).
+func _on_room_not_found() -> void:
+	print("PicoRoom: no room found")
