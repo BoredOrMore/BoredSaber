@@ -17,7 +17,7 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
   tabs, five numbered levels, two stats lines, six players with a delete question; the practice panel stopped and
   playing, with its time, start, end, speed and greyed speed buttons, the start staying put, and
   pointer presses on its one bar (the playhead on the bar, the nearer marker under it, Repeat's end); on the Download page every filter
-  and a long search as chips, a map with long names and five levels, its Details, a download and the open filters) and fails when a visible control
+  and a long search as chips, a map with long names and five levels, its Details, a download and the open filters; "Set up your room" at every step with 12 walls and 18 pieces of furniture) and fails when a visible control
   spills out of its parent or the panel, or two controls placed with offsets are closer than `MIN_GAP` (4 px). A
   control wholly under an open overlay (`OVERLAYS`: More, More modifiers) counts as hidden. Content inside a
   `ScrollContainer` is allowed to run past it; on the song page only the song list and the filters' page
