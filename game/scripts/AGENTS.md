@@ -94,7 +94,7 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
 - `SongUploader` listens on port 45800 (`song_uploader.gd:7,24`) and serves each connection synchronously in
   `_process` with busy-wait loops (`:53-60,78-80`): an upload stalls frames, and the header loop has no disconnect
   check. Uploads are saved by magic bytes to `APPDATA_PATH` `Songs/*.zip` or `Backgrounds/*.jpg|png` (`:170-180`).
-- `MixedReality` reaches nodes by absolute `/root/BeepSaber/...` paths (`MixedReality.gd:19-39`); renaming those
+- `MixedReality` reaches nodes by absolute `/root/BeepSaber/...` paths (`MixedReality.gd:19-35`); renaming those
   nodes in `BeepSaber_Game.tscn` breaks it at runtime.
 - `HTTPRequestPool` re-issues a queued request through `request()`, which assigns a new token (`HTTPRequestPool.gd:55-58`).
 

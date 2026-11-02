@@ -77,30 +77,12 @@ font_size = 10
 vertical_alignment = 0
 depth = 0.0
 
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wa4gh"]
-transparency = 1
-albedo_color = Color(0, 0, 0, 0.588235)
-
-[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_qk53l"]
-transparency = 1
-albedo_color = Color(0, 0, 0, 0.313726)
-
-[sub_resource type="PlaneMesh" id="PlaneMesh_b2wmm"]
-material = SubResource("StandardMaterial3D_qk53l")
-size = Vector2(0.55, 0.336)
-orientation = 2
-
 [sub_resource type="TextMesh" id="TextMesh_0bbpk"]
 text = "Score: 000000
 Time: 00:00"
 font_size = 10
 vertical_alignment = 0
 depth = 0.0
-
-[sub_resource type="PlaneMesh" id="PlaneMesh_4xldb"]
-material = SubResource("StandardMaterial3D_qk53l")
-size = Vector2(0.75, 0.854)
-orientation = 2
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_rsu5u"]
 resource_local_to_scene = true
@@ -209,24 +191,10 @@ mesh = SubResource("TextMesh_cx1im")
 skeleton = NodePath("")
 script = ExtResource("39_combo")
 
-[node name="Text_Background" type="MeshInstance3D" parent="Multiplier_Label" unique_id=1141689755]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.16, -0.01)
-visible = false
-material_override = SubResource("StandardMaterial3D_wa4gh")
-mesh = SubResource("PlaneMesh_b2wmm")
-skeleton = NodePath("")
-
 [node name="Point_Label" type="MeshInstance3D" parent="." unique_id=107044941]
 transform = Transform3D(1.5, 0, 0, 0, 1.5, 0, 0, 0, 1.5, 1.9, 1.54, -2.5)
 material_override = ExtResource("13_3xkki")
 mesh = SubResource("TextMesh_0bbpk")
-skeleton = NodePath("")
-
-[node name="Text_Background2" type="MeshInstance3D" parent="Point_Label" unique_id=230528431]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.419, -0.01)
-visible = false
-material_override = SubResource("StandardMaterial3D_wa4gh")
-mesh = SubResource("PlaneMesh_4xldb")
 skeleton = NodePath("")
 
 [node name="Percent_Indicator" parent="." unique_id=1987737042 instance=ExtResource("16")]
