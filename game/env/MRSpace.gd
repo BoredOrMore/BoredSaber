@@ -18,6 +18,8 @@ const SKY_RINGS := 16
 ## how far the cloud sea sits below where Monolith puts it (its bowl's floor about 57 m down, its far rim about +30 m
 ## up), in metres
 const SEA_DROP := 110.0
+## the cloud sea's brightness against Monolith's (owner, 2026-11-02: darker than Monolith's against black space)
+const SEA_BRIGHTNESS := 0.4
 ## the dust: how many points, their nearest and farthest distance, their size, and the seed that places them
 const DUST_COUNT := 500
 const DUST_NEAR := 15.0
@@ -46,6 +48,7 @@ func _ready() -> void:
 	add_child(sky)
 	var sea := MonolithCloudSea.new()
 	sea.position.y = -SEA_DROP
+	sea.brightness = SEA_BRIGHTNESS
 	add_child(sea)
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D

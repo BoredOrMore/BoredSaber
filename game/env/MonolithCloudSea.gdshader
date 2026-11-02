@@ -6,6 +6,8 @@ render_mode unshaded, cull_back, shadows_disabled, fog_disabled;
 // lights' colours (AGENTS.md "Colour rules"). Untuned.
 global uniform vec4 env_haze;
 #include "res://game/env/monolith_cloud_sea.gdshaderinc"
+// the whole body's brightness, 1 in Monolith; a stage that wants darker clouds lowers it (MonolithCloudSea.brightness)
+uniform float brightness = 1.0;
 
 varying vec3 world_position;
 varying vec3 world_normal;
@@ -15,5 +17,5 @@ void vertex() {
 }
 
 void fragment() {
-	ALBEDO = mcloud_output(mcloud_body_tone(env_haze.rgb, world_position, world_normal));
+	ALBEDO = mcloud_output(mcloud_body_tone(env_haze.rgb, world_position, world_normal) * brightness);
 }
