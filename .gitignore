@@ -7,3 +7,7 @@ src_data
 .godot/
 android/build/*
 /addons/godotopenxrvendors
+
+# model runner rounds (tools/models/run_asset.py)
+doc/assets/*/run/
+__pycache__/

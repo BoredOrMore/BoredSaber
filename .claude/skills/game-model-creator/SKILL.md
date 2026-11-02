@@ -39,7 +39,9 @@ Before building, write down and show the user (or put on the style frame):
 ## 3. Blender by script
 
 - Blender 5.2 is at `/opt/homebrew/bin/blender` on the dev Mac. Run headless:
-  `blender -b -P tools/models/<name>.py -- <output dir>`.
+  `blender -b -P tools/models/<name>.py -- <output dir>`. In the cloud, `pip install bpy==5.2.2` (Python 3.13) and
+  run the runner with `python3`; Godot 4.6.2 for Linux renders `stage_capture` under `xvfb-run` with
+  `--rendering-driver opengl3`.
 - Scripts live in `tools/models/`, one per model, starting from `read_factory_settings(use_empty=True)`,
   with every size as a named constant in metres at the top (same rule as shader knobs).
 - Export glTF binary (`.glb`) into `game/models/<name>.glb`, Y up, applied modifiers and transforms,
@@ -65,13 +67,22 @@ Before building, write down and show the user (or put on the style frame):
 - Many copies: one `MultiMeshInstance3D`, not many nodes. Shadows off (`cast_shadow` off).
 - Pooled gameplay objects (notes, bombs, chains) follow the pooling rules in `game/AGENTS.md`.
 
-## 5. Check it
+## 5. The round loop (owner, 2026-11-02: spend tokens on decisions, not on reading)
 
-1. Run the Blender script; it must finish without errors and print the triangle count within budget.
-2. Push; CI imports the project and builds the APK (no local Godot). Read logcat after install for
-   import, shader or script errors.
-3. On the headset: scale, pivot, which way it faces, silhouette at play distance, shading next to the
-   style frame. Anything that moves the playspace follows the playspace rule in `game/AGENTS.md`.
-4. GPU before and after with `tools/bench.sh`; report triangles and ms.
-5. Report: what was made, where the files are, what was checked on the headset and what wasn't.
-   Never say a model is done, or that Godot ran, without having seen it.
+1. **Spec**: write `doc/assets/<asset>/spec.md` (the brief) and `spec.json` (what the runner checks, fields in
+   `doc/assets/README.md`). Give references ids (`R01`...) and refer to them by id afterwards.
+2. **Blockout first**: for a new shape, build two or three variants in one script (read `ASSET_VARIANT`), run each
+   with `--variant A --out <scratch>`, and show the owner the contact sheets side by side. Detail starts only after the
+   owner picks; record the pick in `spec.json` (`owner_pick`).
+3. **Rounds**: change the script or the spec, then run `tools/models/run_asset.py <asset>` (cloud:
+   `python3 tools/models/run_asset.py <asset>`; Mac: `blender -b -P tools/models/run_asset.py -- <asset>`). Read only
+   `run/report.md` and `run/<output>_contact.png` (640 px, four views). Open `build.log`, `godot.log` or a
+   full-size render only when a FAIL line or the owner needs it. Never re-describe what the report already says.
+4. **Critic only at owner gates**: a fresh subagent critiques the contact sheet before the blockout choice and before
+   the in-game look, not every round. Repeated mechanical rounds (fix a FAIL, rerun) may go to a subagent on a smaller
+   model (owner OK, 2026-11-02); it may change only what the report names, and reports the report's lines back.
+5. **In the game**: place it in its rig, render the stage from the player's eye with `tools/capture/stage_capture.tscn`
+   (one picture), push, let CI build, then the headset: scale, pivot, facing, silhouette at play distance, GPU before
+   and after with `tools/bench.sh`. The headset look is the owner's gate.
+6. **Report**: what was made, where the files are, what was checked on the headset and what wasn't (PASS, WARN, FAIL,
+   NOT CHECKED). Never say a model is done, or that Godot ran, without having seen it.

@@ -50,6 +50,14 @@ Run: `blender -b -P tools/models/<script>.py -- game/models` (`OUT_DIR` = first 
 `note_round.py -- game/notes/BeepCube`. Each header names its spec `doc/assets/<name>/spec.md`; follow
 `.claude/skills/game-model-creator/SKILL.md` and `tools/asset_pipeline/`.
 
+- `run_asset.py`: one command per model round (`doc/assets/README.md`, Runner): reads `doc/assets/<asset>/spec.json`,
+  runs the build script in-process, reloads each `.glb` and checks triangles, size, vertex colour and textures, the
+  notes' path for the spec's `placements`, then the Godot import (`GODOT` or `godot` on PATH; reverts the `.uid` and
+  `.import` files the import adds, keeping the outputs' own `.glb.import`). Writes `doc/assets/<asset>/run/`
+  (gitignored: `report.md`, `<output>_contact.png` 640 px of four views, logs) and appends `doc/assets/runs.csv`.
+  `blender -b -P tools/models/run_asset.py -- <asset> [--variant A] [--out DIR] [--no-godot]`, or in the cloud
+  `python3 tools/models/run_asset.py <asset> ...` (pip `bpy==5.2.2`). Exits 1 on any FAIL. `--variant` reaches the
+  script as env `ASSET_VARIANT` (blockouts); `--out` outside `game/models` skips the Godot check.
 - `model_export.py`: shared `bake_and_export(obj, out_dir, name)`: AO baked to vertex red, face attr `glow` 1/2 to
   green/blue (EnvSolid vents), flat shading, GLB Y-up, prints triangles.
 - Using it: `ac_unit`, `antenna`, `dish_panel`, `dish_props`, `feed_cabin`, `feed_leg`, `hanging_scaffold`, `platform_frame`, `site_props`,
