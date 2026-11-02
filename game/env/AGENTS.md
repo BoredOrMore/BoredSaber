@@ -152,6 +152,14 @@ code that reads the walls and cuts the portals lives on its own branch)
   up) that it stretches by the uniform `portal_size_m` (width, height in metres) plus `RIM_REACH`; a white-hot strip on
   the cut edge with a `light_color` glow fading out over the wall, the hole left clear (owner's pick of three, the
   thin strip, 2026-11-02). Desktop check: `tools/capture/portal_capture.tscn`. Untuned, not yet on the headset.
+- `MRSpace.tscn` / `MRSpace.gd`: the world seen through the portals (owner's concept C, "the room floats in space",
+  2026-11-02). Root at the origin, nothing near it, no track or deck; the room code instances it behind the portals.
+  Builds a `SKY_RADIUS` sphere with `MRSpaceSky.gdshader` and `DUST_COUNT` points of `MRSpaceDust.gdshader` kept out of
+  the notes' path. The sky is geometry because mixed reality draws no `WorldEnvironment` sky. Blockout, untuned.
+- `MRSpaceSky.gdshader`: black space, stars worked out from the view direction (at least `STAR_MIN_PIXELS` wide, dimmed
+  to match), a faint neutral dust band, and the notes' source down -z: a white-hot core in an `env_light` glow.
+- `MRSpaceDust.gdshader`: soft points facing the eye, at least `MIN_PIXELS` wide, added on top; they give depth as the
+  player moves.
 
 Metal Factory (underground power plant)
 - `MetalFactoryRig.gd` (tool): pistons over anvils, gear rings, energy rails, wall kit with vents, vault, drive gears.
