@@ -20,6 +20,8 @@ line `@AGENTS.md`, so Claude Code loads the folder's doc when it opens a file th
 - `game/scripts/GameState/`: the game state machine (menu, playing, paused, fail, score screen).
 - `game/BeatmapInfo/`: beatmap data model and how `game/Map.gd` parses Beat Saber map formats.
 - `game/ui/`: song menu, settings, end score, highscore and pause panels, shared theme and UI palette, BeatSaver panels.
+- `native/pico_room/`: C++ GDExtension reading the room from PICO's OpenXR extensions (built by CI into
+  `game/native/bin/`).
 - `OQ_Toolkit/`: partially ported VR toolkit (`vr` autoload, 2D-in-VR canvases, keyboard).
 - `tests/`: headless tests.
 - `tools/`: capture scenes, Blender model scripts, asset generators, headset bench, the doc checker;
