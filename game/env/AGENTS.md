@@ -146,6 +146,13 @@ the Auto pool; BLOCKOUT 2026-10-31; cloud sea and hills from GPT, owner 2026-11-
   black with a neutral horizon glow behind the slab (`SLAB_DIR` must match `MonolithRig.SLAB_YAW`; no `bg_<type>`) and
   a fainter neutral one all round so the hills stand as silhouettes.
 
+Room-aware mixed reality (portals in the real walls; plan https://claude.ai/artifact/GGNL7bgEiekk4VeT4G3aVy; the room
+code that reads the walls and cuts the portals lives on its own branch)
+- `PortalRim.gdshader`: the rim round a portal, on one `QuadMesh` 1 x 1 per portal (centred, facing into the room, +y
+  up) that it stretches by the uniform `portal_size_m` (width, height in metres) plus `RIM_REACH`; a white-hot strip on
+  the cut edge with a `light_color` glow fading out over the wall, the hole left clear (owner's pick of three, the
+  thin strip, 2026-11-02). Desktop check: `tools/capture/portal_capture.tscn`. Untuned, not yet on the headset.
+
 Metal Factory (underground power plant)
 - `MetalFactoryRig.gd` (tool): pistons over anvils, gear rings, energy rails, wall kit with vents, vault, drive gears.
   No beams or moving heads: diagonal/waving light goes to vents (`set_vent_colors`); `slam`/`breathe`/`turn_gears`
