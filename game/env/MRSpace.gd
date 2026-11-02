@@ -3,15 +3,21 @@ extends Node3D
 ## The world behind the room's portals in room-aware mixed reality (owner, 2026-11-02: concept C, "the room floats in
 ## space"; plan https://claude.ai/artifact/GGNL7bgEiekk4VeT4G3aVy): a starry sky with the notes' source far down the
 ## track (MRSpaceSky.gdshader) and near dust for depth (MRSpaceDust.gdshader). Stands alone with its root at the
-## origin and nothing near it, no track or deck: the room code places it behind the portals. The notes' path is kept
+## origin and nothing near it, no track or deck: the room code places it behind the portals. Below the room lies
+## Monolith's cloud sea (MonolithCloudSea; owner's pick, 2026-11-02), a bowl rising toward its far rim, dropped by
+## SEA_DROP so that rim stays under eye level and the notes' source and the planets show above it. The notes' path is kept
 ## clear (memory rule: nothing within NOTE_PATH_REACH between NOTE_PATH_Y heights). BLOCKOUT, sizes in metres, untuned.
 
 const SKY_SHADER := preload("res://game/env/MRSpaceSky.gdshader")
 const DUST_SHADER := preload("res://game/env/MRSpaceDust.gdshader")
-## the sky sphere's radius and its segments round and rings up
-const SKY_RADIUS := 900.0
+## the sky sphere's radius (outside the cloud sea's 980 m, inside the camera's 1024 m far plane) and its segments
+## round and rings up
+const SKY_RADIUS := 1000.0
 const SKY_SEGMENTS := 32
 const SKY_RINGS := 16
+## how far the cloud sea sits below where Monolith puts it (its bowl's floor about 57 m down, its far rim about +30 m
+## up), in metres
+const SEA_DROP := 110.0
 ## the dust: how many points, their nearest and farthest distance, their size, and the seed that places them
 const DUST_COUNT := 500
 const DUST_NEAR := 15.0
@@ -23,7 +29,7 @@ const NOTE_PATH_HALF_WIDTH := 6.0
 const NOTE_PATH_Y := Vector2(-5.0, 30.0)
 const NOTE_PATH_REACH := 320.0
 
-## Builds the sky and the dust.
+## Builds the sky, the cloud sea and the dust.
 func _ready() -> void:
 	var sky := MeshInstance3D.new()
 	var sphere := SphereMesh.new()
@@ -38,6 +44,9 @@ func _ready() -> void:
 	sky.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	sky.extra_cull_margin = SKY_RADIUS
 	add_child(sky)
+	var sea := MonolithCloudSea.new()
+	sea.position.y = -SEA_DROP
+	add_child(sea)
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	multimesh.mesh = QuadMesh.new()
