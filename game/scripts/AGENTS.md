@@ -19,7 +19,7 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
   tags (`tags_from`, also on download), so both song lists put `AI_MARK` "AI · " before its name and the song menu " (AI)" after its mapper (`is_ai`).
 - `MixedReality.gd` (autoload) - `set_mixed_reality(mr)`: passthrough on/off plus floor/HUD material tweaks. The room
   scan is off for now (`ROOM_SCAN_ENABLED` false, Bored 2026-11-03; the code stays): turning mixed reality on opens a
-  portal floating `RoomOutline.FLOATING_PORTAL_DISTANCE` (6 m) ahead along the track, put back by `play_space_moved`
+  portal floating `RoomOutline.FLOATING_PORTAL_DISTANCE` (10 m) ahead along the track, put back by `play_space_moved`
   each time `BeepSaber_Game.recenter` moves the origin (at start, from Settings and on the headset's recenter; placed
   once, its rim rode the origin away and its mask stayed behind: Bored saw it at 6 m, 2026-11-03).
   With the scan on, turning it on opens the room setup (`game/ui/RoomSetupPanel`) when the headset can scan the room (`can_scan_room`: the
