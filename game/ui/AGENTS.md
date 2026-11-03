@@ -24,7 +24,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   `UIRaycastButton`s use `set_primary(true)`.
 - `SongList.gd` (class `SongList`): the song menu's list (a favourite's row ends in a filled star, `set_item_favorite`, in
   `Constants.FAVORITE_COLOR`, also the details' Favorite button), a `ScrollContainer` of row buttons in the `ItemList` look with
-  the ItemList calls the menu uses; every row 76 px with a 72 px cover, 82 px apart (the selected one only changes its background); empty space at both ends lets
+  the ItemList calls the menu uses; every row 76 px with a 72 px cover and two lines, the song's name (28 px) over its artist (22 px,
+  muted; white on the selected row), 82 px apart (the selected one only changes its background); empty space at both ends lets
   `center_on` glide any row to the middle (the thumbstick uses it); a pressed row stays under the pointer. The menu
   sets `BackgroundImgLoader.focus` to `first_shown()` on scroll, so covers in view load first.
 - `SongSearch.gd` (class `SongSearch`): the song menu's search match (owner, 2026-10-30): every typed word must be in

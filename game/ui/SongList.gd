@@ -19,6 +19,9 @@ const ROW_SEPARATION := 6
 const STAR_SIZE := 32
 const STAR_GAP := 12
 const STAR_ICON := preload("res://game/ui/icons/star-filled.svg")
+## The artist under a row's name, in px: smaller and muted (white on the selected row's blue, where muted grey reads
+## at 2.7:1); 28 + 22 px lines fit the 72 px inside a row.
+const ARTIST_FONT_SIZE := 22
 ## How long scrolling to a row takes (eased, so the list never snaps).
 const GLIDE_SECONDS := 0.18
 
@@ -49,8 +52,9 @@ func _ready() -> void:
 	add_child(_content)
 	resized.connect(_pad_ends)
 
-## Adds a row (reusing a hidden one when there is one) and returns its index.
-func add_item(text: String, icon: Texture2D) -> int:
+## Adds a row (reusing a hidden one when there is one) and returns its index: the song's name on top, its artist
+## under it (owner, 2026-11-04: the A–Z order is by name, so the name leads).
+func add_item(title: String, artist: String, icon: Texture2D) -> int:
 	var index := _count
 	_count += 1
 	var row: Button
@@ -60,7 +64,8 @@ func add_item(text: String, icon: Texture2D) -> int:
 		_star(index).visible = false
 	else:
 		row = _new_row(index)
-	row.text = text
+	_title(index).text = title
+	_artist(index).text = artist
 	row.icon = icon
 	_style_row(index)
 	return index
@@ -69,8 +74,6 @@ func add_item(text: String, icon: Texture2D) -> int:
 func _new_row(index: int) -> Button:
 	var row := Button.new()
 	row.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	row.clip_text = true
-	row.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	row.custom_minimum_size.y = ROW_HEIGHT
 	row.add_theme_constant_override(&"icon_max_width", COVER_SIZE)
 	row.add_theme_constant_override(&"h_separation", get_theme_constant(&"h_separation", &"ItemList"))
@@ -87,6 +90,21 @@ func _new_row(index: int) -> Button:
 	star.offset_bottom = STAR_SIZE / 2.0
 	star.visible = false
 	row.add_child(star)
+	# the name and artist right of the cover, placed by _style_row; presses go through to the row
+	var lines := VBoxContainer.new()
+	lines.set_anchors_preset(Control.PRESET_FULL_RECT)
+	lines.alignment = BoxContainer.ALIGNMENT_CENTER
+	lines.add_theme_constant_override(&"separation", 0)
+	lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for font_size: int in [get_theme_default_font_size(), ARTIST_FONT_SIZE]:
+		var line := Label.new()
+		line.add_theme_font_size_override(&"font_size", font_size)
+		line.clip_text = true
+		line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		lines.add_child(line)
+	(lines.get_child(0) as Label).add_theme_font_override(&"font", get_theme_font(&"font", &"Button"))
+	row.add_child(lines)
 	row.pressed.connect(func() -> void:
 		select(index)
 		item_selected.emit(index))
@@ -126,6 +144,12 @@ func set_item_favorite(index: int, favorite: bool) -> void:
 
 func _star(index: int) -> TextureRect:
 	return _row(index).get_child(0) as TextureRect
+
+func _title(index: int) -> Label:
+	return _row(index).get_child(1).get_child(0) as Label
+
+func _artist(index: int) -> Label:
+	return _row(index).get_child(1).get_child(1) as Label
 
 ## Glides the selected row to the middle when it is out of view (a song selected by search or a rebuilt list).
 func ensure_current_is_visible() -> void:
@@ -222,6 +246,10 @@ func _style_row(index: int) -> void:
 	if _star(index).visible:
 		for box: StyleBox in [selected, hover, plain]:
 			box.content_margin_right += STAR_SIZE + STAR_GAP
+	var lines := row.get_child(1) as Control
+	lines.offset_left = plain.content_margin_left + COVER_SIZE + row.get_theme_constant(&"h_separation")
+	lines.offset_right = -plain.content_margin_right
+	_artist(index).add_theme_color_override(&"font_color", Constants.UI_TEXT if index == _selected else Constants.UI_TEXT_MUTED)
 	row.add_theme_stylebox_override(&"normal", selected if index == _selected else plain)
 	row.add_theme_stylebox_override(&"hover", selected if index == _selected else hover)
 	row.add_theme_stylebox_override(&"pressed", selected)

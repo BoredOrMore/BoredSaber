@@ -393,7 +393,7 @@ func _check_environment_pictures() -> void:
 ## Counts the song list's whole rows in view, filling it with sample rows first (the test has one song).
 func _check_list_rows(list: SongList) -> void:
 	while list.item_count < 40:
-		list.add_item(LONG_NAME, null)
+		list.add_item(LONG_NAME, LONG_NAME, null)
 	await _settle()
 	var view := list._view_height()
 	var shown := floori((view + SongList.ROW_SEPARATION) / (SongList.ROW_HEIGHT + SongList.ROW_SEPARATION))
@@ -405,10 +405,14 @@ func _check_list_rows(list: SongList) -> void:
 	await _settle()
 	var row := list._row(1)
 	var star := list._star(1)
-	var text_end := row.size.x - row.get_theme_stylebox(&"normal").content_margin_right
-	check(star.visible and row.get_global_rect().encloses(star.get_global_rect()) and text_end <= star.position.x,
+	var text_end := list._title(1).get_global_rect().end.x
+	check(star.visible and row.get_global_rect().encloses(star.get_global_rect()) and text_end <= star.get_global_rect().position.x,
 			"a favourite's star is inside its row (%s in %s) and the name ends at %d px, before it at %d px" % [
-				star.get_global_rect(), row.get_global_rect(), text_end, star.position.x])
+				star.get_global_rect(), row.get_global_rect(), text_end, star.get_global_rect().position.x])
+	# the name and the artist under it fit the row's height, both on show
+	var lines := list._title(1).get_parent() as Control
+	check(row.get_global_rect().encloses(lines.get_global_rect()) and lines.get_combined_minimum_size().y <= SongList.ROW_HEIGHT - 2 * SongList.ROW_PADDING,
+			"a row's name and artist fit it (%d of %d px)" % [lines.get_combined_minimum_size().y, SongList.ROW_HEIGHT - 2 * SongList.ROW_PADDING])
 	list.set_item_favorite(1, false)
 
 ## A press that moves under 12 px picks the row; a pointer drag on the song list moves it 1:1 and picks nothing.
