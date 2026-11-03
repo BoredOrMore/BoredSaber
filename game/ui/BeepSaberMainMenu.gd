@@ -333,9 +333,9 @@ func _set_cur_playlist(songs: Array[MapInfo]) -> void:
 		@warning_ignore("return_value_discarded")
 		var favorite := PlayCount.is_favorite(map)
 		var list_cover: Texture2D = _list_covers.get(map.filepath, default_song_icon)
-		songs_menu.add_item("%s%s%s - %s%s" % ["\u2605 " if favorite else "", SongTags.AI_MARK if SongTags.is_ai(map) else "",
+		songs_menu.add_item("%s%s - %s%s" % [SongTags.AI_MARK if SongTags.is_ai(map) else "",
 			map.song_author_name, map.song_name, "" if map.have_song else NO_MUSIC_SUFFIX], list_cover)
-		songs_menu.set_item_custom_fg_color(map_index, Color.YELLOW if favorite else Color.WHITE)
+		songs_menu.set_item_favorite(map_index, favorite)
 		if not _list_covers.has(map.filepath):
 			_bg_img_loader.load_texture(map.filepath, map.cover_image_filename, _on_cover_loaded.bind(_list_generation, map.filepath),
 					false, map_index, LIST_COVER_SIZE)
@@ -1253,20 +1253,18 @@ func _on_characteristic_pressed(tab: int) -> void:
 	if best >= 0:
 		_select_difficulty(_find_difficulty(map, _characteristics[tab], best))
 
-## Shows whether the selected song is a favourite: a filled yellow star, or an outline to add it.
+## Shows whether the selected song is a favourite: a filled star in FAVORITE_COLOR, or the theme's outline to add it.
 func _set_favorite_icon(value: bool) -> void:
 	favorite_button.set_pressed_no_signal(value)
 	favorite_button.text = "Favorite" if value else "Add to favorites"
 	favorite_button.icon = STAR_FILLED_ICON if value else STAR_ICON
-	var color := Color.YELLOW if value else Color.WHITE
-	for icon_color in [&"icon_normal_color", &"icon_pressed_color", &"icon_hover_color", &"icon_hover_pressed_color", &"icon_focus_color"]:
-		favorite_button.add_theme_color_override(icon_color, color)
-	favorite_button.add_theme_color_override("font_color", color)
-	favorite_button.add_theme_color_override("font_disabled_color", color)
-	favorite_button.add_theme_color_override("font_focus_color", color)
-	favorite_button.add_theme_color_override("font_hover_color", color)
-	favorite_button.add_theme_color_override("font_hover_pressed_color", color)
-	favorite_button.add_theme_color_override("font_pressed_color", color)
+	for state: StringName in [&"icon_normal_color", &"icon_pressed_color", &"icon_hover_color", &"icon_hover_pressed_color",
+			&"icon_focus_color", &"font_color", &"font_disabled_color", &"font_focus_color", &"font_hover_color",
+			&"font_hover_pressed_color", &"font_pressed_color"]:
+		if value:
+			favorite_button.add_theme_color_override(state, Constants.FAVORITE_COLOR)
+		else:
+			favorite_button.remove_theme_color_override(state)
 
 func _on_favorite_button_pressed() -> void:
 	if _shown_map == null:

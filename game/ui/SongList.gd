@@ -14,6 +14,11 @@ const ROW_HEIGHT := 76.0
 const COVER_SIZE := 72
 const ROW_PADDING := 2.0
 const ROW_SEPARATION := 6
+## A favourite's star at a row's right end, in px, and the gap before it (the icons' 36 px, a little smaller than
+## the 72 px cover beside the 28 px name).
+const STAR_SIZE := 32
+const STAR_GAP := 12
+const STAR_ICON := preload("res://game/ui/icons/star-filled.svg")
 ## How long scrolling to a row takes (eased, so the list never snaps).
 const GLIDE_SECONDS := 0.18
 
@@ -52,8 +57,7 @@ func add_item(text: String, icon: Texture2D) -> int:
 	if index < _rows.get_child_count():
 		row = _row(index)
 		row.visible = true
-		for state: StringName in [&"font_color", &"font_hover_color", &"font_focus_color", &"font_pressed_color", &"font_hover_pressed_color"]:
-			row.remove_theme_color_override(state)
+		_star(index).visible = false
 	else:
 		row = _new_row(index)
 	row.text = text
@@ -70,6 +74,19 @@ func _new_row(index: int) -> Button:
 	row.custom_minimum_size.y = ROW_HEIGHT
 	row.add_theme_constant_override(&"icon_max_width", COVER_SIZE)
 	row.add_theme_constant_override(&"h_separation", get_theme_constant(&"h_separation", &"ItemList"))
+	var star := TextureRect.new()
+	star.texture = STAR_ICON
+	star.modulate = Constants.FAVORITE_COLOR
+	star.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	star.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	star.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	star.set_anchors_and_offsets_preset(Control.PRESET_CENTER_RIGHT)
+	star.offset_left = -STAR_SIZE - STAR_GAP
+	star.offset_right = -STAR_GAP
+	star.offset_top = -STAR_SIZE / 2.0
+	star.offset_bottom = STAR_SIZE / 2.0
+	star.visible = false
+	row.add_child(star)
 	row.pressed.connect(func() -> void:
 		select(index)
 		item_selected.emit(index))
@@ -102,11 +119,13 @@ func deselect_all() -> void:
 func set_item_icon(index: int, icon: Texture2D) -> void:
 	_row(index).icon = icon
 
-## Text colour of a row (favourites are yellow).
-func set_item_custom_fg_color(index: int, color: Color) -> void:
-	var row := _row(index)
-	for state: StringName in [&"font_color", &"font_hover_color", &"font_focus_color", &"font_pressed_color", &"font_hover_pressed_color"]:
-		row.add_theme_color_override(state, color)
+## Marks a row as a favourite: a filled star at its right end, the name ending before it.
+func set_item_favorite(index: int, favorite: bool) -> void:
+	_star(index).visible = favorite
+	_style_row(index)
+
+func _star(index: int) -> TextureRect:
+	return _row(index).get_child(0) as TextureRect
 
 ## Glides the selected row to the middle when it is out of view (a song selected by search or a rebuilt list).
 func ensure_current_is_visible() -> void:
@@ -200,6 +219,9 @@ func _style_row(index: int) -> void:
 		box.content_margin_bottom = ROW_PADDING
 	plain.content_margin_left = selected.content_margin_left
 	plain.content_margin_right = selected.content_margin_right
+	if _star(index).visible:
+		for box: StyleBox in [selected, hover, plain]:
+			box.content_margin_right += STAR_SIZE + STAR_GAP
 	row.add_theme_stylebox_override(&"normal", selected if index == _selected else plain)
 	row.add_theme_stylebox_override(&"hover", selected if index == _selected else hover)
 	row.add_theme_stylebox_override(&"pressed", selected)

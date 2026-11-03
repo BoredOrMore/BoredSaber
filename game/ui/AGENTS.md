@@ -22,7 +22,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   pills for `CheckButton`). Every panel `.tscn` sets `theme = ExtResource(...)` on its root. The one main
   button of a screen sets `theme_type_variation = &"PrimaryButton"` (accent border, blue fill); 3D
   `UIRaycastButton`s use `set_primary(true)`.
-- `SongList.gd` (class `SongList`): the song menu's list, a `ScrollContainer` of row buttons in the `ItemList` look with
+- `SongList.gd` (class `SongList`): the song menu's list (a favourite's row ends in a filled star, `set_item_favorite`, in
+  `Constants.FAVORITE_COLOR`, also the details' Favorite button), a `ScrollContainer` of row buttons in the `ItemList` look with
   the ItemList calls the menu uses; every row 76 px with a 72 px cover, 82 px apart (the selected one only changes its background); empty space at both ends lets
   `center_on` glide any row to the middle (the thumbstick uses it); a pressed row stays under the pointer. The menu
   sets `BackgroundImgLoader.focus` to `first_shown()` on scroll, so covers in view load first.

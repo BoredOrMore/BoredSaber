@@ -212,6 +212,9 @@ const UI_BORDER := Color(0.208, 0.227, 0.271)
 const UI_ACCENT := Color(0.37, 0.78, 0.94)
 const UI_TEXT := Color(0.894, 0.902, 0.922)
 const UI_TEXT_MUTED := Color(0.6, 0.63, 0.67)
+## A favourite song: its filled star in the song list and on the details' Favorite button, always with the star's
+## shape. Pure yellow (1, 1, 0) eased off a little, as a small area of colour (owner, 2026-11-04).
+const FAVORITE_COLOR := Color(1.0, 0.92, 0.35)
 ## Text of a button asking before it deletes or resets something (ConfirmButton), and the song menu's warning icon
 ## (WarningIcon: something may hurt the player or the headset), always with its "!" or words.
 const UI_DANGER := Color(1.0, 0.45, 0.4)

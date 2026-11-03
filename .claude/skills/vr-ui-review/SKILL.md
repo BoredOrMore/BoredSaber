@@ -80,7 +80,8 @@ Find the type of every node from step 1, then run its list on top of sections 2-
 - [ ] Uses one of the theme's button templates (`theme_type_variation`); one `PrimaryButton` (`UI_ACCENT`) per screen;
   destructive = `ConfirmButton`, apart from the main action.
 - [ ] Target ≥ 2.5-3° on its smaller side at its real distance; ≥ 4 px from its neighbours.
-- [ ] Hover, press and sound; selected state visible without colour alone (white label + border).
+- [ ] Hover, press and sound; selected state visible without colour alone (a lighter surface, `UI_SURFACE_SELECTED`,
+  with its name in `UI_ACCENT`; a level button keeps its white name and gets a border in its level's colour).
 - [ ] Looks like what it does (a tab switches in place; a button that opens a screen is not a tab).
 
 ### Text and numbers
@@ -90,6 +91,11 @@ Find the type of every node from step 1, then run its list on top of sections 2-
 - [ ] Contrast ≥ 4.5:1 (3:1 at 24 px and up) on every background it sits on (normal, hover, selected).
 - [ ] Player words only (root `AGENTS.md`); one word per concept across every screen.
 - [ ] Longest real content fits without clipping (`tests/test_menu_layout`).
+- [ ] No font symbols in any text (★ ✓ ← ✕, search the strings and `\u2...` escapes): an SVG icon from `game/ui/icons/`
+  instead, since Roboto lacks them and the headset falls back to another font (a "★" marked favourite rows and Staff
+  picks until 2026-11-04).
+- [ ] No hard-coded `Color.YELLOW`/`Color(...)` for a meaning: a named constant in `Constants.gd` (the favourites'
+  `Color.YELLOW` became `FAVORITE_COLOR`, 2026-11-04).
 
 ### Feedback in the lane (MISS, cut numbers, FAILED, combo banner, sparks)
 - [ ] Never hides the next notes: shows behind or beside the cut point and fades before the next note arrives there.

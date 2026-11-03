@@ -110,7 +110,7 @@ func _ready() -> void:
 	_check_level_text_fits(menu)
 	_check_environment_pictures()
 
-	_check_list_rows(menu.songs_menu)
+	await _check_list_rows(menu.songs_menu)
 	await _check_list_drag(menu)
 	menu._show_filters(true)
 	await _settle()
@@ -400,6 +400,16 @@ func _check_list_rows(list: SongList) -> void:
 	var row_height := list._row(0).size.y
 	check(shown >= MIN_VISIBLE_ROWS and is_equal_approx(row_height, SongList.ROW_HEIGHT),
 			"song list shows %d whole rows of %d px (wants %d of %d px)" % [shown, row_height, MIN_VISIBLE_ROWS, SongList.ROW_HEIGHT])
+	# a favourite with a long name: its star sits inside the row and the name stops before it
+	list.set_item_favorite(1, true)
+	await _settle()
+	var row := list._row(1)
+	var star := list._star(1)
+	var text_end := row.size.x - row.get_theme_stylebox(&"normal").content_margin_right
+	check(star.visible and row.get_global_rect().encloses(star.get_global_rect()) and text_end <= star.position.x,
+			"a favourite's star is inside its row (%s in %s) and the name ends at %d px, before it at %d px" % [
+				star.get_global_rect(), row.get_global_rect(), text_end, star.position.x])
+	list.set_item_favorite(1, false)
 
 ## A press that moves under 12 px picks the row; a pointer drag on the song list moves it 1:1 and picks nothing.
 func _check_list_drag(menu: MainMenu) -> void:

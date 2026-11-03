@@ -834,7 +834,7 @@ func _on_ItemList_item_selected(index: int) -> void:
 ## the song menu's side panel with five Standard difficulties (tests/test_menu_layout.gd).
 func _details_text(song: BeatSaverSongInfo) -> String:
 	var muted := Constants.UI_TEXT_MUTED.to_html(false)
-	var text := "[color=#%s]%d%% liked%s%s%s[/color]" % [muted, roundi(song.score * 100.0), " · ★ Staff pick" if song.curated else "",
+	var text := "[color=#%s]%d%% liked%s%s%s[/color]" % [muted, roundi(song.score * 100.0), " · Staff pick" if song.curated else "",
 		AI_DETAIL if song.automapper else "", "" if song.mode == "Standard" else " · " + MainMenu.CHARACTERISTIC_LABELS.get(song.mode, song.mode)]
 	var tag_names := PackedStringArray()
 	for tag in song.tags:
