@@ -28,7 +28,7 @@ func _process(delta: float) -> void:
 	_clock.text = MenuClock.now_text()
 
 func set_pause_text(song_name,dificulty=""):
-	$Label.text = "Current song:\n%s\n%s" % [song_name,dificulty]
+	$Label.text = "%s\n%s" % [song_name,dificulty]
 
 func _on_continue_button_up():
 	emit_signal("continue_button")

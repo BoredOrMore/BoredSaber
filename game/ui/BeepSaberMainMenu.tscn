@@ -303,7 +303,7 @@ script = ExtResource("icon_button")
 [node name="Reset_Button" type="Button" parent="Modifiers/Header" unique_id=1815398217]
 theme_type_variation = &"ChipButton"
 layout_mode = 2
-size_flags_horizontal = 10
+size_flags_horizontal = 8
 icon = ExtResource("icon_undo-2")
 script = ExtResource("icon_button")
 

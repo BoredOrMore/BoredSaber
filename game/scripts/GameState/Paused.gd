@@ -31,9 +31,9 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.song_player.stop()
 	game.play_pause_sound()
 	(game.pause_menu.ui_control as PausePanel).set_pause_text(
-		"%s By %s\nMap author: %s" % [
-		Map.current_info.song_name,
+		"%s - %s\nMapped by %s" % [
 		Map.current_info.song_author_name,
+		Map.current_info.song_name,
 		Map.current_info.level_author_name
 		], MapStats.level_name(Map.current_info, Map.current_difficulty) + _accuracy_line(game)
 	)

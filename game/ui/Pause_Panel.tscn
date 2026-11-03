@@ -54,8 +54,7 @@ offset_left = 16.0
 offset_top = 64.0
 offset_right = 624.0
 offset_bottom = 312.0
-text = "Current song:
-test"
+text = ""
 align = 1
 valign = 1
 __meta__ = {

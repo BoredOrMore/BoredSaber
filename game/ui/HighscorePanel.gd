@@ -53,12 +53,12 @@ func load_highscores(map_info: MapInfo, diff_rank: int, latest: Variant = null) 
 	diff_rank = HighscoreTable.get_rank_key(diff_rank)
 	
 	# populate title text
-	set_title("Highscores (%s)" % _get_difficulty_name(map_info,diff_rank))
+	set_title("Records (%s)" % _get_difficulty_name(map_info,diff_rank))
 	
 	# populate song info
 	_song_info.text = """Artist: %s
 		Song: %s
-		Map Author: %s""" % [map_info.song_author_name, map_info.song_name, map_info.level_author_name]
+		Mapped by: %s""" % [map_info.song_author_name, map_info.song_name, map_info.level_author_name]
 		
 	# TODO populate song artwork
 	

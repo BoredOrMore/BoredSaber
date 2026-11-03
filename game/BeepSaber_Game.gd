@@ -1365,9 +1365,9 @@ func _on_song_ended() -> void:
 		Scoreboard.points,
 		highscore,
 		current_percent,
-		"%s By %s\n%s     Map author: %s" % [
-			Map.current_info.song_name,
+		"%s - %s\n%s · Mapped by %s" % [
 			Map.current_info.song_author_name,
+			Map.current_info.song_name,
 			MapStats.level_name(Map.current_info, Map.current_difficulty),
 			Map.current_info.level_author_name],
 		Scoreboard.full_combo,

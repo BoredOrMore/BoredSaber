@@ -422,10 +422,10 @@ class SongFilter:
 
 ## After the name of a song whose music file is missing (it plays without sound).
 const NO_MUSIC_SUFFIX := " (no music)"
-## The Filters button above the list: the song count, or with filters or a search on how many show and why.
-const FILTERS_TEXT := "Filters · %d %s"
-const FILTERS_SHOWN_TEXT := "%d of %d · %s"
-const FILTERS_ON_TEXT := ["%d filter", "%d filters"]
+## The Filters button above the list: its name, or with filters or a search on how many songs show; which filters
+## are on is in the chip row under it. Both fit the button whole (the song count once cut it to "Filters · 18 s…").
+const FILTERS_TEXT := "Filters"
+const FILTERS_SHOWN_TEXT := "%d of %d"
 const FAVORITES_LABEL := "Favorites"
 const WORKOUT_LABEL := "Workout"
 const DIFFICULTY_FILTER_TITLE := "Difficulty"
@@ -489,12 +489,9 @@ func _show_filter_counts(filter: SongFilter, songs: Array[MapInfo], shown: int) 
 	if not _search_text.is_empty():
 		status += SEARCH_STATUS_TEXT % _search_text
 	filter_status.text = status
-	filters_button.text = FILTERS_TEXT % [total, noun]
+	filters_button.text = FILTERS_TEXT
 	if not filter.is_off() or not _search_text.is_empty():
-		var on := int(filter.reaction != 0) + int(filter.length != 0) + int(filter.favorites) + int(filter.workout) \
-				+ int(not filter.style.is_empty()) + int(not filter.genre.is_empty())
-		var what: String = (FILTERS_ON_TEXT[0 if on == 1 else 1] % on) if _search_text.is_empty() else ("\"%s\"" % _search_text)
-		filters_button.text = FILTERS_SHOWN_TEXT % [shown, total, what]
+		filters_button.text = FILTERS_SHOWN_TEXT % [shown, total]
 	# greyed out rather than hidden, so the status beside it keeps its width
 	clear_filters_button.disabled = filter.is_off() and _search_text.is_empty()
 	_update_chips(filter)
