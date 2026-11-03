@@ -888,7 +888,7 @@ func _on_tab_pressed(tab: int) -> void:
 	_show_tab(tab)
 
 ## Opens the settings screen from the gear button.
-## "Your room" (mixed reality) beside the gear (Bored, 2026-11-03: moved out of Settings): turning it on opens "Set up your room".
+## "MR" (mixed reality) beside the gear (Bored, 2026-11-03: moved out of Settings): turning it on opens "Set up your room".
 func _on_mixed_reality_toggled(on: bool) -> void:
 	Settings.mixed_reality = on
 	Settings.save()

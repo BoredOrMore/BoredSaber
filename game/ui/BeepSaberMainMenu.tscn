@@ -229,7 +229,7 @@ offset_right = 1665.0
 offset_bottom = 68.0
 theme_type_variation = &"ChipButton"
 toggle_mode = true
-text = "Your room"
+text = "MR"
 
 [node name="Settings_Button" type="Button" parent="."]
 layout_mode = 0
