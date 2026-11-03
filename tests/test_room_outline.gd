@@ -73,8 +73,27 @@ func _ready() -> void:
 	check(is_equal_approx(grown_size.x / 2.0, wall_right) and grown_size.y >= extent.end.y
 		and is_equal_approx((grown["transform"] as Transform3D).origin.y, grown_size.y / 2.0),
 		"the floating portal grows to take the map, centred on the track and standing on the floor: %s" % grown_size)
+	check(RoomOutline.map_turns().is_empty(), "a map whose lanes don't turn keeps the one portal ahead")
+	# a 90/360 map: a note ahead, then a wall turned 90° to the right, held for 4 beats
+	Map.note_stack = [ColorNoteInfo.new(3.0, 1, 0, 0, 0, 0)]
+	Map.obstacle_stack = [ObstacleInfo.new(1.0, 4.0, 0, 0, 1, 5, 90)]
+	var turns := RoomOutline.map_turns()
+	check(turns.size() == 2 and turns[0][0] == 1.0 and turns[0][1] == 5.0 and is_equal_approx(turns[0][2], PI / 2.0)
+		and turns[1][2] == 0.0, "a turning map's objects in beat order, a wall until its end: %s" % [turns])
 	Map.note_stack = []
 	Map.obstacle_stack = []
+	var near := RoomOutline.turn_portals([0.0, deg_to_rad(15.0), deg_to_rad(90.0)], 4)
+	check(near.size() == 2 and is_equal_approx(near[0].x, deg_to_rad(7.5)) and is_equal_approx(near[0].y, deg_to_rad(7.5))
+		and is_equal_approx(near[1].x, deg_to_rad(90.0)), "directions within 30° share a portal: %s" % [near])
+	var wrapped := RoomOutline.turn_portals([deg_to_rad(350.0), deg_to_rad(10.0)], 4)
+	check(wrapped.size() == 1 and absf(angle_difference(wrapped[0].x, 0.0)) < 0.001
+		and is_equal_approx(wrapped[0].y, deg_to_rad(10.0)), "a portal across 0° isn't split: %s" % [wrapped])
+	var many := RoomOutline.turn_portals([0.0, PI / 3.0, 2.0 * PI / 3.0, PI, 4.0 * PI / 3.0, 5.0 * PI / 3.0], 4)
+	check(many.size() == 4, "never more portals than the mask takes: %s" % [many])
+	var spread := RoomOutline.floating_portal(Vector3(0, 0, 1), Vector3(0, 0, -1), Rect2(), deg_to_rad(15.0))
+	check(is_equal_approx((spread["size"] as Vector2).x - floating_size.x,
+		2.0 * RoomOutline.FLOATING_PORTAL_DISTANCE * tan(deg_to_rad(15.0))),
+		"a shared portal widens to take lanes 15° either way: %s" % spread["size"])
 	var mask := RoomOutline.portal_mask_transform(place, size)
 	var corner := mask * (place * Vector3(size.x / 2, size.y / 2, 0))
 	check(corner.distance_to(Vector3(0.5, 0.5, 0)) < 0.001, "the mask maps the portal's corner to (0.5, 0.5, 0)")

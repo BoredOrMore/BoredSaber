@@ -88,6 +88,7 @@ func _process_map(game: BeepSaber_Game) -> void:
 	
 	var current_beat := game.get_current_time() * Map.current_info.beats_per_minute * 0.016666666666666667
 	spawn_due(current_beat)
+	MixedReality.follow_map(current_beat)
 	
 	game.event_driver.show_beat = current_beat
 	while not Map.event_stack.is_empty() and Map.event_stack[-1].beat <= current_beat:

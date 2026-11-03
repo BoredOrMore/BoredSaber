@@ -707,6 +707,9 @@ func _transition_game_state(next_state: GameState) -> void:
 	# the scene only lights up for the combo while a map is on
 	if gamestate != gamestate_playing and gamestate != gamestate_paused:
 		event_driver.set_combo_multiplier(1)
+	# a 90/360 map's portals follow its objects only while it is on; otherwise the one portal ahead
+	if gamestate != gamestate_playing and gamestate != gamestate_paused and gamestate != gamestate_practicehold:
+		MixedReality.stop_following_map()
 	gamestate._ready(self)
 
 ## Shows the FPS label and the log window under the settings panel only when debug info is on.

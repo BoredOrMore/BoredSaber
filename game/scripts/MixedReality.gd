@@ -13,6 +13,9 @@ const MAX_PORTALS := 4
 ## The room scan and its setup panel stay in the code but are off for now (Bored, 2026-11-03): mixed reality opens a
 ## portal floating in front of the player instead (RoomOutline.floating_portal).
 const ROOM_SCAN_ENABLED := false
+## How long a 90/360 map's portal takes to grow from its centre when objects start coming from its direction, and to
+## shrink back once they have passed (Bored, 2026-11-03: grows from the centre). UNTUNED.
+const PORTAL_OPEN_SECONDS := 0.5
 
 var floor_albedo_texture : Texture2D = null
 ## The real room's outline, made on the first room scan (PICO headsets only).
@@ -27,6 +30,19 @@ var _portal_rims: Array[MeshInstance3D] = []
 var _space: MRSpace = null
 ## The loaded map's objects' box (RoomOutline.map_extent), which the floating portal grows to take.
 var _map_extent := Rect2()
+## A 90/360 map's objects as RoomOutline.map_turns gives them, the index of the next one not yet counted, and the
+## counted ones still to pass the player; empty on a map whose lanes don't turn.
+var _turns := []
+var _next_turn := 0
+var _coming := []
+## The beat follow_map last saw, to notice a practice run jumping back.
+var _last_beat := 0.0
+## The open portals while a 90/360 map plays: each {"angle", "spread" (radians), "open" (0 shut to 1 open), "wanted"}.
+var _turn_portals: Array[Dictionary] = []
+
+
+func _ready() -> void:
+	set_process(false)
 
 
 ## Turns passthrough and the see-through floor on or off; turning it on scans the real room.
@@ -168,6 +184,92 @@ func _show_floating_portal() -> void:
 ## beside it (Bored, 2026-11-03).
 func fit_portal_to_map() -> void:
 	_map_extent = RoomOutline.map_extent()
+	_turns = RoomOutline.map_turns()
+	_next_turn = 0
+	_coming = []
+	_last_beat = 0.0
+	if Settings.mixed_reality and not ROOM_SCAN_ENABLED:
+		_show_floating_portal()
+
+
+## While a 90/360 map plays (GameStatePlaying, each frame at `current_beat`), opens a portal toward each direction its
+## objects are coming from, from just before the first of them flies in until the last has passed the player (Bored,
+## 2026-11-03); a map whose lanes don't turn keeps its one portal ahead.
+func follow_map(current_beat: float) -> void:
+	if _turns.is_empty() or not Settings.mixed_reality or ROOM_SCAN_ENABLED:
+		return
+	if not is_processing():
+		# the one portal ahead becomes the first of them, closing unless objects come from ahead
+		_turn_portals = [{"angle": 0.0, "spread": 0.0, "open": 1.0, "wanted": false}]
+	if current_beat < _last_beat:
+		_next_turn = 0
+		_coming = []
+	_last_beat = current_beat
+	# as Playing.spawn_due's look-ahead, plus the time the portal takes to open
+	var horizon := current_beat + Map.half_jump_beats + (Cuttable.FLY_SECONDS + PORTAL_OPEN_SECONDS) \
+		* Map.beats_per_second()
+	while _next_turn < _turns.size() and _turns[_next_turn][0] <= horizon:
+		_coming.append(_turns[_next_turn])
+		_next_turn += 1
+	_coming = _coming.filter(func(turn: Array) -> bool: return turn[1] >= current_beat)
+	var wanted := RoomOutline.turn_portals(_coming.map(func(turn: Array) -> float: return turn[2]), MAX_PORTALS)
+	for portal in _turn_portals:
+		portal["wanted"] = false
+	for want in wanted:
+		var match_index := -1
+		for i in _turn_portals.size():
+			var gap := absf(angle_difference(_turn_portals[i]["angle"], want.x))
+			if not _turn_portals[i]["wanted"] and gap <= RoomOutline.PORTAL_TURN_MERGE \
+					and (match_index < 0 or gap < absf(angle_difference(_turn_portals[match_index]["angle"], want.x))):
+				match_index = i
+		if match_index < 0:
+			# a new direction takes the place of the most shut portal still closing
+			if _turn_portals.size() >= MAX_PORTALS:
+				var shut := -1
+				for i in _turn_portals.size():
+					if not _turn_portals[i]["wanted"] and (shut < 0 or _turn_portals[i]["open"] < _turn_portals[shut]["open"]):
+						shut = i
+				_turn_portals.remove_at(shut)
+			_turn_portals.append({"angle": want.x, "spread": want.y, "open": 0.0, "wanted": true})
+		else:
+			_turn_portals[match_index].merge({"angle": want.x, "spread": want.y, "wanted": true}, true)
+	set_process(true)
+
+
+## Grows and shrinks a 90/360 map's portals (follow_map) and draws them; back to the one portal ahead once none is open.
+func _process(delta: float) -> void:
+	var step := delta / PORTAL_OPEN_SECONDS
+	for portal in _turn_portals:
+		portal["open"] = clampf(portal["open"] + (step if portal["wanted"] else -step), 0.0, 1.0)
+	_turn_portals = _turn_portals.filter(func(portal: Dictionary) -> bool: return portal["wanted"] or portal["open"] > 0.0)
+	_show_turn_portals()
+
+
+## Draws a 90/360 map's portals, each grown from its centre by how open it is.
+func _show_turn_portals() -> void:
+	var origin := get_node("/root/BeepSaber/XROrigin3D") as XROrigin3D
+	var portals := []
+	for portal in _turn_portals:
+		var open := ease(portal["open"], -2.0)
+		if open <= 0.0:
+			continue
+		var angle: float = portal["angle"]
+		# a lane turned `angle` about the player's standing point (Cuttable.add_lane_rotation) comes in from this way
+		var inward := Vector3(sin(angle), 0.0, -cos(angle))
+		var spot := Vector3(0.0, 0.0, Constants.LANE_PIVOT_Z) - inward * (Constants.PLAYER_Z - Constants.LANE_PIVOT_Z)
+		var place := RoomOutline.floating_portal(origin.to_local(spot), origin.global_basis.inverse() * inward,
+			_map_extent, portal["spread"])
+		place["size"] = (place["size"] as Vector2) * open
+		portals.append(place)
+	_show_portals(portals)
+
+
+## Puts the one portal ahead back when a 90/360 map stops playing (BeepSaber_Game._transition_game_state).
+func stop_following_map() -> void:
+	if not is_processing():
+		return
+	set_process(false)
+	_turn_portals.clear()
 	if Settings.mixed_reality and not ROOM_SCAN_ENABLED:
 		_show_floating_portal()
 
@@ -199,9 +301,9 @@ func _on_recentered() -> void:
 
 ## Puts the floating portal back in front of the track after BeepSaber_Game.recenter moved the play space (its rim
 ## rides on XROrigin3D, its mask is in world space); the game recenters at start and from Settings, not only on the
-## headset's recenter.
+## headset's recenter. A 90/360 map's portals redraw each frame anyway.
 func play_space_moved() -> void:
-	if Settings.mixed_reality and not ROOM_SCAN_ENABLED:
+	if Settings.mixed_reality and not ROOM_SCAN_ENABLED and not is_processing():
 		_show_floating_portal()
 
 

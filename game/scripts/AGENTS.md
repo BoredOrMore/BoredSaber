@@ -31,6 +31,14 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
   (`RENDER_PRIORITY_MIN`), so the HUD stays over its glow. The rim's colour (right note colour) is UNTUNED. In mixed
   reality the platform's floor and border bars (`StandingGround/Node3D`) are hidden (Bored, 2026-11-03: keep the
   player's room free; only the track's two light strips show in it).
+  On a 90/360 map (Bored, 2026-11-03, plan https://claude.ai/artifact/GqhUBQWfZBUYyL2yDMg7ag) `follow_map`, called each
+  frame from `GameStatePlaying._process_map`, opens a floating portal toward each direction objects are coming from
+  (`RoomOutline.map_turns` timeline, from the spawn look-ahead plus `PORTAL_OPEN_SECONDS` until the last object passes
+  the player), directions within `RoomOutline.PORTAL_TURN_MERGE` (30°) sharing one widened portal, at most
+  `MAX_PORTALS`; `_process` grows and shrinks each from its centre over `PORTAL_OPEN_SECONDS` (UNTUNED), so the room
+  stays clear where nothing comes. `BeepSaber_Game._transition_game_state` calls `stop_following_map` when the map is
+  no longer on (not Playing, Paused or PracticeHold), which puts the one portal ahead back. Maps whose lanes don't turn
+  keep the one portal.
 - `RoomOutline.gd` (class `RoomOutline`, a child of `XROrigin3D`) - the real room as lines over the passthrough: walls,
   doors and windows in `UI_TEXT`, furniture boxes in `UI_TEXT_MUTED`, and the portal frame in `UI_ACCENT` where the
   note path meets the nearest wall (`find_portal`, never smaller than the notes' corridor of four lanes and three rows
@@ -38,7 +46,8 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
   `floating_portal` stands a portal ahead when there is no room scan, from the floor `FLOATING_PORTAL_HEIGHT` up and
   across the curbs, so walls, arcs and bombs come in through it (Bored, 2026-11-03), and grown at each song start to
   take every object of the map (`map_extent`, via `MixedReality.fit_portal_to_map` from `BeepSaber_Game._start_map`);
-  `portal_mask_transform` gives the portal mask's world-to-hole transform. Poses are in the
+  `map_turns` and `turn_portals` (tested in `tests/test_room_outline.gd`) give a 90/360 map's directions and the
+  portals that take them; `portal_mask_transform` gives the portal mask's world-to-hole transform. Poses are in the
   play space, so on a recenter `MixedReality` reads the room again (`PicoRoom.reload_room`) and redraws it.
 - `PlayCountTable.gd` (autoload `PlayCount`) - play counts, favourite flag, last difficulty per map.
 - `HighscoreTable/HighscoreTable.gd` (autoload `Highscores`) - top-10 records per map + modifier set.
