@@ -38,7 +38,9 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
 - `BeatSaverPanel/`: browse/search/download maps from beatsaver.com (class `BeatSaverPanel`; credited by the `Source`
   label under the list, always shown). Its song list is
   `BeatSaverList.gd` (class `BeatSaverList`): the song list's rows (72 px cover, "Artist - Title") with the level strip
-  and length at the end, a fixed set of recycled rows, each with one cover texture written over in place, the 72 px
+  and length at the end, under a download icon one press on which gets the map (`download_pressed`; the icon
+  becomes the progress, then a check once in the library; owner 2026-11-04), a fixed set of recycled rows, each with
+  one cover texture written over in place, the 72 px
   covers kept as images; only the picked map's big cover is fetched (`DetailCoverDownload`)
   (doc/research/get-songs-list-plan.md). A page of maps is parsed on a worker thread (`_parse_page`), which also
   works out each map's row text and estimated levels (`BeatSaverSongInfo.row_text`, `estimated_levels` kept per Speed

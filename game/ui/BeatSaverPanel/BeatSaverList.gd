@@ -12,6 +12,18 @@ class_name BeatSaverList
 
 ## A row was pressed.
 signal item_selected(index: int)
+## A row's download icon was pressed (owner, 2026-11-04: one press gets a song, without opening its details).
+signal download_pressed(index: int)
+
+## What a row's end shows over its length: the download icon (pressable), the download's progress, or a check once
+## the map is in the library.
+enum Side { GET, BUSY, OWNED }
+const DOWNLOAD_ICON := preload("res://game/ui/icons/download.svg")
+const OWNED_ICON := preload("res://game/ui/icons/check.svg")
+## The end icon's size and the length's text under it (px); the whole end, SIDE_WIDTH by the row, takes the press
+## (84 x 76 px, about 5.6 x 5.1 degrees at the menus' 2 m).
+const SIDE_ICON_SIZE := 32
+const SIDE_LENGTH_FONT_SIZE := 20
 
 ## Row height, cover size, padding and gap between rows (px): SongList's.
 const ROW_HEIGHT := 76.0
@@ -31,6 +43,7 @@ var item_count: int:
 
 var _texts := PackedStringArray()
 var _sides := PackedStringArray()
+var _states := PackedByteArray()
 var _covers: Array[Image] = []
 var _strips: Array[Texture2D] = []
 var _selected := -1
@@ -40,6 +53,8 @@ var _rows: Array[Button] = []
 var _row_covers: Array[ImageTexture] = []
 var _row_strips: Array[TextureRect] = []
 var _row_sides: Array[Label] = []
+var _row_icons: Array[TextureRect] = []
+var _row_lengths: Array[Label] = []
 ## The song each row shows (-1 none), and the cover it last uploaded, so an unchanged row uploads nothing
 var _row_item := PackedInt32Array()
 var _row_cover: Array[Image] = []
@@ -52,25 +67,43 @@ func _ready() -> void:
 	resized.connect(_make_rows)
 	_make_rows()
 
-## Adds songs' rows, each "Artist - Title", the text at its end (length or state), its cover image and level strip,
-## laying the rows out once for all of them.
-func add_items(texts: PackedStringArray, sides: PackedStringArray, covers: Array[Image], strips: Array[Texture2D]) -> void:
+## Adds songs' rows, each "Artist - Title", its end (a Side and the text with it: the length, or the download's
+## progress), its cover image and level strip, laying the rows out once for all of them.
+func add_items(texts: PackedStringArray, states: PackedByteArray, sides: PackedStringArray, covers: Array[Image],
+		strips: Array[Texture2D]) -> void:
 	_texts.append_array(texts)
+	_states.append_array(states)
 	_sides.append_array(sides)
 	_covers.append_array(covers)
 	_strips.append_array(strips)
 	_grow()
 
-## Changes the text at a row's end (its length, or how its download is going); true if it changed.
-func set_item_side(index: int, side: String) -> bool:
-	if _sides[index] == side:
+## Changes a row's end (its Side and the length or the download's progress); true if it changed.
+func set_item_side(index: int, state: BeatSaverList.Side, side: String) -> bool:
+	if _sides[index] == side and _states[index] == state:
 		return false
 	_sides[index] = side
-	# only that row's label, if it is on a row: a download's progress changes it every frame
+	_states[index] = state
+	# only that row's end, if it is on a row: a download's progress changes it every frame
 	var slot := index % _rows.size()
 	if _row_item[slot] == index:
-		_row_sides[slot].text = side
+		_show_side(slot, index)
 	return true
+
+## Shows song index's end on row slot: the icon with the length under it, or the progress alone while downloading.
+func _show_side(slot: int, index: int) -> void:
+	var state := _states[index] as Side
+	_row_icons[slot].visible = state != Side.BUSY
+	_row_icons[slot].texture = OWNED_ICON if state == Side.OWNED else DOWNLOAD_ICON
+	_row_icons[slot].modulate = Constants.UI_TEXT_MUTED if state == Side.OWNED else Constants.UI_TEXT
+	_row_lengths[slot].visible = state != Side.BUSY
+	_row_lengths[slot].text = _sides[index]
+	_row_sides[slot].visible = state == Side.BUSY
+	_row_sides[slot].text = _sides[index]
+
+## True if a point on row slot (its own coordinates) is on its end, the download icon's press area.
+func _on_side(slot: int, point: Vector2) -> bool:
+	return point.x >= _row_sides[slot].position.x - END_GAP
 
 ## Changes a row's level strip (measured once the map is in the library).
 func set_item_strip(index: int, strip: Texture2D) -> void:
@@ -102,6 +135,7 @@ func get_item_image(index: int) -> Image:
 ## Drops every song (their images are CPU memory: nothing is freed on the GPU).
 func clear() -> void:
 	_texts.clear()
+	_states.clear()
 	_sides.clear()
 	_covers.clear()
 	_strips.clear()
@@ -159,15 +193,39 @@ func _make_rows() -> void:
 		side.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		side.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		side.add_theme_font_size_override(&"font_size", SIDE_FONT_SIZE)
-		side.add_theme_color_override(&"font_color", Constants.UI_TEXT_MUTED)
 		side.size = Vector2(SIDE_WIDTH, ROW_HEIGHT)
 		row.add_child(side)
+		# the icon with the length under it, centred in the end over each other
+		var icon := TextureRect.new()
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.size = Vector2(SIDE_WIDTH, SIDE_ICON_SIZE)
+		row.add_child(icon)
+		var length := Label.new()
+		length.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		length.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		length.add_theme_font_size_override(&"font_size", SIDE_LENGTH_FONT_SIZE)
+		length.add_theme_color_override(&"font_color", Constants.UI_TEXT_MUTED)
+		length.size = Vector2(SIDE_WIDTH, ROW_HEIGHT - SIDE_ICON_SIZE)
+		row.add_child(length)
+		var slot := _rows.size()
+		# the download icon lights while pointed at, so it reads as its own button inside the row
+		row.gui_input.connect(func(event: InputEvent) -> void:
+			if event is InputEventMouseMotion and _row_item[slot] >= 0 and _states[_row_item[slot]] == Side.GET:
+				icon.modulate = Constants.UI_ACCENT if _on_side(slot, (event as InputEventMouseMotion).position) \
+						else Constants.UI_TEXT)
+		row.mouse_exited.connect(func() -> void:
+			if _row_item[slot] >= 0 and _states[_row_item[slot]] == Side.GET:
+				icon.modulate = Constants.UI_TEXT)
 		UI_AudioEngine.attach_button(row)
 		_content.add_child(row)
 		_rows.append(row)
 		_row_covers.append(texture)
 		_row_strips.append(strip)
 		_row_sides.append(side)
+		_row_icons.append(icon)
+		_row_lengths.append(length)
 		_row_item.append(-1)
 		_row_cover.append(null)
 	_place_rows(true)
@@ -190,10 +248,12 @@ func _place_rows(texts := false) -> void:
 		row.position = Vector2(0.0, index * (ROW_HEIGHT + ROW_SEPARATION))
 		row.size = Vector2(width, ROW_HEIGHT)
 		_row_sides[slot].position = Vector2(width - END_GAP - SIDE_WIDTH, 0.0)
+		_row_icons[slot].position = Vector2(width - END_GAP - SIDE_WIDTH, (ROW_HEIGHT - SIDE_ICON_SIZE - SIDE_LENGTH_FONT_SIZE) / 2.0 - 2.0)
+		_row_lengths[slot].position = _row_icons[slot].position + Vector2(0.0, SIDE_ICON_SIZE)
 		_row_strips[slot].position = Vector2(width - 2.0 * END_GAP - SIDE_WIDTH - LevelStrip.WIDTH, 0.0)
 		if _row_item[slot] != index or texts:
 			row.text = _texts[index]
-			_row_sides[slot].text = _sides[index]
+			_show_side(slot, index)
 			_row_strips[slot].texture = _strips[index]
 		_row_item[slot] = index
 		row.set_pressed_no_signal(index == _selected)
@@ -203,6 +263,12 @@ func _place_rows(texts := false) -> void:
 			_row_covers[slot].update(cover)
 
 func _on_row_pressed(slot: int) -> void:
+	var index := _row_item[slot]
+	if _states[index] == Side.GET and _on_side(slot, _rows[slot].get_local_mouse_position()):
+		# the row stays as it was: a toggle button flips itself on press
+		_rows[slot].set_pressed_no_signal(index == _selected)
+		download_pressed.emit(index)
+		return
 	_selected = _row_item[slot]
 	_place_rows()
 	item_selected.emit(_selected)

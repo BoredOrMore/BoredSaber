@@ -226,7 +226,7 @@ var prev_request: BeatSaverRequest
 
 func on_song_list_changed() -> void:
 	for item_index in mini(item_list.item_count, song_data.size()):
-		item_list.set_item_side(item_index, _side_text(song_data[item_index]))
+		item_list.set_item_side(item_index, _side_state(song_data[item_index]), _side_text(song_data[item_index]))
 		item_list.set_item_strip(item_index, _strip(song_data[item_index]))
 	_update_download_button()
 
@@ -261,16 +261,27 @@ static func _row_text(song: BeatSaverSongInfo) -> String:
 	var mode := "" if song.mode == "Standard" else " (%s)" % MainMenu.CHARACTERISTIC_LABELS.get(song.mode, song.mode)
 	return (SongTags.AI_MARK if song.automapper else "") + title + mode
 
-## The end of a map's row: how its download is going, else its length, with "✓" once it is in the library.
+## A map's row end while it waits behind another download.
+const WAITING_TEXT := "Waiting"
+
+## The end of a map's row: downloading while it is in the download queue, owned once in the library, else the icon
+## to get it.
+func _side_state(song: BeatSaverSongInfo) -> BeatSaverList.Side:
+	var hash := song.get_hash()
+	if downloading.any(func(entry: Array) -> bool: return Utils.get_str(entry[1] as Dictionary, "hash", "") == hash):
+		return BeatSaverList.Side.BUSY
+	return BeatSaverList.Side.OWNED if _in_library(song) else BeatSaverList.Side.GET
+
+## The text at a map's row end: its download's percent (first in the queue) or WAITING_TEXT, else its length.
 func _side_text(song: BeatSaverSongInfo) -> String:
 	var hash := song.get_hash()
 	if not downloading.is_empty() and Utils.get_str(downloading[0][1] as Dictionary, "hash", "") == hash:
 		var total := httpdownload.get_body_size()
-		return "↓ %d%%" % (100 * httpdownload.get_downloaded_bytes() / total) if total > 0 else "↓ …"
+		return "%d%%" % (100 * httpdownload.get_downloaded_bytes() / total) if total > 0 else "0%"
 	if downloading.any(func(entry: Array) -> bool: return Utils.get_str(entry[1] as Dictionary, "hash", "") == hash):
-		return "↓ …"
+		return WAITING_TEXT
 	var seconds := int(song.duration)
-	return "%s%d:%02d" % ["✓ " if _in_library(song) else "", seconds / 60, seconds % 60]
+	return "%d:%02d" % [seconds / 60, seconds % 60]
 
 ## Level strips by kind (levels, the player's level, estimated), each one texture shared by every row that shows it.
 var _strip_textures := {}
@@ -289,6 +300,9 @@ func _ready() -> void:
 	_build_filter_chips()
 	UI_AudioEngine.attach_children(self)
 	v_scroll.value_changed.connect(_on_ListV_Scroll_value_changed)
+	item_list.download_pressed.connect(func(index: int) -> void:
+		download(song_data[index])
+		_redraw())
 	_detail_texture = ImageTexture.create_from_image(ImageUtils.blank_cover(DETAIL_COVER))
 	cover_rect.texture = _detail_texture
 	
@@ -738,6 +752,7 @@ static func _parse_page(body: PackedByteArray, speed: float, parsed: Array) -> v
 ## Adds the parsed maps that pass the level filter (an uploader's maps all show) to the list.
 func _add_rows(songs: Array) -> void:
 	var texts := PackedStringArray()
+	var states := PackedByteArray()
 	var sides := PackedStringArray()
 	var covers: Array[Image] = []
 	var strips: Array[Texture2D] = []
@@ -745,12 +760,13 @@ func _add_rows(songs: Array) -> void:
 		if prev_request.type != "uploader" and not song.passes_reaction_filter():
 			continue
 		texts.append(song.row_text)
+		states.append(_side_state(song))
 		sides.append(_side_text(song))
 		covers.append(_placeholder_row_cover())
 		strips.append(_strip(song))
 		_song_index[song.get_hash()] = song_data.size()
 		song_data.append(song)
-	item_list.add_items(texts, sides, covers, strips)
+	item_list.add_items(texts, states, sides, covers, strips)
 
 ## Most items the list fetches pages for on its own while the reaction time filter hides songs.
 const REACTION_FILL_ITEMS := 20
@@ -1076,7 +1092,7 @@ func _process(delta: float) -> void:
 	var before := download_button.text
 	_update_download_button()
 	var index: int = _song_index.get(Utils.get_str(downloading[0][1] as Dictionary, "hash", ""), -1)
-	var row_changed := index >= 0 and index < item_list.item_count and item_list.set_item_side(index, _side_text(song_data[index]))
+	var row_changed := index >= 0 and index < item_list.item_count and item_list.set_item_side(index, _side_state(song_data[index]), _side_text(song_data[index]))
 	if download_button.text != before or row_changed:
 		_redraw()
 
@@ -1088,6 +1104,10 @@ func _on_download_button_up() -> void:
 		if main_menu_ref.show_song(song.get_hash()):
 			_hide()
 		return
+	download(song)
+
+## Queues a map's download, once: from the big button under the details or the download icon on its row.
+func download(song: BeatSaverSongInfo) -> void:
 	var hash := song.get_hash()
 	if downloading.any(func(entry: Array) -> bool: return Utils.get_str(entry[1] as Dictionary, "hash", "") == hash):
 		return
@@ -1097,7 +1117,9 @@ func _on_download_button_up() -> void:
 		download_next()
 	label.text = ""
 	_update_download_button()
-	item_list.set_item_side(item_selected, _side_text(song))
+	var index: int = _song_index.get(hash, -1)
+	if index >= 0 and index < item_list.item_count:
+		item_list.set_item_side(index, _side_state(song), _side_text(song))
 
 ## Writes a downloaded song's zip `body` to `zippath`, unpacks it into `song_out_dir` and removes the zip; on a worker
 ## thread. Appends true to `saved` when the zip could be written.
