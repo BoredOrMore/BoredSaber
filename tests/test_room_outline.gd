@@ -49,8 +49,8 @@ func _ready() -> void:
 	check(RoomOutline.find_portal([], Vector3.ZERO, Vector3(0, 0, -1)).is_empty(), "no walls, no portal")
 	var floating := RoomOutline.floating_portal(Vector3(0, 0, 1), Vector3(0, -0.3, -2))
 	var floating_place := floating["transform"] as Transform3D
-	check(floating_place.origin.is_equal_approx(Vector3(0, (Constants.ROW_Y[0] + Constants.ROW_Y[-1]) / 2.0, -2)),
-		"floating portal 3 m ahead at the note rows' middle: %s" % floating_place.origin)
+	check(floating_place.origin.is_equal_approx(Vector3(0, (Constants.ROW_Y[0] + Constants.ROW_Y[-1]) / 2.0, 1.0 - RoomOutline.FLOATING_PORTAL_DISTANCE)),
+		"floating portal ahead at the note rows' middle: %s" % floating_place.origin)
 	check(floating_place.basis.z.is_equal_approx(Vector3(0, 0, -1)) and floating_place.basis.determinant() > 0.0,
 		"floating portal faces out along the track, level")
 	check(floating["size"] == RoomOutline.note_corridor(), "floating portal is corridor-sized")

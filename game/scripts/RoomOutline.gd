@@ -16,8 +16,8 @@ const PORTAL_NOTE_REACH := 0.35
 const PORTAL_WALL_SHARE := 0.7
 const PORTAL_MAX_SIZE := Vector2(2.4, 2.0)
 ## Without a room scan (MixedReality.ROOM_SCAN_ENABLED off) the portal floats this far ahead of the player's standing
-## point, corridor-sized (Bored, 2026-11-03: "ลอยข้างหน้า 3 m").
-const FLOATING_PORTAL_DISTANCE := 3.0
+## point, corridor-sized (Bored, 2026-11-03: first 3 m, then 6 m).
+const FLOATING_PORTAL_DISTANCE := 6.0
 ## Walls closer to parallel with the note path than this (the dot of their normal with it) can't take a portal.
 const MIN_FACING := 0.3
 
