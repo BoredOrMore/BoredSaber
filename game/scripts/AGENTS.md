@@ -21,10 +21,13 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
   on opens the room setup (`game/ui/RoomSetupPanel`) when the headset can scan the room (`can_scan_room`: the
   `PicoRoom` engine singleton, `native/pico_room/`, PICO only; Bored 2026-11-02: every time). `scan_room` ends in
   `room_found(pieces)` or `room_missing`; the room is kept and drawn with `RoomOutline`, shown only while the setup
-  checks it (`show_room_outline`).
+  checks it (`show_room_outline`). Each found room also cuts the portal (`_show_portals`): a `PortalRim.gdshader` quad
+  under `XROrigin3D`, the mask globals of `game/env/portal_mask.gdshaderinc`, and `MRSpace` under `/root/BeepSaber`;
+  forgetting the room closes them (mask count 0). The rim's colour (right note colour) is UNTUNED.
 - `RoomOutline.gd` (class `RoomOutline`, a child of `XROrigin3D`) - the real room as lines over the passthrough: walls,
   doors and windows in `UI_TEXT`, furniture boxes in `UI_TEXT_MUTED`, and the portal frame in `UI_ACCENT` where the
-  note path meets the nearest wall (`find_portal`; its size constants are UNTUNED placeholders). Poses are in the
+  note path meets the nearest wall (`find_portal`; its size constants are UNTUNED placeholders);
+  `portal_mask_transform` gives the portal mask's world-to-hole transform. Poses are in the
   play space, so on a recenter `MixedReality` reads the room again (`PicoRoom.reload_room`) and redraws it.
 - `PlayCountTable.gd` (autoload `PlayCount`) - play counts, favourite flag, last difficulty per map.
 - `HighscoreTable/HighscoreTable.gd` (autoload `Highscores`) - top-10 records per map + modifier set.

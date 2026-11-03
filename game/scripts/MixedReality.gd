@@ -5,6 +5,12 @@ signal room_found(pieces: Array)
 ## A room scan found no room.
 signal room_missing()
 
+## The rim round each portal, and the world seen through the portals.
+const PORTAL_RIM_SHADER := preload("res://game/env/PortalRim.gdshader")
+const MR_SPACE_SCENE := preload("res://game/env/MRSpace.tscn")
+## How many portals the mask shader takes (portal_mask.gdshaderinc's mr_portal_0..3).
+const MAX_PORTALS := 4
+
 var floor_albedo_texture : Texture2D = null
 ## The real room's outline, made on the first room scan (PICO headsets only).
 var _room_outline: RoomOutline = null
@@ -12,6 +18,10 @@ var _room_outline: RoomOutline = null
 var _room_pieces: Array = []
 ## Whether the outline should show when there is a room.
 var _outline_shown := false
+## One rim per portal, children of XROrigin3D like the room's poses.
+var _portal_rims: Array[MeshInstance3D] = []
+## The world behind the portals, made with the first portal.
+var _space: MRSpace = null
 
 
 ## Turns passthrough and the see-through floor on or off; turning it on scans the real room.
@@ -84,10 +94,55 @@ func show_room_outline(shown: bool) -> void:
 		_room_outline.visible = shown and not _room_pieces.is_empty()
 
 
-## Drops the scanned room and its outline.
+## Drops the scanned room, its outline and its portals.
 func _forget_room() -> void:
 	_room_pieces = []
 	show_room_outline(false)
+	_show_portals([])
+
+
+## Cuts `portals` (RoomOutline.find_portal results, in XROrigin3D's space) into the real walls: a rim round each, and
+## the world behind showing only through them; an empty list closes them all, so stages outside mixed reality draw whole.
+func _show_portals(portals: Array) -> void:
+	assert(portals.size() <= MAX_PORTALS, "the portal mask takes %d portals" % MAX_PORTALS)
+	RenderingServer.global_shader_parameter_set(&"mr_portal_count", portals.size())
+	if portals.is_empty():
+		for rim in _portal_rims:
+			rim.hide()
+		if _space:
+			_space.hide()
+		return
+	var origin := get_node("/root/BeepSaber/XROrigin3D") as XROrigin3D
+	# UNTUNED: the rim takes the right note colour; the map's lights should drive it once the portal is seen on the headset
+	var light := (get_node("/root/BeepSaber/event_driver") as EventDriver).right_color
+	for i in MAX_PORTALS:
+		if i >= portals.size():
+			if i < _portal_rims.size():
+				_portal_rims[i].hide()
+			continue
+		if i >= _portal_rims.size():
+			var rim := MeshInstance3D.new()
+			rim.mesh = QuadMesh.new()
+			var material := ShaderMaterial.new()
+			material.shader = PORTAL_RIM_SHADER
+			rim.material_override = material
+			rim.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+			origin.add_child(rim)
+			_portal_rims.append(rim)
+		var place := portals[i]["transform"] as Transform3D
+		var size := portals[i]["size"] as Vector2
+		var rim := _portal_rims[i]
+		rim.transform = place
+		rim.show()
+		var rim_material := rim.material_override as ShaderMaterial
+		rim_material.set_shader_parameter(&"portal_size_m", size)
+		rim_material.set_shader_parameter(&"light_color", light)
+		RenderingServer.global_shader_parameter_set(StringName("mr_portal_%d" % i),
+			RoomOutline.portal_mask_transform(origin.global_transform * place, size))
+	if _space == null:
+		_space = MR_SPACE_SCENE.instantiate() as MRSpace
+		get_node("/root/BeepSaber").add_child(_space)
+	_space.show()
 
 
 ## Keeps the scanned room and redraws its outline, with the portal where the track meets the wall.
@@ -101,8 +156,11 @@ func _on_room_loaded(pieces: Array) -> void:
 	# the track runs along the scene's -z from the player's standing point; the room's poses are in the origin's space
 	var origin := _room_outline.get_parent() as XROrigin3D
 	var spot := origin.to_local(Vector3(0, 0, Constants.PLAYER_Z))
-	_room_outline.show_room(pieces, spot, origin.global_basis.inverse() * Vector3.FORWARD)
+	var direction := origin.global_basis.inverse() * Vector3.FORWARD
+	_room_outline.show_room(pieces, spot, direction)
 	show_room_outline(_outline_shown)
+	var portal := RoomOutline.find_portal(pieces, spot, direction)
+	_show_portals([] if portal.is_empty() else [portal])
 	room_found.emit(pieces)
 
 

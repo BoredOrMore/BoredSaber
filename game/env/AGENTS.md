@@ -134,7 +134,7 @@ the Auto pool; BLOCKOUT 2026-10-31; cloud sea and hills from GPT, owner 2026-11-
   the pillar and the hills: below the sea's surface (read from the height map) a surface takes the sea's tone, so
   nothing pokes hard through a cloud or shows beneath one (owner, 2026-10-31). Its tones are linear and
   `mcloud_output` encodes them to sRGB (the sea and the hills; the slab and floor keep the stage's convention).
-  `MonolithCloudSea.gdshader`: the sea's body. `MonolithHill.gdshader`: the hills.
+  `MonolithCloudSea.gdshader`: the sea's body (masked to the portals in mixed reality, `portal_mask.gdshaderinc`). `MonolithHill.gdshader`: the hills.
 - `MonolithFace.gdshader`: the slab's lights drawn on its front face (strip meshes would z-fight 500-1000 m out), each
   line at least `MIN_PIXELS` wide: edges in the left/right lasers' colours, `SEAMS` seams in the square bars' lit from
   the foot by `lit`, a slit up the middle open to `slit` in the floor lights' colour (no strip on the ledge: owner, 2026-10-31)
@@ -147,7 +147,7 @@ the Auto pool; BLOCKOUT 2026-10-31; cloud sea and hills from GPT, owner 2026-11-
   a fainter neutral one all round so the hills stand as silhouettes.
 
 Room-aware mixed reality (portals in the real walls; plan https://claude.ai/artifact/GGNL7bgEiekk4VeT4G3aVy; the room
-code that reads the walls and cuts the portals lives on its own branch)
+code that reads the walls and cuts the portals: `game/scripts/MixedReality.gd`, `RoomOutline.gd`)
 - `PortalRim.gdshader`: the rim round a portal, on one `QuadMesh` 1 x 1 per portal (centred, facing into the room, +y
   up) that it stretches by the uniform `portal_size_m` (width, height in metres) plus `RIM_REACH`; a white-hot strip on
   the cut edge with a `light_color` glow fading out over the wall, the hole left clear (owner's pick of three, the
@@ -162,8 +162,13 @@ code that reads the walls and cuts the portals lives on its own branch)
   to match), a faint neutral dust band with a nebula in the two note colours (`left_saber_color`, `right_saber_color`,
   pulled toward grey), two planets ray-traced as spheres (a moon on `PLANET_BIG`, a ring on `PLANET_RINGED`, rims in
   `env_light`), `METEOR_COUNT` shooting stars, and the notes' source down -z: a white-hot core in an `env_light` glow.
-- `MRSpaceDust.gdshader`: soft points facing the eye, at least `MIN_PIXELS` wide, added on top; they give depth as the
-  player moves.
+- `MRSpaceDust.gdshader`: soft points facing the eye, at least `MIN_PIXELS` wide, added as pure light
+  (`blend_premul_alpha`, `ALPHA` 0, so no black boxes over the room); they give depth as the player moves.
+- `portal_mask.gdshaderinc`: `portal_mask_shows(eye, world)`, true where the line from the eye crosses a real wall
+  through a portal's hole. Globals `mr_portal_count` and `mr_portal_0`..`3` (world to the portal's unit square, +z out of
+  the room; `RoomOutline.portal_mask_transform`), set by `MixedReality.gd`; with no portals everything shows, so stages
+  outside mixed reality are unchanged. The MR sky, dust and `MonolithCloudSea.gdshader` discard where it is false (the
+  sky at the end of its fragment, so its derivatives stay defined). Notes are not masked yet.
 
 Metal Factory (underground power plant)
 - `MetalFactoryRig.gd` (tool): pistons over anvils, gear rings, energy rails, wall kit with vents, vault, drive gears.

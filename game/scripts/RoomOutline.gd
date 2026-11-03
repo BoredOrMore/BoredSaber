@@ -85,6 +85,13 @@ static func find_portal(pieces: Array, spot: Vector3, direction: Vector3) -> Dic
 	return best
 
 
+
+## Returns the transform from world space into the space portal_mask.gdshaderinc reads: the portal at `place` (world
+## space, +z out of the room) of `size` becomes the square |x|, |y| <= 0.5 on z = 0.
+static func portal_mask_transform(place: Transform3D, size: Vector2) -> Transform3D:
+	return place.scaled_local(Vector3(size.x, size.y, 1.0)).affine_inverse()
+
+
 ## Adds a rectangle lying in `place`'s local XY, centred on it.
 func _add_rect(place: Transform3D, size: Vector2, color: Color) -> void:
 	var half := size / 2

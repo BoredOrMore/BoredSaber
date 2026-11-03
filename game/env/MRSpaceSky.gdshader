@@ -9,6 +9,7 @@ render_mode unshaded, fog_disabled, shadows_disabled, cull_front, depth_draw_nev
 global uniform vec4 env_light;
 global uniform vec4 left_saber_color;
 global uniform vec4 right_saber_color;
+#include "res://game/env/portal_mask.gdshaderinc"
 
 // stars: cells per unit of direction (more = more, smaller stars), the share of cells that hold one, a star's radius
 // in cells, the brightest star
@@ -65,9 +66,11 @@ const float CORE_PEAK = 1.0;
 const float GLOW_PEAK = 0.55;
 
 varying vec3 dir;
+varying vec3 world_position;
 
 void vertex() {
 	dir = normalize((MODEL_MATRIX * vec4(VERTEX, 0.0)).xyz);
+	world_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 }
 
 // Three pseudo-random numbers in 0..1 for a cell.
@@ -192,4 +195,8 @@ void fragment() {
 		color = planet_color(d, MOON, moon, 23.0);
 	}
 	ALBEDO = color;
+	// last, so the derivatives above stay defined for every pixel
+	if (!portal_mask_shows(CAMERA_POSITION_WORLD, world_position)) {
+		discard;
+	}
 }
