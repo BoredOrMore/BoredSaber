@@ -164,11 +164,14 @@ code that reads the walls and cuts the portals: `game/scripts/MixedReality.gd`, 
   `env_light`), `METEOR_COUNT` shooting stars, and the notes' source down -z: a white-hot core in an `env_light` glow.
 - `MRSpaceDust.gdshader`: soft points facing the eye, at least `MIN_PIXELS` wide, added as pure light
   (`blend_premul_alpha`, `ALPHA` 0, so no black boxes over the room); they give depth as the player moves.
-- `portal_mask.gdshaderinc`: `portal_mask_shows(eye, world)`, true where the line from the eye crosses a real wall
-  through a portal's hole. Globals `mr_portal_count` and `mr_portal_0`..`3` (world to the portal's unit square, +z out of
+- `portal_mask.gdshaderinc`: `portal_mask_shows(eye, world)`, true on the room's side of every portal's wall or where
+  the line from the eye crosses a real wall through a portal's hole. Globals `mr_portal_count` and `mr_portal_0`..`3` (world to the portal's unit square, +z out of
   the room; `RoomOutline.portal_mask_transform`), set by `MixedReality.gd`; with no portals everything shows, so stages
-  outside mixed reality are unchanged. The MR sky, dust and `MonolithCloudSea.gdshader` discard where it is false (the
-  sky at the end of its fragment, so its derivatives stay defined). Notes are not masked yet.
+  outside mixed reality are unchanged. Discarding where it is false: the MR sky (right after its derivatives), dust and
+  `MonolithCloudSea.gdshader` (first thing), and at the end of their fragment (after any derivatives) `TrackDeck`,
+  `EnvSolid.gdshaderinc` (the curbs; every stage solid includes it), `LightStrip`, `game/FloorReflection.gdshader` and
+  every note, chain, arc, bomb and wall shader in `game/notes/` (Bored, 2026-11-03: the track and the lights too).
+  Not masked: saber trails and cut sparks (they stay near the player).
 
 Metal Factory (underground power plant)
 - `MetalFactoryRig.gd` (tool): pistons over anvils, gear rings, energy rails, wall kit with vents, vault, drive gears.
@@ -189,7 +192,8 @@ Shared scenery
   scenery, sky and track shader, which pass their colour through `fog_dither(fog_result(colour, VERTEX), FRAGCOORD.xy)`.
 - `TrackDeck.gd` (`TrackDeck`): opaque deck (top y 0), curbs housing the thin edge light strips (`STRIP_*`), platform frame, end stops;
   runs to `FAR_Z` -150 (`FAR_Z_BY_STAGE`), fades into haze. `layout(lane_width)` for Wide modifiers; `set_stage` skin.
-  Hidden in mixed reality (old see-through sheet instead).
+  Shown in mixed reality too (Bored, 2026-11-03), masked to the portal beyond the room's walls; the old see-through
+  sheet (`floor`, `Endpath`) is now never shown (`old_track` is false in `EventDriver`).
   Its deck and curbs sit under a child that `turn(place)` turns with the notes; the platform pieces don't. On 90/360
   maps during a song (`layout(lane_width, true)` from `EventDriver.set_background`) the platform is a black disc
   (`round_radius()`, as far as the square reaches) with a rim, the deck starting where its corners meet the disc

@@ -526,9 +526,10 @@ func set_background() -> void:
 	($Level/TrackTurn/floor/line3).global_transform.origin.x = 2 * Settings.LANE_DISTANCE_X
 	($Level/TrackTurn/floor/line4).global_transform.origin.x = -2 * Settings.LANE_DISTANCE_X
 	($Level/TrackTurn/floor).scale.z = 1
-	# the deck with its curbs (TrackDeck), whose curbs house the edge light strips; or the old see-through sheet, with
-	# its strips at its edges, in mixed reality (the room must show through)
-	var old_track := Settings.mixed_reality
+	# the deck with its curbs (TrackDeck), whose curbs house the edge light strips, in mixed reality too (Bored,
+	# 2026-11-03: beyond the room's walls it shows only through the portal, portal_mask.gdshaderinc); the old see-through
+	# sheet, with its strips at its edges, is kept for now
+	var old_track := false
 	($Level/TrackTurn/floor as Node3D).visible = old_track
 	# the old track's far end piece; the deck ends in its own low stop (it rose over the horizon straight ahead)
 	end_path.visible = old_track

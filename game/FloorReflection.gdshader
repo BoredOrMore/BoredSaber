@@ -1,5 +1,6 @@
 shader_type spatial;
 render_mode unshaded, blend_mix, depth_draw_always, cull_disabled, fog_disabled, shadows_disabled;
+#include "res://game/env/portal_mask.gdshaderinc"
 
 // The notes and sabers mirrored under the track's deck (FloorReflection.gd), faked without a second render or a screen
 // read (AGENTS.md "Light", rule 10): each mirrored vertex keeps the place on screen a mirror would show it at, but takes
@@ -61,4 +62,8 @@ void fragment() {
 	float depth_fade = DEPTH_FADE ? exp(-1.6 * below / FADE_DEPTH) : 1.0 - smoothstep(0.0, FADE_DEPTH_LINEAR, below);
 	float distance_fade = DISTANCE_FADE ? 1.0 - smoothstep(FADE_NEAR, FADE_FAR, away) : 1.0;
 	ALPHA = prepass ? 0.0 : STRENGTH * depth_fade * distance_fade;
+	// mixed reality: beyond the room's walls, only through a portal (portal_mask.gdshaderinc); last, after the derivatives
+	if (!portal_mask_shows(CAMERA_POSITION_WORLD, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz)) {
+		discard;
+	}
 }

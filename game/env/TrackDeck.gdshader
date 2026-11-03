@@ -1,5 +1,6 @@
 shader_type spatial;
 render_mode unshaded, shadows_disabled, fog_disabled;
+#include "res://game/env/portal_mask.gdshaderinc"
 
 // The note track's deck (TrackDeck.gd), drawn opaque, so it costs no overdraw (the old track was one see-through
 // sheet 46 m long). It gives the eye surface detail a flat dark sheet didn't (owner, 2026-10-25: the track looked
@@ -119,4 +120,8 @@ void fragment() {
 	vec3 lit = base * (1.0 - GROOVE_DARK * groove);
 	lit += light_color.rgb * LIGHT_TINT + sheen;
 	ALBEDO = fog_dither(fog_result(mix(lit, haze, fog), VERTEX), FRAGCOORD.xy);
+	// mixed reality: beyond the room's walls, only through a portal (portal_mask.gdshaderinc); last, after the derivatives
+	if (!portal_mask_shows(CAMERA_POSITION_WORLD, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz)) {
+		discard;
+	}
 }

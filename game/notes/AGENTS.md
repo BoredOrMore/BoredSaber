@@ -4,6 +4,10 @@ Notes (`BeepCube`), chain links, arcs, bombs and walls, and the `Cuttable` base 
 `AGENTS.md` first (notes are the brightest thing in view: "Light", "Colour rules") and `game/AGENTS.md` for the
 spawn, cut and miss flow, pooling rules and "Add a note type".
 
+Mixed reality: every shader here includes `game/env/portal_mask.gdshaderinc` and discards, last in its fragment, where
+a note still beyond the room's walls isn't seen through the portal, so notes come in through the hole. A new note
+shader does the same.
+
 ## Entry points and flow
 
 - Spawned from `GameStatePlaying` (`game/scripts/GameState/Playing.gd`) out of `ScenePool`s in `BeepSaber_Game.tscn`

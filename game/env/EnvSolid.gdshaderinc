@@ -54,6 +54,7 @@
 
 global uniform vec4 env_haze;
 global uniform vec4 env_light;
+#include "res://game/env/portal_mask.gdshaderinc"
 #include "res://game/env/fog_light.gdshaderinc"
 #include "res://game/env/height_fog.gdshaderinc"
 // DebugView.RINGS leaves these out (no area, so nothing is drawn); DebugView.FLAT_SCENERY draws them one flat colour
@@ -415,4 +416,8 @@ void fragment() {
 	ALPHA = 1.0 - smoothstep(0.0, blur, gap);
 	ALBEDO = mix(ALBEDO, shell_color.rgb, shell_color.a);
 #endif
+	// mixed reality: beyond the room's walls, only through a portal (portal_mask.gdshaderinc); last, after the derivatives
+	if (!portal_mask_shows(CAMERA_POSITION_WORLD, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz)) {
+		discard;
+	}
 }

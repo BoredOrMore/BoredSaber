@@ -1,5 +1,6 @@
 shader_type spatial;
 render_mode unshaded, cull_disabled, fog_disabled;
+#include "res://game/env/portal_mask.gdshaderinc"
 // Notes keep their own colour whatever the stage's lights do, as Beat Saber's notes do (their shaders carry their own
 // fixed light, BSMG notes guide): no haze or light colour in the reflections, and no fog (owner, 2026-10-26: notes
 // tinted by the stage and its haze were harder to read).
@@ -66,5 +67,9 @@ void fragment() {
 		}
 	} else {
 		ALBEDO = vec3(1.0);
+	}
+	// mixed reality: beyond the room's walls, only through a portal (portal_mask.gdshaderinc); last, after the derivatives
+	if (!portal_mask_shows(CAMERA_POSITION_WORLD, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz)) {
+		discard;
 	}
 }

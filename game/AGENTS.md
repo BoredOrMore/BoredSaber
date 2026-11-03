@@ -104,7 +104,7 @@ constraints apply here unchanged.
 - `FloorReflection.gd` (class `FloorReflection`) + `FloorReflection.gdshader` — the notes and blades faintly mirrored in
   the deck: two MultiMeshes refilled each frame, drawn at the deck's depth in a depth-only pass then colour, so a lower
   note's reflection hides an upper one's (no second render, no screen read); fades by depth and distance; off with
-  the deck (old track, mixed reality). Made in `BeepSaber_Game._ready`; `stage_capture --notes 1` shows it too.
+  the deck (round 90/360 platform); masked to the portal in mixed reality. Made in `BeepSaber_Game._ready`; `stage_capture --notes 1` shows it too.
 - `LowResGlow.gd` (class `LowResGlow`) — glow without Godot's glow pass (that pass costs ~5 ms on the Pico 4).
 - `Benchmark.gd` (class `Benchmark`) — hands-off GPU benchmark (Settings > Advanced, or `tools/bench.sh`).
 - `DebugView.gd` (class `DebugView`) — Settings > Advanced switches that leave parts of the scene out to measure

@@ -1,5 +1,6 @@
 shader_type spatial;
 render_mode unshaded, cull_back, blend_mix;
+#include "res://game/env/portal_mask.gdshaderinc"
 
 // The wall. The older wall's (DangerWall.gdshader, removed 2026-10-31) two
 // blended faces, wide halo and dense frame filled the screen with red fog when a wall came near (owner, 2026-10-25).
@@ -87,5 +88,9 @@ void fragment() {
 		}
 		ALBEDO = col;
 		ALPHA = alpha;
+	}
+	// mixed reality: beyond the room's walls, only through a portal (portal_mask.gdshaderinc); last, after the derivatives
+	if (!portal_mask_shows(CAMERA_POSITION_WORLD, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz)) {
+		discard;
 	}
 }
