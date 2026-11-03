@@ -57,7 +57,7 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   button: `Button` (secondary), `PrimaryButton` (the page's main action: Done, Download), `ChipButton` (modifier
   and settings chips, Favorite, Reset, More modifiers; narrow padding, 48 px), `TabButton` (Modifiers/More; a
   chip), `DifficultyButton` (level and characteristic buttons; narrow padding, 22 px text), `FilterChip` (both
-  filter panels' chips: the level look with 14 px at the sides, each as wide as its text, lined up from the left),
+  filter panels' chips: the level look with 12 px at the sides, each as wide as its text, lined up from the left),
   `BackButton` (Back and Close), `DestructiveButton` (every `ConfirmButton`; its words turn red on hover). Panel kinds:
   `StatPill` (a stat, fully rounded), `LevelBar` (a level's name in its colour).
   `ModifierChips.make_row_button` takes the kind.
