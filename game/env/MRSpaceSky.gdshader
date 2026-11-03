@@ -154,9 +154,15 @@ vec3 meteors(vec3 d, float pixel) {
 void fragment() {
 	vec3 d = normalize(dir);
 	vec3 p = d * STAR_CELLS;
+	// the derivatives first, while every pixel of the quad still runs; then the portals' outside stops here, so the
+	// rest costs only inside them (the sky covers the whole view)
+	float pixel = length(fwidth(p));
+	float pixel_angle = length(fwidth(d));
+	if (!portal_mask_shows(CAMERA_POSITION_WORLD, world_position)) {
+		discard;
+	}
 	vec3 cell = floor(p);
 	vec3 h = hash3(cell);
-	float pixel = length(fwidth(p));
 	float radius = max(STAR_RADIUS, pixel * STAR_MIN_PIXELS);
 	float star = step(1.0 - STAR_SHARE, h.x) * (1.0 - smoothstep(0.0, radius, length(p - cell - 0.25 - h * 0.5)));
 	star *= STAR_PEAK * h.y * h.y * STAR_RADIUS * STAR_RADIUS / (radius * radius) * STAR_SMALL_BOOST;
@@ -173,7 +179,7 @@ void fragment() {
 	vec3 nebula = (mix(left_saber_color.rgb, vec3(0.5), NEBULA_GREY) * left_cloud
 		+ mix(right_saber_color.rgb, vec3(0.5), NEBULA_GREY) * right_cloud) * NEBULA_GLOW;
 	vec3 color = vec3(star) + mix(vec3(band), env_light.rgb * band * 4.0, BAND_TINT) + nebula + env_light.rgb * glow;
-	color = mix(color, vec3(1.0), clamp(core, 0.0, 1.0)) + meteors(d, length(fwidth(d)));
+	color = mix(color, vec3(1.0), clamp(core, 0.0, 1.0)) + meteors(d, pixel_angle);
 	float big = sphere_hit(d, PLANET_BIG);
 	float moon = sphere_hit(d, MOON);
 	float ringed = sphere_hit(d, PLANET_RINGED);
@@ -195,8 +201,4 @@ void fragment() {
 		color = planet_color(d, MOON, moon, 23.0);
 	}
 	ALBEDO = color;
-	// last, so the derivatives above stay defined for every pixel
-	if (!portal_mask_shows(CAMERA_POSITION_WORLD, world_position)) {
-		discard;
-	}
 }
