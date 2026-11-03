@@ -37,7 +37,7 @@ func _ready() -> void:
 	check(absf(place.origin.z + 3.67) < 0.1, "portal on the front wall, 3.67 m ahead (got %.2f)" % place.origin.z)
 	check(absf(place.origin.x) < 0.2, "portal straight ahead (x %.2f)" % place.origin.x)
 	var size := portal.get("size", Vector2()) as Vector2
-	check(size.x <= 3.327 and size.x >= RoomOutline.PORTAL_MIN_SIZE.x, "portal fits the 3.33 m wall (%.2f)" % size.x)
+	check(size.x <= 3.327 and size.x >= 3.0 * Settings.LANE_DISTANCE_X + RoomOutline.PORTAL_NOTE_REACH * 2.0 - 0.001, "portal fits the 3.33 m wall (%.2f)" % size.x)
 	var bottom := place.origin.y - size.y / 2
 	var top := place.origin.y + size.y / 2
 	check(bottom >= -0.08 and top <= 2.57, "portal between floor and ceiling (%.2f to %.2f)" % [bottom, top])

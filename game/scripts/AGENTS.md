@@ -23,10 +23,14 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
   `room_found(pieces)` or `room_missing`; the room is kept and drawn with `RoomOutline`, shown only while the setup
   checks it (`show_room_outline`). Each found room also cuts the portal (`_show_portals`): a `PortalRim.gdshader` quad
   under `XROrigin3D`, the mask globals of `game/env/portal_mask.gdshaderinc`, and `MRSpace` under `/root/BeepSaber`;
-  forgetting the room closes them (mask count 0). The rim's colour (right note colour) is UNTUNED.
+  forgetting the room closes them (mask count 0). The rim draws first among see-through things
+  (`RENDER_PRIORITY_MIN`), so the HUD stays over its glow. The rim's colour (right note colour) is UNTUNED. In mixed
+  reality the platform's floor and border bars (`StandingGround/Node3D`) are hidden (Bored, 2026-11-03: keep the
+  player's room free; only the track's two light strips show in it).
 - `RoomOutline.gd` (class `RoomOutline`, a child of `XROrigin3D`) - the real room as lines over the passthrough: walls,
   doors and windows in `UI_TEXT`, furniture boxes in `UI_TEXT_MUTED`, and the portal frame in `UI_ACCENT` where the
-  note path meets the nearest wall (`find_portal`; its size constants are UNTUNED placeholders);
+  note path meets the nearest wall (`find_portal`, never smaller than the notes' corridor of four lanes and three rows
+  plus `PORTAL_NOTE_REACH`, so notes don't come through the wall beside it; size constants UNTUNED);
   `portal_mask_transform` gives the portal mask's world-to-hole transform. Poses are in the
   play space, so on a recenter `MixedReality` reads the room again (`PicoRoom.reload_room`) and redraws it.
 - `PlayCountTable.gd` (autoload `PlayCount`) - play counts, favourite flag, last difficulty per map.

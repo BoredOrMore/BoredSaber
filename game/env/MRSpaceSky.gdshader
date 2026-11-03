@@ -238,7 +238,7 @@ void fragment() {
 		// rest costs only inside them (the sky covers the whole view)
 		float pixel = length(fwidth(p));
 		float pixel_angle = length(fwidth(d));
-		if (!portal_mask_shows(CAMERA_POSITION_WORLD, world_position)) {
+		if (!portal_mask_through_any(CAMERA_POSITION_WORLD, world_position)) {
 			discard;
 		}
 		vec3 stored = texture(baked, d).rgb;

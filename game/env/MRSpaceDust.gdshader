@@ -24,7 +24,7 @@ void vertex() {
 
 void fragment() {
 	float r = length(UV - 0.5) * 2.0;
-	if (!portal_mask_shows(CAMERA_POSITION_WORLD, world_position)) {
+	if (!portal_mask_through_any(CAMERA_POSITION_WORLD, world_position)) {
 		discard;
 	}
 	ALBEDO = vec3(BRIGHTNESS * dim * (1.0 - smoothstep(0.2, 1.0, r)));

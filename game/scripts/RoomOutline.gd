@@ -9,11 +9,11 @@ const LABEL_FLOOR := 1
 const LABEL_CEILING := 2
 const LABEL_WALL := 3
 const LABEL_FURNITURE := 7
-## UNTUNED placeholders until the portal is sized on the headset: the note path's height above the floor where it
-## meets the wall, the share of the wall the frame may take, and its smallest and largest size in metres.
-const PORTAL_PATH_HEIGHT := 1.0
+## UNTUNED placeholders until the portal is sized on the headset: how far past the outer lanes' and rows' centres the
+## frame must reach so whole notes pass through it (Bored, 2026-11-03: notes came through the wall beside the frame),
+## the share of the wall the frame may take, and its largest size in metres (never smaller than the notes' corridor).
+const PORTAL_NOTE_REACH := 0.35
 const PORTAL_WALL_SHARE := 0.7
-const PORTAL_MIN_SIZE := Vector2(1.2, 1.2)
 const PORTAL_MAX_SIZE := Vector2(2.4, 2.0)
 ## Walls closer to parallel with the note path than this (the dot of their normal with it) can't take a portal.
 const MIN_FACING := 0.3
@@ -61,7 +61,10 @@ static func find_portal(pieces: Array, spot: Vector3, direction: Vector3) -> Dic
 	for piece: Dictionary in pieces:
 		if piece["label"] == LABEL_FLOOR:
 			floor_y = (piece["transform"] as Transform3D).origin.y
-	var start := Vector3(spot.x, floor_y + PORTAL_PATH_HEIGHT, spot.z)
+	# the notes' corridor: four lanes across, the note rows up, each reached past by PORTAL_NOTE_REACH
+	var corridor := Vector2(3.0 * Settings.LANE_DISTANCE_X, Constants.ROW_Y[-1] - Constants.ROW_Y[0]) \
+		+ Vector2.ONE * PORTAL_NOTE_REACH * 2.0
+	var start := Vector3(spot.x, floor_y + (Constants.ROW_Y[0] + Constants.ROW_Y[-1]) / 2.0, spot.z)
 	var best := {}
 	var best_distance := INF
 	for piece: Dictionary in pieces:
@@ -77,7 +80,7 @@ static func find_portal(pieces: Array, spot: Vector3, direction: Vector3) -> Dic
 		var wall_size := Vector2((piece["size"] as Vector3).x, (piece["size"] as Vector3).y)
 		if distance <= 0.0 or distance >= best_distance or absf(hit.x) > wall_size.x / 2 or absf(hit.y) > wall_size.y / 2:
 			continue
-		var size := (wall_size * PORTAL_WALL_SHARE).clamp(PORTAL_MIN_SIZE, PORTAL_MAX_SIZE).min(wall_size)
+		var size := (wall_size * PORTAL_WALL_SHARE).clamp(corridor, PORTAL_MAX_SIZE.max(corridor)).min(wall_size)
 		var room := (wall_size - size) / 2
 		var centre := Vector3(clampf(hit.x, -room.x, room.x), clampf(hit.y, -room.y, room.y), 0)
 		best = {"transform": wall.translated_local(centre), "size": size}

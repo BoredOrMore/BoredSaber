@@ -62,8 +62,9 @@ void fragment() {
 	float depth_fade = DEPTH_FADE ? exp(-1.6 * below / FADE_DEPTH) : 1.0 - smoothstep(0.0, FADE_DEPTH_LINEAR, below);
 	float distance_fade = DISTANCE_FADE ? 1.0 - smoothstep(FADE_NEAR, FADE_FAR, away) : 1.0;
 	ALPHA = prepass ? 0.0 : STRENGTH * depth_fade * distance_fade;
-	// mixed reality: beyond the room's walls, only through a portal (portal_mask.gdshaderinc); last, after the derivatives
-	if (!portal_mask_shows(CAMERA_POSITION_WORLD, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz)) {
+	// mixed reality: only beyond the room's walls, through a portal (Bored, 2026-11-03: in the room only the two light
+	// strips; portal_mask.gdshaderinc); last, after the derivatives
+	if (!portal_mask_through_any(CAMERA_POSITION_WORLD, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz)) {
 		discard;
 	}
 }

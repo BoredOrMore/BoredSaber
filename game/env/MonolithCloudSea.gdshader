@@ -18,7 +18,7 @@ void vertex() {
 }
 
 void fragment() {
-	if (!portal_mask_shows(CAMERA_POSITION_WORLD, world_position)) {
+	if (!portal_mask_through_any(CAMERA_POSITION_WORLD, world_position)) {
 		discard;
 	}
 	ALBEDO = mcloud_output(mcloud_body_tone(env_haze.rgb, world_position, world_normal) * brightness);

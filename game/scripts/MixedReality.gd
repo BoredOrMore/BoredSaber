@@ -45,6 +45,9 @@ func set_mixed_reality(mr: bool):
 	if floor_albedo_texture == null:
 		floor_albedo_texture = material.albedo_texture
 
+	# the platform under the player (its floor and border bars) takes room space: in mixed reality the room shows only the
+	# track's two light strips (Bored, 2026-11-03)
+	(cut_floor.get_parent() as Node3D).visible = not mr
 	if mr:
 		material.transparency = 1
 		material.albedo_texture = null
@@ -125,6 +128,8 @@ func _show_portals(portals: Array) -> void:
 			rim.mesh = QuadMesh.new()
 			var material := ShaderMaterial.new()
 			material.shader = PORTAL_RIM_SHADER
+			# first among the see-through things, so the HUD and menus in front always draw over its glow
+			material.render_priority = Material.RENDER_PRIORITY_MIN
 			rim.material_override = material
 			rim.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			origin.add_child(rim)

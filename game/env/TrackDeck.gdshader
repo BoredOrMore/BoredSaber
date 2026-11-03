@@ -120,8 +120,9 @@ void fragment() {
 	vec3 lit = base * (1.0 - GROOVE_DARK * groove);
 	lit += light_color.rgb * LIGHT_TINT + sheen;
 	ALBEDO = fog_dither(fog_result(mix(lit, haze, fog), VERTEX), FRAGCOORD.xy);
-	// mixed reality: beyond the room's walls, only through a portal (portal_mask.gdshaderinc); last, after the derivatives
-	if (!portal_mask_shows(CAMERA_POSITION_WORLD, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz)) {
+	// mixed reality: only beyond the room's walls, through a portal (Bored, 2026-11-03: in the room only the two light
+	// strips; portal_mask.gdshaderinc); last, after the derivatives
+	if (!portal_mask_through_any(CAMERA_POSITION_WORLD, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz)) {
 		discard;
 	}
 }

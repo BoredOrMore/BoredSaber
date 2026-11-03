@@ -21,6 +21,18 @@ bool portal_mask_through(mat4 to_portal, vec3 eye, vec3 world) {
 	return abs(hit.x) <= 0.5 && abs(hit.y) <= 0.5;
 }
 
+// Whether a point at world shows from the eye at eye only through a portal's hole; always with none. For the world
+// behind the portals (MRSpace), which lies all round the room, also behind and below it.
+bool portal_mask_through_any(vec3 eye, vec3 world) {
+	if (mr_portal_count == 0) {
+		return true;
+	}
+	return portal_mask_through(mr_portal_0, eye, world)
+		|| (mr_portal_count > 1 && portal_mask_through(mr_portal_1, eye, world))
+		|| (mr_portal_count > 2 && portal_mask_through(mr_portal_2, eye, world))
+		|| (mr_portal_count > 3 && portal_mask_through(mr_portal_3, eye, world));
+}
+
 // Whether world lies beyond the wall of the portal `to_portal` maps into.
 bool portal_mask_beyond(mat4 to_portal, vec3 world) {
 	return (to_portal * vec4(world, 1.0)).z > 0.0;
