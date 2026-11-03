@@ -127,7 +127,7 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
 - `UI_AudioEngine/` (`UI_AudioEngine.gd/.tscn`): autoload; `attach_children(node)` wires hover and press sounds to every `Button` below `node`:
   on/off for a toggle in no `ButtonGroup`, back for names in `BACK_BUTTON_NAMES`, click for the rest.
 - `BeepSaberMainMenu.gd/.tscn` (class `MainMenu`: song list, Song/More tabs, the "Your room" toggle chip (mixed
-  reality; Bored 2026-11-03: moved there from Settings, label waiting on Bored; on opens "Set up your room") and a Settings gear above the right column; the Song tab holds
+  reality; Bored 2026-11-03: moved there from Settings, label picked by Bored; on opens "Set up your room") and a Settings gear above the right column; the Song tab holds
   difficulty and the modifier chips, rarer ones behind "More modifiers"),
   `settings_Panel.gd/.tscn` (class `SettingsPanel`, tabs Gameplay/Visuals/Audio/Advanced; Visuals in
   sections Quality/Look/Effects and Advanced in Saber grip/Cast/Developer, `MenuSection`s built in `_ready`, the
