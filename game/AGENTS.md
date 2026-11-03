@@ -108,7 +108,9 @@ constraints apply here unchanged.
 - `LowResGlow.gd` (class `LowResGlow`) — glow without Godot's glow pass (that pass costs ~5 ms on the Pico 4).
 - `Benchmark.gd` (class `Benchmark`) — hands-off GPU benchmark (Settings > Advanced, or `tools/bench.sh`).
 - `DebugView.gd` (class `DebugView`) — Settings > Advanced switches that leave parts of the scene out to measure
-  their GPU cost; bits of the `debug_view` shader global, never saved.
+  their GPU cost; bits of the `debug_view` shader global, never saved. In mixed reality the cycle (flag file
+  `debug_cycle`) runs `MR_CYCLE_STEPS` instead: the world behind the portals' sky, cloud sea and dust one by one
+  (`MR_NO_*`, `MRSpace.show_parts`), then the reflection, notes, walls and sabers, 100 s in all.
 - `event_driver.gd/.tscn` — lighting events and background; `floor.gd/.tscn` — floor and burn marks; on 90/360 maps
   `set_round` swaps its square border bars for a ring of lights on the round platform (`TrackDeck`).
 - `SpectatorWindow.gd/.tscn` — desktop spectator camera/HUD.

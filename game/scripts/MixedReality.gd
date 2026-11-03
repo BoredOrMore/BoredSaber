@@ -173,6 +173,12 @@ func _show_portals(portals: Array) -> void:
 	_space.show()
 
 
+## Shows or hides the world behind the portals' sky, cloud sea and dust (DebugView's mixed-reality switches).
+func show_space_parts(sky: bool, sea: bool, dust: bool) -> void:
+	if _space:
+		_space.show_parts(sky, sea, dust)
+
+
 ## Opens the portal floating ahead of the player along the track, for when there is no room scan.
 func _show_floating_portal() -> void:
 	var origin := get_node("/root/BeepSaber/XROrigin3D") as XROrigin3D

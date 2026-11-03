@@ -34,6 +34,15 @@ const NOTE_PATH_REACH := 320.0
 ## only soft layers are baked, the stars stay sharp and live)
 const BAKE_SIZE := 512
 
+## The sky, the cloud sea and the dust, for show_parts.
+var _sky: MeshInstance3D
+var _sea: MonolithCloudSea
+var _dust: MultiMeshInstance3D
+## Whether the sky may show once baked (show_parts).
+var _sky_wanted := true
+## Whether the sky's cube map is baked.
+var _baked := false
+
 ## Builds the sky, the cloud sea and the dust.
 func _ready() -> void:
 	var sky := MeshInstance3D.new()
@@ -50,11 +59,13 @@ func _ready() -> void:
 	sky.extra_cull_margin = SKY_RADIUS
 	sky.hide()
 	add_child(sky)
+	_sky = sky
 	_bake_sky(sky)
 	var sea := MonolithCloudSea.new()
 	sea.position.y = -SEA_DROP
 	sea.brightness = SEA_BRIGHTNESS
 	add_child(sea)
+	_sea = sea
 	var multimesh := MultiMesh.new()
 	multimesh.transform_format = MultiMesh.TRANSFORM_3D
 	multimesh.mesh = QuadMesh.new()
@@ -69,6 +80,7 @@ func _ready() -> void:
 	dust.material_override = dust_material
 	dust.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(dust)
+	_dust = dust
 
 ## Bakes the sky's fixed layers into the cube map its shader reads (MRSpaceSky.gdshader), one face a frame, then
 ## shows `sky`.
@@ -101,7 +113,16 @@ func _bake_sky(sky: MeshInstance3D) -> void:
 	var error := cube.create_from_images(images)
 	assert(error == OK, "the sky's bake makes a cube map")
 	(sky.material_override as ShaderMaterial).set_shader_parameter(&"baked", cube)
-	sky.show()
+	_baked = true
+	sky.visible = _sky_wanted
+
+
+## Shows or hides the sky (once baked), the cloud sea and the dust, to measure each one's cost (DebugView).
+func show_parts(sky: bool, sea: bool, dust: bool) -> void:
+	_sky_wanted = sky
+	_sky.visible = sky and _baked
+	_sea.visible = sea
+	_dust.visible = dust
 
 
 ## Where the dust points float: spread through the shell between DUST_NEAR and DUST_FAR, none in the notes' path.
