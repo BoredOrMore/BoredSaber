@@ -8,7 +8,7 @@ class_name TrackDeck
 ## track, joined as one piece): the deck runs on under the 2 m pad (game/floor.tscn: the burn marks and border lights),
 ## where its top sits PAD_DEPTH lower, a frame (platform_frame.glb) rings the pad with the border lights in its channel,
 ## plain plates fill out to the deck's width, the edges run on along its sides and an end stop closes it behind the
-## player. It stands in for the old see-through track sheet, which stays for mixed reality.
+## player. It replaced the old see-through track sheet (removed, Bored 2026-11-03), in mixed reality too.
 ## EventDriver lays it out for the lanes' width (the Wide modifiers); the pad stays 2 m.
 ## On 90/360 maps the deck and its curbs turn with the notes about the player (turn, EventDriver.TRACK_TURN_TIME); the
 ## platform stays.
@@ -92,6 +92,9 @@ var _ends: MultiMesh
 var _base: MeshInstance3D
 var _fillers: MultiMesh
 var _curb_material: ShaderMaterial
+## the curbs' own copy of _curb_material: in mixed reality they run into the room from the portal with their light
+## strips (Bored, 2026-11-03), while the deck and the other solids show only through it
+var _room_curb_material: ShaderMaterial
 ## the lanes' spacing and the stage's far end the deck is laid out for
 var _lane_width := Constants.DEFAULT_LANE_DISTANCE_X
 var _far_z := FAR_Z
@@ -118,7 +121,10 @@ func _ready() -> void:
 	var curb_material := ShaderMaterial.new()
 	curb_material.shader = ENV_SOLID
 	_curb_material = curb_material
-	curbs.material_override = curb_material
+	_room_curb_material = ShaderMaterial.new()
+	_room_curb_material.shader = ENV_SOLID
+	_room_curb_material.set_shader_parameter(&"portal_room_side", true)
+	curbs.material_override = _room_curb_material
 	curbs.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	_turning.add_child(curbs)
 	_curb_instance = curbs
@@ -214,7 +220,8 @@ func layout(lane_width: float, round_platform := false) -> void:
 	deck_material.set_shader_parameter(&"lane_width", lane_width)
 	var fade := fade_z()
 	deck_material.set_shader_parameter(&"fade_z", fade)
-	_curb_material.set_shader_parameter(&"fade_z", fade)
+	for material: ShaderMaterial in [_curb_material, _room_curb_material]:
+		material.set_shader_parameter(&"fade_z", fade)
 	var edge_length := BACK_Z - _far_z
 	var edge_z := (BACK_Z + _far_z) * 0.5
 	_ends.set_instance_transform(0, Transform3D(Basis(Vector3.UP, PI) * Basis.from_scale(Vector3((half + EDGE_REACH) * 2.0, 1.0, 1.0)),
@@ -273,15 +280,17 @@ static func turned(angle: float) -> Transform3D:
 func turn(angle: float) -> void:
 	_turning.transform = turned(angle)
 	deck_material.set_shader_parameter(&"track_angle", angle)
-	_curb_material.set_shader_parameter(&"track_angle", angle)
+	for material: ShaderMaterial in [_curb_material, _room_curb_material]:
+		material.set_shader_parameter(&"track_angle", angle)
 
 ## Fits the deck to environment `id`: its skin (TrackDeck.gdshader: Metal Factory's tread plate, Neon Grid's dark glass,
 ## plain plates elsewhere) and its far end and fade.
 func set_stage(id: String) -> void:
 	deck_material.set_shader_parameter(&"skin", SKINS.get(id, 0))
 	_far_z = FAR_Z_BY_STAGE.get(id, FAR_Z)
-	_curb_material.set_shader_parameter(&"metal", METAL_BY_STAGE.get(id, 0.0))
-	_curb_material.set_shader_parameter(&"matcap", MetalFactoryRig.MATCAP)
+	for material: ShaderMaterial in [_curb_material, _room_curb_material]:
+		material.set_shader_parameter(&"metal", METAL_BY_STAGE.get(id, 0.0))
+		material.set_shader_parameter(&"matcap", MetalFactoryRig.MATCAP)
 	layout(_lane_width, _round)
 
 ## Where the deck fades into the haze: from and to, in metres out along the track (-z).

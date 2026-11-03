@@ -40,6 +40,10 @@ All four parse `--key value` pairs after `--` (`OS.get_cmdline_user_args()`), so
 - `highscore_capture.gd` / `highscore_capture.tscn`: renders `game/ui/HighscorePanel.tscn` at menu size.
   `--out(/tmp/hs.png) --table highscores.json --key "[artist,song,,mapper]" --rank(1) --names long --rows(10)
   --mods 1` (all modifiers on in memory, longest title).
+- `portal_capture.gd` / `portal_capture.tscn`: a mixed-reality portal (`game/env/PortalRim.gdshader`) cut in a grey
+  stand-in room wall, from the eye. `--out(user://portal_capture.png) --portal 1.6x1.4 --wall 2.5 --centre 1.5 --eye 1.6
+  --yaw --pitch --fov(90) --color RRGGBB --world res://scene.tscn (behind the wall; default a dark backdrop)
+  --size 1280x720 --seconds 0.5`.
 - `peak_objects.gd` / `peak_objects.tscn`: scans every map in `Constants.APPDATA_PATH + "Songs/"` and prints the
   busiest moment by triangles and by notes (game spawn rules, nothing cut), plus `MESH` triangle counts. Headless:
   `godot --headless --path . res://tools/capture/peak_objects.tscn`. `TRIS` (`peak_objects.gd:9`) is hand-kept.

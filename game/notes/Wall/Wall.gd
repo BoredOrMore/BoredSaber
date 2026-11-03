@@ -3,6 +3,10 @@ class_name Wall
 
 var despawn_z: float
 var speed: float
+## In mixed reality walls fly in through the portal as notes do (Cuttable.fly_offset, by their near face), so none
+## appears in the room beside it (Bored, 2026-11-03); elsewhere they appear at their jump, as in Beat Saber.
+var _fly := false
+var _depth := 0.0
 ## the wall's look: FramedWall.gdshader on frame_mesh(), scaled to the wall
 const FRAMED_MATERIAL := preload("res://game/notes/Wall/framed_wall.tres")
 static var _frame_mesh: ArrayMesh
@@ -24,6 +28,8 @@ func _physics_process(delta: float) -> void:
 	if rz > despawn_z:
 		hide_pooled()
 		release()
+	elif _fly:
+		_apply_fly(rz)
 
 	#transform.origin.x += speed * delta * sin(rotation.y)
 	#transform.origin.z += speed * delta * cos(rotation.y)
@@ -32,6 +38,14 @@ func _physics_process(delta: float) -> void:
 	#if rz > despawn_z:
 	#	queue_free()
 	
+
+## Puts the wall's look where it flies in (its hitbox stays on the track), from `rz`, its place as _physics_process
+## measures it.
+func _apply_fly(rz: float) -> void:
+	var fly := Cuttable.fly_offset(-(rz - Constants.HIT_PLANE_Z + _depth))
+	($WallMeshOrientation/WallMesh as MeshInstance3D).position.z = -fly
+	if fly == 0.0:
+		_fly = false
 
 ## Hides the wall and stops its processing while it waits in the pool.
 func hide_pooled() -> void:
@@ -80,20 +94,24 @@ func spawn(wall_info: ObstacleInfo, current_beat: float) -> void:
 	rotation.y = -wall_info.rotation
 	
 	speed = Map.beat_distance * Map.beats_per_second()
+	_depth = depth
+	mesh.position.z = 0.0
+	_fly = Settings.mixed_reality
+	if _fly:
+		_apply_fly((transform.origin - Vector3(0.0, 0.0, Constants.LANE_PIVOT_Z)).dot(transform.basis.z)
+			+ Constants.LANE_PIVOT_Z + Constants.HIT_PLANE_Z)
 	($AnimationPlayer as AnimationPlayer).play(&"Spawn")
 
 ## A wall standing on the track's level with part of it over the curb beside the deck (TrackDeck: outside the lanes, a
 ## lighting or decor wall) is drawn from the edge strip's top up, so the curb and strip don't run through its bottom
 ## (owner, 2026-10-25). Only its look: its hitbox keeps the whole height. Lane walls, walls wholly past the curb and
-## raised walls stay as they are, and nothing changes with the old track sheet (mixed reality), which has no
-## curb. `x` is its middle across the track and `x_size` its width, `bottom` and `y_size` its base and height.
+## raised walls stay as they are. `x` is its middle across the track and `x_size` its width, `bottom` and `y_size` its base and height.
 func _fit_over_curb(mesh: MeshInstance3D, x: float, x_size: float, bottom: float, y_size: float) -> void:
 	var lift := TrackDeck.CURB_RISE + TrackDeck.STRIP_PROUD
 	var edge := 2.0 * Settings.LANE_DISTANCE_X
 	var reach := absf(x) + absf(x_size) * 0.5
 	var inner := absf(x) - absf(x_size) * 0.5
-	var over := reach > edge + 0.001 and inner < edge + TrackDeck.CURB_OUT and bottom < 0.01 and y_size > lift \
-		and not Settings.mixed_reality
+	var over := reach > edge + 0.001 and inner < edge + TrackDeck.CURB_OUT and bottom < 0.01 and y_size > lift
 	var height := y_size - lift if over else y_size
 	mesh.position.y = lift * 0.5 if over else 0.0
 	mesh.scale.y = height

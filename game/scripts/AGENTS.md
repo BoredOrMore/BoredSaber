@@ -17,7 +17,39 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
   pick an environment by genre offline (`EventDriver.map_environment`), and the song menu can filter by them; it holds
   the `STYLES` / `GENRES` both filter panels offer. An AI-made map (BeatSaver's `automapper`) keeps `AI_TAG` with its
   tags (`tags_from`, also on download), so both song lists put `AI_MARK` "AI · " before its name and the song menu " (AI)" after its mapper (`is_ai`).
-- `MixedReality.gd` (autoload) - `set_mixed_reality(mr)`: passthrough on/off plus floor/HUD material tweaks.
+- `MixedReality.gd` (autoload) - `set_mixed_reality(mr)`: passthrough on/off plus floor/HUD material tweaks. The room
+  scan is off for now (`ROOM_SCAN_ENABLED` false, Bored 2026-11-03; the code stays): turning mixed reality on opens a
+  portal floating `RoomOutline.FLOATING_PORTAL_DISTANCE` (10 m) ahead along the track, put back by `play_space_moved`
+  each time `BeepSaber_Game.recenter` moves the origin (at start, from Settings and on the headset's recenter; placed
+  once, its rim rode the origin away and its mask stayed behind: Bored saw it at 6 m, 2026-11-03).
+  With the scan on, turning it on opens the room setup (`game/ui/RoomSetupPanel`) when the headset can scan the room (`can_scan_room`: the
+  `PicoRoom` engine singleton, `native/pico_room/`, PICO only; Bored 2026-11-02: every time). `scan_room` ends in
+  `room_found(pieces)` or `room_missing`; the room is kept and drawn with `RoomOutline`, shown only while the setup
+  checks it (`show_room_outline`). Each found room also cuts the portal (`_show_portals`): a `PortalRim.gdshader` quad
+  under `XROrigin3D`, the mask globals of `game/env/portal_mask.gdshaderinc`, and `MRSpace` under `/root/BeepSaber`;
+  forgetting the room closes them (mask count 0). The rim draws first among see-through things
+  (`RENDER_PRIORITY_MIN`), so the HUD stays over its glow. The rim's colour (right note colour) is UNTUNED. In mixed
+  reality the platform's floor and border bars (`StandingGround/Node3D`) are hidden (Bored, 2026-11-03: keep the
+  player's room free; only the track's two light strips show in it).
+  On a 90/360 map (Bored, 2026-11-03, plan https://claude.ai/artifact/GqhUBQWfZBUYyL2yDMg7ag) `follow_map`, called each
+  frame from `GameStatePlaying._process_map`, opens a floating portal toward each direction objects are coming from
+  (`RoomOutline.map_turns` timeline, from the spawn look-ahead plus `PORTAL_OPEN_SECONDS` until the last object passes
+  the player), directions within `RoomOutline.PORTAL_TURN_MERGE` (30°) sharing one widened portal, at most
+  `MAX_PORTALS`; `_process` grows and shrinks each from its centre over `PORTAL_OPEN_SECONDS` and glides its edges to
+  the lanes it takes over `PORTAL_GLIDE_SECONDS` (both UNTUNED; Bored: shrink smoothly), so the room
+  stays clear where nothing comes. `BeepSaber_Game._transition_game_state` calls `stop_following_map` when the map is
+  no longer on (not Playing, Paused or PracticeHold), which puts the one portal ahead back. Maps whose lanes don't turn
+  keep the one portal.
+- `RoomOutline.gd` (class `RoomOutline`, a child of `XROrigin3D`) - the real room as lines over the passthrough: walls,
+  doors and windows in `UI_TEXT`, furniture boxes in `UI_TEXT_MUTED`, and the portal frame in `UI_ACCENT` where the
+  note path meets the nearest wall (`find_portal`, never smaller than the notes' corridor of four lanes and three rows
+  plus `PORTAL_NOTE_REACH`, so notes don't come through the wall beside it; size constants UNTUNED);
+  `floating_portal` stands a portal ahead when there is no room scan, from the floor `FLOATING_PORTAL_HEIGHT` up and
+  across the curbs, so walls, arcs and bombs come in through it (Bored, 2026-11-03), and grown at each song start to
+  take every object of the map (`map_extent`, via `MixedReality.fit_portal_to_map` from `BeepSaber_Game._start_map`);
+  `map_turns` and `turn_portals` (tested in `tests/test_room_outline.gd`) give a 90/360 map's directions and the
+  portals that take them; `portal_mask_transform` gives the portal mask's world-to-hole transform. Poses are in the
+  play space, so on a recenter `MixedReality` reads the room again (`PicoRoom.reload_room`) and redraws it.
 - `PlayCountTable.gd` (autoload `PlayCount`) - play counts, favourite flag, last difficulty per map.
 - `HighscoreTable/HighscoreTable.gd` (autoload `Highscores`) - top-10 records per map + modifier set.
   Tested by `tests/test_highscores.gd`.
@@ -92,7 +124,7 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
 - `SongUploader` listens on port 45800 (`song_uploader.gd:7,24`) and serves each connection synchronously in
   `_process` with busy-wait loops (`:53-60,78-80`): an upload stalls frames, and the header loop has no disconnect
   check. Uploads are saved by magic bytes to `APPDATA_PATH` `Songs/*.zip` or `Backgrounds/*.jpg|png` (`:170-180`).
-- `MixedReality` reaches nodes by absolute `/root/BeepSaber/...` paths (`MixedReality.gd:19-39`); renaming those
+- `MixedReality` reaches nodes by absolute `/root/BeepSaber/...` paths (`MixedReality.gd:19-35`); renaming those
   nodes in `BeepSaber_Game.tscn` breaks it at runtime.
 - `HTTPRequestPool` re-issues a queued request through `request()`, which assigns a new token (`HTTPRequestPool.gd:55-58`).
 

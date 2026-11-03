@@ -104,11 +104,13 @@ constraints apply here unchanged.
 - `FloorReflection.gd` (class `FloorReflection`) + `FloorReflection.gdshader` — the notes and blades faintly mirrored in
   the deck: two MultiMeshes refilled each frame, drawn at the deck's depth in a depth-only pass then colour, so a lower
   note's reflection hides an upper one's (no second render, no screen read); fades by depth and distance; off with
-  the deck (old track, mixed reality). Made in `BeepSaber_Game._ready`; `stage_capture --notes 1` shows it too.
+  the deck (round 90/360 platform); in mixed reality shown in the room too, at `MIXED_REALITY_STRENGTH` 0.3 (Bored, 2026-11-03), and through the portal. Made in `BeepSaber_Game._ready`; `stage_capture --notes 1` shows it too.
 - `LowResGlow.gd` (class `LowResGlow`) — glow without Godot's glow pass (that pass costs ~5 ms on the Pico 4).
 - `Benchmark.gd` (class `Benchmark`) — hands-off GPU benchmark (Settings > Advanced, or `tools/bench.sh`).
 - `DebugView.gd` (class `DebugView`) — Settings > Advanced switches that leave parts of the scene out to measure
-  their GPU cost; bits of the `debug_view` shader global, never saved.
+  their GPU cost; bits of the `debug_view` shader global, never saved. In mixed reality the cycle (flag file
+  `debug_cycle`) runs `MR_CYCLE_STEPS` instead: the world behind the portals' sky, cloud sea and dust one by one
+  (`MR_NO_*`, `MRSpace.show_parts`), then the reflection, notes, walls and sabers, 100 s in all.
 - `event_driver.gd/.tscn` — lighting events and background; `floor.gd/.tscn` — floor and burn marks; on 90/360 maps
   `set_round` swaps its square border bars for a ring of lights on the round platform (`TrackDeck`).
 - `SpectatorWindow.gd/.tscn` — desktop spectator camera/HUD.

@@ -20,6 +20,8 @@ line `@AGENTS.md`, so Claude Code loads the folder's doc when it opens a file th
 - `game/scripts/GameState/`: the game state machine (menu, playing, paused, fail, score screen).
 - `game/BeatmapInfo/`: beatmap data model and how `game/Map.gd` parses Beat Saber map formats.
 - `game/ui/`: song menu, settings, end score, highscore and pause panels, shared theme and UI palette, BeatSaver panels.
+- `native/pico_room/`: C++ GDExtension reading the room from PICO's OpenXR extensions (built by CI into
+  `game/native/bin/`).
 - `OQ_Toolkit/`: partially ported VR toolkit (`vr` autoload, 2D-in-VR canvases, keyboard).
 - `tests/`: headless tests.
 - `tools/`: capture scenes, Blender model scripts, asset generators, headset bench, the doc checker;
@@ -122,7 +124,8 @@ Layout and look
 - Help in place: a short hint where the choice is made (a one-line explanation, a label that appears
   on hover), not a manual. [Nielsen #10]
 - Mixed reality: virtual scenery never covers the player's room; with mixed reality on, draw only what
-  play needs (track, notes, sabers, light beams). (Neon Grid's floor hid the room.)
+  play needs (track, notes, sabers, light beams), plus the world seen through portals cut in the real walls, and only
+  inside them (owner, 2026-11-02; `game/env/portal_mask.gdshaderinc`). (Neon Grid's floor hid the room.)
 
 Process
 - Build UI as templates (owner, 2026-10-28): panel, section and button scenes plus the theme; pages only swap

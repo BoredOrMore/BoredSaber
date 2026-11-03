@@ -1,6 +1,7 @@
 shader_type spatial;
 // arcs keep their note colour from far away to the notes: no fog, like the notes (owner, 2026-10-26)
 render_mode fog_disabled;
+#include "res://game/env/portal_mask.gdshaderinc"
 
 uniform vec4 color: source_color;
 uniform float emission = 2.0;
@@ -57,4 +58,8 @@ void fragment() {
 	ALBEDO = color.rgb;
 	EMISSION = color.rgb * emission;
 
+	// mixed reality: beyond the room's walls, only through a portal (portal_mask.gdshaderinc); last, after the derivatives
+	if (!portal_mask_shows(CAMERA_POSITION_WORLD, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz)) {
+		discard;
+	}
 }

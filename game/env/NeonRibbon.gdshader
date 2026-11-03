@@ -5,7 +5,7 @@ shader_type spatial;
 // Thin far lines flicker because they cover a pixel only some of the time; the ribbon never gets thinner than
 // min_pixels on screen and dims by the width it lost instead (prefiltered lines: Chan & Durand, GPU Gems 2 ch. 22;
 // Persson, "Phone-wire AA", GPU Pro 5). Bars far away fade into the air like distance fog.
-render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
+render_mode unshaded, blend_premul_alpha, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 
 uniform vec4 light_color : source_color = vec4(1.0);
 // whole ribbon width in metres, halo included (untuned)
@@ -77,4 +77,7 @@ void fragment() {
 		col = light_color.rgb * exp(-d * d * 4.0);
 	}
 	ALBEDO = col * (1.0 - d) * tips * fade * brightness * (1.0 + combo_glow);
+	// Added as pure light: premultiplied blend with alpha 0 adds the colour and leaves the frame's alpha alone, so in
+	// mixed reality the room stays visible through it (blend_add wrote alpha 1 over the whole quad: a black box).
+	ALPHA = 0.0;
 }

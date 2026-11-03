@@ -1,5 +1,6 @@
 shader_type spatial;
 render_mode unshaded, cull_back;
+#include "res://game/env/portal_mask.gdshaderinc"
 
 // The bomb body: near-black, like Beat Saber's bombs, which read as dark shapes against the bright notes
 // (Chroma's BombColorizer, github.com/Aeroluna/Heck/blob/master/Chroma/Colorizer/BombColorizer.cs, colours
@@ -18,4 +19,8 @@ void fragment() {
 	float lit = clamp(dot(world_normal, light), 0.0, 1.0);
 	float sheen = pow(clamp(dot(world_normal, normalize(light + view_world)), 0.0, 1.0), SHEEN_POWER);
 	ALBEDO = BODY + vec3(lit * SHADE + sheen * SHEEN_STRENGTH);
+	// mixed reality: beyond the room's walls, only through a portal (portal_mask.gdshaderinc); last, after the derivatives
+	if (!portal_mask_shows(CAMERA_POSITION_WORLD, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz)) {
+		discard;
+	}
 }

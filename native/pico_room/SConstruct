@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+# Builds the pico_room GDExtension into game/native/bin/. Needs two paths from the environment:
+#   GODOT_CPP       a godot-cpp checkout (tag godot-4.5-stable; GDExtensions built for 4.5 load in 4.6)
+#   OPENXR_INCLUDE  the include/ folder of the Khronos OpenXR-SDK (for openxr/openxr.h)
+# e.g. scons platform=android arch=arm64 target=template_debug
+import os
+
+env = SConscript(os.path.join(os.environ["GODOT_CPP"], "SConstruct"))
+env.Append(CPPPATH=["src/", os.environ["OPENXR_INCLUDE"]])
+library = env.SharedLibrary(
+    "#../../game/native/bin/libpicoroom{}{}".format(env["suffix"], env["SHLIBSUFFIX"]),
+    source=Glob("src/*.cpp"),
+)
+Default(library)

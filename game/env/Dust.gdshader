@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
+render_mode unshaded, blend_premul_alpha, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 
 // Specks of dust floating around the player, 1-4 m away: they move against the far scenery as the head moves
 // (parallax), which helps the player feel they stand in the place. Like real dust they show only where light
@@ -68,4 +68,7 @@ void vertex() {
 
 void fragment() {
 	ALBEDO = light * max(1.0 - dot(corner, corner), 0.0);
+	// Added as pure light: premultiplied blend with alpha 0 adds the colour and leaves the frame's alpha alone, so in
+	// mixed reality the room stays visible through it (blend_add wrote alpha 1 over the whole quad: a black box).
+	ALPHA = 0.0;
 }

@@ -21,7 +21,8 @@ const JUMP_FACE_CHARACTERISTICS: Array[String] = ["90Degree", "360Degree"]
 ## Before its jump a note flies in, as Beat Saber's (owner, 2026-10-28; ArcViewer's moveZ 300 m and moveTime 0.975 s):
 ## it spawns FLY_SECONDS before its jump starts and its visual rushes in from FLY_DISTANCE beyond the jump start,
 ## easing out (quadratic), so it arrives before the reaction time begins; its place and hitbox move on as before.
-## Bombs, chain links (start_jump) and arcs (Arc.gd, by their head) fly the same way; walls don't.
+## Bombs, chain links (start_jump) and arcs (Arc.gd, by their head) fly the same way; walls only in mixed reality
+## (Wall.gd, through the portal; Bored, 2026-11-03).
 const FLY_SECONDS := 0.975
 const FLY_DISTANCE := 300.0
 var _jump_visual: Node3D

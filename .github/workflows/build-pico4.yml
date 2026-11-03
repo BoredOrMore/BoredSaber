@@ -15,12 +15,16 @@ env:
   # 4.6.3 crashes on Pico 4 at startup (eye-tracked foveation with Vulkan), 4.6.2 does not.
   GODOT_VERSION: 4.6.2
   VENDORS_VERSION: 4.3.1
+  # native/pico_room: GDExtensions built for 4.5 load in 4.6; OpenXR-SDK for PICO's XR_BD_* headers
+  GODOT_CPP_TAG: godot-4.5-stable
+  OPENXR_SDK_TAG: release-1.1.65
 
 jobs:
   build:
     runs-on: ubuntu-24.04
     # a normal build takes a few minutes; one once hung in the project import for 6 hours
-    timeout-minutes: 20
+    # (an uncached godot-cpp build for native/pico_room adds about ten minutes)
+    timeout-minutes: 35
     permissions:
       contents: write
     steps:
@@ -64,6 +68,29 @@ jobs:
           cp -r /tmp/vendors/asset/addons/godotopenxrvendors addons/
           test -f addons/godotopenxrvendors/plugin.gdextension
 
+      # PICO room plugin (native/pico_room/AGENTS.md): the C++ GDExtension that reads the room from PICO's own OpenXR
+      # extensions, built against godot-cpp and the Khronos OpenXR headers. The godot-cpp build is cached; the plugin
+      # itself compiles in seconds. The Linux build is only so the headless import and tests load it without errors.
+      - name: Cache godot-cpp build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/godot-cpp
+            native/pico_room/.sconsign.dblite
+          key: godot-cpp-${{ env.GODOT_CPP_TAG }}-${{ env.OPENXR_SDK_TAG }}-v1
+
+      - name: Build PICO room plugin
+        run: |
+          pip install -q scons
+          test -d ~/godot-cpp || git clone -q --depth 1 --branch "$GODOT_CPP_TAG" https://github.com/godotengine/godot-cpp ~/godot-cpp
+          git clone -q --depth 1 --branch "$OPENXR_SDK_TAG" https://github.com/KhronosGroup/OpenXR-SDK /tmp/openxr-sdk
+          ndk=$(ls "$ANDROID_SDK_ROOT/ndk" | sort -V | tail -1)
+          cd native/pico_room
+          export GODOT_CPP=~/godot-cpp OPENXR_INCLUDE=/tmp/openxr-sdk/include
+          scons platform=android arch=arm64 target=template_debug ndk_version="$ndk" -j4
+          scons platform=linux target=template_debug -j4
+          test -f ../../game/native/bin/libpicoroom.android.template_debug.arm64.so
+
       - name: Configure Android export
         run: |
           # A committed debug key keeps every build signed the same, so new APKs install over old ones.
@@ -102,6 +129,7 @@ jobs:
           timeout 300 ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 --headless --path . res://tests/test_highscores.tscn
           timeout 300 ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 --headless --path . res://tests/test_spawn.tscn
           timeout 300 ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 --headless --path . res://tests/test_health.tscn
+          timeout 300 ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 --headless --path . res://tests/test_room_outline.tscn
           timeout 300 ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 --headless --path . res://tests/test_cut.tscn
           timeout 300 ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 --headless --path . res://tests/test_hud.tscn
           timeout 300 ~/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 --headless --path . res://tests/test_song_search.tscn
@@ -114,6 +142,7 @@ jobs:
           test -f build/BoredSaber-Pico4.apk
           # Without the vendors plugin the game still starts but loses Pico OpenXR support.
           unzip -l build/BoredSaber-Pico4.apk | grep -q 'lib/arm64-v8a/libgodotopenxrvendors.so'
+          unzip -l build/BoredSaber-Pico4.apk | grep -q 'libpicoroom.android.template_debug.arm64.so'
 
       # Quest 2/3/3S/Pro: the same game with Meta's OpenXR loader instead of Pico's. Not yet tested on a Quest, so a
       # failure here doesn't stop the Pico build.

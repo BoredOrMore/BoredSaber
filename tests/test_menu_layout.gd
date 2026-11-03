@@ -176,6 +176,15 @@ func _ready() -> void:
 
 	profiles.queue_free()
 
+	# "Set up your room" at every step, with the longest counts
+	var room_setup := (load("res://game/ui/RoomSetupPanel.tscn") as PackedScene).instantiate() as RoomSetupPanel
+	_port.add_child(room_setup)
+	for step: RoomSetupPanel.Step in RoomSetupPanel.Step.values():
+		room_setup._show(step, 12, 18)
+		await _settle()
+		_check_layout(room_setup, "room setup, step %s" % RoomSetupPanel.Step.keys()[step])
+	room_setup.queue_free()
+
 	# the practice panel beside the player: the longest time and speed, stopped and playing
 	var practice := (load("res://game/ui/PracticePanel.tscn") as PackedScene).instantiate() as PracticePanel
 	_port.add_child(practice)

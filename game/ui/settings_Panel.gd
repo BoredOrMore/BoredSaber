@@ -17,7 +17,6 @@ signal benchmark_requested()
 @onready var left_saber_col := $Tabs/Visuals/VBox/SaberColorsRow/left_saber_col as ColorPickerButton
 @onready var right_saber_col := $Tabs/Visuals/VBox/SaberColorsRow/right_saber_col as ColorPickerButton
 @onready var show_debug_control := $Tabs/Advanced/VBox/show_debug as CheckButton
-@onready var mixed_reality_control := $Tabs/Visuals/VBox/mixed_reality as CheckButton
 @onready var explain_control := $Tabs/Gameplay/VBox/explain as CheckButton
 @onready var left_handed_control := $Tabs/Gameplay/VBox/left_handed as CheckButton
 @onready var swing_scoring_control := $Tabs/Gameplay/VBox/swing_scoring as CheckButton
@@ -145,7 +144,6 @@ func set_controls_from_settings() -> void:
 	darker_notes_control.button_pressed = Settings.darker_notes
 	saber_control.select(Settings.saber_visual)
 	show_debug_control.button_pressed = Settings.show_debug_info
-	mixed_reality_control.button_pressed = Settings.mixed_reality
 	explain_control.button_pressed = Settings.explain
 	left_handed_control.button_pressed = Settings.left_handed
 	swing_scoring_control.button_pressed = Settings.swing_scoring
@@ -345,7 +343,7 @@ var _glow_hint := Label.new()
 const VISUAL_SECTIONS := [
 	["Look", ["ColorPresetRow", "SaberColorsRow", "SaberTypeRow", "SaberThicknessRow", "darker_notes"]],
 	["Effects", ["effects_hint", "smoke", "saber_tail", "cut_blocks", "cut_flash", "saber_clash_rumble",
-		"background_mode_grid", "background_texture_grid", "mixed_reality"]],
+		"background_mode_grid", "background_texture_grid"]],
 ]
 
 ## At the top of Visuals, its Quality section: "Graphics: Low | Normal" chips setting the effects below (a third
@@ -454,10 +452,6 @@ func _sync_graphics() -> void:
 func _show_debug_view_switches() -> void:
 	for switch in _debug_view_switches:
 		switch.visible = Settings.show_debug_info
-
-func _on_mixed_reality_toggled(button_pressed: bool) -> void:
-	Settings.mixed_reality = button_pressed
-	MixedReality.set_mixed_reality(Settings.mixed_reality)
 
 func _on_explain_toggled(button_pressed: bool) -> void:
 	Settings.explain = button_pressed

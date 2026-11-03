@@ -210,6 +210,19 @@ func test_walls(speed: float) -> void:
 	check(near(again_mesh.position, fresh_mesh.position) and near(again_mesh.scale, fresh_mesh.scale),
 		"reused wall's mesh matches a fresh one's (position %s vs %s, scale %s vs %s)" % [again_mesh.position,
 		fresh_mesh.position, again_mesh.scale, fresh_mesh.scale])
+	# mixed reality: a wall spawned early to fly in shows far beyond its place, and lands on it by its jump
+	Settings.mixed_reality = true
+	var flying := ObstacleInfo.new(20.0, 1.0, 1, 0, 1, 5, 0.0)
+	var early := 20.0 - Map.half_jump_beats - Cuttable.FLY_SECONDS * Map.beats_per_second()
+	again.spawn(flying, early)
+	check(again_mesh.position.z < -Cuttable.FLY_DISTANCE * 0.9, "MR wall spawned to fly in shows ~%.0f m beyond: %.1f" % [
+		Cuttable.FLY_DISTANCE, again_mesh.position.z])
+	again._physics_process(Cuttable.FLY_SECONDS + 0.01)
+	check(absf(again_mesh.position.z) < EPS, "MR wall has landed on its place at its jump: %.4f" % again_mesh.position.z)
+	check_wall(again, flying, early + (Cuttable.FLY_SECONDS + 0.01) * Map.beats_per_second(), "MR wall after its flight")
+	Settings.mixed_reality = false
+	again.spawn(flying, early)
+	check(again_mesh.position.z == 0.0, "outside MR a wall doesn't fly")
 
 ## Where the arc's curve point `i` is on the track (its node's and its Path3D's transforms applied).
 func arc_point(arc: Arc, i: int) -> Vector3:

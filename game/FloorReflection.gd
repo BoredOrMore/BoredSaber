@@ -3,11 +3,15 @@ class_name FloorReflection
 ## The notes and sabers faintly mirrored in the track's dark deck, like the glossy floor of Beat Saber's PC version
 ## (owner, 2026-10-28). Each frame copies the notes on the track and the two blades, mirrored about the deck's top, into
 ## two MultiMeshes (one draw call each) drawn by FloorReflection.gdshader: no second render, no screen read. Off where
-## the deck isn't (the old track, mixed reality). Untuned.
+## the deck isn't (the round 90/360 platform). In mixed reality the reflections lie on the real floor. Untuned.
 
 const SHADER := preload("res://game/FloorReflection.gdshader")
 ## at most this many notes are mirrored at once (the pool presizes 100; a dense map shows about 30 in flight)
 const MAX_NOTES := 64
+## how strong the reflection is at the deck's surface (owner, 2026-10-28: 0.3 too clear, 0.12 too faint, picked 0.275),
+## and over the real floor in mixed reality (Bored, 2026-11-03: 0.3)
+const STRENGTH := 0.275
+const MIXED_REALITY_STRENGTH := 0.3
 ## the mirrored blade's thickness (m): a thin bar, as the blade's glowing core reads
 const BLADE_WIDTH := 0.03
 ## custom data kinds the shader reads (FloorReflection.gdshader)
@@ -58,6 +62,7 @@ func _process(_delta: float) -> void:
 	var floor_y := _deck.global_position.y
 	_material.set_shader_parameter(&"floor_y", floor_y)
 	_prepass.set_shader_parameter(&"floor_y", floor_y)
+	_material.set_shader_parameter(&"strength", MIXED_REALITY_STRENGTH if Settings.mixed_reality else STRENGTH)
 	var mirror := Transform3D(Basis.from_scale(Vector3(1.0, -1.0, 1.0)), Vector3(0.0, 2.0 * floor_y, 0.0))
 	var count := 0
 	for node in _track.get_children():
