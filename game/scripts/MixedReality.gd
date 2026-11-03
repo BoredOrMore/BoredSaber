@@ -76,8 +76,6 @@ func set_mixed_reality(mr: bool):
 	if mr and ROOM_SCAN_ENABLED and can_scan_room():
 		(get_node("/root/BeepSaber") as BeepSaber_Game).open_room_setup()
 	elif mr:
-		if not vr.pose_recentered.is_connected(_on_recentered):
-			vr.pose_recentered.connect(_on_recentered)
 		_show_floating_portal()
 
 
@@ -92,7 +90,6 @@ func scan_room() -> void:
 	if not room.is_connected("room_loaded", _on_room_loaded):
 		room.connect("room_loaded", _on_room_loaded)
 		room.connect("room_not_found", _on_room_not_found)
-	if not vr.pose_recentered.is_connected(_on_recentered):
 		vr.pose_recentered.connect(_on_recentered)
 	_forget_room()
 	room.call("scan_room")
@@ -184,15 +181,18 @@ func _on_room_loaded(pieces: Array) -> void:
 	room_found.emit(pieces)
 
 
-## Reads the room again after a recenter, which moves the play space the room's poses are in; without a scan, puts the
-## floating portal back in front of the player (once the recenter has moved the origin).
+## Reads the room again after a recenter, which moves the play space the room's poses are in.
 func _on_recentered() -> void:
-	if not Settings.mixed_reality:
-		return
-	if not _room_pieces.is_empty():
+	if Settings.mixed_reality and not _room_pieces.is_empty():
 		Engine.get_singleton("PicoRoom").call("reload_room")
-	elif not ROOM_SCAN_ENABLED:
-		_show_floating_portal.call_deferred()
+
+
+## Puts the floating portal back in front of the track after BeepSaber_Game.recenter moved the play space (its rim
+## rides on XROrigin3D, its mask is in world space); the game recenters at start and from Settings, not only on the
+## headset's recenter.
+func play_space_moved() -> void:
+	if Settings.mixed_reality and not ROOM_SCAN_ENABLED:
+		_show_floating_portal()
 
 
 ## Tells the room setup that no room was found.

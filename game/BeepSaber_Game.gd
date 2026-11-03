@@ -1694,6 +1694,7 @@ func recenter():
 	var xr_camera := $XROrigin3D/XRCamera3D as XRCamera3D
 	xr_origin.rotation.y -= xr_camera.global_rotation.y
 	xr_origin.position -= (xr_camera.global_position * Vector3(1,0,1)) - Vector3(0,0,1)
+	MixedReality.play_space_moved()
 	_menu_lift_measured = false
 	_place_menus()
 
