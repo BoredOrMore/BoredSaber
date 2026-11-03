@@ -1099,6 +1099,7 @@ func _build_difficulty_picker() -> void:
 		level_row.add_child(button)
 		# five buttons share the column (DifficultyButton's narrow padding): the text never widens the row
 		button.clip_text = true
+		button.resized.connect(_fit_level_text.bind(button))
 	_sync_difficulty_picker()
 
 ## The characteristic a difficulty belongs to; maps without one are Standard.
@@ -1170,6 +1171,7 @@ func _sync_difficulty_picker() -> void:
 		button.disabled = index < 0 or (not mod.is_empty() and index != _map_difficulty)
 		button.tooltip_text = NEEDS_MOD_TEXT % mod if not mod.is_empty() else ""
 		button.set_pressed_no_signal(picked != null and picked.difficulty == LEVELS[i][0])
+		_fit_level_text(button)
 	if _status != "":
 		var status := Label.new()
 		status.text = _status
@@ -1211,6 +1213,22 @@ static func _set_picked_border(button: Button, color: Color) -> void:
 		if box:
 			box.border_color = color
 			button.add_theme_stylebox_override(style, box)
+
+## Smallest text a level button's name shrinks to so a numbered one ("Expert+ 2") fits on one line (owner,
+## 2026-11-03: shrink rather than clip the number); Meta's text floor is 14 px at our canvas scale or less.
+const LEVEL_MIN_FONT_SIZE := 14
+
+## Shrinks the level button's name until it fits the button's width; names that fit keep the kind's size.
+static func _fit_level_text(button: Button) -> void:
+	button.remove_theme_font_size_override(&"font_size")
+	var font := button.get_theme_font(&"font")
+	var box := button.get_theme_stylebox(&"normal")
+	var room := button.size.x - box.get_margin(SIDE_LEFT) - box.get_margin(SIDE_RIGHT)
+	var size := button.get_theme_font_size(&"font_size")
+	while size > LEVEL_MIN_FONT_SIZE and font.get_string_size(button.text, HORIZONTAL_ALIGNMENT_LEFT, -1, size).x > room:
+		size -= 1
+	if size != button.get_theme_font_size(&"font_size"):
+		button.add_theme_font_size_override(&"font_size", size)
 
 ## Picks the pressed level within the shown characteristic.
 func _on_level_pressed(level: int) -> void:

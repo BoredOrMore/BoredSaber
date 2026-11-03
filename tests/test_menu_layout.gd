@@ -107,6 +107,7 @@ func _ready() -> void:
 	await _fill_ranks(menu)
 	await _settle()
 	_check_layout(menu, "song tab")
+	_check_level_text_fits(menu)
 
 	_check_list_rows(menu.songs_menu)
 	await _check_list_drag(menu)
@@ -369,6 +370,16 @@ func _fill_worst_details(menu: MainMenu) -> void:
 	StatPills.fill(menu.level_stats, [StatPills.length(824.0, 24)] + StatPills.difficulty(1.0, 12.3, 24.0, 24)
 			+ [StatPills.workout(12, 24)])
 	(menu.get_node("SongInfo_Label") as Label).text = "%s\n%s\nMapped by %s\nPlayed 999 times" % [LONG_NAME, LONG_NAME, LONG_NAME]
+
+## A numbered level name ("Expert+ 3") shrinks to fit its button instead of losing its number to the clip.
+func _check_level_text_fits(menu: MainMenu) -> void:
+	for level: Button in menu.level_row.get_children():
+		MainMenu._fit_level_text(level)
+		var font := level.get_theme_font(&"font")
+		var box := level.get_theme_stylebox(&"normal")
+		var width := font.get_string_size(level.text, HORIZONTAL_ALIGNMENT_LEFT, -1, level.get_theme_font_size(&"font_size")).x
+		var room := level.size.x - box.get_margin(SIDE_LEFT) - box.get_margin(SIDE_RIGHT)
+		check(width <= room, "level name \"%s\" fits its button (%d of %d px at %d px text)" % [level.text, width, room, level.get_theme_font_size(&"font_size")])
 
 ## Counts the song list's whole rows in view, filling it with sample rows first (the test has one song).
 func _check_list_rows(list: SongList) -> void:
