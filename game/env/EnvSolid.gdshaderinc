@@ -55,6 +55,9 @@
 global uniform vec4 env_haze;
 global uniform vec4 env_light;
 #include "res://game/env/portal_mask.gdshaderinc"
+// mixed reality: true for what runs into the room from a portal (the track's curbs, TrackDeck), false for what shows
+// only through one
+uniform bool portal_room_side = false;
 #include "res://game/env/fog_light.gdshaderinc"
 #include "res://game/env/height_fog.gdshaderinc"
 // DebugView.RINGS leaves these out (no area, so nothing is drawn); DebugView.FLAT_SCENERY draws them one flat colour
@@ -416,9 +419,11 @@ void fragment() {
 	ALPHA = 1.0 - smoothstep(0.0, blur, gap);
 	ALBEDO = mix(ALBEDO, shell_color.rgb, shell_color.a);
 #endif
-	// mixed reality: only beyond the room's walls, through a portal (Bored, 2026-11-03: in the room only the two light
-	// strips; portal_mask.gdshaderinc); last, after the derivatives
-	if (!portal_mask_through_any(CAMERA_POSITION_WORLD, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz)) {
+	// mixed reality: only beyond the room's walls, through a portal, except the curbs, which run into the room with
+	// their light strips (Bored, 2026-11-03; portal_mask.gdshaderinc); last, after the derivatives
+	vec3 world_point = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	if (!(portal_room_side ? portal_mask_shows(CAMERA_POSITION_WORLD, world_point)
+			: portal_mask_through_any(CAMERA_POSITION_WORLD, world_point))) {
 		discard;
 	}
 }
