@@ -47,6 +47,7 @@ const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 @onready var songs_menu := $SongsMenu as SongList
 @onready var characteristic_row := $DifficultyPicker/CharacteristicRow as HBoxContainer
 @onready var level_row := $DifficultyPicker/LevelRow as HBoxContainer
+@onready var song_meta_label := $SongMeta_Label as Label
 @onready var level_stats := $DifficultyPicker/LevelStats as HFlowContainer
 @onready var delete_button := $MorePanel/Delete_Button as ConfirmButton
 @onready var fail_row := $Modifiers/Fail/FailRow as HBoxContainer
@@ -620,8 +621,8 @@ func _select_song(id: int, with_preview: bool = true) -> void:
 	delete_button.cancel()
 	delete_button.question = "Delete %s?\nIts scores too · press again" % song_name
 	_shown_map = map
-	($SongInfo_Label as Label).text = "%s\n%s\nMapped by %s%s\nPlayed %d times" % [
-		map.song_name,
+	($SongInfo_Label as Label).text = map.song_name
+	song_meta_label.text = "%s\nMapped by %s%s\nPlayed %d times" % [
 		map.song_author_name,
 		map.level_author_name,
 		SongTags.AI_SUFFIX if SongTags.is_ai(map) else "",
@@ -717,6 +718,8 @@ func _delete_map(map: MapInfo) -> void:
 	
 ## Shows the saved modifiers on every chip, and what changed on Reset and More modifiers.
 func _ready() -> void:
+	# the song's name leads; artist, mapper and plays follow smaller and muted
+	song_meta_label.add_theme_color_override(&"font_color", Constants.UI_TEXT_MUTED)
 	# list covers load nearest the view first (BackgroundImgLoader.focus)
 	songs_menu.get_v_scroll_bar().value_changed.connect(func(_value: float) -> void:
 		_bg_img_loader.focus = songs_menu.first_shown())

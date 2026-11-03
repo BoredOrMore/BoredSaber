@@ -369,7 +369,8 @@ func _fill_worst_details(menu: MainMenu) -> void:
 		level.text = "Expert+ 3"
 	StatPills.fill(menu.level_stats, [StatPills.length(824.0, 24)] + StatPills.difficulty(1.0, 12.3, 24.0, 24)
 			+ [StatPills.workout(12, 24)])
-	(menu.get_node("SongInfo_Label") as Label).text = "%s\n%s\nMapped by %s\nPlayed 999 times" % [LONG_NAME, LONG_NAME, LONG_NAME]
+	(menu.get_node("SongInfo_Label") as Label).text = LONG_NAME
+	menu.song_meta_label.text = "%s\nMapped by %s\nPlayed 999 times" % [LONG_NAME, LONG_NAME]
 
 ## A numbered level name ("Expert+ 3") shrinks to fit its button instead of losing its number to the clip.
 func _check_level_text_fits(menu: MainMenu) -> void:
