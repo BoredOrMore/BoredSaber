@@ -204,7 +204,6 @@ var _preview_url := ""
 @onready var httpcoverdownload := $CoverDownload as HTTPRequest
 @onready var httpdetailcover := $DetailCoverDownload as HTTPRequest
 @onready var httppreviewdownload := $PreviewDownload as HTTPRequest
-@onready var placeholder_cover := preload("res://game/data/beepsaber_logo.png")
 @onready var goto_maps_by := $gotoMapsBy as Button
 @onready var download_button := $download as Button
 @onready var filter_rows := $FiltersPanel/Rows as VBoxContainer
@@ -290,7 +289,7 @@ func _ready() -> void:
 	_build_filter_chips()
 	UI_AudioEngine.attach_children(self)
 	v_scroll.value_changed.connect(_on_ListV_Scroll_value_changed)
-	_detail_texture = ImageTexture.create_from_image(_sized(placeholder_cover.get_image(), DETAIL_COVER))
+	_detail_texture = ImageTexture.create_from_image(ImageUtils.blank_cover(DETAIL_COVER))
 	cover_rect.texture = _detail_texture
 	
 	var is_web := OS.get_name() == "Web"
@@ -612,13 +611,13 @@ func _get_selected_song() -> BeatSaverSongInfo:
 		return song_data[item_selected]
 	return null
 
-## The logo as a row's cover until the map's own comes: made once and shared; read back from the GPU for each row, a page
+## A blank cover for a row until the map's own comes: made once and shared; read back from the GPU for each row, a page
 ## of them froze dragging the list (owner, 2026-10-28; headset: one second at 20 of 72 frames while scrolling Get songs).
 var _placeholder_image: Image
 
 func _placeholder_row_cover() -> Image:
 	if _placeholder_image == null:
-		_placeholder_image = _sized(placeholder_cover.get_image(), BeatSaverList.COVER_SIZE)
+		_placeholder_image = ImageUtils.blank_cover(BeatSaverList.COVER_SIZE)
 	return _placeholder_image
 
 ## An image as a cover of size px: RGBA8, square, its corners rounded like the song menu's covers.
@@ -964,7 +963,7 @@ func _show_details(song: BeatSaverSongInfo) -> void:
 	_song_text.text = _details_text(song) if long else ""
 	StatPills.fill(_level_rows, [] if long else _level_row_controls(song))
 
-## The details with no map picked: a hint where the title goes and the logo for a cover.
+## The details with no map picked: a hint where the title goes and a blank cover.
 func _show_no_song() -> void:
 	if _song_text == null:
 		return
@@ -976,7 +975,7 @@ func _show_no_song() -> void:
 	_details_toggle.visible = false
 	httpdetailcover.cancel_request()
 	_detail_cover_song = null
-	_detail_texture.update(_sized(placeholder_cover.get_image(), DETAIL_COVER))
+	_detail_texture.update(ImageUtils.blank_cover(DETAIL_COVER))
 	label.text = ""
 
 ## Icons in the details' pills, the size of their 22 px text.

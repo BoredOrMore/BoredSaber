@@ -562,7 +562,10 @@ func _on_favorites_filter_toggled(on: bool) -> void:
 func _on_workout_filter_toggled(on: bool) -> void:
 	Settings.song_filter_workout = on
 
-var default_song_icon := preload("res://game/data/beepsaber_logo.png")
+var default_song_icon := ImageTexture.create_from_image(ImageUtils.blank_cover(SongList.COVER_SIZE))
+## The details' cover size in px (the cover node's size), and its stand-in while a song has none.
+const DETAILS_COVER_SIZE := 104
+var _blank_details_cover := ImageTexture.create_from_image(ImageUtils.blank_cover(DETAILS_COVER_SIZE))
 
 ## Bumped every time the song list is rebuilt, so covers still loading for an older list are dropped.
 var _list_generation := 0
@@ -575,6 +578,8 @@ const LIST_COVER_SIZE := 144
 # callback from ImageUtils when background image loading is complete. if image
 # failed to load, tex will be null
 func _on_cover_loaded(img_tex: Texture2D, is_main_cover: bool, list_idx: int, generation := -1, map_path := "") -> void:
+	if is_main_cover and img_tex == null:
+		cover.call_deferred("set_texture", _blank_details_cover)
 	if img_tex != null:
 		if is_main_cover:
 			cover.call_deferred("set_texture", img_tex)
@@ -720,6 +725,7 @@ func _delete_map(map: MapInfo) -> void:
 func _ready() -> void:
 	# the song's name leads; artist, mapper and plays follow smaller and muted
 	song_meta_label.add_theme_color_override(&"font_color", Constants.UI_TEXT_MUTED)
+	cover.texture = _blank_details_cover
 	# list covers load nearest the view first (BackgroundImgLoader.focus)
 	songs_menu.get_v_scroll_bar().value_changed.connect(func(_value: float) -> void:
 		_bg_img_loader.focus = songs_menu.first_shown())

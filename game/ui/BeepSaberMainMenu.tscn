@@ -3,7 +3,6 @@
 [ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="1"]
 [ext_resource type="Script" uid="uid://cbe53qn50sjl7" path="res://game/ui/BeepSaberMainMenu.gd" id="3"]
 [ext_resource type="Script" path="res://game/ui/SongPreview.gd" id="song_preview"]
-[ext_resource type="Texture2D" uid="uid://cviyxvrpvyr0g" path="res://u/assets/game/data/beepsaber_logo.png" id="3_wpmn0"]
 [ext_resource type="PackedScene" uid="uid://dtipmx5ep1dkk" path="res://game/ui/vr_slider.tscn" id="6"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/arrow-left.svg" id="icon_arrow-left"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/log-out.svg" id="icon_log-out"]
@@ -129,7 +128,6 @@ offset_left = 16.0
 offset_top = 16.0
 offset_right = 120.0
 offset_bottom = 120.0
-texture = ExtResource("3_wpmn0")
 expand_mode = 1
 stretch_mode = 5
 

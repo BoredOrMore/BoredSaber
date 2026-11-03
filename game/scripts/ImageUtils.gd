@@ -49,6 +49,13 @@ static func get_img_from_buffer(data: PackedByteArray) -> Image:
 ## rounded): a 72 px list cover gets about the chips' 14 px.
 const COVER_CORNER := 0.1
 
+## A cover of size px in the surface colour, standing in where a song's own isn't there (none picked, not yet loaded,
+## or the song has none), so no other game's logo or the last song's cover shows in its place.
+static func blank_cover(size: int) -> Image:
+	var image := Image.create_empty(size, size, false, Image.FORMAT_RGBA8)
+	image.fill(Constants.UI_SURFACE)
+	return round_corners(image, roundi(size * COVER_CORNER))
+
 ## The image with its corners cut round (radius px, alpha 0 outside, a pixel of soft edge); converts to RGBA8.
 static func round_corners(img: Image, radius: int) -> Image:
 	if img.is_compressed():

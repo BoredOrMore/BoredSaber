@@ -4,7 +4,6 @@
 [ext_resource type="Script" path="res://game/ui/BeatSaverPanel/BeatSaverList.gd" id="beatsaver_list"]
 [ext_resource type="PackedScene" uid="uid://dtipmx5ep1dkk" path="res://game/ui/vr_slider.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://game/ui/MenuPanel.tscn" id="menu_panel"]
-[ext_resource type="Texture2D" uid="uid://cviyxvrpvyr0g" path="res://game/data/beepsaber_logo.png" id="5"]
 [ext_resource type="Theme" path="res://game/ui/menu_theme.tres" id="menu_theme"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/arrow-left.svg" id="icon_arrow-left"]
 [ext_resource type="Texture2D" path="res://game/ui/icons/download.svg" id="icon_download"]
@@ -48,7 +47,6 @@ offset_left = 24.0
 offset_top = 24.0
 offset_right = 176.0
 offset_bottom = 176.0
-texture = ExtResource("5")
 expand_mode = 1
 stretch_mode = 6
 
