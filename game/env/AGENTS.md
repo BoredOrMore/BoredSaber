@@ -170,14 +170,15 @@ code that reads the walls and cuts the portals: `game/scripts/MixedReality.gd`, 
   (`blend_premul_alpha`, `ALPHA` 0, so no black boxes over the room); they give depth as the player moves.
 - `portal_mask.gdshaderinc`: `portal_mask_through_any(eye, world)`, true where the line from the eye crosses a real
   wall through a portal's hole (for what lies only beyond the walls: the MR world, which is also behind and below the
-  room, the deck, curbs and floor reflection); `portal_mask_shows`, also true on the room's side of every portal's
-  wall (for what comes into the room: notes, the light strips). Globals `mr_portal_count` and `mr_portal_0`..`3` (world to the portal's unit square, +z out of
+  room, the deck and curbs); `portal_mask_shows`, also true on the room's side of every portal's
+  wall (for what comes into the room: notes, the light strips, the floor reflection). Globals `mr_portal_count` and `mr_portal_0`..`3` (world to the portal's unit square, +z out of
   the room; `RoomOutline.portal_mask_transform`), set by `MixedReality.gd`; with no portals everything shows, so stages
   outside mixed reality are unchanged. `portal_mask_through_any`: the MR sky (right after its derivatives), dust and
   `MonolithCloudSea.gdshader` (first thing), and at the end of their fragment `TrackDeck`, `EnvSolid.gdshaderinc` (the
-  curbs; every stage solid includes it) and `game/FloorReflection.gdshader` (Bored, 2026-11-03: in the room only the
-  two light strips). `portal_mask_shows`, at the end of the fragment: `LightStrip` and every note, chain, arc, bomb and
-  wall shader in `game/notes/`.
+  curbs; every stage solid includes it) (Bored, 2026-11-03: in the room only the two light strips and the notes'
+  reflection). `portal_mask_shows`, at the end of the fragment: `LightStrip`, `game/FloorReflection.gdshader` and every
+  note, chain, arc, bomb and wall shader in `game/notes/`. Mixed reality is a stage of its own: no other stage's lasers
+  or rings (`EventDriver.show_scenery_for_mixed_reality` hides them and every light event keeps them off).
   Not masked: saber trails and cut sparks (they stay near the player).
 
 Metal Factory (underground power plant)

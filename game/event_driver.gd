@@ -497,7 +497,7 @@ func _update_rib_strips(delta: float) -> void:
 	material.set_shader_parameter(&"light_color", color)
 
 ## Shows the environment's own scenery (Neon Grid's floor, Pulse Void's rings, the smoke) except in mixed reality,
-## where opaque scenery would cover the player's room: there only the track, notes and light beams are drawn
+## where opaque scenery would cover the player's room: there only the track, notes and the track's light strips are drawn
 ## (the sky is hidden by MixedReality.gd).
 func show_scenery_for_mixed_reality() -> void:
 	neon_grid.visible = environment == "neon_grid" and not Settings.mixed_reality
@@ -512,6 +512,12 @@ func show_scenery_for_mixed_reality() -> void:
 	_dust.visible = not Settings.mixed_reality
 	# Metal Factory has no moving heads: its lights glow in the wall vents
 	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple" and environment != "metal_factory"
+	# mixed reality is a stage of its own (Bored, 2026-11-03): no other stage's lasers or rings; they come back with the
+	# next light event
+	if Settings.mixed_reality:
+		for holder: Node3D in [ring_holder, diagonal_lasers_holder, square_lasers_holder, left_waving_lasers_holder,
+				right_waving_lasers_holder]:
+			holder.hide()
 
 func set_background() -> void:
 	# laid out unturned, then turned back to where it points
@@ -585,13 +591,13 @@ func set_background() -> void:
 		turn_light_on(EventInfo.TYPE_FLOOR_LIGHTS, Color.WHITE)
 		disabled = true
 	else:
-		ring_holder.visible = rings_enabled
+		ring_holder.visible = rings_enabled and not Settings.mixed_reality
 		stage_smoke.visible = Settings.smoke and not Settings.mixed_reality
 		_dust.visible = not Settings.mixed_reality
-		diagonal_lasers_holder.show()
-		square_lasers_holder.show()
-		left_waving_lasers_holder.show()
-		right_waving_lasers_holder.show()
+		diagonal_lasers_holder.visible = not Settings.mixed_reality
+		square_lasers_holder.visible = not Settings.mixed_reality
+		left_waving_lasers_holder.visible = not Settings.mixed_reality
+		right_waving_lasers_holder.visible = not Settings.mixed_reality
 		($Level/DiagonalLasers/laser1).show()
 		($Level/DiagonalLasers/laser2).show()
 		($Level/DiagonalLasers/laser3).show()
@@ -1072,7 +1078,7 @@ func set_all_on(left: Color, right: Color) -> void:
 	if !disabled:
 		update_left_color(left)
 		update_right_color(right)
-		ring_holder.visible = rings_enabled
+		ring_holder.visible = rings_enabled and not Settings.mixed_reality
 
 func process_event(data: EventInfo) -> void:
 	if disabled: return
@@ -1161,16 +1167,16 @@ func turn_light_on(type: int, color: Color) -> void:
 	_on_Tween_tween_step(color, type)
 	match type:
 		EventInfo.TYPE_DIAGONAL_LASERS:
-			diagonal_lasers_holder.visible = true
+			diagonal_lasers_holder.visible = not Settings.mixed_reality
 			diagonal_lasers_material.set_shader_parameter(&"light_color", color)
 		EventInfo.TYPE_SQUARE_LASERS:
-			square_lasers_holder.visible = true
+			square_lasers_holder.visible = not Settings.mixed_reality
 			square_lasers_material.set_shader_parameter(&"light_color", color)
 		EventInfo.TYPE_LEFT_WAVING_LASERS:
-			left_waving_lasers_holder.visible = true
+			left_waving_lasers_holder.visible = not Settings.mixed_reality
 			left_waving_lasers_material.set_shader_parameter(&"light_color", color)
 		EventInfo.TYPE_RIGHT_WAVING_LASERS:
-			right_waving_lasers_holder.visible = true
+			right_waving_lasers_holder.visible = not Settings.mixed_reality
 			right_waving_lasers_material.set_shader_parameter(&"light_color", color)
 		EventInfo.TYPE_FLOOR_LIGHTS:
 			track_lights_holder.visible = true
