@@ -132,6 +132,8 @@ func _show_portals(portals: Array) -> void:
 	var origin := get_node("/root/BeepSaber/XROrigin3D") as XROrigin3D
 	# UNTUNED: the rim takes the right note colour; the map's lights should drive it once the portal is seen on the headset
 	var light := (get_node("/root/BeepSaber/event_driver") as EventDriver).right_color
+	var world_places: Array[Transform3D] = []
+	var sizes: Array[Vector2] = []
 	for i in MAX_PORTALS:
 		if i >= portals.size():
 			if i < _portal_rims.size():
@@ -142,8 +144,9 @@ func _show_portals(portals: Array) -> void:
 			rim.mesh = QuadMesh.new()
 			var material := ShaderMaterial.new()
 			material.shader = PORTAL_RIM_SHADER
-			# first among the see-through things, so the HUD and menus in front always draw over its glow
-			material.render_priority = Material.RENDER_PRIORITY_MIN
+			# among the first see-through things (after MRSpace's cloud sea), so the HUD and menus in front always draw
+			# over its glow
+			material.render_priority = Material.RENDER_PRIORITY_MIN + 1
 			rim.material_override = material
 			rim.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 			origin.add_child(rim)
@@ -158,9 +161,12 @@ func _show_portals(portals: Array) -> void:
 		rim_material.set_shader_parameter(&"light_color", light)
 		RenderingServer.global_shader_parameter_set(StringName("mr_portal_%d" % i),
 			RoomOutline.portal_mask_transform(origin.global_transform * place, size))
+		world_places.append(origin.global_transform * place)
+		sizes.append(size)
 	if _space == null:
 		_space = MR_SPACE_SCENE.instantiate() as MRSpace
 		get_node("/root/BeepSaber").add_child(_space)
+	_space.show_windows(world_places, sizes)
 	_space.show()
 
 

@@ -14,6 +14,10 @@ const HEIGHT_INFO := "res://game/models/monolith_cloud/heightfield.json"
 
 ## the body's brightness, 1 as in Monolith; set before the sea enters the tree
 var brightness := 1.0
+## the body's shader (including monolith_cloud_sea.gdshaderinc) and its material's render priority; set before the sea
+## enters the tree (mixed reality draws it through the portals only, MRSpace)
+var body_shader: Shader = BODY_SHADER
+var body_priority := 0
 
 var _height_texture: ImageTexture
 var _bounds: Vector4
@@ -36,7 +40,8 @@ func _ready() -> void:
 	assert(bodies.size() == 1, "cloud.glb must hold one mesh")
 	var body: MeshInstance3D = bodies[0]
 	var material := ShaderMaterial.new()
-	material.shader = BODY_SHADER
+	material.shader = body_shader
+	material.render_priority = body_priority
 	material.set_shader_parameter(&"brightness", brightness)
 	body.material_override = material
 	body.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF

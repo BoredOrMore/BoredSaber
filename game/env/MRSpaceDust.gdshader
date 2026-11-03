@@ -1,5 +1,8 @@
 shader_type spatial;
 render_mode unshaded, fog_disabled, shadows_disabled, blend_premul_alpha, depth_draw_never, cull_disabled;
+// only where a portal's sky window marked the stencil (MRSpaceSky.gdshader): the points outside the portals are
+// skipped before shading; the portal mask below keeps the holes exact without a stencil buffer
+stencil_mode read, compare_equal, 1;
 
 // Near dust in the mixed-reality world (MRSpace.gd): small soft points at tens to hundreds of metres, turned to face
 // the eye, so the space behind a portal shows depth as the player moves (the stars are too far to shift). Never

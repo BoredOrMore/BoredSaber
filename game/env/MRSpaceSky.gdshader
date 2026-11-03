@@ -1,5 +1,7 @@
 shader_type spatial;
-render_mode unshaded, fog_disabled, shadows_disabled, cull_front;
+render_mode unshaded, fog_disabled, shadows_disabled, cull_disabled;
+// marks the holes' pixels, for the cloud sea and dust behind to draw only there (MRSpaceCloudSea, MRSpaceDust)
+stencil_mode write, compare_always, 1;
 // It writes depth like any opaque surface: with depth_draw_never Godot drew it in the transparent pass, sorted by its
 // centre (the room) after the walls and arcs, so it painted over them (Bored, 2026-11-03: walls and arcs vanished in
 // the portal; seen in tools/capture renders too).
@@ -7,8 +9,11 @@ render_mode unshaded, fog_disabled, shadows_disabled, cull_front;
 // The sky of the mixed-reality world behind the room's portals (MRSpace.gd; owner, 2026-11-02: "the room floats in
 // space", concept C, then three reference pictures): black space, stars worked out from the view direction, a faint
 // neutral band of far dust with a nebula in the two note colours, two planets (one with a moon, one ringed) and
-// shooting stars, all worked out per pixel with no mesh but the sphere, and the source the notes come from far down the track: a white-hot core in a glow of the lights' colour
-// (env_light; AGENTS.md "Light", rule 2). Drawn on the inside of a sphere round the world's origin. BLOCKOUT, untuned.
+// shooting stars, all worked out per pixel from the view direction, and the source the notes come from far down the track: a white-hot core in a glow of the lights' colour
+// (env_light; AGENTS.md "Light", rule 2). BLOCKOUT, untuned.
+// Drawn on a window quad over each portal (MRSpace.show_windows), its corners pushed out along the eye's rays to
+// FAR_DISTANCE: the same pixels as the hole, at the sky's depth, so only the portals' pixels pay for the sky (Bored,
+// 2026-11-03; a sphere round the room ran this for every pixel of the view and discarded most of them).
 global uniform vec4 env_light;
 global uniform vec4 left_saber_color;
 global uniform vec4 right_saber_color;
@@ -76,20 +81,22 @@ uniform samplerCube baked : filter_linear;
 // the bake stores sqrt(layer * BAKE_GAIN) in 8 bits, so the faint band keeps its steps (stored as is it rounded to 0-3)
 const float BAKE_GAIN = 2.0;
 uniform int bake_face = -1;
+// how far out the window's corners go: past everything behind the portals (the cloud sea reaches 980 m), inside the
+// camera's 1024 m far plane
+const float FAR_DISTANCE = 1000.0;
 
-varying vec3 dir;
 varying vec3 world_position;
 varying vec2 face_uv;
 
 void vertex() {
-	dir = normalize((MODEL_MATRIX * vec4(VERTEX, 0.0)).xyz);
-	world_position = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	face_uv = VERTEX.xy;
 	// writing POSITION anywhere skips Godot's own projection, so both paths set it
 	if (bake_face >= 0) {
 		POSITION = vec4(VERTEX.xy, 0.0, 1.0);
 	} else {
-		POSITION = PROJECTION_MATRIX * (MODELVIEW_MATRIX * vec4(VERTEX, 1.0));
+		vec3 corner = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+		world_position = CAMERA_POSITION_WORLD + normalize(corner - CAMERA_POSITION_WORLD) * FAR_DISTANCE;
+		POSITION = PROJECTION_MATRIX * (VIEW_MATRIX * vec4(world_position, 1.0));
 	}
 }
 
@@ -235,10 +242,10 @@ void fragment() {
 		// viewport's image (checked against the live sky on the desktop)
 		ALBEDO = sqrt(baked_layers(normalize(face_direction(bake_face, face_uv))) * BAKE_GAIN);
 	} else {
-		vec3 d = normalize(dir);
+		vec3 d = normalize(world_position - CAMERA_POSITION_WORLD);
 		vec3 p = d * STAR_CELLS;
-		// the derivatives first, while every pixel of the quad still runs; then the portals' outside stops here, so the
-		// rest costs only inside them (the sky covers the whole view)
+		// the derivatives first, while every pixel of the quad still runs; then the window's margin round the hole (the
+		// two eyes see the hole a little apart) stops here
 		float pixel = length(fwidth(p));
 		float pixel_angle = length(fwidth(d));
 		if (!portal_mask_through_any(CAMERA_POSITION_WORLD, world_position)) {

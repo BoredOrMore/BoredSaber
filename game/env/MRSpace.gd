@@ -10,11 +10,10 @@ extends Node3D
 
 const SKY_SHADER := preload("res://game/env/MRSpaceSky.gdshader")
 const DUST_SHADER := preload("res://game/env/MRSpaceDust.gdshader")
-## the sky sphere's radius (outside the cloud sea's 980 m, inside the camera's 1024 m far plane) and its segments
-## round and rings up
-const SKY_RADIUS := 1000.0
-const SKY_SEGMENTS := 32
-const SKY_RINGS := 16
+const SEA_SHADER := preload("res://game/env/MRSpaceCloudSea.gdshader")
+## how far each sky window reaches past its portal's edges, in metres: the two eyes see the hole a little apart, and
+## the shader cuts the window back to the hole (MRSpaceSky.gdshader)
+const SKY_WINDOW_MARGIN := 0.1
 ## how far the cloud sea sits below where Monolith puts it (its bowl's floor about 57 m down, its far rim about +30 m
 ## up), in metres
 const SEA_DROP := 110.0
@@ -34,8 +33,10 @@ const NOTE_PATH_REACH := 320.0
 ## only soft layers are baked, the stars stay sharp and live)
 const BAKE_SIZE := 512
 
-## The sky, the cloud sea and the dust, for show_parts.
-var _sky: MeshInstance3D
+## The sky's material, its windows (one per portal, show_windows), the cloud sea and the dust.
+var _sky_material: ShaderMaterial
+var _windows: Array[MeshInstance3D] = []
+var _window_count := 0
 var _sea: MonolithCloudSea
 var _dust: MultiMeshInstance3D
 ## Whether the sky may show once baked (show_parts).
@@ -45,25 +46,15 @@ var _baked := false
 
 ## Builds the sky, the cloud sea and the dust.
 func _ready() -> void:
-	var sky := MeshInstance3D.new()
-	var sphere := SphereMesh.new()
-	sphere.radius = SKY_RADIUS
-	sphere.height = SKY_RADIUS * 2.0
-	sphere.radial_segments = SKY_SEGMENTS
-	sphere.rings = SKY_RINGS
-	sky.mesh = sphere
-	var sky_material := ShaderMaterial.new()
-	sky_material.shader = SKY_SHADER
-	sky.material_override = sky_material
-	sky.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	sky.extra_cull_margin = SKY_RADIUS
-	sky.hide()
-	add_child(sky)
-	_sky = sky
-	_bake_sky(sky)
+	_sky_material = ShaderMaterial.new()
+	_sky_material.shader = SKY_SHADER
+	_bake_sky()
 	var sea := MonolithCloudSea.new()
 	sea.position.y = -SEA_DROP
 	sea.brightness = SEA_BRIGHTNESS
+	# first among the see-through things, before the portals' rims (MixedReality), the walls and the arcs
+	sea.body_shader = SEA_SHADER
+	sea.body_priority = Material.RENDER_PRIORITY_MIN
 	add_child(sea)
 	_sea = sea
 	var multimesh := MultiMesh.new()
@@ -83,8 +74,8 @@ func _ready() -> void:
 	_dust = dust
 
 ## Bakes the sky's fixed layers into the cube map its shader reads (MRSpaceSky.gdshader), one face a frame, then
-## shows `sky`.
-func _bake_sky(sky: MeshInstance3D) -> void:
+## shows the sky's windows.
+func _bake_sky() -> void:
 	var viewport := SubViewport.new()
 	viewport.size = Vector2i(BAKE_SIZE, BAKE_SIZE)
 	viewport.own_world_3d = true
@@ -112,15 +103,38 @@ func _bake_sky(sky: MeshInstance3D) -> void:
 	var cube := Cubemap.new()
 	var error := cube.create_from_images(images)
 	assert(error == OK, "the sky's bake makes a cube map")
-	(sky.material_override as ShaderMaterial).set_shader_parameter(&"baked", cube)
+	_sky_material.set_shader_parameter(&"baked", cube)
 	_baked = true
-	sky.visible = _sky_wanted
+	_show_sky()
+
+
+## Puts a sky window over each portal: `places` are the portals' world transforms (+z out of the room), `sizes` their
+## sizes in metres; the rest are hidden.
+func show_windows(places: Array[Transform3D], sizes: Array[Vector2]) -> void:
+	while _windows.size() < places.size():
+		var window := MeshInstance3D.new()
+		window.mesh = QuadMesh.new()
+		window.material_override = _sky_material
+		window.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		add_child(window)
+		_windows.append(window)
+	for i in places.size():
+		var size := sizes[i] + Vector2.ONE * SKY_WINDOW_MARGIN * 2.0
+		_windows[i].global_transform = places[i].scaled_local(Vector3(size.x, size.y, 1.0))
+	_window_count = places.size()
+	_show_sky()
+
+
+## Shows the windows in use while the sky is baked and wanted.
+func _show_sky() -> void:
+	for i in _windows.size():
+		_windows[i].visible = i < _window_count and _baked and _sky_wanted
 
 
 ## Shows or hides the sky (once baked), the cloud sea and the dust, to measure each one's cost (DebugView).
 func show_parts(sky: bool, sea: bool, dust: bool) -> void:
 	_sky_wanted = sky
-	_sky.visible = sky and _baked
+	_show_sky()
 	_sea.visible = sea
 	_dust.visible = dust
 

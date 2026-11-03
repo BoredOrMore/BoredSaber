@@ -123,7 +123,8 @@ the Auto pool; BLOCKOUT 2026-10-31; cloud sea and hills from GPT, owner 2026-11-
   and `up_face(lean)` place the lasers (`LightRig` "monolith": diagonal beams up the face from its ledge
   `LEDGE_HEIGHT` up, above the clouds (owner, 2026-10-31), waving lasers between; no square bars).
 - `MonolithCloudSea.gd` (tool, `MonolithCloudSea`): loads `game/models/monolith_cloud/cloud.glb` (one sheet, r 980 m,
-  17,280 triangles, no vertex colours) with `MonolithCloudSea.gdshader`, and its height map `heightfield.bin`
+  17,280 triangles, no vertex colours) with `MonolithCloudSea.gdshader` (or `body_shader` at `body_priority`, set
+  before it enters the tree: MRSpace's), and its height map `heightfield.bin`
   (512x512 RGBA8, described by `heightfield.json`; listed in the Pico 4 export preset's `include_filter`, since Godot
   doesn't export a `.bin` on its own). `bind_material(material)` gives a material the map and where the sea lies, and
   updates it when the sea moves (translation and yaw only). The map is a data texture, the one exception to the
@@ -153,10 +154,18 @@ code that reads the walls and cuts the portals: `game/scripts/MixedReality.gd`, 
   thin strip, 2026-11-02). Desktop check: `tools/capture/portal_capture.tscn`. Untuned, not yet on the headset.
 - `MRSpace.tscn` / `MRSpace.gd`: the world seen through the portals (owner's concept C, "the room floats in space",
   2026-11-02). Root at the origin, nothing near it, no track or deck; the room code instances it behind the portals.
-  Builds a `SKY_RADIUS` sphere with `MRSpaceSky.gdshader`, Monolith's cloud sea (`MonolithCloudSea`, owner's pick)
-  dropped by `SEA_DROP` so its rim stays under the notes' source and dimmed to `SEA_BRIGHTNESS` (the sea's
-  `brightness`, 1 in Monolith), and `DUST_COUNT` points of `MRSpaceDust.gdshader` kept out of
-  the notes' path. The sky is geometry because mixed reality draws no `WorldEnvironment` sky. Blockout, untuned.
+  Builds the sky as one window quad per portal (`show_windows`, called by `MixedReality._show_portals`; each portal
+  grown by `SKY_WINDOW_MARGIN`) with `MRSpaceSky.gdshader`, Monolith's cloud sea (`MonolithCloudSea`, owner's pick,
+  drawn with `MRSpaceCloudSea.gdshader` at `RENDER_PRIORITY_MIN`) dropped by `SEA_DROP` so its rim stays under the
+  notes' source and dimmed to `SEA_BRIGHTNESS` (the sea's `brightness`, 1 in Monolith), and `DUST_COUNT` points of
+  `MRSpaceDust.gdshader` kept out of the notes' path. The sky is geometry because mixed reality draws no
+  `WorldEnvironment` sky. `show_parts` hides parts for `DebugView`'s mixed-reality cycle. Blockout, untuned.
+  GPU (Bored, 2026-11-03): only the portals' pixels pay for the world behind them. The sky's windows push their corners
+  out along the eye's rays to `FAR_DISTANCE` (the same pixels as the hole, at the sky's depth; a sphere round the room
+  ran the sky for every pixel of the view) and write stencil 1 in the holes; the cloud sea and dust read it
+  (`stencil_mode read, compare_equal, 1`), so their pixels outside the portals are dropped before shading. They keep
+  the portal mask too, which keeps the holes exact if a headset has no stencil buffer. The track and notes can't use
+  the stencil: their parts in the room show everywhere.
 - `MRSpaceSky.gdshader`: its fixed layers (band, ring, planets' surfaces, the nebula's two shares) are baked once at
   load into a `BAKE_SIZE` cube map (`MRSpace._bake_sky`: a `SubViewport` draws each face with `bake_face`, stored as
   sqrt(layer x `BAKE_GAIN`) for the faint band's precision); each frame it reads that and adds the live parts (stars,
@@ -165,6 +174,8 @@ code that reads the walls and cuts the portals: `game/scripts/MixedReality.gd`, 
   to match), a faint neutral dust band with a nebula in the two note colours (`left_saber_color`, `right_saber_color`,
   pulled toward grey), two planets ray-traced as spheres (a moon on `PLANET_BIG`, a ring on `PLANET_RINGED`, rims in
   `env_light`), `METEOR_COUNT` shooting stars, and the notes' source down -z: a white-hot core in an `env_light` glow.
+- `MRSpaceCloudSea.gdshader`: Monolith's cloud sea body (`MonolithCloudSea.gdshader`) for the MR world: no depth
+  write (drawn first among see-through things, after the sky windows' stencil), stencil read.
 - `MRSpaceDust.gdshader`: soft points facing the eye, at least `MIN_PIXELS` wide, added as pure light
   (`blend_premul_alpha`, `ALPHA` 0, so no black boxes over the room); they give depth as the player moves.
 - `portal_mask.gdshaderinc`: `portal_mask_through_any(eye, world)`, true where the line from the eye crosses a real

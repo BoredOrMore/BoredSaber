@@ -48,7 +48,12 @@ func _ready() -> void:
 	rim.position = Vector3(0.0, centre, wall_z + WALL_THICK * 0.5 + RIM_LIFT)
 	add_child(rim)
 	if args.has("world"):
-		add_child((load(args["world"]) as PackedScene).instantiate())
+		var world := (load(args["world"]) as PackedScene).instantiate()
+		add_child(world)
+		if world is MRSpace:
+			# its sky draws only in a window over the portal (+z out of the room, here -z)
+			(world as MRSpace).show_windows([Transform3D(Basis(Vector3.LEFT, Vector3.UP, Vector3.FORWARD), rim.position)],
+				[portal])
 	else:
 		var backdrop := MeshInstance3D.new()
 		var plane := QuadMesh.new()
