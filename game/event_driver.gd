@@ -1256,7 +1256,8 @@ func fade_light(type: int, from: Color, to: Color, turn_off_after_fade: bool, tr
 			group = track_lights_holder
 			material = [track_lights_material, floor_material]
 	
-	group.visible = true
+	# mixed reality shows no other stage's lasers (show_scenery_for_mixed_reality); its track lights stay
+	group.visible = group == track_lights_holder or not Settings.mixed_reality
 	
 	var tween := group.create_tween()
 	@warning_ignore("return_value_discarded")
