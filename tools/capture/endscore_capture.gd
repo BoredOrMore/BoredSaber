@@ -22,8 +22,9 @@ func _ready() -> void:
 	env.environment.background_mode = Environment.BG_COLOR
 	env.environment.background_color = Color(0.05, 0.05, 0.08)
 	add_child(env)
-	var song := "%s By %s\n%s     Map author: %s" % [args.get("song", "Silhouette (TV Size) (2023 Remap)"),
-		args.get("author", "KANA-BOON"), args.get("level", "Normal"), args.get("mapper", "Joetastic & Someone Else")]
+	# as BeepSaber_Game._on_song_ended writes it
+	var song := "%s - %s\n%s · Mapped by %s" % [args.get("author", "KANA-BOON"),
+		args.get("song", "Silhouette (TV Size) (2023 Remap)"), args.get("level", "Normal"), args.get("mapper", "Joetastic & Someone Else")]
 	if args.has("before"):
 		# a song before this one, its screen shown and closed, as when playing songs in a row; then capture this
 		# song's screen on its first frames

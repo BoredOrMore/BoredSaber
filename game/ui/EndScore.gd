@@ -39,7 +39,7 @@ const PULSE_SCALE := 1.06
 const PULSE_SECONDS := 0.35
 const TOP_RANK_SPARKLE := 0.8
 ## How wide the song's lines may run on the board (metres, from the name label's left edge): the first to the board's
-## right padding, the second (level and map author) to just before "New Record!" (NRMesh). Longer lines end in "…"
+## right padding, the second (level and map author) to just before "New record" (NRMesh). Longer lines end in "…"
 ## instead of spilling off the board (owner on the headset, 2026-10-25: the score board's content overflowed).
 const NAME_WIDTHS := [1.8, 1.3]
 ## the name card's text, one line, at most this wide; less CARD_BUTTON_ROOM when "Not you?" sits at its right end

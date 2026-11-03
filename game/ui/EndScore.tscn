@@ -219,7 +219,7 @@ theme = SubResource("Theme_553gf")
 theme_override_colors/default_color = Color(0.37, 0.78, 0.94, 1)
 theme_override_font_sizes/normal_font_size = 32
 bbcode_enabled = true
-text = "[center]New Record!"
+text = "[center]New record"
 autowrap_mode = 0
 
 [node name="GradeViewport" type="SubViewport" parent="."]
