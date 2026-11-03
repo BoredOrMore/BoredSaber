@@ -15,6 +15,9 @@ const LABEL_FURNITURE := 7
 const PORTAL_NOTE_REACH := 0.35
 const PORTAL_WALL_SHARE := 0.7
 const PORTAL_MAX_SIZE := Vector2(2.4, 2.0)
+## Without a room scan (MixedReality.ROOM_SCAN_ENABLED off) the portal floats this far ahead of the player's standing
+## point, corridor-sized (Bored, 2026-11-03: "ลอยข้างหน้า 3 m").
+const FLOATING_PORTAL_DISTANCE := 3.0
 ## Walls closer to parallel with the note path than this (the dot of their normal with it) can't take a portal.
 const MIN_FACING := 0.3
 
@@ -61,9 +64,7 @@ static func find_portal(pieces: Array, spot: Vector3, direction: Vector3) -> Dic
 	for piece: Dictionary in pieces:
 		if piece["label"] == LABEL_FLOOR:
 			floor_y = (piece["transform"] as Transform3D).origin.y
-	# the notes' corridor: four lanes across, the note rows up, each reached past by PORTAL_NOTE_REACH
-	var corridor := Vector2(3.0 * Settings.LANE_DISTANCE_X, Constants.ROW_Y[-1] - Constants.ROW_Y[0]) \
-		+ Vector2.ONE * PORTAL_NOTE_REACH * 2.0
+	var corridor := note_corridor()
 	var start := Vector3(spot.x, floor_y + (Constants.ROW_Y[0] + Constants.ROW_Y[-1]) / 2.0, spot.z)
 	var best := {}
 	var best_distance := INF
@@ -87,6 +88,20 @@ static func find_portal(pieces: Array, spot: Vector3, direction: Vector3) -> Dic
 		best_distance = distance
 	return best
 
+
+## Returns the size of the notes' corridor: four lanes across, the note rows up, each reached past by PORTAL_NOTE_REACH.
+static func note_corridor() -> Vector2:
+	return Vector2(3.0 * Settings.LANE_DISTANCE_X, Constants.ROW_Y[-1] - Constants.ROW_Y[0]) \
+		+ Vector2.ONE * PORTAL_NOTE_REACH * 2.0
+
+
+## Returns a portal standing in the air FLOATING_PORTAL_DISTANCE along `direction` (kept level) from `spot` on the
+## floor, across the note path and as big as its corridor, in find_portal's form (+z along `direction`).
+static func floating_portal(spot: Vector3, direction: Vector3) -> Dictionary:
+	var out := Vector3(direction.x, 0, direction.z).normalized()
+	var across := Vector3.UP.cross(out)
+	var centre := spot + out * FLOATING_PORTAL_DISTANCE + Vector3.UP * (Constants.ROW_Y[0] + Constants.ROW_Y[-1]) / 2.0
+	return {"transform": Transform3D(Basis(across, Vector3.UP, out), centre), "size": note_corridor()}
 
 
 ## Returns the transform from world space into the space portal_mask.gdshaderinc reads: the portal at `place` (world

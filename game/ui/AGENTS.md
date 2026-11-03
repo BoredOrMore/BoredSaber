@@ -33,8 +33,9 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   (`BeepSaber_Game._open_profiles`) on its own canvas 10 cm in front of the menu, which takes no pointer input meanwhile.
   Picks, adds (max `Settings.MAX_PLAYERS`), renames (records too, `Highscores.rename_player`) and deletes players;
   names are typed on the menu's keyboard (`Keyboard_highscore`), which the menu ignores while its `_keyboard_for` is empty.
-- `RoomSetupPanel.gd/.tscn` (class `RoomSetupPanel`): "Set up your room", shown when mixed reality turns on and the
-  headset can scan the room (`BeepSaber_Game.open_room_setup`, on its own canvas 10 cm in front of the menus, which
+- `RoomSetupPanel.gd/.tscn` (class `RoomSetupPanel`): "Set up your room"; unreachable while
+  `MixedReality.ROOM_SCAN_ENABLED` is off (Bored, 2026-11-03). Shown when mixed reality turns on and the headset can
+  scan the room (`BeepSaber_Game.open_room_setup`, on its own canvas 10 cm in front of the menus, which
   take no pointer input meanwhile; Bored 2026-11-02, wording approved). Steps: ask (Scan room, Play without room),
   "Looking for your room…" while PICO's scan screen is open and the room loads, "Is this your room?" with the counts
   and the room's outline shown (Play, Scan again), "Couldn't find your room" (Scan again, Play without room). Play

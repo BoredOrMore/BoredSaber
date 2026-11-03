@@ -17,8 +17,10 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
   pick an environment by genre offline (`EventDriver.map_environment`), and the song menu can filter by them; it holds
   the `STYLES` / `GENRES` both filter panels offer. An AI-made map (BeatSaver's `automapper`) keeps `AI_TAG` with its
   tags (`tags_from`, also on download), so both song lists put `AI_MARK` "AI · " before its name and the song menu " (AI)" after its mapper (`is_ai`).
-- `MixedReality.gd` (autoload) - `set_mixed_reality(mr)`: passthrough on/off plus floor/HUD material tweaks; turning it
-  on opens the room setup (`game/ui/RoomSetupPanel`) when the headset can scan the room (`can_scan_room`: the
+- `MixedReality.gd` (autoload) - `set_mixed_reality(mr)`: passthrough on/off plus floor/HUD material tweaks. The room
+  scan is off for now (`ROOM_SCAN_ENABLED` false, Bored 2026-11-03; the code stays): turning mixed reality on opens a
+  portal floating `RoomOutline.FLOATING_PORTAL_DISTANCE` (3 m) ahead along the track, put back after each recenter.
+  With the scan on, turning it on opens the room setup (`game/ui/RoomSetupPanel`) when the headset can scan the room (`can_scan_room`: the
   `PicoRoom` engine singleton, `native/pico_room/`, PICO only; Bored 2026-11-02: every time). `scan_room` ends in
   `room_found(pieces)` or `room_missing`; the room is kept and drawn with `RoomOutline`, shown only while the setup
   checks it (`show_room_outline`). Each found room also cuts the portal (`_show_portals`): a `PortalRim.gdshader` quad
@@ -31,6 +33,7 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
   doors and windows in `UI_TEXT`, furniture boxes in `UI_TEXT_MUTED`, and the portal frame in `UI_ACCENT` where the
   note path meets the nearest wall (`find_portal`, never smaller than the notes' corridor of four lanes and three rows
   plus `PORTAL_NOTE_REACH`, so notes don't come through the wall beside it; size constants UNTUNED);
+  `floating_portal` puts a corridor-sized portal (`note_corridor`) in the air ahead when there is no room scan;
   `portal_mask_transform` gives the portal mask's world-to-hole transform. Poses are in the
   play space, so on a recenter `MixedReality` reads the room again (`PicoRoom.reload_room`) and redraws it.
 - `PlayCountTable.gd` (autoload `PlayCount`) - play counts, favourite flag, last difficulty per map.

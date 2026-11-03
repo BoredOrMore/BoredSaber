@@ -10,6 +10,9 @@ const PORTAL_RIM_SHADER := preload("res://game/env/PortalRim.gdshader")
 const MR_SPACE_SCENE := preload("res://game/env/MRSpace.tscn")
 ## How many portals the mask shader takes (portal_mask.gdshaderinc's mr_portal_0..3).
 const MAX_PORTALS := 4
+## The room scan and its setup panel stay in the code but are off for now (Bored, 2026-11-03): mixed reality opens a
+## portal floating in front of the player instead (RoomOutline.floating_portal).
+const ROOM_SCAN_ENABLED := false
 
 var floor_albedo_texture : Texture2D = null
 ## The real room's outline, made on the first room scan (PICO headsets only).
@@ -70,8 +73,12 @@ func set_mixed_reality(mr: bool):
 			gradient.set_color(i, Color(c.r,c.g,c.b))
 
 	_forget_room()
-	if mr and can_scan_room():
+	if mr and ROOM_SCAN_ENABLED and can_scan_room():
 		(get_node("/root/BeepSaber") as BeepSaber_Game).open_room_setup()
+	elif mr:
+		if not vr.pose_recentered.is_connected(_on_recentered):
+			vr.pose_recentered.connect(_on_recentered)
+		_show_floating_portal()
 
 
 ## Returns whether this headset can scan the real room (PICO's room functions, through the PicoRoom plugin).
@@ -85,6 +92,7 @@ func scan_room() -> void:
 	if not room.is_connected("room_loaded", _on_room_loaded):
 		room.connect("room_loaded", _on_room_loaded)
 		room.connect("room_not_found", _on_room_not_found)
+	if not vr.pose_recentered.is_connected(_on_recentered):
 		vr.pose_recentered.connect(_on_recentered)
 	_forget_room()
 	room.call("scan_room")
@@ -150,6 +158,13 @@ func _show_portals(portals: Array) -> void:
 	_space.show()
 
 
+## Opens the portal floating ahead of the player along the track, for when there is no room scan.
+func _show_floating_portal() -> void:
+	var origin := get_node("/root/BeepSaber/XROrigin3D") as XROrigin3D
+	var spot := origin.to_local(Vector3(0, 0, Constants.PLAYER_Z))
+	_show_portals([RoomOutline.floating_portal(spot, origin.global_basis.inverse() * Vector3.FORWARD)])
+
+
 ## Keeps the scanned room and redraws its outline, with the portal where the track meets the wall.
 func _on_room_loaded(pieces: Array) -> void:
 	if not Settings.mixed_reality:
@@ -169,10 +184,15 @@ func _on_room_loaded(pieces: Array) -> void:
 	room_found.emit(pieces)
 
 
-## Reads the room again after a recenter, which moves the play space the room's poses are in.
+## Reads the room again after a recenter, which moves the play space the room's poses are in; without a scan, puts the
+## floating portal back in front of the player (once the recenter has moved the origin).
 func _on_recentered() -> void:
-	if Settings.mixed_reality and not _room_pieces.is_empty():
+	if not Settings.mixed_reality:
+		return
+	if not _room_pieces.is_empty():
 		Engine.get_singleton("PicoRoom").call("reload_room")
+	elif not ROOM_SCAN_ENABLED:
+		_show_floating_portal.call_deferred()
 
 
 ## Tells the room setup that no room was found.
