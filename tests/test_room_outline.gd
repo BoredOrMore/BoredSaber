@@ -49,11 +49,14 @@ func _ready() -> void:
 	check(RoomOutline.find_portal([], Vector3.ZERO, Vector3(0, 0, -1)).is_empty(), "no walls, no portal")
 	var floating := RoomOutline.floating_portal(Vector3(0, 0, 1), Vector3(0, -0.3, -2))
 	var floating_place := floating["transform"] as Transform3D
-	check(floating_place.origin.is_equal_approx(Vector3(0, (Constants.ROW_Y[0] + Constants.ROW_Y[-1]) / 2.0, 1.0 - RoomOutline.FLOATING_PORTAL_DISTANCE)),
-		"floating portal ahead at the note rows' middle: %s" % floating_place.origin)
+	check(floating_place.origin.is_equal_approx(Vector3(0, RoomOutline.FLOATING_PORTAL_HEIGHT / 2.0, 1.0 - RoomOutline.FLOATING_PORTAL_DISTANCE)),
+		"floating portal ahead, standing on the floor: %s" % floating_place.origin)
 	check(floating_place.basis.z.is_equal_approx(Vector3(0, 0, -1)) and floating_place.basis.determinant() > 0.0,
 		"floating portal faces out along the track, level")
-	check(floating["size"] == RoomOutline.note_corridor(), "floating portal is corridor-sized")
+	var floating_size := floating["size"] as Vector2
+	check(floating_size.x >= RoomOutline.note_corridor().x and floating_size.x / 2.0 >= 2.0 * Settings.LANE_DISTANCE_X
+		+ TrackDeck.EDGE_REACH and floating_size.y == RoomOutline.FLOATING_PORTAL_HEIGHT,
+		"floating portal spans the curbs and the floor to %.1f m: %s" % [RoomOutline.FLOATING_PORTAL_HEIGHT, floating_size])
 	var mask := RoomOutline.portal_mask_transform(place, size)
 	var corner := mask * (place * Vector3(size.x / 2, size.y / 2, 0))
 	check(corner.distance_to(Vector3(0.5, 0.5, 0)) < 0.001, "the mask maps the portal's corner to (0.5, 0.5, 0)")

@@ -35,7 +35,8 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
   doors and windows in `UI_TEXT`, furniture boxes in `UI_TEXT_MUTED`, and the portal frame in `UI_ACCENT` where the
   note path meets the nearest wall (`find_portal`, never smaller than the notes' corridor of four lanes and three rows
   plus `PORTAL_NOTE_REACH`, so notes don't come through the wall beside it; size constants UNTUNED);
-  `floating_portal` puts a corridor-sized portal (`note_corridor`) in the air ahead when there is no room scan;
+  `floating_portal` stands a portal ahead when there is no room scan, from the floor `FLOATING_PORTAL_HEIGHT` up and
+  across the curbs, so walls, arcs and bombs come in through it (Bored, 2026-11-03);
   `portal_mask_transform` gives the portal mask's world-to-hole transform. Poses are in the
   play space, so on a recenter `MixedReality` reads the room again (`PicoRoom.reload_room`) and redraws it.
 - `PlayCountTable.gd` (autoload `PlayCount`) - play counts, favourite flag, last difficulty per map.

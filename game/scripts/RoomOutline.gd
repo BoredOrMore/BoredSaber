@@ -18,6 +18,9 @@ const PORTAL_MAX_SIZE := Vector2(2.4, 2.0)
 ## Without a room scan (MixedReality.ROOM_SCAN_ENABLED off) the portal floats this far ahead of the player's standing
 ## point, corridor-sized (Bored, 2026-11-03: first 3 m, then 6 m).
 const FLOATING_PORTAL_DISTANCE := 6.0
+## The floating portal reaches from the floor this high, and across the track's curbs, so walls (from the floor up),
+## arcs (which bulge past the note rows) and bombs come in through its hole, not beside it (Bored, 2026-11-03). UNTUNED.
+const FLOATING_PORTAL_HEIGHT := 3.0
 ## Walls closer to parallel with the note path than this (the dot of their normal with it) can't take a portal.
 const MIN_FACING := 0.3
 
@@ -95,13 +98,16 @@ static func note_corridor() -> Vector2:
 		+ Vector2.ONE * PORTAL_NOTE_REACH * 2.0
 
 
-## Returns a portal standing in the air FLOATING_PORTAL_DISTANCE along `direction` (kept level) from `spot` on the
-## floor, across the note path and as big as its corridor, in find_portal's form (+z along `direction`).
+## Returns a portal standing FLOATING_PORTAL_DISTANCE along `direction` (kept level) from `spot` on the floor, across
+## the track from its curbs' outer edges (never narrower than the notes' corridor) and from the floor
+## FLOATING_PORTAL_HEIGHT up, in find_portal's form (+z along `direction`).
 static func floating_portal(spot: Vector3, direction: Vector3) -> Dictionary:
 	var out := Vector3(direction.x, 0, direction.z).normalized()
 	var across := Vector3.UP.cross(out)
-	var centre := spot + out * FLOATING_PORTAL_DISTANCE + Vector3.UP * (Constants.ROW_Y[0] + Constants.ROW_Y[-1]) / 2.0
-	return {"transform": Transform3D(Basis(across, Vector3.UP, out), centre), "size": note_corridor()}
+	var size := Vector2(maxf(note_corridor().x, 2.0 * (2.0 * Settings.LANE_DISTANCE_X + TrackDeck.EDGE_REACH)),
+		FLOATING_PORTAL_HEIGHT)
+	var centre := spot + out * FLOATING_PORTAL_DISTANCE + Vector3.UP * size.y / 2.0
+	return {"transform": Transform3D(Basis(across, Vector3.UP, out), centre), "size": size}
 
 
 ## Returns the transform from world space into the space portal_mask.gdshaderinc reads: the portal at `place` (world
