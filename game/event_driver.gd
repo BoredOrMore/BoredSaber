@@ -184,8 +184,7 @@ const INTENSITY_FALL_SECONDS := 3.0
 var show_beat := 0.0
 ## The track turns with the notes on 90/360 maps (owner, 2026-10-29; no lane floor there now, only the HUD and the
 ## turn cue turn): the deck (TrackDeck.turn), the edge
-## light strips with the map's left and right lights in them, and the old see-through track with its end piece
-## (TrackTurn) turn about the player's standing point to where the map's lanes point now (Map.track_rotation), easing in
+## light strips with the map's left and right lights in them (TrackTurn) turn about the player's standing point to where the map's lanes point now (Map.track_rotation), easing in
 ## and out over TRACK_TURN_TIME (Turn). The camera and XR origin never turn. It was 0.3 s, cut short when the next turn
 ## came sooner and restarted from rest when one came mid-turn: the owner found the chevron's turn jerky (2026-10-29), so
 ## it now takes TRACK_TURN_TIME whatever comes next and a new target carries the speed it had on. Peak speed 1.5 x the
@@ -271,11 +270,11 @@ var _bars_lowered := false
 @onready var left_waving_lasers_material := ($Level/LeftWavingLasers/laser1/Bar7 as MeshInstance3D).material_override as ShaderMaterial
 @onready var right_waving_lasers_material := ($Level/RightWavingLasers/laser1/Bar7 as MeshInstance3D).material_override as ShaderMaterial
 @onready var track_lights_material := ($Level/TrackTurn/TrackLights/Bar1 as MeshInstance3D).material_override as ShaderMaterial
-@onready var floor_mesh := ($Level/TrackTurn/floor as MeshInstance3D).mesh as PlaneMesh
-@onready var floor_material := ($Level/TrackTurn/floor as MeshInstance3D).material_override as StandardMaterial3D
+## the floor lights' colour, which the deck and the haze take (the old see-through track that drew it is gone, Bored
+## 2026-11-03; fade_light tweens it like the lights' materials)
+var floor_material := StandardMaterial3D.new()
 @onready var track_lights_right := $Level/TrackTurn/TrackLights/Bar1 as MeshInstance3D
 @onready var track_lights_left := $Level/TrackTurn/TrackLights/Bar2 as MeshInstance3D
-@onready var end_path := $Level/TrackTurn/Endpath as MeshInstance3D
 @onready var track_deck := $Level/TrackDeck as TrackDeck
 @onready var track_turn := $Level/TrackTurn as Node3D
 ## the player's platform marks (burn marks, border lights, footprints), set by BeepSaber_Game; the stage capture has none
@@ -322,8 +321,6 @@ func _ready() -> void:
 	for holder: Node3D in [diagonal_lasers_holder, square_lasers_holder, left_waving_lasers_holder, right_waving_lasers_holder]:
 		LaserBatch.make(holder, $Level)
 	_rig.classic_places[square_lasers_holder] = square_lasers_holder.transform
-	for strip: MeshInstance3D in [track_lights_left, track_lights_right]:
-		_strip_rest[strip] = strip.global_transform
 	for bar in _rig.square_bars():
 		_rig.classic_places[bar] = bar.global_transform
 	track_lights_holder.hide()
@@ -461,8 +458,6 @@ const RIB_QUIET := 0.2
 const RIB_SWEEP_SECONDS := 1.2
 const RIB_FADE_SECONDS := 4.0
 var _rib_sweep := 0.0
-## the edge light strips' transforms along the old track, put back in mixed reality
-var _strip_rest := {}
 
 ## the canyon's windows: how many the menu shows lit and how bright, and how bright they stay in a song's quiet parts
 const MENU_WINDOWS := 0.35
@@ -525,40 +520,22 @@ func set_background() -> void:
 	var track_lights_width := track_lights_right.get_aabb().size.x
 	track_lights_right.global_transform.origin.x = track_lights_width / 2 + 2 * Settings.LANE_DISTANCE_X - .01
 	track_lights_left.global_transform.origin.x = -track_lights_right.transform.origin.x
-	end_path.scale.z = track_lights_right.global_transform.origin.x + track_lights_width / 2 - .01
-	floor_mesh.size.y = 4 * Settings.LANE_DISTANCE_X
-	($Level/TrackTurn/floor/line1).global_transform.origin.x = Settings.LANE_DISTANCE_X
-	($Level/TrackTurn/floor/line2).global_transform.origin.x = -Settings.LANE_DISTANCE_X
-	($Level/TrackTurn/floor/line3).global_transform.origin.x = 2 * Settings.LANE_DISTANCE_X
-	($Level/TrackTurn/floor/line4).global_transform.origin.x = -2 * Settings.LANE_DISTANCE_X
-	($Level/TrackTurn/floor).scale.z = 1
-	# the deck with its curbs (TrackDeck), whose curbs house the edge light strips, in mixed reality too (Bored,
-	# 2026-11-03: beyond the room's walls it shows only through the portal, portal_mask.gdshaderinc); the old see-through
-	# sheet, with its strips at its edges, is kept for now
-	var old_track := false
-	($Level/TrackTurn/floor as Node3D).visible = old_track
-	# the old track's far end piece; the deck ends in its own low stop (it rose over the horizon straight ahead)
-	end_path.visible = old_track
-	track_deck.visible = not old_track
+	# the deck with its curbs (TrackDeck), whose curbs house the edge light strips, shows in mixed reality too (Bored,
+	# 2026-11-03: beyond the room's walls only through the portal, portal_mask.gdshaderinc);
 	# the platform is round on 90/360 maps while a song plays, so the deck turning with the notes meets it at any angle
 	var turning := Map.current_difficulty != null and Map.current_difficulty.characteristic in Map.TURNING_CHARACTERISTICS
-	track_deck.layout(Settings.LANE_DISTANCE_X, turning and not menu_focus and not old_track)
+	track_deck.layout(Settings.LANE_DISTANCE_X, turning and not menu_focus)
 	if platform:
 		platform.set_round(track_deck.round_radius() - TrackDeck.RIM_WIDTH if track_deck.is_round() else 0.0,
 				track_lights_material)
-	# the deck's strips run its whole length, out to where it fades into the haze, and fade with it; the old track's
-	# stop at its end, as they always did
+	# the deck's strips run its whole length, out to where it fades into the haze, and fade with it
 	var span := track_deck.strip_span()
-	track_lights_material.set_shader_parameter(&"fade_z", Vector2.ZERO if old_track else track_deck.fade_z())
-	track_lights_material.set_shader_parameter(&"min_pixels", 0.0 if old_track else TrackDeck.STRIP_MIN_PIXELS)
-	track_lights_material.set_shader_parameter(&"top_white", 0.0 if old_track else TrackDeck.STRIP_TOP_WHITE)
+	track_lights_material.set_shader_parameter(&"fade_z", track_deck.fade_z())
+	track_lights_material.set_shader_parameter(&"min_pixels", TrackDeck.STRIP_MIN_PIXELS)
+	track_lights_material.set_shader_parameter(&"top_white", TrackDeck.STRIP_TOP_WHITE)
 	for strip: MeshInstance3D in [track_lights_left, track_lights_right]:
 		# none ahead of the round platform: its ring carries the track lights
 		strip.visible = not track_deck.is_round()
-		var rest: Transform3D = _strip_rest[strip]
-		if old_track:
-			strip.global_transform = Transform3D(rest.basis, Vector3(strip.global_position.x, rest.origin.y, rest.origin.z))
-			continue
 		var side := signf(strip.global_position.x)
 		var place := TrackDeck.strip_position(Settings.LANE_DISTANCE_X, side, strip.get_aabb().size)
 		var stretch := (span.x - span.y) / strip.get_aabb().size.z

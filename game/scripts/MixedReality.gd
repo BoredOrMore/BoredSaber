@@ -80,15 +80,6 @@ func set_mixed_reality(mr: bool):
 		get_node("/root/BeepSaber/event_driver/Level/Sphere").show()
 	
 	(get_node("/root/BeepSaber/event_driver") as EventDriver).show_scenery_for_mixed_reality()
-	material = (get_node("/root/BeepSaber/event_driver/Level/TrackTurn/floor") as MeshInstance3D).material_override as StandardMaterial3D
-	var gradient_texture := material.albedo_texture as GradientTexture2D
-	var gradient := gradient_texture.gradient
-	for i in gradient.get_point_count():
-		var c := gradient.get_color(i)
-		if Settings.mixed_reality:
-			gradient.set_color(i, Color(c.r,c.g,c.b,0.6))
-		else:
-			gradient.set_color(i, Color(c.r,c.g,c.b))
 
 	_forget_room()
 	if mr and ROOM_SCAN_ENABLED and can_scan_room():
