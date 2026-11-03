@@ -23,7 +23,8 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
   `ScrollContainer` is allowed to run past it; on the song page only the song list and the filters' page
   (`FilterChips.SCROLL_NAME`, owner 2026-10-30) may scroll, and the filters are checked scrolled to their end on both pages. Run it after any change to these panels or the theme. It also drags the song
   list with pointer events pushed into a `SubViewport` (as the game's canvases receive them): 1:1, no pick after a
-  drag, a short press still picks.
+  drag, a short press still picks. It also checks that a numbered level name ("Expert+ 3") fits its button and that every stage has
+  its two picker pictures.
 - `test_song_search.tscn` / `.gd` - `SongSearch` (the song menu's search): kana read as romaji, case, spaces,
   punctuation, long vowels and doubled letters alike, every typed word, tags; `BeatSaverPanel.close_query`; the AI
   mark in saved tags; Get songs listing a 360°-only map by its 360° difficulties.

@@ -108,6 +108,7 @@ func _ready() -> void:
 	await _settle()
 	_check_layout(menu, "song tab")
 	_check_level_text_fits(menu)
+	_check_environment_pictures()
 
 	_check_list_rows(menu.songs_menu)
 	await _check_list_drag(menu)
@@ -381,6 +382,13 @@ func _check_level_text_fits(menu: MainMenu) -> void:
 		var width := font.get_string_size(level.text, HORIZONTAL_ALIGNMENT_LEFT, -1, level.get_theme_font_size(&"font_size")).x
 		var room := level.size.x - box.get_margin(SIDE_LEFT) - box.get_margin(SIDE_RIGHT)
 		check(width <= room, "level name \"%s\" fits its button (%d of %d px at %d px text)" % [level.text, width, room, level.get_theme_font_size(&"font_size")])
+
+## Every stage has its card and wide pictures (tools/capture/env_thumbnails.sh), so no picker button shows blank.
+func _check_environment_pictures() -> void:
+	for environment: Array in Settings.ENVIRONMENTS.slice(1):
+		var id: String = environment[0]
+		check(ModifierChips.environment_thumb(id) != null and ModifierChips.environment_thumb(id, true) != null,
+				"%s has its card and wide pictures in game/env/thumbs/" % id)
 
 ## Counts the song list's whole rows in view, filling it with sample rows first (the test has one song).
 func _check_list_rows(list: SongList) -> void:
