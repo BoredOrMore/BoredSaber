@@ -316,6 +316,7 @@ icon = ExtResource("icon_undo-2")
 script = ExtResource("icon_button")
 
 [node name="MoreModsPanel" type="Panel" parent="."]
+theme_type_variation = &"OverlayPanel"
 visible = false
 layout_mode = 0
 offset_left = 1289.0
@@ -343,6 +344,7 @@ icon = ExtResource("icon_arrow-left")
 script = ExtResource("icon_button")
 
 [node name="EnvironmentPanel" type="Panel" parent="."]
+theme_type_variation = &"OverlayPanel"
 visible = false
 layout_mode = 0
 offset_left = 1289.0
@@ -376,6 +378,7 @@ theme_override_constants/v_separation = 8
 columns = 2
 
 [node name="FiltersPanel" type="Panel" parent="."]
+theme_type_variation = &"OverlayPanel"
 visible = false
 layout_mode = 0
 offset_left = 1289.0
@@ -436,6 +439,7 @@ toggle_mode = true
 text = "Workout"
 
 [node name="MorePanel" type="Panel" parent="."]
+theme_type_variation = &"OverlayPanel"
 visible = false
 layout_mode = 0
 offset_left = 1289.0

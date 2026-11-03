@@ -59,7 +59,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   chip), `DifficultyButton` (level and characteristic buttons; narrow padding, 22 px text), `FilterChip` (both
   filter panels' chips: the level look with 12 px at the sides, each as wide as its text, lined up from the left),
   `BackButton` (Back and Close), `DestructiveButton` (every `ConfirmButton`; its words turn red on hover). Panel kinds:
-  `StatPill` (a stat, fully rounded), `LevelBar` (a level's name in its colour).
+  `StatPill` (a stat, fully rounded), `LevelBar` (a level's name in its colour), `OverlayPanel` (a view laid over
+  part of a panel, as Filters, More modifiers, Environment and More: the panel's fill without a second frame).
   `ModifierChips.make_row_button` takes the kind.
 - `EnvironmentCard.tscn` / `EnvironmentCard.gd` (class `EnvironmentCard`, kind `CardButton`): a button that is a
   picture, filling it (cover, rounded by the button, which clips it) with the name over a dark band; a ring while
@@ -76,7 +77,7 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   like it (owner, 2026-10-29, layout A): 1753x745 px at scale 2.4 on the menus' 2 m cylinder, where the song menu is,
   details left and the list in the centre. The right panel holds the filters, always open beside the list (owner,
   2026-10-30): a status line ("Loading songs…", "About 1,234 songs" from BeatSaver's info.total, "No songs match")
-  with Clear (greyed, never hidden, when nothing is on), then one scrolling page (`FilterChips.add_scroll`, as the song menu's) of Include AI maps
+  with Clear (greyed, never hidden, when nothing is on), then one scrolling page (`FilterChips.add_scroll`, as the song menu's) of Made by: Include AI maps
   (`Settings.beatsaver_include_ai`: `&automapper=true`, AI maps then playable; off by default, Clear turns it off),
   Difficulty, Length, Style and Genre, all `FilterChip`s, and last, not a filter, Downloads: Without music
   (`Settings.not_music_dl`, moved from Settings 2026-10-31); an AI map's row and details say so ("AI · " before its name, "Made by AI"); a map is listed by its Standard

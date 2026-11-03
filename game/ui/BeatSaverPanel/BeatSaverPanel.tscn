@@ -197,6 +197,7 @@ vertical_alignment = 1
 autowrap_mode = 3
 
 [node name="FiltersPanel" type="Panel" parent="."]
+theme_type_variation = &"OverlayPanel"
 layout_mode = 0
 offset_left = 1289.0
 offset_top = 8.0

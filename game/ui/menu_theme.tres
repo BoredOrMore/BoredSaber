@@ -469,6 +469,9 @@ corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
 
+[sub_resource type="StyleBoxFlat" id="overlay"]
+bg_color = Color(0.086, 0.094, 0.114, 1)
+
 [resource]
 default_font = ExtResource("1")
 default_font_size = 28
@@ -567,6 +570,8 @@ PopupMenu/constants/v_separation = 16
 PopupMenu/styles/hover = SubResource("list_selected")
 PopupMenu/styles/panel = SubResource("surface")
 PopupPanel/styles/panel = SubResource("surface")
+OverlayPanel/base_type = &"Panel"
+OverlayPanel/styles/panel = SubResource("overlay")
 PrimaryButton/base_type = &"Button"
 PrimaryButton/fonts/font = ExtResource("bold")
 PrimaryButton/styles/hover = SubResource("primary_hover")

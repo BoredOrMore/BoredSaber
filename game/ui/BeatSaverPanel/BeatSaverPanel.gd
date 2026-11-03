@@ -338,6 +338,8 @@ const GENRE_TITLE := "Genre"
 ## Last on the filters page, not a filter: how maps download (Settings.not_music_dl; moved from Settings, owner
 ## 2026-10-31)
 const DOWNLOADS_TITLE := "Downloads"
+## The Include AI maps chip's section, worded as a map's details say it ("Made by AI").
+const MADE_BY_TITLE := "Made by"
 const WITHOUT_MUSIC_TEXT := "Without music"
 
 ## BeatSaver's own filter for maps needing a mod. It takes one such filter at a time, the others ignored (measured
@@ -372,9 +374,11 @@ func _build_filter_chips() -> void:
 	_include_ai.size_flags_horizontal = Control.SIZE_FILL
 	_include_ai.custom_minimum_size.y = FilterChips.CHIP_HEIGHT
 	UI_AudioEngine.attach_button(_include_ai)
+	var ai_section := MenuSection.make(MADE_BY_TITLE)
+	page.add_child(ai_section)
 	var ai_row := HFlowContainer.new()
 	ai_row.add_child(_include_ai)
-	page.add_child(ai_row)
+	ai_section.add_child(ai_row)
 	_level_chips = FilterChips.add_section(page, DIFFICULTY_TITLE, Constants.DIFFICULTY_LEVELS.map(label), pick_level)
 	_length_chips = FilterChips.add_section(page, LENGTH_TITLE,
 		Constants.LENGTH_FILTERS.slice(1).map(func(choice: Array) -> String: return str(choice[1])), pick_length)
