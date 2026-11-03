@@ -449,6 +449,7 @@ func _start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	if not Map.load_beatmap(info, map_difficulty, map_data, lightshow_data):
 		menu.show_play_error()
 		return
+	MixedReality.fit_portal_to_map()
 	timing.lap("parse")
 	# a practice run starts at its start point, the song a little before so the first notes can fly in on the beat
 	var passed_events: Array[EventInfo] = []

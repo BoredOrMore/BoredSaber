@@ -25,6 +25,8 @@ var _outline_shown := false
 var _portal_rims: Array[MeshInstance3D] = []
 ## The world behind the portals, made with the first portal.
 var _space: MRSpace = null
+## The loaded map's objects' box (RoomOutline.map_extent), which the floating portal grows to take.
+var _map_extent := Rect2()
 
 
 ## Turns passthrough and the see-through floor on or off; turning it on scans the real room.
@@ -159,7 +161,15 @@ func _show_portals(portals: Array) -> void:
 func _show_floating_portal() -> void:
 	var origin := get_node("/root/BeepSaber/XROrigin3D") as XROrigin3D
 	var spot := origin.to_local(Vector3(0, 0, Constants.PLAYER_Z))
-	_show_portals([RoomOutline.floating_portal(spot, origin.global_basis.inverse() * Vector3.FORWARD)])
+	_show_portals([RoomOutline.floating_portal(spot, origin.global_basis.inverse() * Vector3.FORWARD, _map_extent)])
+
+
+## Grows the floating portal to take every object of the map just loaded (BeepSaber_Game._start_map), so none comes in
+## beside it (Bored, 2026-11-03).
+func fit_portal_to_map() -> void:
+	_map_extent = RoomOutline.map_extent()
+	if Settings.mixed_reality and not ROOM_SCAN_ENABLED:
+		_show_floating_portal()
 
 
 ## Keeps the scanned room and redraws its outline, with the portal where the track meets the wall.

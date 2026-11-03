@@ -57,6 +57,24 @@ func _ready() -> void:
 	check(floating_size.x >= RoomOutline.note_corridor().x and floating_size.x / 2.0 >= 2.0 * Settings.LANE_DISTANCE_X
 		+ TrackDeck.EDGE_REACH and floating_size.y == RoomOutline.FLOATING_PORTAL_HEIGHT,
 		"floating portal spans the curbs and the floor to %.1f m: %s" % [RoomOutline.FLOATING_PORTAL_HEIGHT, floating_size])
+	# the map's objects: a note in the bottom-left lane and a wall far out on the right, from the floor to the top
+	Map.note_stack = [ColorNoteInfo.new(1.0, 0, 0, 0, 0, 0)]
+	Map.obstacle_stack = [ObstacleInfo.new(2.0, 1.0, 5, 0, 2, 5, 0)]
+	Map.bomb_stack = []
+	Map.chain_stack = []
+	Map.arc_stack = []
+	var extent := RoomOutline.map_extent()
+	var wall_right := 5.0 * Settings.LANE_DISTANCE_X + RoomOutline.FLOATING_PORTAL_WALL_MARGIN
+	check(is_equal_approx(extent.end.x, wall_right) and is_equal_approx(extent.end.y, Constants.wall_y(5.0)
+		+ RoomOutline.FLOATING_PORTAL_WALL_MARGIN) and is_equal_approx(extent.position.x, Settings.LANE_ZERO_X
+		- RoomOutline.PORTAL_NOTE_REACH), "the map's box spans the note and the wall: %s" % extent)
+	var grown := RoomOutline.floating_portal(Vector3(0, 0, 1), Vector3(0, 0, -1), extent)
+	var grown_size := grown["size"] as Vector2
+	check(is_equal_approx(grown_size.x / 2.0, wall_right) and grown_size.y >= extent.end.y
+		and is_equal_approx((grown["transform"] as Transform3D).origin.y, grown_size.y / 2.0),
+		"the floating portal grows to take the map, centred on the track and standing on the floor: %s" % grown_size)
+	Map.note_stack = []
+	Map.obstacle_stack = []
 	var mask := RoomOutline.portal_mask_transform(place, size)
 	var corner := mask * (place * Vector3(size.x / 2, size.y / 2, 0))
 	check(corner.distance_to(Vector3(0.5, 0.5, 0)) < 0.001, "the mask maps the portal's corner to (0.5, 0.5, 0)")

@@ -16,11 +16,14 @@ const PORTAL_NOTE_REACH := 0.35
 const PORTAL_WALL_SHARE := 0.7
 const PORTAL_MAX_SIZE := Vector2(2.4, 2.0)
 ## Without a room scan (MixedReality.ROOM_SCAN_ENABLED off) the portal floats this far ahead of the player's standing
-## point, corridor-sized (Bored, 2026-11-03: first 3 m, then 6 m, then 10 m).
+## point (Bored, 2026-11-03: first 3 m, then 6 m, then 10 m).
 const FLOATING_PORTAL_DISTANCE := 10.0
 ## The floating portal reaches from the floor this high, and across the track's curbs, so walls (from the floor up),
 ## arcs (which bulge past the note rows) and bombs come in through its hole, not beside it (Bored, 2026-11-03). UNTUNED.
 const FLOATING_PORTAL_HEIGHT := 3.0
+## When a song starts the floating portal grows to take every object of the map (map_extent), with this much room round
+## a wall's edges (Bored, 2026-11-03: "always big enough for all objects to pass"). UNTUNED.
+const FLOATING_PORTAL_WALL_MARGIN := 0.1
 ## Walls closer to parallel with the note path than this (the dot of their normal with it) can't take a portal.
 const MIN_FACING := 0.3
 
@@ -98,16 +101,56 @@ static func note_corridor() -> Vector2:
 		+ Vector2.ONE * PORTAL_NOTE_REACH * 2.0
 
 
-## Returns a portal standing FLOATING_PORTAL_DISTANCE along `direction` (kept level) from `spot` on the floor, across
-## the track from its curbs' outer edges (never narrower than the notes' corridor) and from the floor
-## FLOATING_PORTAL_HEIGHT up, in find_portal's form (+z along `direction`).
-static func floating_portal(spot: Vector3, direction: Vector3) -> Dictionary:
+## Returns a portal standing FLOATING_PORTAL_DISTANCE along `direction` (kept level) from `spot` on the floor, centred
+## on the track, in find_portal's form (+z along `direction`): across the curbs' outer edges (never narrower than the
+## notes' corridor) and from the floor FLOATING_PORTAL_HEIGHT up, grown to take `extent` (map_extent: across the track
+## and up from the floor, metres; it always stands on the floor).
+static func floating_portal(spot: Vector3, direction: Vector3, extent := Rect2()) -> Dictionary:
 	var out := Vector3(direction.x, 0, direction.z).normalized()
 	var across := Vector3.UP.cross(out)
-	var size := Vector2(maxf(note_corridor().x, 2.0 * (2.0 * Settings.LANE_DISTANCE_X + TrackDeck.EDGE_REACH)),
-		FLOATING_PORTAL_HEIGHT)
+	var half := maxf(maxf(note_corridor().x, 2.0 * (2.0 * Settings.LANE_DISTANCE_X + TrackDeck.EDGE_REACH)) / 2.0,
+		maxf(-extent.position.x, extent.end.x))
+	var size := Vector2(half * 2.0, maxf(FLOATING_PORTAL_HEIGHT, extent.end.y))
 	var centre := spot + out * FLOATING_PORTAL_DISTANCE + Vector3.UP * size.y / 2.0
 	return {"transform": Transform3D(Basis(across, Vector3.UP, out), centre), "size": size}
+
+
+## Returns the box (across the track, up from the floor; metres) that every note, bomb, chain, arc and wall of the
+## loaded map (Map's stacks) takes as it comes down the track: notes, bombs, chains and arcs PORTAL_NOTE_REACH round
+## their places (an arc by its curve's points and handles, which bound it), walls FLOATING_PORTAL_WALL_MARGIN round
+## their edges. An empty Rect2 when the map has nothing.
+static func map_extent() -> Rect2:
+	var points := PackedVector2Array()
+	for note: ColorNoteInfo in Map.note_stack:
+		points.append(_lane_point(note.line_index, note.line_layer))
+	for bomb: BombInfo in Map.bomb_stack:
+		points.append(_lane_point(bomb.line_index, bomb.line_layer))
+	for chain: ChainInfo in Map.chain_stack:
+		points.append(_lane_point(chain.head_line_index, chain.head_line_layer))
+		points.append(_lane_point(chain.tail_line_index, chain.tail_line_layer))
+	for arc: ArcInfo in Map.arc_stack:
+		for i in arc.curve.point_count:
+			var p := arc.curve.get_point_position(i) + arc.tail_pos
+			for handle: Vector3 in [Vector3.ZERO, arc.curve.get_point_in(i), arc.curve.get_point_out(i)]:
+				points.append(Vector2(p.x + handle.x, p.y + handle.y))
+	var box := Rect2()
+	for p in points:
+		var reach := Rect2(p - Vector2.ONE * PORTAL_NOTE_REACH, Vector2.ONE * PORTAL_NOTE_REACH * 2.0)
+		box = reach if box.size == Vector2.ZERO else box.merge(reach)
+	for wall: ObstacleInfo in Map.obstacle_stack:
+		var left := (wall.line_index - 2.0) * Settings.LANE_DISTANCE_X
+		var right := left + wall.width * Settings.LANE_DISTANCE_X
+		var low := Constants.wall_y(wall.line_layer)
+		var high := Constants.wall_y(wall.line_layer + wall.height)
+		var edges := Rect2(Vector2(minf(left, right), minf(low, high)), Vector2(absf(right - left), absf(high - low))) \
+			.grow(FLOATING_PORTAL_WALL_MARGIN)
+		box = edges if box.size == Vector2.ZERO else box.merge(edges)
+	return box
+
+
+## Returns a note's place across the track and up from the floor for its lane `index` and row `layer`.
+static func _lane_point(index: float, layer: float) -> Vector2:
+	return Vector2(Settings.LANE_DISTANCE_X * index + Settings.LANE_ZERO_X, Constants.layer_y(layer))
 
 
 ## Returns the transform from world space into the space portal_mask.gdshaderinc reads: the portal at `place` (world
