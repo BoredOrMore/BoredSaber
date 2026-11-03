@@ -11,8 +11,7 @@ Read the root `AGENTS.md` first ("Light", "Colour rules", "Pico 4 constraints").
   `SquareLasers`, `Left/RightWavingLasers`, `TrackTurn/TrackLights`), the old `rings`, `ClassicRig`, `NeonGridRig`,
   `NightCityRig`, `MetalFactoryRig`, `PulseVoid`, `HengeRig`, `MonolithRig`, `NeonGrid` floor, `TrackDeck`, `StageSmoke`. Every rig is built at load
   (tool scripts, `_ready`) and stays in memory; only visibility changes.
-- The track turns with the notes on 90/360 maps (`EventDriver._turn_track`): `Level/TrackTurn` (the edge light strips,
-  the old see-through track `floor` and its `Endpath`) and `TrackDeck.turn` (deck and curbs) turn about the player's
+- The track turns with the notes on 90/360 maps (`EventDriver._turn_track`): `Level/TrackTurn` (the edge light strips) and `TrackDeck.turn` (deck and curbs) turn about the player's
   standing point (`Constants.PLAYER_Z`) to `Map.track_rotation(show_beat)`, easing over `TRACK_TURN_TIME` (0.8 s,
   untuned; a cubic ease in and out that keeps its speed when a new turn comes mid-way). The platform, camera and XR origin never turn. `set_background` lays the turning
   parts out unturned (it writes global transforms), then turns them back.
@@ -108,19 +107,34 @@ Henge (24 monoliths round the player, for 90/360 maps; BLOCKOUT 2026-10-29)
   the bands and adds `FLOOD_LEVEL` grey, capped at `FLOOR_MAX` below the notes. `HengeSky.gdshader`: dark with a
   neutral horizon glow (no `bg_<type>`). Picked only in the menu or for 90/360 maps; never by Follow map.
 
-Monolith (one colossal slab down a cloud-filled valley between mountains, seen from a tall pillar, abstract; in the Auto pool; BLOCKOUT
-2026-10-31)
+Monolith (one colossal slab down a valley filled by a cloud sea between hills, seen from a tall pillar, abstract; in
+the Auto pool; BLOCKOUT 2026-10-31; cloud sea and hills from GPT, owner 2026-11-01)
 - `MonolithRig.gd` (tool, `MonolithRig`): one black box `SLAB` (1:4:9) `SLAB_DISTANCE` out, `SLAB_YAW` left of ahead,
   its face to the player (`face_material`), standing on the floor of a valley `VALLEY_Y` below the platform that runs
   the same way; the player's pillar down to it; a flat valley floor out to `VALLEY_RADIUS` (valley and pillar share
-  `floor_material`); mountain rings (`RIDGE_RINGS`, `_ridge_ring`: a band up from the valley floor to a jagged ridge,
-  low along the valley's line and high at its sides; owner, 2026-10-31: layered silhouettes in place of terraces); upright cloud rings (`CLOUD_RINGS`, `_cloud_ring`: a band up from the valley floor whose top
-  is a row of round puffs, built in the mesh and closed round the ring with no step) , the nearest 80 m out (owner, 2026-10-31:
-  clouds closer). Clouds and mountains share `_upright_ring` (band plus soft-edge fringe). Every mountain ring stays
-  beyond r 320 m and clear of the slab, and every cloud inside it below y -5; keep it so when changing the numbers. `ledge_spot(share)` and
-  `up_face(lean)` place the lasers (`LightRig` "monolith": diagonal beams up the face from its ledge `LEDGE_HEIGHT`
-  up, above the clouds (owner, 2026-10-31), waving lasers
-  between; no square bars). Nothing within the notes' 300 m fly-in in any direction (owner's rule, 2026-10-31).
+  `floor_material`); the cloud sea (`MonolithCloudSea`) round the player; hills (`_hill_ring`): one smooth upright ring
+  per `HILL_RINGS` entry (380, 650, 950 m), low along the valley's line and high at its sides, flat `HILL_TONE` greys
+  (`MonolithHill.gdshader`), each bound to the sea so it sinks in. The cloud sea and hills were picked by the owner on
+  the headset over our 3D banks and mountains (2026-11-01): made with GPT in the owner's `stylized-3d-agent` folder on
+  the Mac (the sea from its run `monolith_cloud_shading_surface_20261101T061046Z_a4ef3c43`, the hills ported from its
+  review scene `tools/cloud_shading_review.gd`); the generator scripts live there, not in this repo. Nothing rises
+  above y -5 within the notes' 300 m fly-in in any direction (owner's rule, 2026-10-31): the sea's highest point
+  inside 320 m is y -10 and the nearest hill ring is 380 m out; keep it so when changing either. `ledge_spot(share)`
+  and `up_face(lean)` place the lasers (`LightRig` "monolith": diagonal beams up the face from its ledge
+  `LEDGE_HEIGHT` up, above the clouds (owner, 2026-10-31), waving lasers between; no square bars).
+- `MonolithCloudSea.gd` (tool, `MonolithCloudSea`): loads `game/models/monolith_cloud/cloud.glb` (one sheet, r 980 m,
+  17,280 triangles, no vertex colours) with `MonolithCloudSea.gdshader` (or `body_shader` at `body_priority`, set
+  before it enters the tree: MRSpace's), and its height map `heightfield.bin`
+  (512x512 RGBA8, described by `heightfield.json`; listed in the Pico 4 export preset's `include_filter`, since Godot
+  doesn't export a `.bin` on its own). `bind_material(material)` gives a material the map and where the sea lies, and
+  updates it when the sea moves (translation and yaw only). The map is a data texture, the one exception to the
+  stage's vertex-colour-only models (owner's pick, 2026-11-01).
+- `monolith_cloud_sea.gdshaderinc`: the sea's tones (`SEA_TONE` darkening `DARK_DEPTH` m below its surface, a fixed
+  `KEY` light, paler toward the haze with distance) and `under_cloud(color, haze, world)`, used by the slab, the valley,
+  the pillar and the hills: below the sea's surface (read from the height map) a surface takes the sea's tone, so
+  nothing pokes hard through a cloud or shows beneath one (owner, 2026-10-31). Its tones are linear and
+  `mcloud_output` encodes them to sRGB (the sea and the hills; the slab and floor keep the stage's convention).
+  `MonolithCloudSea.gdshader`: the sea's body (masked to the portals in mixed reality, `portal_mask.gdshaderinc`). `MonolithHill.gdshader`: the hills.
 - `MonolithFace.gdshader`: the slab's lights drawn on its front face (strip meshes would z-fight 500-1000 m out), each
   line at least `MIN_PIXELS` wide: edges in the left/right lasers' colours, `SEAMS` seams in the square bars' lit from
   the foot by `lit`, a slit up the middle open to `slit` in the floor lights' colour (no strip on the ledge: owner, 2026-10-31)
@@ -128,18 +142,55 @@ Monolith (one colossal slab down a cloud-filled valley between mountains, seen f
   slit, it closes to `MONOLITH_SLIT_REST`). Soft far edges not on yet: planned for the slab's outline, never its lines.
 - `MonolithFloor.gdshader`: the valley and pillar: dark ground with a neutral `BASE`, the horizon's glow on the far
   ground toward the slab, steep faces darker than treads (slope from screen derivatives, no normals), the slab's shadow
-  falling toward the player as a widening wedge. `MonolithCloud.gdshader`: the cloud rings, opaque (outline in the
-  mesh: no discard, no blending), light at the tallest puffs' line darkening downward (from that
-  smooth line, not each puff's top, so no crease runs down from the dips between puffs), a thin rim on the puffs, farther rings paler.
-  `MonolithRidge.gdshader`: the mountain rings, opaque dark flat silhouettes with a thin lighter
-  ridge line, paler with distance, sinking into the clouds below their level. `MonolithCloudEdge.gdshader`: the clouds'
-  and mountains' soft edge (owner, 2026-10-31), a see-through fringe `CLOUD_BLUR` or `RIDGE_BLUR` (an angle) out from
-  the outline in the `tone` MonolithRig sets, the stage's only blending. `monolith_cloud.gdshaderinc`: the clouds' tones and
-  `under_cloud`, used by the clouds, the mountains, the valley, the pillar and the slab: below the clouds' level (`CLOUD_RINGS`' puffs'
-  middle, set by `_sink_into_clouds`, `CLOUD_RING_COUNT` rings, 6) a surface takes the cloud's tone, so nothing pokes hard through
-  a cloud or shows beneath one (owner, 2026-10-31). `MonolithSky.gdshader`:
+  falling toward the player as a widening wedge. `MonolithSky.gdshader`:
   black with a neutral horizon glow behind the slab (`SLAB_DIR` must match `MonolithRig.SLAB_YAW`; no `bg_<type>`) and
-  a fainter neutral one all round so the ridges stand as silhouettes.
+  a fainter neutral one all round so the hills stand as silhouettes.
+
+Room-aware mixed reality (portals in the real walls; plan https://claude.ai/artifact/GGNL7bgEiekk4VeT4G3aVy; the room
+code that reads the walls and cuts the portals: `game/scripts/MixedReality.gd`, `RoomOutline.gd`)
+- `PortalRim.gdshader`: the rim round a portal, on one `QuadMesh` 1 x 1 per portal (centred, facing into the room, +y
+  up) that it stretches by the uniform `portal_size_m` (width, height in metres) plus `RIM_REACH`; a white-hot strip on
+  the cut edge with a `light_color` glow fading out over the wall, the hole left clear (owner's pick of three, the
+  thin strip, 2026-11-02). Desktop check: `tools/capture/portal_capture.tscn`. Untuned, not yet on the headset.
+- `MRSpace.tscn` / `MRSpace.gd`: the world seen through the portals (owner's concept C, "the room floats in space",
+  2026-11-02). Root at the origin, nothing near it, no track or deck; the room code instances it behind the portals.
+  Builds the sky as one window quad per portal (`show_windows`, called by `MixedReality._show_portals`; each portal
+  grown by `SKY_WINDOW_MARGIN`) with `MRSpaceSky.gdshader`, Monolith's cloud sea (`MonolithCloudSea`, owner's pick,
+  drawn with `MRSpaceCloudSea.gdshader` at `RENDER_PRIORITY_MIN`) dropped by `SEA_DROP` so its rim stays under the
+  notes' source and dimmed to `SEA_BRIGHTNESS` (the sea's `brightness`, 1 in Monolith), and `DUST_COUNT` points of
+  `MRSpaceDust.gdshader` kept out of the notes' path. The sky is geometry because mixed reality draws no
+  `WorldEnvironment` sky. `show_parts` hides parts for `DebugView`'s mixed-reality cycle. Blockout, untuned.
+  GPU (Bored, 2026-11-03): only the portals' pixels pay for the world behind them. The sky's windows push their corners
+  out along the eye's rays to `FAR_DISTANCE` (the same pixels as the hole, at the sky's depth; a sphere round the room
+  ran the sky for every pixel of the view) and write stencil 1 in the holes; the cloud sea and dust read it
+  (`stencil_mode read, compare_equal, 1`), so their pixels outside the portals are dropped before shading. They keep
+  the portal mask too, which keeps the holes exact if a headset has no stencil buffer. The track and notes can't use
+  the stencil: their parts in the room show everywhere.
+- `MRSpaceSky.gdshader`: its fixed layers (band, ring, planets' surfaces, the nebula's two shares) are baked once at
+  load into a `BAKE_SIZE` cube map (`MRSpace._bake_sky`: a `SubViewport` draws each face with `bake_face`, stored as
+  sqrt(layer x `BAKE_GAIN`) for the faint band's precision); each frame it reads that and adds the live parts (stars,
+  source, meteors, the lights' tints, the nebula's colours). Writing `POSITION` in one path means both must set it.
+  Desktop check: the baked sky matches the live one in every direction (mean difference under 0.05 of 255). Black space, stars worked out from the view direction (at least `STAR_MIN_PIXELS` wide, dimmed
+  to match), a faint neutral dust band with a nebula in the two note colours (`left_saber_color`, `right_saber_color`,
+  pulled toward grey), two planets ray-traced as spheres (a moon on `PLANET_BIG`, a ring on `PLANET_RINGED`, rims in
+  `env_light`), `METEOR_COUNT` shooting stars, and the notes' source down -z: a white-hot core in an `env_light` glow.
+- `MRSpaceCloudSea.gdshader`: Monolith's cloud sea body (`MonolithCloudSea.gdshader`) for the MR world: no depth
+  write (drawn first among see-through things, after the sky windows' stencil), stencil read.
+- `MRSpaceDust.gdshader`: soft points facing the eye, at least `MIN_PIXELS` wide, added as pure light
+  (`blend_premul_alpha`, `ALPHA` 0, so no black boxes over the room); they give depth as the player moves.
+- `portal_mask.gdshaderinc`: `portal_mask_through_any(eye, world)`, true where the line from the eye crosses a real
+  wall through a portal's hole (for what lies only beyond the walls: the MR world, which is also behind and below the
+  room, and the deck); `portal_mask_shows`, also true on the room's side of every portal's
+  wall (for what comes into the room: notes, the curbs and their light strips, the floor reflection). Globals `mr_portal_count` and `mr_portal_0`..`3` (world to the portal's unit square, +z out of
+  the room; `RoomOutline.portal_mask_transform`), set by `MixedReality.gd`; with no portals everything shows, so stages
+  outside mixed reality are unchanged. `portal_mask_through_any`: the MR sky (right after its derivatives), dust and
+  `MonolithCloudSea.gdshader` (first thing), and at the end of their fragment `TrackDeck` and `EnvSolid.gdshaderinc` (every
+  stage solid includes it; its `portal_room_side` switches it to `portal_mask_shows`, set only on the curbs' own
+  material in `TrackDeck`) (Bored, 2026-11-03: in the room only the curbs with their light strips and the notes'
+  reflection; the deck only in the portal). `portal_mask_shows`, at the end of the fragment: `LightStrip`, `game/FloorReflection.gdshader` and every
+  note, chain, arc, bomb and wall shader in `game/notes/`. Mixed reality is a stage of its own: no other stage's lasers
+  or rings (`EventDriver.show_scenery_for_mixed_reality` hides them and every light event keeps them off).
+  Not masked: saber trails and cut sparks (they stay near the player).
 
 Metal Factory (underground power plant)
 - `MetalFactoryRig.gd` (tool): pistons over anvils, gear rings, energy rails, wall kit with vents, vault, drive gears.
@@ -160,7 +211,9 @@ Shared scenery
   scenery, sky and track shader, which pass their colour through `fog_dither(fog_result(colour, VERTEX), FRAGCOORD.xy)`.
 - `TrackDeck.gd` (`TrackDeck`): opaque deck (top y 0), curbs housing the thin edge light strips (`STRIP_*`), platform frame, end stops;
   runs to `FAR_Z` -150 (`FAR_Z_BY_STAGE`), fades into haze. `layout(lane_width)` for Wide modifiers; `set_stage` skin.
-  Hidden in mixed reality (old see-through sheet instead).
+  Shown in mixed reality too (Bored, 2026-11-03), only beyond the room's walls through the portal (in the room only
+  its two light strips); the old see-through sheet (`floor`, `Endpath`) is removed (Bored, 2026-11-03), and
+  `EventDriver.floor_material` only carries the floor lights' colour.
   Its deck and curbs sit under a child that `turn(place)` turns with the notes; the platform pieces don't. On 90/360
   maps during a song (`layout(lane_width, true)` from `EventDriver.set_background`) the platform is a black disc
   (`round_radius()`, as far as the square reaches) with a rim, the deck starting where its corners meet the disc

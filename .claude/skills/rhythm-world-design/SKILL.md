@@ -26,6 +26,8 @@ or levels. Readable during fast play first, beautiful second, and cheap enough f
 8. Check it in play on the headset, not only in code or in Blender.
 9. Never report a check that wasn't run (no local Godot: CI imports and builds, the headset runs).
 10. Look before overwriting or deleting existing work.
+11. Changes during play happen in the player's view or around the player, never only behind them (root `AGENTS.md`,
+    Light rule 11).
 
 ## 2. Before changing anything
 - Read `doc/world/` (bible, style, spatial layout, audio-visual mapping) and the root `AGENTS.md` "Light" rules.

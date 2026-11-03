@@ -191,6 +191,26 @@ result_air={
 "type": "vec4",
 "value": Vector4(0, 0, 0, 0)
 }
+mr_portal_count={
+"type": "int",
+"value": 0
+}
+mr_portal_0={
+"type": "transform",
+"value": Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+}
+mr_portal_1={
+"type": "transform",
+"value": Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+}
+mr_portal_2={
+"type": "transform",
+"value": Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+}
+mr_portal_3={
+"type": "transform",
+"value": Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0)
+}
 
 [xr]
 

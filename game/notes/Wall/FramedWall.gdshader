@@ -1,5 +1,6 @@
 shader_type spatial;
 render_mode unshaded, cull_back, blend_mix;
+#include "res://game/env/portal_mask.gdshaderinc"
 
 // The wall. The older wall's (DangerWall.gdshader, removed 2026-10-31) two
 // blended faces, wide halo and dense frame filled the screen with red fog when a wall came near (owner, 2026-10-25).
@@ -18,6 +19,9 @@ uniform vec4 danger_color : source_color = vec4(1.0, 0.188, 0.188, 1.0);
 // 1. frame: half its width (metres), the core's share of white and how far across the bar it reaches
 const float FRAME_HALF = 0.0125;
 const float MIN_FRAME_PIXELS = 1.5;
+// the dimmest a widened frame gets: a wall flying in from far away (mixed reality, Wall._fly) dimmed to nothing against
+// the black space and vanished (Bored, 2026-11-03); at a wall's usual jump distance it is barely dimmed. UNTUNED
+const float MIN_FRAME_DIM = 0.6;
 const float FRAME_WHITE = 0.9;
 const float FRAME_CORE = 0.6;
 // 2. glass: its brightness (part of the danger colour) and alpha facing the player and edge-on
@@ -54,7 +58,7 @@ void vertex() {
 	float depth = -(VIEW_MATRIX * MODEL_MATRIX * vec4(VERTEX, 1.0)).z;
 	float pixel = max(depth, 0.0) * 2.0 / (PROJECTION_MATRIX[1][1] * VIEWPORT_SIZE.y);
 	float half_width = max(FRAME_HALF, pixel * MIN_FRAME_PIXELS * 0.5);
-	frame_dim = FRAME_HALF / half_width;
+	frame_dim = max(FRAME_HALF / half_width, MIN_FRAME_DIM);
 	VERTEX += bar * half_width / size;
 }
 
@@ -87,5 +91,9 @@ void fragment() {
 		}
 		ALBEDO = col;
 		ALPHA = alpha;
+	}
+	// mixed reality: beyond the room's walls, only through a portal (portal_mask.gdshaderinc); last, after the derivatives
+	if (!portal_mask_shows(CAMERA_POSITION_WORLD, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz)) {
+		discard;
 	}
 }

@@ -1,5 +1,5 @@
 shader_type spatial;
-render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
+render_mode unshaded, blend_premul_alpha, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 
 // A cut spark, as Beat Saber's (owner, 2026-10-28). The shader moves it: from where it was born or last pushed by a
 // blade (CutFlash), at the velocity it had then, under a smooth drag and a little gravity:
@@ -73,4 +73,7 @@ void fragment() {
 	float edge = 1.0 - smoothstep(1.0 - fwidth(d) * 1.5, 1.0, d);
 	vec3 hot = mix(vec3(1.0), COLOR.rgb, smoothstep(RIM_FROM, 1.0, d));
 	ALBEDO = hot * COLOR.a * edge * near_fade * dim;
+	// Added as pure light: premultiplied blend with alpha 0 adds the colour and leaves the frame's alpha alone, so in
+	// mixed reality the room stays visible through it (blend_add wrote alpha 1 over the whole quad: a black box).
+	ALPHA = 0.0;
 }

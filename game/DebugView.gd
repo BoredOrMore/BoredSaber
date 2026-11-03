@@ -24,7 +24,12 @@ const GLOW_SOFT := 65536
 ## (FloorReflection), and the build-up sweep held fully on through the song (EventDriver._update_sweep).
 const NO_REFLECTION := 131072
 const FORCE_SWEEP := 262144
-const EXTRAS := HIDE_SABERS | HIDE_CUT_FLASH | GLOW_OFF | MSAA_OFF | GLOW_SOFT
+## Not read by shaders, for measuring mixed reality's parts (the cycle in mixed reality, MR_CYCLE_STEPS): the world
+## behind the portals' sky, cloud sea and dust hidden (MRSpace).
+const MR_NO_SKY := 524288
+const MR_NO_SEA := 1048576
+const MR_NO_DUST := 2097152
+const EXTRAS := HIDE_SABERS | HIDE_CUT_FLASH | GLOW_OFF | MSAA_OFF | GLOW_SOFT | MR_NO_SKY | MR_NO_SEA | MR_NO_DUST
 ## Not read by shaders: while on, a song steps through CYCLE_STEPS by itself (cycle_tick), so one run measures
 ## every part; the log line "debug_view N" marks each step for matching with the headset's GPU timings.
 const CYCLE := 1024
@@ -37,6 +42,10 @@ const GLOW_BICUBIC := 8192
 const GLOW_NO_FOVEATION := 16384
 const CYCLE_STEPS: Array[int] = [0, WALLS, PLAIN_NOTES, LASERS, RINGS, FLAT_SCENERY, SKY, DUST, HIDE_SABERS, HIDE_CUT_FLASH,
 	GLOW_SOFT, GLOW_OFF, MSAA_OFF]
+## The cycle's steps in mixed reality, where the stage is hidden: the world behind the portals part by part, then all of
+## it, then the floor reflection, notes, walls and sabers; all on again last, to see any drift over the song.
+const MR_CYCLE_STEPS: Array[int] = [0, MR_NO_SKY, MR_NO_SEA, MR_NO_DUST, MR_NO_SKY | MR_NO_SEA | MR_NO_DUST, NO_REFLECTION,
+	PLAIN_NOTES, WALLS, HIDE_SABERS, 0]
 const CYCLE_SECONDS := 10.0
 ## label and bit of each switch, in the order they show
 const SWITCHES := [
@@ -69,8 +78,9 @@ static var flags := 0:
 static func cycle_tick() -> void:
 	if flags & CYCLE == 0:
 		return
-	var step := int(Time.get_ticks_msec() / 1000.0 / CYCLE_SECONDS) % CYCLE_STEPS.size()
-	var wanted := CYCLE | CYCLE_STEPS[step]
+	var steps := MR_CYCLE_STEPS if Settings.mixed_reality else CYCLE_STEPS
+	var step := int(Time.get_ticks_msec() / 1000.0 / CYCLE_SECONDS) % steps.size()
+	var wanted := CYCLE | steps[step]
 	if flags != wanted:
 		flags = wanted
 
@@ -91,6 +101,7 @@ static func apply(game: BeepSaber_Game) -> void:
 	game.glow_override = BeepSaber_Game.Glow.NONE if extras & GLOW_OFF else -1
 	game._apply_glow()
 	game.get_viewport().msaa_3d = Viewport.MSAA_DISABLED if extras & MSAA_OFF else Settings.msaa_mode()
+	MixedReality.show_space_parts(extras & MR_NO_SKY == 0, extras & MR_NO_SEA == 0, extras & MR_NO_DUST == 0)
 
 ## The flag file (in the app data folder, put there over adb) that starts the cycle at the next song: one real song
 ## measured part by part, each step logged as "debug_view N" to match with the headset's GPU timings.

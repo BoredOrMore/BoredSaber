@@ -4,6 +4,10 @@ Notes (`BeepCube`), chain links, arcs, bombs and walls, and the `Cuttable` base 
 `AGENTS.md` first (notes are the brightest thing in view: "Light", "Colour rules") and `game/AGENTS.md` for the
 spawn, cut and miss flow, pooling rules and "Add a note type".
 
+Mixed reality: every shader here includes `game/env/portal_mask.gdshaderinc` and discards, last in its fragment, where
+a note still beyond the room's walls isn't seen through the portal, so notes come in through the hole. A new note
+shader does the same.
+
 ## Entry points and flow
 
 - Spawned from `GameStatePlaying` (`game/scripts/GameState/Playing.gd`) out of `ScenePool`s in `BeepSaber_Game.tscn`
@@ -21,7 +25,7 @@ spawn, cut and miss flow, pooling rules and "Add a note type".
   by it). `Wall.gd` and `Arc.gd` turn about the same point in their own `spawn`. Also Beat Saber's note jump (`start_jump`/`_apply_jump`): the visual (mesh) is full size at its row
   from the start and turns to its cut direction in the first 30% of the jump, by jump progress; it faces the head
   only on 90/360 maps. Before that it flies in like Beat Saber's: spawned `FLY_SECONDS` (0.975) early, its visual
-  rushes from `FLY_DISTANCE` (300 m) beyond the jump start (`fly_offset`; arcs use it by their head, walls don't fly).
+  rushes from `FLY_DISTANCE` (300 m) beyond the jump start (`fly_offset`; arcs use it by their head, walls fly only in mixed reality, by their near face, so they come through the portal: `Wall._fly`, Bored 2026-11-03).
   The place and hitbox stay on the track.
 - `BeepCube/` — `BeepCube.gd` (note; `cutted` signal, scoring, rumble), `BeepCube_CutPiece.gd`
   (`CutPiece` RigidBody halves, `MAX_LIFETIME` 0.3 s), `BeepCube_SliceParticles.gd/.tscn` (GPU particles freed

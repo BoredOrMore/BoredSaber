@@ -4,11 +4,11 @@ render_mode unshaded, shadows_disabled, fog_disabled;
 // Monolith's valley and the player's pillar (MonolithRig.gd): dark ground taking a little of the haze, brighter toward
 // the horizon's glow behind the slab, steep faces (the pillar) darker than flat ground (RISER), with the slab's shadow falling down the valley toward the player: a wedge from the slab's foot, widening by
 // SHADOW_SPREAD as it nears, fading over SHADOW_LENGTH. Its edges soften with distance (fwidth). Neutral: the ground
-// takes the haze's colour, not the lights'. Below the clouds' level it sinks into them (monolith_cloud.gdshaderinc).
+// takes the haze's colour, not the lights'. Below the cloud sea it sinks into it (monolith_cloud_sea.gdshaderinc).
 // BLOCKOUT, untuned.
 global uniform vec4 env_haze;
 #include "res://game/env/fog_light.gdshaderinc"
-#include "res://game/env/monolith_cloud.gdshaderinc"
+#include "res://game/env/monolith_cloud_sea.gdshaderinc"
 
 // the slab's centre on the floor (world xz), its turn left of straight ahead, half its width and its front face's
 // distance from the player (MonolithRig)

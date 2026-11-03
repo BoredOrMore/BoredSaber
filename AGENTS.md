@@ -20,6 +20,8 @@ line `@AGENTS.md`, so Claude Code loads the folder's doc when it opens a file th
 - `game/scripts/GameState/`: the game state machine (menu, playing, paused, fail, score screen).
 - `game/BeatmapInfo/`: beatmap data model and how `game/Map.gd` parses Beat Saber map formats.
 - `game/ui/`: song menu, settings, end score, highscore and pause panels, shared theme and UI palette, BeatSaver panels.
+- `native/pico_room/`: C++ GDExtension reading the room from PICO's OpenXR extensions (built by CI into
+  `game/native/bin/`).
 - `OQ_Toolkit/`: partially ported VR toolkit (`vr` autoload, 2D-in-VR canvases, keyboard).
 - `tests/`: headless tests.
 - `tools/`: capture scenes, Blender model scripts, asset generators, headset bench, the doc checker;
@@ -122,7 +124,8 @@ Layout and look
 - Help in place: a short hint where the choice is made (a one-line explanation, a label that appears
   on hover), not a manual. [Nielsen #10]
 - Mixed reality: virtual scenery never covers the player's room; with mixed reality on, draw only what
-  play needs (track, notes, sabers, light beams). (Neon Grid's floor hid the room.)
+  play needs (track, notes, sabers, light beams), plus the world seen through portals cut in the real walls, and only
+  inside them (owner, 2026-11-02; `game/env/portal_mask.gdshaderinc`). (Neon Grid's floor hid the room.)
 
 Process
 - Build UI as templates (owner, 2026-10-28): panel, section and button scenes plus the theme; pages only swap
@@ -245,6 +248,13 @@ channel), so brightness comes from contrast and the size of bright areas, not fr
    The result moment (a fail or a clear) may take its own mood; see the exception in "Colour rules".
 10. Fake it cheaply: no post-processing or screen reads on the Pico (a screen read copies the frame per
     eye); glow, distortion and shadows are drawn in the object's own shader.
+11. Changes happen where the player is looking, or around the player (owner, 2026-10-31): any environment change
+    or effect during play (build-up and drop, structure that moves or assembles, light-show moments, drifting
+    clouds) happens inside the view of a player facing the track (about ±50° to the side with the head straight,
+    ±60° with a comfortable head turn; `doc/research/player-guidance.md`), or it plays off the player's position and
+    surroundings (it comes from where they stand, passes round them, answers their saber or their body). An effect
+    only visible behind or far off to the side is wasted work and GPU time: move it into view or drop it. 90/360 maps
+    count the view from the direction the notes currently come from.
 
 For any shader work, follow `.claude/skills/shader-design/SKILL.md` (layers first, named knobs, then
 optimise with before/after GPU numbers). For any new or replaced model, follow

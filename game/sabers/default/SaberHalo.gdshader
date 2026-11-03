@@ -5,7 +5,7 @@ shader_type spatial;
 // 1 x 1 QuadMesh: x across the ribbon (-0.5..0.5), y along the blade (-0.5..0.5), scaled by length and width here.
 // The saber's colour in a soft falloff, dimmer than the white-hot blade (AGENTS.md "Light", rule 2), ending in soft
 // caps; never thinner than min_pixels on screen, dimmed by the width it gains.
-render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
+render_mode unshaded, blend_premul_alpha, depth_draw_never, cull_disabled, shadows_disabled, fog_disabled;
 
 uniform vec4 color : source_color = vec4(1.0, 0.0, 0.0, 1.0);
 // the blade's length now (it grows and shrinks as the saber turns on and off), in metres
@@ -42,4 +42,7 @@ void fragment() {
 	// soft caps: fades over the last few centimetres at each end of the blade
 	float caps = 1.0 - smoothstep(1.0 - 0.06 / max(blade_length, 0.06), 1.0, abs(along));
 	ALBEDO = color.rgb * falloff * caps * fade * strength;
+	// Added as pure light: premultiplied blend with alpha 0 adds the colour and leaves the frame's alpha alone, so in
+	// mixed reality the room stays visible through it (blend_add wrote alpha 1 over the whole quad: a black box).
+	ALPHA = 0.0;
 }

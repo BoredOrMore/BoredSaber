@@ -1,5 +1,6 @@
 shader_type spatial;
 render_mode unshaded, shadows_disabled;
+#include "res://game/env/portal_mask.gdshaderinc"
 
 // A light strip on a surface (the track's edge lights, the platform's border): it burns white-hot where it faces the
 // eye and shows its colour on the faces turned away, so it reads as a bright tube instead of a flat saturated bar
@@ -48,5 +49,9 @@ void fragment() {
 	ALBEDO += cut_wave_light(world) * CUT_WAVE_GAIN;
 	if (fade_z.y > fade_z.x) {
 		ALBEDO = mix(ALBEDO, env_haze.rgb, smoothstep(fade_z.x, fade_z.y, -track_xz(world).y));
+	}
+	// mixed reality: beyond the room's walls, only through a portal (portal_mask.gdshaderinc); last, after the derivatives
+	if (!portal_mask_shows(CAMERA_POSITION_WORLD, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz)) {
+		discard;
 	}
 }

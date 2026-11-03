@@ -1,5 +1,6 @@
 shader_type spatial;
 render_mode unshaded, cull_front;
+#include "res://game/env/portal_mask.gdshaderinc"
 
 // A thin glowing outline drawn behind the dark bomb body, pulsing slowly in the danger colour, so bombs
 // show up in a dark scene without glowing all over. It used to be a thick shell; Beat Saber's bombs are
@@ -15,4 +16,8 @@ void vertex() {
 
 void fragment() {
 	ALBEDO = danger_color.rgb * (1.0 - pulse_depth * (0.5 + 0.5 * sin(TIME * pulse_speed)));
+	// mixed reality: beyond the room's walls, only through a portal (portal_mask.gdshaderinc); last, after the derivatives
+	if (!portal_mask_shows(CAMERA_POSITION_WORLD, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz)) {
+		discard;
+	}
 }

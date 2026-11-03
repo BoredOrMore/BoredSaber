@@ -44,6 +44,8 @@ var current_health := Constants.HEALTH_START
 @onready var settings_panel := settings_canvas.ui_control as SettingsPanel
 @onready var profiles_canvas := $Profiles_canvas as OQ_UI2DCanvas
 @onready var profiles_panel := profiles_canvas.ui_control as ProfilesPanel
+@onready var room_setup_canvas := $RoomSetup_canvas as OQ_UI2DCanvas
+@onready var room_setup_panel := room_setup_canvas.ui_control as RoomSetupPanel
 @onready var highscore_canvas := $Highscores_Canvas as OQ_UI2DCanvas
 @onready var highscore_panel := highscore_canvas.ui_control as HighscorePanel
 ## Where the record table stands on the score screen: next to the score panel (its place in the scene).
@@ -447,6 +449,7 @@ func _start_map(info: MapInfo, map_difficulty: DifficultyInfo) -> void:
 	if not Map.load_beatmap(info, map_difficulty, map_data, lightshow_data):
 		menu.show_play_error()
 		return
+	MixedReality.fit_portal_to_map()
 	timing.lap("parse")
 	# a practice run starts at its start point, the song a little before so the first notes can fly in on the beat
 	var passed_events: Array[EventInfo] = []
@@ -704,6 +707,9 @@ func _transition_game_state(next_state: GameState) -> void:
 	# the scene only lights up for the combo while a map is on
 	if gamestate != gamestate_playing and gamestate != gamestate_paused:
 		event_driver.set_combo_multiplier(1)
+	# a 90/360 map's portals follow its objects only while it is on; otherwise the one portal ahead
+	if gamestate != gamestate_playing and gamestate != gamestate_paused and gamestate != gamestate_practicehold:
+		MixedReality.stop_following_map()
 	gamestate._ready(self)
 
 ## Shows the FPS label and the log window under the settings panel only when debug info is on.
@@ -957,12 +963,12 @@ func _ready() -> void:
 	Scoreboard.score_changed.connect(_display_points)
 	(multiplier_label as ComboHud).milestone_reached.connect(_on_combo_milestone)
 	hud = Hud.new(point_label, multiplier_label as ComboHud, percent_indicator)
+	hud.head = $XROrigin3D/XRCamera3D as Node3D
 	add_child(hud)
 	_floor_reflection = FloorReflection.new(track, [left_saber, right_saber], event_driver.track_deck)
 	event_driver.platform = standing_ground
-	# the HUD and the energy strips beside the track turn with it on 90/360 maps
+	# the energy strips beside the track turn with it on 90/360 maps (the HUD follows the head instead)
 	event_driver.track_turned.connect(func(angle: float) -> void:
-		hud.turn(angle)
 		health_rails.transform = TrackDeck.turned(angle)
 		practice_canvas.transform = TrackDeck.turned(angle) * _practice_panel_placed)
 	add_child(_floor_reflection)
@@ -1282,15 +1288,24 @@ func _display_points() -> void:
 ## eye), so each keeps the angle it was laid out at. The slash note places itself (SlashBlock.set_shown).
 const MENU_NODES: Array[NodePath] = [^"MainMenu_OQ_UI2DCanvas", ^"PauseMenu_canvas", ^"Pause_countdown",
 	^"Settings_canvas", ^"MapSourceDialogs", ^"Keyboard_online_search", ^"Keyboard_highscore", ^"Profiles_canvas",
+	^"RoomSetup_canvas",
 	^"EndScore", ^"WarningIcon", ^"MenuClock"]
+## A headset lower than this above the floor isn't tracked yet (it sits at the floor's origin).
+const EYE_TRACKED_MIN_HEIGHT := 0.5
 ## how far the menus are raised for the player's eye (Hud.HUD_EYE is 0)
 var menu_lift := 0.0
+## whether menu_lift was taken from a tracked headset; until then the menus stay at Hud.HUD_EYE
+var _menu_lift_measured := false
 ## each menu node's laid-out place
 var _menu_rest := {}
 
-## Raises the menus to the player's eye height now (on every game state change, so a menu opens where it's seen).
+## Puts the menus at the eye height measured once (at the first tracked game state change or Recenter), so they
+## don't jump when the player switches screens sitting or lying down (owner, 2026-11-02).
 func _place_menus() -> void:
-	menu_lift = _eye().y - Hud.HUD_EYE.y
+	var eye := ($XROrigin3D/XRCamera3D as XRCamera3D).global_position
+	if not _menu_lift_measured and eye.y > EYE_TRACKED_MIN_HEIGHT:
+		menu_lift = eye.y - Hud.HUD_EYE.y
+		_menu_lift_measured = true
 	for path in MENU_NODES:
 		var node := get_node_or_null(path) as Node3D
 		if node == null:
@@ -1306,7 +1321,7 @@ func lifted(t: Transform3D) -> Transform3D:
 ## The player's eye now: the headset's place, or Hud.HUD_EYE while it isn't tracked yet (at the floor's origin).
 func _eye() -> Vector3:
 	var eye := ($XROrigin3D/XRCamera3D as XRCamera3D).global_position
-	return eye if eye.y > 0.5 else Hud.HUD_EYE
+	return eye if eye.y > EYE_TRACKED_MIN_HEIGHT else Hud.HUD_EYE
 
 ## Whole seconds left in the current map, for the clock under the score.
 func _seconds_left() -> int:
@@ -1504,6 +1519,23 @@ func _open_profiles() -> void:
 	main_menu.disable_collision = true
 	_update_slash_block()
 
+## Shows "Set up your room" (mixed reality turned on) 10 cm in front of the menus, which take no pointer input
+## meanwhile.
+func open_room_setup() -> void:
+	room_setup_panel.start()
+	room_setup_canvas._show()
+	main_menu.disable_collision = true
+	settings_canvas.disable_collision = true
+	# also called from _ready (vr.initialize), before the slash block has its sabers
+	_update_slash_block.call_deferred()
+
+## Closes the room setup and gives the menus their pointer input back.
+func _close_room_setup() -> void:
+	room_setup_canvas._hide()
+	main_menu.disable_collision = false
+	settings_canvas.disable_collision = false
+	_update_slash_block()
+
 ## "Not you?" on the score screen (owner, 2026-10-28): "Who's playing?" opens in its place; whoever is picked (or added)
 ## when it closes becomes the current player and gets this run's record (_close_profiles). A better record that player
 ## already has on the map stays too: the table keeps both rows.
@@ -1661,10 +1693,14 @@ func _on_ScenePool_new_scene_instanced(obj: Node3D, during_presizing: bool) -> v
 		else:
 			obj.visible = false
 
+## Turns and moves the play space to face the headset, and measures the menus' eye height again from it.
 func recenter():
 	var xr_camera := $XROrigin3D/XRCamera3D as XRCamera3D
 	xr_origin.rotation.y -= xr_camera.global_rotation.y
 	xr_origin.position -= (xr_camera.global_position * Vector3(1,0,1)) - Vector3(0,0,1)
+	MixedReality.play_space_moved()
+	_menu_lift_measured = false
+	_place_menus()
 
 func _set_hand(right: bool, hand: bool) -> void:
 	var angle_offset := -45. if hand else 0.

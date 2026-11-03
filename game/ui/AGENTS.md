@@ -35,6 +35,13 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   (`BeepSaber_Game._open_profiles`) on its own canvas 10 cm in front of the menu, which takes no pointer input meanwhile.
   Picks, adds (max `Settings.MAX_PLAYERS`), renames (records too, `Highscores.rename_player`) and deletes players;
   names are typed on the menu's keyboard (`Keyboard_highscore`), which the menu ignores while its `_keyboard_for` is empty.
+- `RoomSetupPanel.gd/.tscn` (class `RoomSetupPanel`): "Set up your room"; unreachable while
+  `MixedReality.ROOM_SCAN_ENABLED` is off (Bored, 2026-11-03). Shown when mixed reality turns on and the headset can
+  scan the room (`BeepSaber_Game.open_room_setup`, on its own canvas 10 cm in front of the menus, which
+  take no pointer input meanwhile; Bored 2026-11-02, wording approved). Steps: ask (Scan room, Play without room),
+  "Looking for your room…" while PICO's scan screen is open and the room loads, "Is this your room?" with the counts
+  and the room's outline shown (Play, Scan again), "Couldn't find your room" (Scan again, Play without room). Play
+  without room turns mixed reality off and saves it, so a failed scan never traps the player.
 - `BeatSaverPanel/`: browse/search/download maps from beatsaver.com (class `BeatSaverPanel`; credited by the `Source`
   label under the list, always shown). Its song list is
   `BeatSaverList.gd` (class `BeatSaverList`): the song list's rows (72 px cover, "Artist - Title") with the level strip
@@ -125,7 +132,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   feeds the clock in the Pause panel's top left corner. Not in the HUD: there "time" is the song's.
 - `UI_AudioEngine/` (`UI_AudioEngine.gd/.tscn`): autoload; `attach_children(node)` wires hover and press sounds to every `Button` below `node`:
   on/off for a toggle in no `ButtonGroup`, back for names in `BACK_BUTTON_NAMES`, click for the rest.
-- `BeepSaberMainMenu.gd/.tscn` (class `MainMenu`: song list, Song/More tabs and a Settings gear above the right column; the Song tab holds
+- `BeepSaberMainMenu.gd/.tscn` (class `MainMenu`: song list, Song/More tabs, the "MR" toggle chip (mixed
+  reality; Bored 2026-11-03: moved there from Settings, label "MR" picked by Bored over "Your room"; on opens "Set up your room") and a Settings gear above the right column; the Song tab holds
   difficulty and the modifier chips, rarer ones behind "More modifiers"),
   `settings_Panel.gd/.tscn` (class `SettingsPanel`, tabs Gameplay/Visuals/Audio/Advanced; Visuals in
   sections Quality/Look/Effects and Advanced in Saber grip/Cast/Developer, `MenuSection`s built in `_ready`, the
