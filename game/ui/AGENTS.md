@@ -135,7 +135,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
 
 ## Colour palette
 
-`game/Constants.gd:97-105` holds `UI_PANEL`, `UI_SURFACE`, `UI_SURFACE_HOVER`, `UI_SURFACE_PRESSED`, `UI_BORDER`,
+`game/Constants.gd:97-105` holds `UI_PANEL`, `UI_SURFACE`, `UI_SURFACE_HOVER`, `UI_SURFACE_PRESSED`, `UI_SURFACE_SELECTED` (picked chips, tabs and
+levels, with their name in `UI_ACCENT`), `UI_BORDER`,
 `UI_ACCENT`, `UI_TEXT`, `UI_TEXT_MUTED`. 3D pieces read them in code (`EndScore.gd:14-16`,
 `UIRaycastButton.gd:38-50`); the theme repeats the same values as literals. Change a colour in both places
 (comment at `Constants.gd:97`). Difficulty colours use `Constants.DIFFICULTY_COLORS` with `UI_TEXT` as fallback.

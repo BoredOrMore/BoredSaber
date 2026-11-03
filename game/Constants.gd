@@ -205,6 +205,9 @@ const UI_PANEL := Color(0.086, 0.094, 0.114)
 const UI_SURFACE := Color(0.133, 0.149, 0.18)
 const UI_SURFACE_HOVER := Color(0.173, 0.192, 0.231)
 const UI_SURFACE_PRESSED := Color(0.2, 0.36, 0.45)
+## A picked chip, tab or level: one step lighter than a surface, its name in UI_ACCENT; the blue fill is kept for the
+## one main button of a screen (owner, 2026-11-03).
+const UI_SURFACE_SELECTED := Color(0.22, 0.24, 0.29)
 const UI_BORDER := Color(0.208, 0.227, 0.271)
 const UI_ACCENT := Color(0.37, 0.78, 0.94)
 const UI_TEXT := Color(0.894, 0.902, 0.922)
