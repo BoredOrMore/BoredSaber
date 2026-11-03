@@ -16,6 +16,10 @@ const ROOM_SCAN_ENABLED := false
 ## How long a 90/360 map's portal takes to grow from its centre when objects start coming from its direction, and to
 ## shrink back once they have passed (Bored, 2026-11-03: grows from the centre). UNTUNED.
 const PORTAL_OPEN_SECONDS := 0.5
+## How long a 90/360 map's portal takes to settle (within 5%) when its directions change, as the lanes it takes come and
+## go: its edges glide, widening or shrinking smoothly instead of jumping (Bored, 2026-11-03). A new lane joins at
+## least PORTAL_OPEN_SECONDS plus the fly-in before it reaches the portal, so widening in time. UNTUNED.
+const PORTAL_GLIDE_SECONDS := 0.5
 
 var floor_albedo_texture : Texture2D = null
 ## The real room's outline, made on the first room scan (PICO headsets only).
@@ -37,7 +41,8 @@ var _next_turn := 0
 var _coming := []
 ## The beat follow_map last saw, to notice a practice run jumping back.
 var _last_beat := 0.0
-## The open portals while a 90/360 map plays: each {"angle", "spread" (radians), "open" (0 shut to 1 open), "wanted"}.
+## The open portals while a 90/360 map plays: each {"angle", "spread" (radians, as drawn), "target_angle",
+## "target_spread" (what its lanes need; angle and spread glide there), "open" (0 shut to 1 open), "wanted"}.
 var _turn_portals: Array[Dictionary] = []
 
 
@@ -203,7 +208,8 @@ func follow_map(current_beat: float) -> void:
 		return
 	if not is_processing():
 		# the one portal ahead becomes the first of them, closing unless objects come from ahead
-		_turn_portals = [{"angle": 0.0, "spread": 0.0, "open": 1.0, "wanted": false}]
+		_turn_portals = [{"angle": 0.0, "spread": 0.0, "target_angle": 0.0, "target_spread": 0.0, "open": 1.0,
+			"wanted": false}]
 	if current_beat < _last_beat:
 		_next_turn = 0
 		_coming = []
@@ -233,17 +239,26 @@ func follow_map(current_beat: float) -> void:
 					if not _turn_portals[i]["wanted"] and (shut < 0 or _turn_portals[i]["open"] < _turn_portals[shut]["open"]):
 						shut = i
 				_turn_portals.remove_at(shut)
-			_turn_portals.append({"angle": want.x, "spread": want.y, "open": 0.0, "wanted": true})
+			_turn_portals.append({"angle": want.x, "spread": want.y, "target_angle": want.x, "target_spread": want.y,
+				"open": 0.0, "wanted": true})
 		else:
-			_turn_portals[match_index].merge({"angle": want.x, "spread": want.y, "wanted": true}, true)
+			_turn_portals[match_index].merge({"target_angle": want.x, "target_spread": want.y, "wanted": true}, true)
 	set_process(true)
 
 
-## Grows and shrinks a 90/360 map's portals (follow_map) and draws them; back to the one portal ahead once none is open.
+## Grows and shrinks a 90/360 map's portals (follow_map), glides their edges to the lanes they take, and draws them.
 func _process(delta: float) -> void:
 	var step := delta / PORTAL_OPEN_SECONDS
+	# each edge eases toward its target, 95% of the way in PORTAL_GLIDE_SECONDS (e^-3 is 5%)
+	var glide := 1.0 - exp(-3.0 * delta / PORTAL_GLIDE_SECONDS)
 	for portal in _turn_portals:
 		portal["open"] = clampf(portal["open"] + (step if portal["wanted"] else -step), 0.0, 1.0)
+		var angle: float = portal["angle"]
+		var target: float = angle + angle_difference(angle, portal["target_angle"])
+		var low := lerpf(angle - portal["spread"], target - portal["target_spread"], glide)
+		var high := lerpf(angle + portal["spread"], target + portal["target_spread"], glide)
+		portal["angle"] = (low + high) / 2.0
+		portal["spread"] = (high - low) / 2.0
 	_turn_portals = _turn_portals.filter(func(portal: Dictionary) -> bool: return portal["wanted"] or portal["open"] > 0.0)
 	_show_turn_portals()
 

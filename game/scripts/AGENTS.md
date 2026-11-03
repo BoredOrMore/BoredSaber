@@ -35,7 +35,8 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
   frame from `GameStatePlaying._process_map`, opens a floating portal toward each direction objects are coming from
   (`RoomOutline.map_turns` timeline, from the spawn look-ahead plus `PORTAL_OPEN_SECONDS` until the last object passes
   the player), directions within `RoomOutline.PORTAL_TURN_MERGE` (30°) sharing one widened portal, at most
-  `MAX_PORTALS`; `_process` grows and shrinks each from its centre over `PORTAL_OPEN_SECONDS` (UNTUNED), so the room
+  `MAX_PORTALS`; `_process` grows and shrinks each from its centre over `PORTAL_OPEN_SECONDS` and glides its edges to
+  the lanes it takes over `PORTAL_GLIDE_SECONDS` (both UNTUNED; Bored: shrink smoothly), so the room
   stays clear where nothing comes. `BeepSaber_Game._transition_game_state` calls `stop_following_map` when the map is
   no longer on (not Playing, Paused or PracticeHold), which puts the one portal ahead back. Maps whose lanes don't turn
   keep the one portal.
