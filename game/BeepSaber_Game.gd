@@ -1525,12 +1525,11 @@ func open_room_setup() -> void:
 	# also called from _ready (vr.initialize), before the slash block has its sabers
 	_update_slash_block.call_deferred()
 
-## Closes the room setup and gives the menus their pointer input back; Settings shows whether mixed reality stayed on.
+## Closes the room setup and gives the menus their pointer input back.
 func _close_room_setup() -> void:
 	room_setup_canvas._hide()
 	main_menu.disable_collision = false
 	settings_canvas.disable_collision = false
-	settings_panel.mixed_reality_control.set_pressed_no_signal(Settings.mixed_reality)
 	_update_slash_block()
 
 ## "Not you?" on the score screen (owner, 2026-10-28): "Who's playing?" opens in its place; whoever is picked (or added)

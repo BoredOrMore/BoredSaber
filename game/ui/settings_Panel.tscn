@@ -414,10 +414,6 @@ text = "Background picture"
 size_flags_horizontal = 3
 layout_mode = 2
 
-[node name="mixed_reality" type="CheckButton" parent="Tabs/Visuals/VBox"]
-layout_mode = 2
-text = "Mixed reality"
-
 [node name="refresh_90" type="CheckButton" parent="Tabs/Visuals/VBox"]
 layout_mode = 2
 text = "90 Hz display"
@@ -842,7 +838,6 @@ scroll_without_pointer = true
 [connection signal="toggled" from="Tabs/Visuals/VBox/smoke" to="." method="_on_smoke_toggled"]
 [connection signal="toggled" from="Tabs/Visuals/VBox/darker_notes" to="." method="_on_darker_notes_toggled"]
 [connection signal="toggled" from="Tabs/Visuals/VBox/saber_tail" to="." method="_on_saber_tail_toggled"]
-[connection signal="toggled" from="Tabs/Visuals/VBox/mixed_reality" to="." method="_on_mixed_reality_toggled"]
 [connection signal="toggled" from="Tabs/Gameplay/VBox/explain" to="." method="_on_explain_toggled"]
 [connection signal="toggled" from="Tabs/Gameplay/VBox/left_handed" to="." method="_on_left_handed_toggled"]
 [connection signal="value_changed" from="Tabs/Visuals/VBox/SaberThicknessRow/saber_thickness" to="." method="_on_thickness_value_changed"]

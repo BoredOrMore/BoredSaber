@@ -58,6 +58,7 @@ const STAR_FILLED_ICON := preload("res://game/ui/icons/star-filled.svg")
 @onready var more_mods_rows := $MoreModsPanel/Rows as VBoxContainer
 @onready var favorite_button := $Favorite_Button as Button
 @onready var profile_button := $Profile_Button as Button
+@onready var mixed_reality_button := $MixedReality_Button as Button
 @onready var reset_button := $Modifiers/Header/Reset_Button as Button
 
 @onready var song_preview := $song_prev as SongPreview
@@ -727,6 +728,7 @@ func _ready() -> void:
 	DirAccess.make_dir_recursive_absolute(Constants.APPDATA_PATH+"Songs/")
 
 	Settings.changed.connect(on_settings_changed)
+	mixed_reality_button.set_pressed_no_signal(Settings.mixed_reality)
 	song_preview.song_player = main_song_player_ref
 	
 	_mods = ModifierChips.new(self)
@@ -774,6 +776,8 @@ func _ready() -> void:
 		
 func on_settings_changed(key: StringName) -> void:
 	match key:
+		&"mixed_reality":
+			mixed_reality_button.set_pressed_no_signal(Settings.mixed_reality)
 		&"player_name":
 			_show_player_name()
 		&"environment":
@@ -884,6 +888,12 @@ func _on_tab_pressed(tab: int) -> void:
 	_show_tab(tab)
 
 ## Opens the settings screen from the gear button.
+## "Your room" (mixed reality) beside the gear (Bored, 2026-11-03: moved out of Settings): turning it on opens "Set up your room".
+func _on_mixed_reality_toggled(on: bool) -> void:
+	Settings.mixed_reality = on
+	Settings.save()
+	MixedReality.set_mixed_reality(on)
+
 func _on_settings_button_pressed() -> void:
 	settings_requested.emit()
 
