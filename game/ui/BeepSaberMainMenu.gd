@@ -91,10 +91,15 @@ func _physics_process(delta: float) -> void:
 	_step_with_stick(delta)
 
 ## Thumbstick song stepping: pushed past STICK_THRESHOLD up or down, the selection moves one song; held, it
-## repeats after STICK_REPEAT_DELAY every STICK_REPEAT_INTERVAL seconds. The preview starts once it is let go.
+## repeats after STICK_REPEAT_DELAY every STICK_REPEAT_INTERVAL seconds, and once held STICK_FAST_AFTER seconds it
+## moves a screen of rows every STICK_JUMP_INTERVAL. Left and right jump (_jump_target) every STICK_JUMP_INTERVAL
+## (owner, 2026-11-04: 89 songs took about 11 s end to end). The preview starts once it is let go.
 const STICK_THRESHOLD := 0.5
 const STICK_REPEAT_DELAY := 0.4
 const STICK_REPEAT_INTERVAL := 0.12
+const STICK_FAST_AFTER := 1.0
+## slow enough to read the name the jump lands on (untuned; check on the headset)
+const STICK_JUMP_INTERVAL := 0.3
 ## each step the stick makes ticks that hand's controller lightly (owner, 2026-10-28): this strong (0-1), this long (s)
 const STICK_TICK_STRENGTH := 0.15
 const STICK_TICK_SECONDS := 0.02
@@ -109,14 +114,15 @@ func _step_with_stick(delta: float) -> void:
 	var canvas := get_viewport().get_parent() as OQ_UI2DCanvas
 	var takes_input := canvas != null and canvas.is_visible_in_tree() and not canvas.disable_collision \
 			and not keyboard.visible and songs_menu.item_count > 0 and not FilterChips.pointed_at(filter_rows)
-	var y := 0.0
+	var stick := Vector2.ZERO
 	var hand := vr.rightController
 	if takes_input:
-		var y_left := vr.leftController.get_vector2("primary").y
-		var y_right := vr.rightController.get_vector2("primary").y
-		y = y_left if absf(y_left) > absf(y_right) else y_right
-		hand = vr.leftController if absf(y_left) > absf(y_right) else vr.rightController
-	if absf(y) < STICK_THRESHOLD:
+		var left := vr.leftController.get_vector2("primary")
+		var right := vr.rightController.get_vector2("primary")
+		stick = left if left.length() > right.length() else right
+		hand = vr.leftController if left.length() > right.length() else vr.rightController
+	var sideways := absf(stick.x) > absf(stick.y)
+	if maxf(absf(stick.x), absf(stick.y)) < STICK_THRESHOLD:
 		if _stick_time >= 0.0:
 			_stick_time = -1.0
 			if takes_input:
@@ -125,17 +131,52 @@ func _step_with_stick(delta: float) -> void:
 	if _stick_time < 0.0:
 		_stick_time = 0.0
 		_stick_next = 0.0
+	var fast := not sideways and _stick_time >= STICK_FAST_AFTER
 	if _stick_time >= _stick_next:
 		# pushing down (negative y) moves down the list
-		var next := clampi(current_selected + (1 if y < 0.0 else -1), 0, songs_menu.item_count - 1)
+		var step := songs_menu.rows_in_view() if fast else 1
+		var next := _jump_target(stick.x > 0.0) if sideways \
+				else clampi(current_selected + (step if stick.y < 0.0 else -step), 0, songs_menu.item_count - 1)
 		if next != current_selected:
 			songs_menu.select(next)
 			_select_song(next, false)
 			songs_menu.center_on(next)
 			canvas._input_update()
 			hand.simple_rumble(STICK_TICK_STRENGTH, STICK_TICK_SECONDS)
-		_stick_next += STICK_REPEAT_DELAY if _stick_next == 0.0 else STICK_REPEAT_INTERVAL
+		_stick_next += STICK_REPEAT_DELAY if _stick_next == 0.0 \
+				else (STICK_JUMP_INTERVAL if sideways or fast else STICK_REPEAT_INTERVAL)
 	_stick_time += delta
+
+## The song the thumbstick's right (forward) or left jumps to: in the A–Z order the first song of the next letter, or
+## of this letter (of the previous one when already there); in the other orders a screen of rows down or up.
+func _jump_target(forward: bool) -> int:
+	var songs := _currently_selected_songlist_ref
+	var last := songs.size() - 1
+	var at := maxi(current_selected, 0)
+	if playlist_selector.get_selected_id() != PlaylistOptions.AllSongs:
+		return clampi(at + (1 if forward else -1) * songs_menu.rows_in_view(), 0, last)
+	return letter_jump(songs, at, forward)
+
+## In a list in A–Z order, the index of the first song of the letter after songs[at]'s (forward; the last song when
+## none follows), or of songs[at]'s own letter, or of the previous letter when at already starts its letter.
+static func letter_jump(songs: Array[MapInfo], at: int, forward: bool) -> int:
+	var last := songs.size() - 1
+	var letter := initial(songs[at])
+	if forward:
+		var next := at
+		while next < last and initial(songs[next]) == letter:
+			next += 1
+		return next
+	var start := at
+	while start > 0 and initial(songs[start - 1]) == letter:
+		start -= 1
+	if start < at:
+		return start
+	start = maxi(at - 1, 0)
+	letter = initial(songs[start])
+	while start > 0 and initial(songs[start - 1]) == letter:
+		start -= 1
+	return start
 
 func refresh_playlist() -> void:
 	var id := playlist_selector.get_selected_id()

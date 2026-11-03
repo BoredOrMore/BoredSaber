@@ -59,5 +59,10 @@ func _ready() -> void:
 	check(order == ["2 Fast/A", "10 Years/A", "apple/A", "Apple/Z", "banana/B", "うっせぇわ/Ado"], "A–Z order (got %s)" % [order])
 	var initials := shuffled.map(MainMenu.initial)
 	check(initials == ["#", "#", "A", "A", "B", "#"], "letters for the stick's jumps (got %s)" % [initials])
+	# the thumbstick's left and right: to the next letter's first song, back to this letter's, then the one before
+	var jumps := [MainMenu.letter_jump(shuffled, 0, true), MainMenu.letter_jump(shuffled, 2, true),
+		MainMenu.letter_jump(shuffled, 4, true), MainMenu.letter_jump(shuffled, 5, true), MainMenu.letter_jump(shuffled, 3, false),
+		MainMenu.letter_jump(shuffled, 2, false), MainMenu.letter_jump(shuffled, 0, false)]
+	check(jumps == [2, 4, 5, 5, 2, 0, 0], "letter jumps (got %s)" % [jumps])
 	print("%d failures" % failures)
 	get_tree().quit(1 if failures > 0 else 0)

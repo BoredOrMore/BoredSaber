@@ -181,7 +181,8 @@ never clicks what it started on (a release far away cancels the press), and a fl
 the top. `scroll_without_pointer = true` scrolls even when not hovered. Hover (`is_mouse_in`) follows every pointer move over
 the list's rect, its own buttons included, and the canvas sends a last move off the panel when the pointer leaves it
 (`helper_UIArea.OFF_PANEL`), so the thumbstick never stays on a list the pointer left. The song list sets `joystick_scroll = false`:
-there the thumbstick moves the selection instead, except while the pointer is on the filters' page, which it scrolls
+there the thumbstick moves the selection instead (up and down a song at a time, a screen at a time once held a
+second; left and right to the next or previous letter in A–Z, a screen in the other sorts: `MainMenu.letter_jump`), except while the pointer is on the filters' page, which it scrolls
 then (`FilterChips.pointed_at`; owner, 2026-10-30: the stick works on what the pointer is on) (`MainMenu._step_with_stick`, centred by `SongList.center_on`;
 each step ticks that hand's controller, `STICK_TICK_*`).
 Above the list one row holds Search (icon), the sort (A–Z by song name, the default, `MainMenu.by_song_name`; Newest; Most played, the last two favourites first), Get songs and, at its right end, Filters (a toggle: opens and closes `FiltersPanel` in the right panel over the modifiers, the list staying in view, with no Back button: the status line with Clear, then one scrolling page as on Get songs (`FilterChips.add_scroll`; dragged by the pointer, scrolled by the thumbstick while the pointer is on it): Favorites, Workout, Difficulty, Length, Style and Genre (from `SongTags`; a song without the tag is hidden while one is on)). Under the row, as on Get songs, a chip per filter on and the search (`_update_chips`). BeatSaver loads the next page past 90% scroll (`BeatSaverPanel.gd:447-465`).

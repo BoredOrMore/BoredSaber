@@ -226,6 +226,10 @@ func _view_height() -> float:
 	var panel := get_theme_stylebox(&"panel")
 	return size.y - panel.content_margin_top - panel.content_margin_bottom
 
+## How many whole rows the list shows at once (a screen, for the thumbstick's jumps).
+func rows_in_view() -> int:
+	return maxi(floori((_view_height() + ROW_SEPARATION) / (ROW_HEIGHT + ROW_SEPARATION)), 1)
+
 ## Room above the first row and below the last for either to sit in the middle.
 func _pad_ends() -> void:
 	var pad := maxf(0.0, (_view_height() - ROW_HEIGHT) / 2.0)
