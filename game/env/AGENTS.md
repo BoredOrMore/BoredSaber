@@ -158,7 +158,11 @@ code that reads the walls and cuts the portals: `game/scripts/MixedReality.gd`, 
   dropped by `SEA_DROP` so its rim stays under the notes' source and dimmed to `SEA_BRIGHTNESS` (the sea's
   `brightness`, 1 in Monolith), and `DUST_COUNT` points of `MRSpaceDust.gdshader` kept out of
   the notes' path. The sky is geometry because mixed reality draws no `WorldEnvironment` sky. Blockout, untuned.
-- `MRSpaceSky.gdshader`: black space, stars worked out from the view direction (at least `STAR_MIN_PIXELS` wide, dimmed
+- `MRSpaceSky.gdshader`: its fixed layers (band, ring, planets' surfaces, the nebula's two shares) are baked once at
+  load into a `BAKE_SIZE` cube map (`MRSpace._bake_sky`: a `SubViewport` draws each face with `bake_face`, stored as
+  sqrt(layer x `BAKE_GAIN`) for the faint band's precision); each frame it reads that and adds the live parts (stars,
+  source, meteors, the lights' tints, the nebula's colours). Writing `POSITION` in one path means both must set it.
+  Desktop check: the baked sky matches the live one in every direction (mean difference under 0.05 of 255). Black space, stars worked out from the view direction (at least `STAR_MIN_PIXELS` wide, dimmed
   to match), a faint neutral dust band with a nebula in the two note colours (`left_saber_color`, `right_saber_color`,
   pulled toward grey), two planets ray-traced as spheres (a moon on `PLANET_BIG`, a ring on `PLANET_RINGED`, rims in
   `env_light`), `METEOR_COUNT` shooting stars, and the notes' source down -z: a white-hot core in an `env_light` glow.

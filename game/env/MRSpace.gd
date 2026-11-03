@@ -30,6 +30,9 @@ const DUST_SEED := 7
 const NOTE_PATH_HALF_WIDTH := 6.0
 const NOTE_PATH_Y := Vector2(-5.0, 30.0)
 const NOTE_PATH_REACH := 320.0
+## the sky's baked cube map: pixels along each face's side (a pixel spans about 0.18 degrees, the headset's about 0.05:
+## only soft layers are baked, the stars stay sharp and live)
+const BAKE_SIZE := 512
 
 ## Builds the sky, the cloud sea and the dust.
 func _ready() -> void:
@@ -45,7 +48,9 @@ func _ready() -> void:
 	sky.material_override = sky_material
 	sky.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	sky.extra_cull_margin = SKY_RADIUS
+	sky.hide()
 	add_child(sky)
+	_bake_sky(sky)
 	var sea := MonolithCloudSea.new()
 	sea.position.y = -SEA_DROP
 	sea.brightness = SEA_BRIGHTNESS
@@ -64,6 +69,40 @@ func _ready() -> void:
 	dust.material_override = dust_material
 	dust.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(dust)
+
+## Bakes the sky's fixed layers into the cube map its shader reads (MRSpaceSky.gdshader), one face a frame, then
+## shows `sky`.
+func _bake_sky(sky: MeshInstance3D) -> void:
+	var viewport := SubViewport.new()
+	viewport.size = Vector2i(BAKE_SIZE, BAKE_SIZE)
+	viewport.own_world_3d = true
+	viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	var camera := Camera3D.new()
+	viewport.add_child(camera)
+	var face := MeshInstance3D.new()
+	var quad := QuadMesh.new()
+	quad.size = Vector2(2.0, 2.0)
+	face.mesh = quad
+	# in front of the camera so it isn't culled; the shader places it over the whole screen
+	face.position = Vector3(0.0, 0.0, -1.0)
+	var bake_material := ShaderMaterial.new()
+	bake_material.shader = SKY_SHADER
+	face.material_override = bake_material
+	viewport.add_child(face)
+	add_child(viewport)
+	var images: Array[Image] = []
+	for i in 6:
+		bake_material.set_shader_parameter(&"bake_face", i)
+		viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+		await RenderingServer.frame_post_draw
+		images.append(viewport.get_texture().get_image())
+	viewport.queue_free()
+	var cube := Cubemap.new()
+	var error := cube.create_from_images(images)
+	assert(error == OK, "the sky's bake makes a cube map")
+	(sky.material_override as ShaderMaterial).set_shader_parameter(&"baked", cube)
+	sky.show()
+
 
 ## Where the dust points float: spread through the shell between DUST_NEAR and DUST_FAR, none in the notes' path.
 static func _dust_places() -> Array[Vector3]:
