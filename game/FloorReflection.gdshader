@@ -16,8 +16,8 @@ global uniform vec4 right_saber_color;
 uniform float floor_y = 0.0;
 // the depth-only pass: writes the reflections' depth and no colour
 uniform bool prepass = false;
-// how strong the reflection is at the deck's surface (owner, 2026-10-28: 0.3 too clear, 0.12 too faint, picked 0.275)
-const float STRENGTH = 0.275;
+// how strong the reflection is at the deck's surface (FloorReflection.gd: STRENGTH, or MIXED_REALITY_STRENGTH)
+uniform float strength = 0.275;
 // fade by depth: strongest where a note meets its reflection at the deck, falling off exponentially to about a fifth
 // at FADE_DEPTH metres under it; off: a gentle linear fade to nothing at FADE_DEPTH_LINEAR (the first version's)
 const bool DEPTH_FADE = true;
@@ -61,10 +61,9 @@ void fragment() {
 	ALBEDO = tint.rgb;
 	float depth_fade = DEPTH_FADE ? exp(-1.6 * below / FADE_DEPTH) : 1.0 - smoothstep(0.0, FADE_DEPTH_LINEAR, below);
 	float distance_fade = DISTANCE_FADE ? 1.0 - smoothstep(FADE_NEAR, FADE_FAR, away) : 1.0;
-	ALPHA = prepass ? 0.0 : STRENGTH * depth_fade * distance_fade;
-	// mixed reality: only beyond the room's walls, through a portal (Bored, 2026-11-03: in the room only the two light
-	// strips; portal_mask.gdshaderinc); last, after the derivatives
-	if (!portal_mask_through_any(CAMERA_POSITION_WORLD, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz)) {
+	ALPHA = prepass ? 0.0 : strength * depth_fade * distance_fade;
+	// mixed reality: beyond the room's walls, only through a portal (portal_mask.gdshaderinc); last, after the derivatives
+	if (!portal_mask_shows(CAMERA_POSITION_WORLD, (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz)) {
 		discard;
 	}
 }
