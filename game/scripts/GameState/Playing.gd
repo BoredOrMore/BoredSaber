@@ -94,12 +94,13 @@ func _process_map(game: BeepSaber_Game) -> void:
 		game.event_driver.process_event(Map.event_stack.pop_back() as EventInfo)
 
 ## Spawns the map's notes, bombs, walls, arcs and chains that are due by `current_beat` (within the jump's half,
-## Map.half_jump_beats, ahead; all but walls Cuttable.FLY_SECONDS more, to fly in), from the GlobalReferences pools. Shared with the stage preview
+## Map.half_jump_beats, ahead; all but walls outside mixed reality Cuttable.FLY_SECONDS more, to fly in), from the GlobalReferences pools. Shared with the stage preview
 ## (tools/capture/stage_capture.gd --notes).
 static func spawn_due(current_beat: float) -> void:
-	# notes, bombs, arcs and chains come FLY_SECONDS early to fly in (Cuttable.fly_offset); walls at their jump
-	var wall_ahead := current_beat + Map.half_jump_beats
-	var look_ahead := wall_ahead + Cuttable.FLY_SECONDS * Map.beats_per_second()
+	# notes, bombs, arcs and chains come FLY_SECONDS early to fly in (Cuttable.fly_offset); walls at their jump, but in
+	# mixed reality they fly in too (Wall._fly)
+	var look_ahead := current_beat + Map.half_jump_beats + Cuttable.FLY_SECONDS * Map.beats_per_second()
+	var wall_ahead := look_ahead if Settings.mixed_reality else current_beat + Map.half_jump_beats
 	
 	# chains connect to a regular colornote and modify it, so we have to keep
 	# track of what notes were spawned this frame, in case any become the head

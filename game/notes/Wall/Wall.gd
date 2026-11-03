@@ -3,6 +3,10 @@ class_name Wall
 
 var despawn_z: float
 var speed: float
+## In mixed reality walls fly in through the portal as notes do (Cuttable.fly_offset, by their near face), so none
+## appears in the room beside it (Bored, 2026-11-03); elsewhere they appear at their jump, as in Beat Saber.
+var _fly := false
+var _depth := 0.0
 ## the wall's look: FramedWall.gdshader on frame_mesh(), scaled to the wall
 const FRAMED_MATERIAL := preload("res://game/notes/Wall/framed_wall.tres")
 static var _frame_mesh: ArrayMesh
@@ -24,6 +28,8 @@ func _physics_process(delta: float) -> void:
 	if rz > despawn_z:
 		hide_pooled()
 		release()
+	elif _fly:
+		_apply_fly(rz)
 
 	#transform.origin.x += speed * delta * sin(rotation.y)
 	#transform.origin.z += speed * delta * cos(rotation.y)
@@ -32,6 +38,14 @@ func _physics_process(delta: float) -> void:
 	#if rz > despawn_z:
 	#	queue_free()
 	
+
+## Puts the wall's look where it flies in (its hitbox stays on the track), from `rz`, its place as _physics_process
+## measures it.
+func _apply_fly(rz: float) -> void:
+	var fly := Cuttable.fly_offset(-(rz - Constants.HIT_PLANE_Z + _depth))
+	($WallMeshOrientation/WallMesh as MeshInstance3D).position.z = -fly
+	if fly == 0.0:
+		_fly = false
 
 ## Hides the wall and stops its processing while it waits in the pool.
 func hide_pooled() -> void:
@@ -80,6 +94,12 @@ func spawn(wall_info: ObstacleInfo, current_beat: float) -> void:
 	rotation.y = -wall_info.rotation
 	
 	speed = Map.beat_distance * Map.beats_per_second()
+	_depth = depth
+	mesh.position.z = 0.0
+	_fly = Settings.mixed_reality
+	if _fly:
+		_apply_fly((transform.origin - Vector3(0.0, 0.0, Constants.LANE_PIVOT_Z)).dot(transform.basis.z)
+			+ Constants.LANE_PIVOT_Z + Constants.HIT_PLANE_Z)
 	($AnimationPlayer as AnimationPlayer).play(&"Spawn")
 
 ## A wall standing on the track's level with part of it over the curb beside the deck (TrackDeck: outside the lanes, a
