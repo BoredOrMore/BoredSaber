@@ -51,5 +51,13 @@ func _ready() -> void:
 	for text: String in close:
 		check(BeatSaverPanel.close_query(text) == close[text], "close_query(%s) is %s (got %s)" % [
 				text, close[text], BeatSaverPanel.close_query(text)])
+	# the song menu's A–Z order: case ignored, numbers in number order, the artist breaking ties
+	var shuffled: Array[MapInfo] = [song("banana", "B"), song("10 Years", "A"), song("Apple", "Z"), song("apple", "A"),
+		song("2 Fast", "A"), song("うっせぇわ", "Ado")]
+	shuffled.sort_custom(MainMenu.by_song_name)
+	var order := shuffled.map(func(map: MapInfo) -> String: return "%s/%s" % [map.song_name, map.song_author_name])
+	check(order == ["2 Fast/A", "10 Years/A", "apple/A", "Apple/Z", "banana/B", "うっせぇわ/Ado"], "A–Z order (got %s)" % [order])
+	var initials := shuffled.map(MainMenu.initial)
+	check(initials == ["#", "#", "A", "A", "B", "#"], "letters for the stick's jumps (got %s)" % [initials])
 	print("%d failures" % failures)
 	get_tree().quit(1 if failures > 0 else 0)

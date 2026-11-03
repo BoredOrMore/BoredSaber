@@ -70,7 +70,7 @@ var current_selected := -1
 var _shown_map: MapInfo
 
 enum PlaylistOptions {
-	AllSongs,
+	AllSongs, # every song A–Z by name (owner, 2026-11-04: the default, so a song's place can be guessed)
 	RecentlyAdded,
 	MostPlayed
 }
@@ -170,8 +170,8 @@ func _sort_songs() -> void:
 			
 	var songs_with_modify_times: Array[MapInfoWithSort] = []
 	var songs_with_play_count: Array[MapInfoWithSort] = []
-	var songs_favorite: Array[MapInfo] = []
-	var songs_unfavorite: Array[MapInfo] = []
+	var songs_by_name := _all_songs.duplicate()
+	songs_by_name.sort_custom(by_song_name)
 	for song in _all_songs:
 		var song_path := song.filepath
 		var modified_time := FileAccess.get_modified_time(song_path)
@@ -180,9 +180,6 @@ func _sort_songs() -> void:
 		if favorite:
 			modified_time |= FAVORITE_MASK
 			play_count |= FAVORITE_MASK
-			songs_favorite.append(song)
-		else:
-			songs_unfavorite.append(song)
 		songs_with_modify_times.append(MapInfoWithSort.new(modified_time, song))
 		songs_with_play_count.append(MapInfoWithSort.new(play_count, song))
 	
@@ -195,10 +192,7 @@ func _sort_songs() -> void:
 		_recently_added_songs.append(song.info)
 	for song in songs_with_play_count:
 		_most_played_songs.append(song.info)
-	for song in songs_favorite:
-		_all_songs.append(song)
-	for song in songs_unfavorite:
-		_all_songs.append(song)
+	_all_songs.append_array(songs_by_name)
 		
 	refresh_playlist()
 	# reselecting the same song keeps whatever preview is playing (maybe a BeatSaver one fading out)
@@ -218,6 +212,17 @@ func _sort_songs() -> void:
 				break
 	_songs_loaded = true
 	
+## The A–Z order: by song name, ignoring case, numbers in number order ("2" before "10"); the artist breaks ties.
+static func by_song_name(a: MapInfo, b: MapInfo) -> bool:
+	var order := a.song_name.naturalnocasecmp_to(b.song_name)
+	return order < 0 if order != 0 else a.song_author_name.naturalnocasecmp_to(b.song_author_name) < 0
+
+## The letter a song files under in the A–Z order: its name's first letter, or "#" for a digit, a symbol or another
+## script (kana, kanji), which the thumbstick's letter jumps treat as one group.
+static func initial(map: MapInfo) -> String:
+	var first := map.song_name.strip_edges().left(1).to_upper()
+	return first if first.length() == 1 and first >= "A" and first <= "Z" else "#"
+
 func _load_playlists() -> void:
 	#copy sample songs to main playlist folder on first run
 	if _currently_selected_songlist_ref != null and current_selected >= 0:
@@ -748,7 +753,7 @@ func _ready() -> void:
 	UI_AudioEngine.attach_children(self)
 	
 	playlist_selector.clear()
-	playlist_selector.add_item("All songs")
+	playlist_selector.add_item("A–Z")
 	playlist_selector.add_item("Newest")
 	playlist_selector.add_item("Most played")
 	favorites_filter.set_pressed_no_signal(Settings.song_filter_favorites)
