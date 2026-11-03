@@ -1,5 +1,8 @@
 shader_type spatial;
-render_mode unshaded, fog_disabled, shadows_disabled, cull_front, depth_draw_never;
+render_mode unshaded, fog_disabled, shadows_disabled, cull_front;
+// It writes depth like any opaque surface: with depth_draw_never Godot drew it in the transparent pass, sorted by its
+// centre (the room) after the walls and arcs, so it painted over them (Bored, 2026-11-03: walls and arcs vanished in
+// the portal; seen in tools/capture renders too).
 
 // The sky of the mixed-reality world behind the room's portals (MRSpace.gd; owner, 2026-11-02: "the room floats in
 // space", concept C, then three reference pictures): black space, stars worked out from the view direction, a faint
