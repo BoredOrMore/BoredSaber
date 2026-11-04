@@ -288,7 +288,8 @@ Air
 - Canyon fog is per vertex: `NightCityRig` cuts boxes at `FOG_CUTS` heights so faces have vertices where fog changes.
 - `LightRig.apply` hides beam meshes (not holders) on Metal Factory: holders' visibility belongs to the light events.
 - Sky sphere scale: 9.5x on Classic/Neon Grid/Pulse Void/canyon so far structure isn't clipped (camera far 1024 m).
-- GPU budget 13.9 ms at 72 Hz (`.github/AGENTS.md`); compare `FrmGpu` before/after any scenery or shader change.
+- GPU budget 13.9 ms at 72 Hz (`.github/AGENTS.md`); compare `FrmGpu` and its `Mcyc` (the clock drops while there is
+  room) before/after any scenery or shader change. Foveation saves nothing on the Pico (root `AGENTS.md`).
 
 ## Where to change X
 

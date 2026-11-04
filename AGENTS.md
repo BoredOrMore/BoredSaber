@@ -281,6 +281,11 @@ Found from headset logs on Pico OS 5.12 (OpenXR runtime 2.1.12); don't undo them
 - `xr/openxr/target_api_version` stays `1.0.0`, and the Pico profiles in `openxr_action_map.tres` must not bind
   `grip_surface/pose`: the runtime rejects the path and drops the whole profile, so the controllers stop tracking.
 - Builds are signed with `.github/debug.keystore` so new APKs install over old ones; don't regenerate it.
+- Foveation saves nothing here: OpenXR's foveation levels 0-3 measure the same GPU time at the same clock, in the menu
+  and in a song, every time the owner and the bench measured (`tools/bench.sh` full run, 2026-11-04); Godot's
+  foveation needs Vulkan, which the Pico can't run. Don't propose or tune foveation to save GPU time.
+- The GPU's governor lowers its clock while there is room (about 85% busy), so GPU ms barely moves when work shrinks:
+  compare benchmark phases by `Mcyc` (ms x clock, `tools/bench_report.py`), not by ms alone.
 
 ## Checking a change
 
