@@ -54,6 +54,7 @@ func _ready() -> void:
 			"the live grade starts at F and climbs a step every 5 notes, never above the accuracy's grade")
 	await check_fade_out()
 	check_outlines()
+	check_percent()
 	check_turn()
 	check_follow()
 	check_raised()
@@ -138,6 +139,31 @@ func check_outlines() -> void:
 			check(ok and around.length() < 0.0001, "%s: %d black copies of its text behind it, around it, %s" % [
 					label.name, copies.size(), "shown in mixed reality" if on else "hidden outside it"])
 	Settings.mixed_reality = mixed
+	hud.queue_free()
+	for node: Node in [point_label, combo, percent]:
+		node.queue_free()
+
+## Builds a HUD from stand-ins: its percent is the accuracy so far (points over the most the notes so far could give),
+## in a song and in practice alike, not how far through the song it is.
+func check_percent() -> void:
+	var point_label := MeshInstance3D.new()
+	point_label.mesh = TextMesh.new()
+	point_label.material_override = StandardMaterial3D.new()
+	var combo := ComboHud.new()
+	combo.mesh = TextMesh.new()
+	combo.material_override = StandardMaterial3D.new()
+	var percent := preload("res://game/hud/PercentIndicator.tscn").instantiate() as PercentIndicator
+	for node: Node in [point_label, combo, percent]:
+		add_child(node)
+	var hud := Hud.new(point_label, combo, percent)
+	add_child(hud)
+	var practice := Map.practice
+	for on: bool in [false, true]:
+		Map.practice = on
+		hud.show_points(1000, 10, 200, 0.934)
+		var shown := (hud._accuracy_label.mesh as TextMesh).text
+		check(shown == "93.4%", "%s the percent is the accuracy so far (got %s)" % ["in practice" if on else "in a song", shown])
+	Map.practice = practice
 	hud.queue_free()
 	for node: Node in [point_label, combo, percent]:
 		node.queue_free()

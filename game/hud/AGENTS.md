@@ -36,10 +36,12 @@ arrangement (owner, 2026-10-27).
   constants (`HUD_*`: letters' height in metres in `.z`, position on the panel in `.x/.y`); makes the caption,
   accuracy, grade and time labels as copies of the score's `TextMesh`; numbers in `NUMBER_FONT` (Kanit SemiBold
   Italic, owner 2026-10-28); `_grouped` puts commas in every score and count ("236,336"); `show_points` formats score,
-  time as played / length, the percent "%.1f%%" from `Scoreboard.song_progress()` (points over the whole song's best,
-  climbing from 0%; owner 2026-10-30), grade from the accuracy via `EndScore.grade` in `Constants.RANK_COLORS`.
+  time as played / length, the percent "%.1f%%" from `Scoreboard.accuracy()` (Beat Saber's live relative score:
+  points over the most the notes so far could have given at an unbroken combo, 100% before the first note; owner
+  2026-11-04, replacing the percent that climbed from 0 through the song), grade from the accuracy via `EndScore.grade`
+  in `Constants.RANK_COLORS` (still climbing from F over its opening `GRADE_RAMP_NOTES` steps).
   Practice (`Map.practice`, `_set_practice`): the accuracy alone, as "%.1f%%" at the score's place and size (owner's
-  choice 3A, 2026-10-30; a part, so the accuracy and not the climbing percent); score, combo, ring, grade, caption,
+  choice 3A, 2026-10-30); score, combo, ring, grade, caption,
   time and the far energy bar hidden.
   Mixed reality (owner, 2026-11-04: the HUD was hard to read against the room; a black outline on the text, not a
   panel behind it): every text, the multiplier in the ring too, gets `OUTLINE_COPIES` black copies sharing its
