@@ -86,7 +86,7 @@ Run: `blender -b -P tools/models/<script>.py -- game/models` (`OUT_DIR` = first 
   logcat to `bench.log` (or `[log]`), runs `bench_report.py`. Game must be open in the song menu; headset worn or
   proximity sensor covered. Modes match `game/Benchmark.gd:27-47`.
 - `bench_report.py <log>` (or stdin): per-phase GPU ms/median/p95/max, missed frames, seconds over budget, CPU,
-  temp, from `BENCH start/end` + PxrMetric lines.
+  temp, GPU clock and Mcyc (ms x clock: the governor lowers the clock when there is room, so compare by Mcyc), from `BENCH start/end` + PxrMetric lines.
 - `check_agent_docs.py`: exits 1 listing every tracked `.gd/.tscn/.gdshader/.gdshaderinc` under `game/`, `tests/`,
   `tools/` (asset_pipeline skipped) whose stem+extension is not in its nearest non-root `AGENTS.md`. Currently
   untracked and not called from `.github/workflows/`.

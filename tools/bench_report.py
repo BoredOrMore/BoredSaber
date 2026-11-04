@@ -5,6 +5,9 @@ Matches the game's "BENCH start/end <phase>" lines to the headset's once-a-secon
 PxrMetric gives per-second averages ("FPS=shown/target"), so "missed" is the share of the target frames a second
 that were not shown (its FrmEarly/FrmLate counts are mostly 0 and say little), and "s over" is the share of seconds
 whose average FrmGpu was over the frame budget at that second's target rate (13.9 ms at 72 Hz, 11.1 ms at 90).
+The GPU's governor lowers its clock while there is room (keeping it about 85% busy), so FrmGpu stays near the same
+ms when the work shrinks; "Mcyc" (FrmGpu x the clock, millions of GPU cycles a frame) and "MHz" show the work itself.
+Compare phases by Mcyc (bench, 2026-11-04: 12.0 ms at 587 MHz against 10.3 ms at 538 MHz was 7.0 against 5.5 Mcyc).
 Usage: tools/bench_report.py bench.log
 """
 import re
@@ -40,11 +43,13 @@ def main(path):
         m = metric.search(line)
         if m and "Pkg=" + PKG in line:
             temp = re.search(r"GPUTemp=([\d.]+)C", line)
-            samples.append((t, int(m[1]), int(m[2]), float(m[3]), float(m[4]), float(temp[1]) if temp else 0.0))
+            clock = re.search(r"GPU=\d+%/(\d+)Mhz", line)
+            samples.append((t, int(m[1]), int(m[2]), float(m[3]), float(m[4]), float(temp[1]) if temp else 0.0,
+                            float(clock[1]) if clock else 0.0))
     if not phases:
         sys.exit("no BENCH phases in " + path)
     medians = {}
-    print(f"{'phase':28} {'GPU ms':>7} {'median':>6} {'p95':>6} {'max':>6} {'missed':>7} {'s over':>7} {'CPU ms':>7} {'temp':>5} {'n':>3}")
+    print(f"{'phase':28} {'GPU ms':>7} {'median':>6} {'p95':>6} {'max':>6} {'missed':>7} {'s over':>7} {'CPU ms':>7} {'temp':>5} {'MHz':>4} {'Mcyc':>5} {'n':>3}")
     for name, start, end in phases:
         rows = [s for s in samples if start + SKIP_SECONDS <= s[0] <= end]
         if not rows:
@@ -57,7 +62,9 @@ def main(path):
         ordered = sorted(gpu)
         median = ordered[len(ordered) // 2]
         p95 = ordered[min(len(ordered) - 1, int(len(ordered) * 0.95))]
-        print(f"{name:28} {sum(gpu) / len(gpu):7.2f} {median:6.2f} {p95:6.2f} {max(gpu):6.2f} {late:6.1f}% {over:6.0f}% {cpu:7.2f} {rows[-1][5]:5.1f} {len(rows):3}")
+        mhz = sum(r[6] for r in rows) / len(rows)
+        cycles = sum(r[4] * r[6] for r in rows) / len(rows) / 1000
+        print(f"{name:28} {sum(gpu) / len(gpu):7.2f} {median:6.2f} {p95:6.2f} {max(gpu):6.2f} {late:6.1f}% {over:6.0f}% {cpu:7.2f} {rows[-1][5]:5.1f} {mhz:4.0f} {cycles:5.2f} {len(rows):3}")
         medians[name] = median
     # a phase between two no-glow phases (glowb): its median against theirs, the headset's warming taken out
     names = [name for name, _, _ in phases]
