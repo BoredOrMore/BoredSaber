@@ -52,6 +52,8 @@ var _shockwave_tween: Tween
 ## the multiplier in its filling ring; the game moves it to the right of the view, apart from the combo count
 var ring: MeshInstance3D
 var _multiplier_mesh: TextMesh
+## the multiplier's text in the ring (Hud outlines it in mixed reality)
+var multiplier_label: MeshInstance3D
 var _multiplier_material: BaseMaterial3D
 var _shown_multiplier := 1
 var _segments := 2.0
@@ -96,7 +98,7 @@ func _ready() -> void:
 	ring.layers = layers
 	add_child(ring)
 
-	var multiplier_label := MeshInstance3D.new()
+	multiplier_label = MeshInstance3D.new()
 	_multiplier_mesh = TextMesh.new()
 	_multiplier_mesh.font = Hud.NUMBER_FONT
 	_multiplier_mesh.font_size = 100

@@ -41,10 +41,10 @@ arrangement (owner, 2026-10-27).
   Practice (`Map.practice`, `_set_practice`): the accuracy alone, as "%.1f%%" at the score's place and size (owner's
   choice 3A, 2026-10-30; a part, so the accuracy and not the climbing percent); score, combo, ring, grade, caption,
   time and the far energy bar hidden.
-  Mixed reality (owner, 2026-11-04: the HUD was hard to read against the room): a dark plate (`UI_PANEL` at
-  `PLATE_OPACITY`) behind each panel, one behind the far cluster (`_fit_plates`, at each `place`), sized round the
-  shown lines filled with their widest text (`WIDEST_*`, the largest grade size) so it never jumps as the score grows,
-  `PLATE_MARGIN` score letters round them and `PLATE_BEHIND` behind; fades with the HUD. Untuned.
+  Mixed reality (owner, 2026-11-04: the HUD was hard to read against the room; a black outline on the text, not a
+  panel behind it): every text, the multiplier in the ring too, gets `OUTLINE_COPIES` black copies sharing its
+  `TextMesh` (so they follow its text and size), `OUTLINE_WIDTH` of its letter height round it and `OUTLINE_BEHIND`
+  behind (`_add_outline`, placed and shown by `_place_outlines` at each `place`); they fade with the HUD. Untuned.
 - `ComboHud.gd` (class `ComboHud`, on `Multiplier_Label`): combo count, the multiplier ring (`ring`, reparented onto
   the right panel by `Hud`), raise flash, broken-combo shake and tint, `milestone_reached` (50, then every 100).
   `rest_at(at)` sets where the shake returns; `set_multiplier_height(h)` sizes the multiplier in the ring.

@@ -53,7 +53,7 @@ func _ready() -> void:
 			and Hud.shown_grade(1.0, 30) == "SS" and Hud.shown_grade(0.7, 100) == "A" and Hud.shown_grade(0.7, 10) == "C",
 			"the live grade starts at F and climbs a step every 5 notes, never above the accuracy's grade")
 	await check_fade_out()
-	check_plates()
+	check_outlines()
 	check_turn()
 	check_follow()
 	check_raised()
@@ -107,9 +107,9 @@ func check_fade_out() -> void:
 			"after the fade the energy strips are hidden and whole again for the next song")
 	rails.queue_free()
 
-## Builds a HUD from stand-ins: in mixed reality a plate behind each panel covers every line at its widest text; outside
-## it the plates are hidden.
-func check_plates() -> void:
+## Builds a HUD from stand-ins: in mixed reality every text has a black outline of copies sharing its text, around it
+## and behind it; outside it the outlines are hidden.
+func check_outlines() -> void:
 	var point_label := MeshInstance3D.new()
 	point_label.mesh = TextMesh.new()
 	point_label.material_override = StandardMaterial3D.new()
@@ -122,27 +122,21 @@ func check_plates() -> void:
 	var hud := Hud.new(point_label, combo, percent)
 	add_child(hud)
 	var mixed: bool = Settings.mixed_reality
-	Settings.mixed_reality = true
-	hud.place()
-	var widest := {point_label: Hud.WIDEST_SCORE, combo: Hud.WIDEST_COMBO, hud._accuracy_label: Hud.WIDEST_PERCENT,
-			hud._grade_label: Hud.WIDEST_GRADE, hud._time_label: Hud.WIDEST_TIME}
-	for label: MeshInstance3D in widest:
-		(label.mesh as TextMesh).text = widest[label]
-	hud._grade_label.scale = Vector3.ONE * float(Hud.GRADE_SIZES.values().max())
-	for side: Array in [[hud._left_plate, hud._left, [hud._caption, combo, point_label, hud._accuracy_label,
-			hud._grade_label]], [hud._right_plate, hud._right, [combo.ring, hud._time_label]]]:
-		var plate := side[0] as MeshInstance3D
-		var panel := side[1] as Node3D
-		var plate_box := (panel.global_transform.affine_inverse() * plate.global_transform) * plate.get_aabb()
-		check(plate.visible and plate.position.z < 0.0, "in mixed reality the plate shows behind %s's lines" % panel.name)
-		for line: MeshInstance3D in side[2]:
-			var box := (panel.global_transform.affine_inverse() * line.global_transform) * line.get_aabb()
-			check(box.position.x >= plate_box.position.x and box.end.x <= plate_box.end.x
-					and box.position.y >= plate_box.position.y and box.end.y <= plate_box.end.y,
-					"the plate covers %s at its widest (line %s, plate %s)" % [line.name, box, plate_box])
-	Settings.mixed_reality = false
-	hud.place()
-	check(not hud._left_plate.visible and not hud._right_plate.visible, "outside mixed reality the plates are hidden")
+	var labels: Array[MeshInstance3D] = [point_label, combo, hud._caption, hud._accuracy_label, hud._grade_label,
+			hud._time_label, combo.multiplier_label]
+	for on: bool in [true, false]:
+		Settings.mixed_reality = on
+		hud.place()
+		for label in labels:
+			var copies := label.get_children().filter(func(n: Node) -> bool: return n.name.begins_with("Outline"))
+			var around := Vector2.ZERO
+			var ok := copies.size() == Hud.OUTLINE_COPIES
+			for copy: MeshInstance3D in copies:
+				ok = ok and copy.visible == on and copy.mesh == label.mesh and copy.position.z < 0.0 \
+						and (copy.material_override as BaseMaterial3D).albedo_color == Color.BLACK
+				around += Vector2(copy.position.x, copy.position.y)
+			check(ok and around.length() < 0.0001, "%s: %d black copies of its text behind it, around it, %s" % [
+					label.name, copies.size(), "shown in mixed reality" if on else "hidden outside it"])
 	Settings.mixed_reality = mixed
 	hud.queue_free()
 	for node: Node in [point_label, combo, percent]:

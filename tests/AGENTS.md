@@ -60,8 +60,8 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
   eye 1.5-1.75 m, Beat Saber's text sizes, parts laid out on it; Standard keeps the side panels); the HUD's panels
   placed from the player's eye (`Hud._panel`): the same angle and distance
   for any eye, facing it, grown by distance, turned out to clear the lanes on Wide 200%; `Hud.turn` takes the panels and
-  the score round the player with the track and back; in mixed reality the plates behind the panels cover every line
-  at its widest text and sit behind it, hidden otherwise.
+  the score round the player with the track and back; in mixed reality every text has its black outline (copies of
+  its text around and behind it), hidden otherwise.
 - `test_show_intensity.tscn` / `.gd` - checks `EventDriver.intensity_curve` (the build-up of the stage): a calm part
   low and a dense part high, values in 0..1, no curve without light events, finite values for a flat light show; the
   track's turn on 90/360 maps (`EventDriver.Turn`): eased in and out over `TRACK_TURN_TIME`, keeping its speed when a
