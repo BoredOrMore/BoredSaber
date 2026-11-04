@@ -46,18 +46,23 @@
 //      melts into the sky over SHELL_BLUR_ANGLE, as distant things blur in the air, with no read of the screen (rule
 //      10). Its colour is the box's own at the outline (a side face's form). Nothing from SHELL_NEAR in, full at
 //      SHELL_FAR. Boxes only (BoxMesh, scaled and turned, not sheared)
+//   11. portal mask (PORTAL_MASK: the track's pieces, TrackDeck, the only scenery mixed reality shows): drops what the
+//      room's walls hide (portal_mask.gdshaderinc). Only there, as the discard it needs stops the GPU's early depth test
+//      for the whole material
 // The scene has no real lights (AGENTS.md "Light", rule 10), so layers 2-4 are faked here. Everything but the edge's
 // falloff is worked out per vertex: the faces are flat, so per pixel would give the same picture. Values untuned.
 // Each stage's shader (EnvSolid*.gdshader) defines only the layers it uses, so the GPU runs none of the others: one
 // shader with them all cost Night City ~4 ms and Metal Factory ~3 ms a frame (bench, 2026-10-26). RING: 4;
-// VENTS: 6; METAL: 8; CANYON: 2b and 5b, with WINDOWS 9; SHELL: 10. A layer left out is the same as its uniforms at their off values.
+// VENTS: 6; METAL: 8; CANYON: 2b and 5b, with WINDOWS 9; SHELL: 10; PORTAL_MASK: 11. A layer left out is the same as its uniforms at their off values.
 
 global uniform vec4 env_haze;
 global uniform vec4 env_light;
+#ifdef PORTAL_MASK
 #include "res://game/env/portal_mask.gdshaderinc"
 // mixed reality: true for what runs into the room from a portal (the track's curbs, TrackDeck), false for what shows
 // only through one
 uniform bool portal_room_side = false;
+#endif
 #include "res://game/env/fog_light.gdshaderinc"
 #include "res://game/env/height_fog.gdshaderinc"
 // DebugView.RINGS leaves these out (no area, so nothing is drawn); DebugView.FLAT_SCENERY draws them one flat colour
@@ -419,11 +424,13 @@ void fragment() {
 	ALPHA = 1.0 - smoothstep(0.0, blur, gap);
 	ALBEDO = mix(ALBEDO, shell_color.rgb, shell_color.a);
 #endif
-	// mixed reality: only beyond the room's walls, through a portal, except the curbs, which run into the room with
+#ifdef PORTAL_MASK
+	// 11. mixed reality: only beyond the room's walls, through a portal, except the curbs, which run into the room with
 	// their light strips (Bored, 2026-11-03; portal_mask.gdshaderinc); last, after the derivatives
 	vec3 world_point = (INV_VIEW_MATRIX * vec4(VERTEX, 1.0)).xyz;
 	if (!(portal_room_side ? portal_mask_shows(CAMERA_POSITION_WORLD, world_point)
 			: portal_mask_through_any(CAMERA_POSITION_WORLD, world_point))) {
 		discard;
 	}
+#endif
 }
