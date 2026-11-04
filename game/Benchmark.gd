@@ -78,7 +78,9 @@ const MR_PARTS := [["sky", DebugView.MR_NO_SKY], ["sea", DebugView.MR_NO_SEA], [
 	["sky_stars", DebugView.MR_SKY_NO_STARS], ["sky_meteors", DebugView.MR_SKY_NO_METEORS],
 	["sky_planets", DebugView.MR_SKY_NO_PLANETS], ["sky_glow", DebugView.MR_SKY_NO_GLOW],
 	["sky_baked", DebugView.MR_SKY_NO_BAKED], ["sky_live", DebugView.MR_SKY_NO_STARS | DebugView.MR_SKY_NO_METEORS
-		| DebugView.MR_SKY_NO_PLANETS | DebugView.MR_SKY_NO_GLOW | DebugView.MR_SKY_NO_BAKED], ["sky_flat", DebugView.MR_SKY_FLAT]]
+		| DebugView.MR_SKY_NO_PLANETS | DebugView.MR_SKY_NO_GLOW | DebugView.MR_SKY_NO_BAKED], ["sky_flat", DebugView.MR_SKY_FLAT],
+	["sky_flat_no_world", DebugView.MR_SKY_FLAT | DebugView.MR_NO_SEA | DebugView.MR_NO_DUST],
+	["sky_flat_no_stencil", DebugView.MR_SKY_FLAT | DebugView.MR_SKY_NO_STENCIL]]
 ## True once the mr mode turned mixed reality on, so the end of the run turns it off again.
 var _turned_on_mr := false
 const STAGE_SECONDS := 6.0

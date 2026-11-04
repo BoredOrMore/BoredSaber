@@ -40,8 +40,10 @@ const MR_SKY_NO_BAKED := 67108864
 ## Not read by shaders, benchmark only: the sky's windows drawn with its fragment cut short at compile time (a flat
 ## colour, same window, depth and stencil), since a uniform branch may still run what it skips (MRSpace.show_parts).
 const MR_SKY_FLAT := 134217728
+## With MR_SKY_FLAT: the flat sky without its stencil mark (the cloud sea and dust, which draw only where it is, vanish).
+const MR_SKY_NO_STENCIL := 268435456
 const EXTRAS := HIDE_SABERS | HIDE_CUT_FLASH | GLOW_OFF | MSAA_OFF | GLOW_SOFT | MR_NO_SKY | MR_NO_SEA | MR_NO_DUST \
-	| MR_SKY_FLAT
+	| MR_SKY_FLAT | MR_SKY_NO_STENCIL
 ## Not read by shaders: while on, a song steps through CYCLE_STEPS by itself (cycle_tick), so one run measures
 ## every part; the log line "debug_view N" marks each step for matching with the headset's GPU timings.
 const CYCLE := 1024
@@ -114,7 +116,7 @@ static func apply(game: BeepSaber_Game) -> void:
 	game._apply_glow()
 	game.get_viewport().msaa_3d = Viewport.MSAA_DISABLED if extras & MSAA_OFF else Settings.msaa_mode()
 	MixedReality.show_space_parts(extras & MR_NO_SKY == 0, extras & MR_NO_SEA == 0, extras & MR_NO_DUST == 0,
-		extras & MR_SKY_FLAT != 0)
+		extras & MR_SKY_FLAT != 0, extras & MR_SKY_NO_STENCIL != 0)
 
 ## The flag file (in the app data folder, put there over adb) that starts the cycle at the next song: one real song
 ## measured part by part, each step logged as "debug_view N" to match with the headset's GPU timings.
