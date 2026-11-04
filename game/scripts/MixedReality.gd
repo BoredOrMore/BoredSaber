@@ -175,10 +175,11 @@ func _show_portals(portals: Array) -> void:
 	_space.show()
 
 
-## Shows or hides the world behind the portals' sky, cloud sea and dust (DebugView's mixed-reality switches).
-func show_space_parts(sky: bool, sea: bool, dust: bool) -> void:
+## Shows or hides the world behind the portals' sky, cloud sea and dust, and draws the sky flat (DebugView's
+## mixed-reality switches).
+func show_space_parts(sky: bool, sea: bool, dust: bool, flat_sky: bool) -> void:
 	if _space:
-		_space.show_parts(sky, sea, dust)
+		_space.show_parts(sky, sea, dust, flat_sky)
 
 
 ## Opens the portal floating ahead of the player along the track, for when there is no room scan.

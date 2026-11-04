@@ -32,6 +32,8 @@ const BAKE_SIZE := 512
 
 ## The sky's material, its windows (one per portal, show_windows), the cloud sea and the dust.
 var _sky_material: ShaderMaterial
+## The sky cut down to a flat colour, made the first time DebugView asks for it (show_parts).
+var _flat_sky_material: ShaderMaterial
 var _windows: Array[MeshInstance3D] = []
 var _window_count := 0
 var _sea: MonolithCloudSea
@@ -127,10 +129,19 @@ func _show_sky() -> void:
 		_windows[i].visible = i < _window_count and _baked and _sky_wanted
 
 
-## Shows or hides the sky (once baked), the cloud sea and the dust, to measure each one's cost (DebugView).
-func show_parts(sky: bool, sea: bool, dust: bool) -> void:
+## Shows or hides the sky (once baked), the cloud sea and the dust, and draws the sky flat, to measure each one's cost
+## (DebugView).
+func show_parts(sky: bool, sea: bool, dust: bool, flat_sky: bool) -> void:
 	_sky_wanted = sky
 	_show_sky()
+	if flat_sky and not _flat_sky_material:
+		var flat := Shader.new()
+		# the fragment is the shader's last function: its body goes under a constant false, which the compiler drops
+		flat.code = SKY_SHADER.code.replace("void fragment() {", "void fragment() {\n\tALBEDO = vec3(0.05);\n\tif (false) {") + "}\n"
+		_flat_sky_material = ShaderMaterial.new()
+		_flat_sky_material.shader = flat
+	for window in _windows:
+		window.material_override = _flat_sky_material if flat_sky else _sky_material
 	_sea.visible = sea
 	_dust.visible = dust
 
