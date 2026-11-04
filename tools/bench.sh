@@ -13,6 +13,8 @@
 # simulation's CPU as "BENCH sparks cpu"), twice (about 1.5 minutes).
 # --only parts: the player's stage in a song with each part left out in turn (walls, notes plain, lasers, rings, scenery
 # flat, sky, dust, sabers, reflection, glow, MSAA), all on first, half way and last (about 4 minutes).
+# --only mr: mixed reality on (the portal floats ahead) in a song with each part left out in turn (the world behind the
+# portal: sky, cloud sea, dust, all three; reflection, notes plain, walls, sabers), all on first and last (about 2.5 minutes).
 # --only reflection: Classic in a song: the floor reflection on and off (twice), the build-up sweep held on (about 2 minutes).
 set -e
 MODE=

@@ -68,6 +68,15 @@ const PARTS := [["walls", DebugView.WALLS], ["plain_notes", DebugView.PLAIN_NOTE
 	["rings", DebugView.RINGS], ["flat_scenery", DebugView.FLAT_SCENERY], ["sky", DebugView.SKY], ["dust", DebugView.DUST],
 	["sabers", DebugView.HIDE_SABERS], ["reflection", DebugView.NO_REFLECTION], ["glow", DebugView.GLOW_OFF],
 	["msaa", DebugView.MSAA_OFF]]
+## The flag file's mode for mixed reality's parts (tools/bench.sh --only mr): mixed reality turned on for the whole run
+## (the portal floats ahead, no room scan) and, in a song, each of MR_PARTS left out in turn (DebugView's mixed-reality
+## cycle), all on first and last, PARTS_SONG_SECONDS each; mixed reality is put back at the end.
+const MR_MODE := "mr"
+const MR_PARTS := [["sky", DebugView.MR_NO_SKY], ["sea", DebugView.MR_NO_SEA], ["dust", DebugView.MR_NO_DUST],
+	["world", DebugView.MR_NO_SKY | DebugView.MR_NO_SEA | DebugView.MR_NO_DUST], ["reflection", DebugView.NO_REFLECTION],
+	["notes_plain", DebugView.PLAIN_NOTES], ["walls", DebugView.WALLS], ["sabers", DebugView.HIDE_SABERS]]
+## True once the mr mode turned mixed reality on, so the end of the run turns it off again.
+var _turned_on_mr := false
 const STAGE_SECONDS := 6.0
 const HITCH_SECONDS := 0.025
 var _hitch_phase := ""
@@ -160,6 +169,13 @@ func _stage_parts(off: String) -> void:
 	var views := {"scenery": DebugView.RINGS, "shading": DebugView.FLAT_SCENERY}
 	RenderingServer.global_shader_parameter_set(&"debug_view", views.get(off, 0))
 
+## Turns mixed reality on for the mr mode's phases, once.
+func _mixed_reality_on() -> void:
+	if not Settings.mixed_reality:
+		_turned_on_mr = true
+		Settings.mixed_reality = true
+		MixedReality.set_mixed_reality(true)
+
 ## Shows stage `id` in the song menu and logs the phase's long frames under `phase_name` (the stages mode).
 func _show_stage(id: String, phase_name: String) -> void:
 	_hitch_phase = phase_name
@@ -187,7 +203,7 @@ func _fire_cuts(t: float) -> void:
 ## alone.
 func _set_debug_bits(bits: int) -> void:
 	var mask := DebugView.NO_REFLECTION | DebugView.FORCE_SWEEP
-	for part: Array in PARTS:
+	for part: Array in PARTS + MR_PARTS:
 		mask |= part[1] as int
 	if DebugView.flags & mask != bits:
 		DebugView.flags = (DebugView.flags & ~mask) | bits
@@ -262,6 +278,17 @@ func _phases(mode: String) -> Array:
 		for step: Array in steps:
 			var bits: int = step[1]
 			phases.append(["%s_song" % step[0], func(_t: float) -> void: _set_debug_bits(bits), Callable(),
+				PARTS_SONG_SECONDS, true])
+		return phases
+	if mode == MR_MODE:
+		var steps := [["mr_all_on", 0]]
+		for part: Array in MR_PARTS:
+			steps.append(["mr_no_" + part[0], part[1]])
+		steps.append(["mr_all_on_last", 0])
+		var phases := []
+		for step: Array in steps:
+			var bits: int = step[1]
+			phases.append(["%s_song" % step[0], func(_t: float) -> void: _set_debug_bits(bits), _mixed_reality_on,
 				PARTS_SONG_SECONDS, true])
 		return phases
 	if mode == STAGES:
@@ -425,6 +452,9 @@ func run(mode := "") -> void:
 	LowResGlow.upsample = "pass"
 	game._apply_glow()
 	game.get_viewport().msaa_3d = Settings.msaa_mode()
+	if _turned_on_mr:
+		Settings.mixed_reality = false
+		MixedReality.set_mixed_reality(false)
 	Settings.save()
 	DirAccess.remove_absolute(Constants.APPDATA_PATH + BACKUP_FILE)
 	# the render scale only at the end: each change makes the runtime remake its eye buffers
