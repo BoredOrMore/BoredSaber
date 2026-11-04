@@ -53,6 +53,7 @@ func _ready() -> void:
 			and Hud.shown_grade(1.0, 30) == "SS" and Hud.shown_grade(0.7, 100) == "A" and Hud.shown_grade(0.7, 10) == "C",
 			"the live grade starts at F and climbs a step every 5 notes, never above the accuracy's grade")
 	await check_fade_out()
+	check_plates()
 	check_turn()
 	check_follow()
 	check_raised()
@@ -105,6 +106,47 @@ func check_fade_out() -> void:
 	check(not rails.visible and float(bar.get_shader_parameter(&"fade")) == 1.0 and rails._icon.modulate.a == 1.0,
 			"after the fade the energy strips are hidden and whole again for the next song")
 	rails.queue_free()
+
+## Builds a HUD from stand-ins: in mixed reality a plate behind each panel covers every line at its widest text; outside
+## it the plates are hidden.
+func check_plates() -> void:
+	var point_label := MeshInstance3D.new()
+	point_label.mesh = TextMesh.new()
+	point_label.material_override = StandardMaterial3D.new()
+	var combo := ComboHud.new()
+	combo.mesh = TextMesh.new()
+	combo.material_override = StandardMaterial3D.new()
+	var percent := preload("res://game/hud/PercentIndicator.tscn").instantiate() as PercentIndicator
+	for node: Node in [point_label, combo, percent]:
+		add_child(node)
+	var hud := Hud.new(point_label, combo, percent)
+	add_child(hud)
+	var mixed: bool = Settings.mixed_reality
+	Settings.mixed_reality = true
+	hud.place()
+	var widest := {point_label: Hud.WIDEST_SCORE, combo: Hud.WIDEST_COMBO, hud._accuracy_label: Hud.WIDEST_PERCENT,
+			hud._grade_label: Hud.WIDEST_GRADE, hud._time_label: Hud.WIDEST_TIME}
+	for label: MeshInstance3D in widest:
+		(label.mesh as TextMesh).text = widest[label]
+	hud._grade_label.scale = Vector3.ONE * float(Hud.GRADE_SIZES.values().max())
+	for side: Array in [[hud._left_plate, hud._left, [hud._caption, combo, point_label, hud._accuracy_label,
+			hud._grade_label]], [hud._right_plate, hud._right, [combo.ring, hud._time_label]]]:
+		var plate := side[0] as MeshInstance3D
+		var panel := side[1] as Node3D
+		var plate_box := (panel.global_transform.affine_inverse() * plate.global_transform) * plate.get_aabb()
+		check(plate.visible and plate.position.z < 0.0, "in mixed reality the plate shows behind %s's lines" % panel.name)
+		for line: MeshInstance3D in side[2]:
+			var box := (panel.global_transform.affine_inverse() * line.global_transform) * line.get_aabb()
+			check(box.position.x >= plate_box.position.x and box.end.x <= plate_box.end.x
+					and box.position.y >= plate_box.position.y and box.end.y <= plate_box.end.y,
+					"the plate covers %s at its widest (line %s, plate %s)" % [line.name, box, plate_box])
+	Settings.mixed_reality = false
+	hud.place()
+	check(not hud._left_plate.visible and not hud._right_plate.visible, "outside mixed reality the plates are hidden")
+	Settings.mixed_reality = mixed
+	hud.queue_free()
+	for node: Node in [point_label, combo, percent]:
+		node.queue_free()
 
 ## Builds a HUD from stand-ins and follows a head: still while the head stays inside the deadzone, then easing after
 ## it until close, without overshooting, and still again for a small look back.

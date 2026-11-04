@@ -114,6 +114,17 @@ const HUD_RING_SIZE := 1.5
 const HUD_RING := Vector2(0.0, 0.15)
 const HUD_MULTIPLIER_HEIGHT := 0.2
 const HUD_TIME := Vector3(0.0, -0.3, 0.11)
+## mixed reality: a dark plate behind each panel's lines so they read against the room (owner, 2026-11-04): its
+## opacity, its margin round the lines and how far it sits behind them, both in score letter heights. Untuned.
+const PLATE_OPACITY := 0.75
+const PLATE_MARGIN := 0.6
+const PLATE_BEHIND := 0.3
+## the widest text each line can show, which the plates are sized to, so they never jump as the score grows
+const WIDEST_SCORE := "8,888,888"
+const WIDEST_COMBO := "8,888"
+const WIDEST_PERCENT := "100.0%"
+const WIDEST_GRADE := "SS"
+const WIDEST_TIME := "88:88 / 88:88"
 
 # the score and the combo keep their nodes in BeepSaber_Game.tscn (other scripts find them by path)
 var _point_label: MeshInstance3D
@@ -146,6 +157,9 @@ var _grade_size := 1.0
 var _rumble_wait := 0.0
 var _rumble_boost := 0.0
 var _time_label: MeshInstance3D
+## the dark plates behind the left and right panels in mixed reality (one, the left, behind the far cluster)
+var _left_plate: MeshInstance3D
+var _right_plate: MeshInstance3D
 
 func _init(point_label: MeshInstance3D, combo: ComboHud, percent_indicator: PercentIndicator) -> void:
 	name = "Hud"
@@ -188,6 +202,14 @@ func _ready() -> void:
 		(label.mesh as TextMesh).font = NUMBER_FONT
 		(label.mesh as TextMesh).pixel_size *= NUMBER_FONT_SCALE
 	_combo.ring.reparent(_right)
+	var plate_material := StandardMaterial3D.new()
+	plate_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	plate_material.disable_fog = true
+	plate_material.cull_mode = BaseMaterial3D.CULL_DISABLED
+	plate_material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	plate_material.albedo_color = Color(Constants.UI_PANEL, PLATE_OPACITY)
+	_left_plate = _plate(_left, plate_material)
+	_right_plate = _plate(_right, plate_material)
 	_combo.set_multiplier_height(HUD_MULTIPLIER_HEIGHT / HUD_RING_SIZE)
 	# the ring under the score now shows as the accuracy line and the grade beside it
 	_percent_indicator.visible = false
@@ -226,6 +248,7 @@ func place(eye := HUD_EYE) -> void:
 				Vector3(HUD_RING.x, HUD_RING.y, 0.0))
 		_caption.position = Vector3(HUD_COMBO_CAPTION.x, HUD_COMBO_CAPTION.y, 0.0)
 		_time_label.position = Vector3(HUD_TIME.x, HUD_TIME.y, 0.0)
+	_fit_plates()
 	_combo.rest_at(_combo.position)
 	_placed = [_left.global_transform, _right.global_transform, _point_label.global_transform, _combo.global_transform]
 	_following = false
@@ -293,6 +316,7 @@ func _set_far(on: bool) -> void:
 		material.render_priority = FAR_RENDER_PRIORITY if on else 0
 		material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA if on else BaseMaterial3D.TRANSPARENCY_DISABLED
 	(_combo.ring.material_override as ShaderMaterial).render_priority = FAR_RENDER_PRIORITY if on else 0
+	(_left_plate.material_override as BaseMaterial3D).render_priority = FAR_RENDER_PRIORITY - 1 if on else 0
 
 ## Where the far cluster's centre (the score) sits: FAR_DISTANCE from the eye over the lane, facing it, its lowest line
 ## FAR_MARGIN_DEG over the top of notes reaching `top` metres up (never below level: farther notes come closer to it).
@@ -507,6 +531,56 @@ static func _grouped(value: int) -> String:
 static func _clock(seconds: int) -> String:
 	@warning_ignore("integer_division")
 	return "%d:%02d" % [seconds / 60, seconds % 60]
+
+## A plate (hidden) on `panel`, drawn with `material`.
+func _plate(panel: Node3D, material: StandardMaterial3D) -> MeshInstance3D:
+	var plate := MeshInstance3D.new()
+	plate.mesh = QuadMesh.new()
+	plate.material_override = material
+	plate.layers = _point_label.layers
+	plate.visible = false
+	panel.add_child(plate)
+	return plate
+
+## Shows the plates in mixed reality, each sized round its panel's shown lines filled with their widest text; one plate
+## behind the far cluster.
+func _fit_plates() -> void:
+	var labels: Array[MeshInstance3D] = [_point_label, _combo, _accuracy_label, _grade_label, _time_label]
+	var widest: Array[String] = [WIDEST_SCORE, WIDEST_COMBO, WIDEST_PERCENT, WIDEST_GRADE, WIDEST_TIME]
+	var texts: Array[String] = []
+	for i in labels.size():
+		texts.append((labels[i].mesh as TextMesh).text)
+		(labels[i].mesh as TextMesh).text = widest[i]
+	var grade_scale := _grade_label.scale
+	_grade_label.scale = Vector3.ONE * float(GRADE_SIZES.values().max())
+	var letters := _far_size(FAR_SCORE_DEG) if far else HUD_SCORE.z
+	var left: Array[MeshInstance3D] = [_caption, _combo, _point_label, _accuracy_label, _grade_label]
+	var right: Array[MeshInstance3D] = [_combo.ring, _time_label]
+	if far:
+		left.append_array(right + [_health_bar])
+	_fit_plate(_left_plate, _left, left, letters)
+	_fit_plate(_right_plate, _right, right, letters)
+	_right_plate.visible = _right_plate.visible and not far
+	_grade_label.scale = grade_scale
+	for i in labels.size():
+		(labels[i].mesh as TextMesh).text = texts[i]
+
+## Sizes `plate` round the shown ones of `lines` on `panel`, PLATE_MARGIN `letters` (a score letter's height) round
+## them and PLATE_BEHIND behind, and shows it in mixed reality.
+func _fit_plate(plate: MeshInstance3D, panel: Node3D, lines: Array[MeshInstance3D], letters: float) -> void:
+	var to_panel := panel.global_transform.affine_inverse()
+	var box := AABB()
+	var first := true
+	for line in lines:
+		if not line.visible:
+			continue
+		var line_box := (to_panel * line.global_transform) * line.get_aabb()
+		box = line_box if first else box.merge(line_box)
+		first = false
+	plate.visible = Settings.mixed_reality and not first
+	var margin := PLATE_MARGIN * letters
+	plate.transform = Transform3D(Basis.from_scale(Vector3(box.size.x + margin * 2.0, box.size.y + margin * 2.0, 1.0)),
+			Vector3(box.get_center().x, box.get_center().y, -PLATE_BEHIND * letters))
 
 ## A one-line label of letters height metres, centred on its spot.
 func _label(panel: Node3D, spot: Vector3, material: BaseMaterial3D) -> MeshInstance3D:
