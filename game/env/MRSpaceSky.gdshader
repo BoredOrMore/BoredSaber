@@ -17,6 +17,8 @@ stencil_mode write, compare_always, 1;
 global uniform vec4 env_light;
 global uniform vec4 left_saber_color;
 global uniform vec4 right_saber_color;
+// DebugView.MR_SKY_NO_* (bench --only mr): the live parts left out one at a time to measure each
+global uniform int debug_view;
 #include "res://game/env/portal_mask.gdshaderinc"
 
 // stars: cells per unit of direction (more = more, smaller stars), the share of cells that hold one, a star's radius
@@ -251,11 +253,12 @@ void fragment() {
 		if (!portal_mask_through_any(CAMERA_POSITION_WORLD, world_position)) {
 			discard;
 		}
-		vec3 stored = texture(baked, d).rgb;
+		vec3 stored = (debug_view & 67108864) != 0 ? vec3(0.3) : texture(baked, d).rgb;
 		vec3 layers = stored * stored / BAKE_GAIN;
-		float big = sphere_hit(d, PLANET_BIG);
-		float moon = sphere_hit(d, MOON);
-		float ringed = sphere_hit(d, PLANET_RINGED);
+		bool planets = (debug_view & 16777216) == 0;
+		float big = planets ? sphere_hit(d, PLANET_BIG) : -1.0;
+		float moon = planets ? sphere_hit(d, MOON) : -1.0;
+		float ringed = planets ? sphere_hit(d, PLANET_RINGED) : -1.0;
 		vec3 color;
 		if (moon > 0.0) {
 			color = layers.r + planet_rim(d, MOON, moon);
@@ -264,20 +267,27 @@ void fragment() {
 		} else if (ringed > 0.0) {
 			color = layers.r + planet_rim(d, PLANET_RINGED, ringed);
 		} else {
-			vec3 cell = floor(p);
-			vec3 h = hash3(cell);
-			float radius = max(STAR_RADIUS, pixel * STAR_MIN_PIXELS);
-			float star = step(1.0 - STAR_SHARE, h.x) * (1.0 - smoothstep(0.0, radius, length(p - cell - 0.25 - h * 0.5)));
-			star *= STAR_PEAK * h.y * h.y * STAR_RADIUS * STAR_RADIUS / (radius * radius) * STAR_SMALL_BOOST;
+			float star = 0.0;
+			if ((debug_view & 4194304) == 0) {
+				vec3 cell = floor(p);
+				vec3 h = hash3(cell);
+				float radius = max(STAR_RADIUS, pixel * STAR_MIN_PIXELS);
+				star = step(1.0 - STAR_SHARE, h.x) * (1.0 - smoothstep(0.0, radius, length(p - cell - 0.25 - h * 0.5)));
+				star *= STAR_PEAK * h.y * h.y * STAR_RADIUS * STAR_RADIUS / (radius * radius) * STAR_SMALL_BOOST;
+			}
 			float facing = 1.0 - dot(d, SOURCE_DIR);
-			float core = CORE_PEAK * exp(-facing / CORE_SIZE);
-			float glow = GLOW_PEAK * exp(-facing / GLOW_SIZE);
+			bool source = (debug_view & 33554432) == 0;
+			float core = source ? CORE_PEAK * exp(-facing / CORE_SIZE) : 0.0;
+			float glow = source ? GLOW_PEAK * exp(-facing / GLOW_SIZE) : 0.0;
 			vec3 nebula = mix(left_saber_color.rgb, vec3(0.5), NEBULA_GREY) * layers.g
 				+ mix(right_saber_color.rgb, vec3(0.5), NEBULA_GREY) * layers.b;
 			// the band's tinted share: the baked neutral share is band * (1 - BAND_TINT), the tint band * 4 * BAND_TINT
 			vec3 band_tint = env_light.rgb * layers.r * 4.0 * BAND_TINT / (1.0 - BAND_TINT);
 			color = vec3(star) + layers.r + band_tint + nebula + env_light.rgb * glow;
-			color = mix(color, vec3(1.0), clamp(core, 0.0, 1.0)) + meteors(d, pixel_angle);
+			color = mix(color, vec3(1.0), clamp(core, 0.0, 1.0));
+			if ((debug_view & 8388608) == 0) {
+				color += meteors(d, pixel_angle);
+			}
 		}
 		ALBEDO = color;
 	}

@@ -29,6 +29,14 @@ const FORCE_SWEEP := 262144
 const MR_NO_SKY := 524288
 const MR_NO_SEA := 1048576
 const MR_NO_DUST := 2097152
+## Read by MRSpaceSky.gdshader, benchmark only (tools/bench.sh --only mr): the sky's live parts left out one at a time,
+## to split its cost: the stars, the shooting stars, the planets' hit tests and rims, the source's core and glow, and the
+## baked cube map's read.
+const MR_SKY_NO_STARS := 4194304
+const MR_SKY_NO_METEORS := 8388608
+const MR_SKY_NO_PLANETS := 16777216
+const MR_SKY_NO_GLOW := 33554432
+const MR_SKY_NO_BAKED := 67108864
 const EXTRAS := HIDE_SABERS | HIDE_CUT_FLASH | GLOW_OFF | MSAA_OFF | GLOW_SOFT | MR_NO_SKY | MR_NO_SEA | MR_NO_DUST
 ## Not read by shaders: while on, a song steps through CYCLE_STEPS by itself (cycle_tick), so one run measures
 ## every part; the log line "debug_view N" marks each step for matching with the headset's GPU timings.

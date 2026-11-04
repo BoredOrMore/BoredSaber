@@ -74,7 +74,10 @@ const PARTS := [["walls", DebugView.WALLS], ["plain_notes", DebugView.PLAIN_NOTE
 const MR_MODE := "mr"
 const MR_PARTS := [["sky", DebugView.MR_NO_SKY], ["sea", DebugView.MR_NO_SEA], ["dust", DebugView.MR_NO_DUST],
 	["world", DebugView.MR_NO_SKY | DebugView.MR_NO_SEA | DebugView.MR_NO_DUST], ["reflection", DebugView.NO_REFLECTION],
-	["notes_plain", DebugView.PLAIN_NOTES], ["walls", DebugView.WALLS], ["sabers", DebugView.HIDE_SABERS]]
+	["notes_plain", DebugView.PLAIN_NOTES], ["walls", DebugView.WALLS], ["sabers", DebugView.HIDE_SABERS],
+	["sky_stars", DebugView.MR_SKY_NO_STARS], ["sky_meteors", DebugView.MR_SKY_NO_METEORS],
+	["sky_planets", DebugView.MR_SKY_NO_PLANETS], ["sky_glow", DebugView.MR_SKY_NO_GLOW],
+	["sky_baked", DebugView.MR_SKY_NO_BAKED]]
 ## True once the mr mode turned mixed reality on, so the end of the run turns it off again.
 var _turned_on_mr := false
 const STAGE_SECONDS := 6.0
