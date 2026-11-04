@@ -193,6 +193,9 @@ varying vec3 vent;
 #endif
 // 7. how lit this vertex is after its baked occlusion
 varying float ao;
+// 5. the haze lit from the stage's key light, seen from the eye, per vertex like the rest of the haze (per pixel it cost
+// Classic's song a share of the scenery's 0.5 ms shading, bench --only parts, 2026-11-04)
+varying vec3 haze_v;
 #ifdef SHELL
 // 10. the eye and this point in the box's own axes from its centre, and the box's half size, in metres
 varying vec3 box_eye;
@@ -203,8 +206,6 @@ varying vec3 box_half;
 // 9. the position and the face's direction in the world, for the windows
 varying vec3 world_pos;
 varying vec3 world_normal;
-// the haze lit from the key light, per vertex (as the sky's)
-varying vec3 haze_v;
 #ifdef WINDOWS
 // 0 near, where each window is drawn, to 1 far, where the windows' average is
 varying float window_far;
@@ -314,8 +315,8 @@ void vertex() {
 
 	// 5. haze
 	fog = fog_at(world, CAMERA_POSITION_WORLD, TIME);
-#ifdef CANYON
 	haze_v = fog_lit(env_haze.rgb, world - CAMERA_POSITION_WORLD);
+#ifdef CANYON
 #ifdef WINDOWS
 	window_far = smoothstep(WINDOW_FAR.x, WINDOW_FAR.y, length(world - CAMERA_POSITION_WORLD));
 #endif
@@ -374,11 +375,7 @@ void fragment() {
 		ALBEDO = albedo.rgb;
 	} else {
 		// the haze lit from the stage's key light, seen this way (fog_light.gdshaderinc)
-#ifdef CANYON
 		vec3 haze = haze_v;
-#else
-		vec3 haze = fog_lit(env_haze.rgb, (INV_VIEW_MATRIX * vec4(-VIEW, 0.0)).xyz);
-#endif
 		// light on top of the haze, which only dims it: the ring's lit edge and the vents
 		vec3 light = vec3(0.0);
 #ifdef RING
