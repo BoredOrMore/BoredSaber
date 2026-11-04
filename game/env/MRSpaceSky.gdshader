@@ -1,7 +1,7 @@
 shader_type spatial;
 render_mode unshaded, fog_disabled, shadows_disabled, cull_disabled;
-// marks the holes' pixels, for the cloud sea and dust behind to draw only there (MRSpaceCloudSea, MRSpaceDust)
-stencil_mode write, compare_always, 1;
+// No stencil: marking the holes for the cloud sea and dust cost about 2 Mcyc a frame on the Pico, whatever the area
+// (bench --only mr, 2026-11-04: the flat sky 6.76 Mcyc, without its stencil mark 4.33, no sky 4.53).
 // It writes depth like any opaque surface: with depth_draw_never Godot drew it in the transparent pass, sorted by its
 // centre (the room) after the walls and arcs, so it painted over them (Bored, 2026-11-03: walls and arcs vanished in
 // the portal; seen in tools/capture renders too).

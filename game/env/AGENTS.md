@@ -162,10 +162,10 @@ code that reads the walls and cuts the portals: `game/scripts/MixedReality.gd`, 
   `WorldEnvironment` sky. `show_parts` hides parts for `DebugView`'s mixed-reality cycle. Blockout, untuned.
   GPU (Bored, 2026-11-03): only the portals' pixels pay for the world behind them. The sky's windows push their corners
   out along the eye's rays to `FAR_DISTANCE` (the same pixels as the hole, at the sky's depth; a sphere round the room
-  ran the sky for every pixel of the view) and write stencil 1 in the holes; the cloud sea and dust read it
-  (`stencil_mode read, compare_equal, 1`), so their pixels outside the portals are dropped before shading. They keep
-  the portal mask too, which keeps the holes exact if a headset has no stencil buffer. The track and notes can't use
-  the stencil: their parts in the room show everywhere.
+  ran the sky for every pixel of the view); the cloud sea and dust cut themselves to the holes with the portal mask.
+  No stencil (2026-11-04): the sky marking the holes for the sea and dust cost about 2 Mcyc a frame whatever the area
+  (bench --only mr: flat sky 6.76, without its stencil 4.33, no sky 4.53). The sky's maths cost nothing measurable
+  (the sky drawn flat cost the same as the full sky).
 - `MRSpaceSky.gdshader`: its fixed layers (band, ring, planets' surfaces, the nebula's two shares) are baked once at
   load into a `BAKE_SIZE` cube map (`MRSpace._bake_sky`: a `SubViewport` draws each face with `bake_face`, stored as
   sqrt(layer x `BAKE_GAIN`) for the faint band's precision); each frame it reads that and adds the live parts (stars,
@@ -175,7 +175,7 @@ code that reads the walls and cuts the portals: `game/scripts/MixedReality.gd`, 
   pulled toward grey), two planets ray-traced as spheres (a moon on `PLANET_BIG`, a ring on `PLANET_RINGED`, rims in
   `env_light`), `METEOR_COUNT` shooting stars, and the notes' source down -z: a white-hot core in an `env_light` glow.
 - `MRSpaceCloudSea.gdshader`: Monolith's cloud sea body (`MonolithCloudSea.gdshader`) for the MR world: no depth
-  write (drawn first among see-through things, after the sky windows' stencil), stencil read.
+  write (drawn first among see-through things).
 - `MRSpaceDust.gdshader`: soft points facing the eye, at least `MIN_PIXELS` wide, added as pure light
   (`blend_premul_alpha`, `ALPHA` 0, so no black boxes over the room); they give depth as the player moves.
 - `portal_mask.gdshaderinc`: `portal_mask_through_any(eye, world)`, true where the line from the eye crosses a real

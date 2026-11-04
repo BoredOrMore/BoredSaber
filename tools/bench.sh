@@ -15,8 +15,7 @@
 # flat, sky, dust, sabers, reflection, glow, MSAA), all on first, half way and last (about 4 minutes).
 # --only mr: mixed reality on (the portal floats ahead) in a song with each part left out in turn (the world behind the
 # portal: sky, cloud sea, dust, all three; reflection, notes plain, walls, sabers; then the sky's stars, shooting stars,
-# planets, source glow and baked picture one at a time and all five together; the sky drawn flat, flat without the sea
-# and dust, flat without its stencil mark), all on first and
+# planets, source glow and baked picture one at a time and all five together, and the sky drawn flat), all on first and
 # last (about 5 minutes).
 # --only reflection: Classic in a song: the floor reflection on and off (twice), the build-up sweep held on (about 2 minutes).
 set -e
