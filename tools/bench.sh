@@ -11,6 +11,8 @@
 # --only stages: the song menu on each stage in turn, twice, logging frames over 25 ms with where their time went (run right after launch).
 # --only cuts: Classic in a song, no cuts against cuts fired 4 a second with a blade swinging through the sparks (their GPU cost, and their
 # simulation's CPU as "BENCH sparks cpu"), twice (about 1.5 minutes).
+# --only parts: the player's stage in a song with each part left out in turn (walls, notes plain, lasers, rings, scenery
+# flat, sky, dust, sabers, reflection, glow, MSAA), all on first, half way and last (about 4 minutes).
 # --only reflection: Classic in a song: the floor reflection on and off (twice), the build-up sweep held on (about 2 minutes).
 set -e
 MODE=

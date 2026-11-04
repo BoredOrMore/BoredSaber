@@ -59,6 +59,15 @@ const CUTS := "cuts"
 ## (the scripts' time, the render thread's and the GPU's that frame, to tell a slow script from a shader built on first
 ## draw), and the switch's own call as "BENCH switch <ms>". Run it right after launching the game.
 const STAGES := "stages"
+## The flag file's mode for the stage's parts (tools/bench.sh --only parts): in a song on the player's stage, all on,
+## then each of PARTS left out in turn (DebugView), all on again half way and last, PARTS_SONG_SECONDS each; a part's
+## cost is the all-on phases next to it minus its own.
+const PARTS_MODE := "parts"
+const PARTS_SONG_SECONDS := 15.0
+const PARTS := [["walls", DebugView.WALLS], ["plain_notes", DebugView.PLAIN_NOTES], ["lasers", DebugView.LASERS],
+	["rings", DebugView.RINGS], ["flat_scenery", DebugView.FLAT_SCENERY], ["sky", DebugView.SKY], ["dust", DebugView.DUST],
+	["sabers", DebugView.HIDE_SABERS], ["reflection", DebugView.NO_REFLECTION], ["glow", DebugView.GLOW_OFF],
+	["msaa", DebugView.MSAA_OFF]]
 const STAGE_SECONDS := 6.0
 const HITCH_SECONDS := 0.025
 var _hitch_phase := ""
@@ -174,9 +183,12 @@ func _fire_cuts(t: float) -> void:
 		game.cut_flash.flash(at, CUTS_SWING, Map.color_left if side < 0.0 else Map.color_right, Vector3.RIGHT,
 			Transform3D(Basis(), at), AABB(-Vector3.ONE * CUTS_NOTE_HALF, Vector3.ONE * CUTS_NOTE_HALF * 2.0))
 
-## Sets the benchmark-only DebugView bits to `bits` (the reflection mode), leaving the rest of the flags alone.
+## Sets the DebugView bits the benchmark uses (the reflection and parts modes) to `bits`, leaving the rest of the flags
+## alone.
 func _set_debug_bits(bits: int) -> void:
 	var mask := DebugView.NO_REFLECTION | DebugView.FORCE_SWEEP
+	for part: Array in PARTS:
+		mask |= part[1] as int
 	if DebugView.flags & mask != bits:
 		DebugView.flags = (DebugView.flags & ~mask) | bits
 
@@ -238,6 +250,19 @@ func _phases(mode: String) -> Array:
 			var bits: int = step[1]
 			phases.append(["classic_%s_song" % step[0], func(_t: float) -> void: _set_debug_bits(bits), classic,
 				FOG_SONG_SECONDS, true])
+		return phases
+	if mode == PARTS_MODE:
+		var steps := [["all_on", 0]]
+		for i in PARTS.size():
+			steps.append(["no_" + PARTS[i][0], PARTS[i][1]])
+			if i == floori(PARTS.size() / 2.0):
+				steps.append(["all_on_again", 0])
+		steps.append(["all_on_last", 0])
+		var phases := []
+		for step: Array in steps:
+			var bits: int = step[1]
+			phases.append(["%s_song" % step[0], func(_t: float) -> void: _set_debug_bits(bits), Callable(),
+				PARTS_SONG_SECONDS, true])
 		return phases
 	if mode == STAGES:
 		var phases := []
