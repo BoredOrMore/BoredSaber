@@ -109,6 +109,7 @@ func _ready() -> void:
 	_check_layout(menu, "song tab")
 	_check_level_text_fits(menu)
 	_check_environment_pictures()
+	await _check_delete_question(menu)
 
 	await _check_list_rows(menu.songs_menu)
 	await _check_list_drag(menu)
@@ -400,6 +401,32 @@ func _check_environment_pictures() -> void:
 				"%s has its card and wide pictures in game/env/thumbs/" % id)
 
 ## Counts the song list's whole rows in view, filling it with sample rows first (the test has one song).
+## Delete's question for a song with a long name, and Exit's, fit inside their buttons while asking, without the
+## buttons growing over their neighbours.
+func _check_delete_question(menu: MainMenu) -> void:
+	var map := menu._currently_selected_songlist_ref[0]
+	var saved_name := map.song_name
+	map.song_name = LONG_NAME
+	menu._select_song(0, false)
+	menu.get_node("MorePanel").show()
+	for button: ConfirmButton in [menu.delete_button, menu.get_node("MorePanel/Exit_Button")]:
+		var before := button.size
+		button.pressed.emit()
+		await _settle()
+		var font_size := button.get_theme_font_size(&"font_size")
+		var needed := button.get_theme_font(&"font").get_multiline_string_size(button.text, HORIZONTAL_ALIGNMENT_LEFT, -1,
+				font_size)
+		var box := button.get_theme_stylebox(&"normal")
+		var room := button.size.y - box.content_margin_top - box.content_margin_bottom
+		var width := needed.x + button.icon.get_width() + button.get_theme_constant(&"h_separation")
+		check(button.size == before and needed.y <= room and width <= button.size.x and font_size >= ConfirmButton.MIN_QUESTION_FONT_SIZE,
+				"%s's question fits its button at %d px (%.0f x %.0f px in %.0f x %.0f; button %s, was %s)" % [button.name,
+				font_size, width, needed.y, button.size.x, room, button.size, before])
+		button.cancel()
+	menu.get_node("MorePanel").hide()
+	map.song_name = saved_name
+	menu._select_song(0, false)
+
 func _check_list_rows(list: SongList) -> void:
 	while list.item_count < 40:
 		list.add_item(LONG_NAME, LONG_NAME, null)

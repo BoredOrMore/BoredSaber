@@ -23,8 +23,8 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
   `ScrollContainer` is allowed to run past it; on the song page only the song list and the filters' page
   (`FilterChips.SCROLL_NAME`, owner 2026-10-30) may scroll, and the filters are checked scrolled to their end on both pages. Run it after any change to these panels or the theme. It also drags the song
   list with pointer events pushed into a `SubViewport` (as the game's canvases receive them): 1:1, no pick after a
-  drag, a short press still picks. It also checks that a numbered level name ("Expert+ 3") fits its button and that every stage has
-  its two picker pictures.
+  drag, a short press still picks. It also checks that a numbered level name ("Expert+ 3") fits its button, that every stage has
+  its two picker pictures, and that Delete's question (long name) and Exit's fit their buttons without growing.
 - `test_room_outline.tscn` / `.gd` - `RoomOutline.find_portal` on the room read on the headset (2026-11-02): the
   portal lands on the front wall 3.67 m ahead, inside the wall, between floor and ceiling; facing back finds the wall
   behind; no walls, no portal; the outline draws and an empty room hides it.

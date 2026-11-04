@@ -120,7 +120,9 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   once the request stayed the newest for `START_DELAY_SECONDS` (0.25 s), on both song pages. The menu's
   `play_selected_preview`, `play_preview` and `stop_preview` (used by game states and BeatSaver) go through it.
 - `IconButton.gd` (class `IconButton`): icon just left of a centred label. `ConfirmButton.gd` (extends it): for
-  what can't be undone; first press asks in the button, a second within `CONFIRM_SECONDS` does it.
+  what can't be undone; first press asks in the button, a second within `CONFIRM_SECONDS` does it. The question
+  shrinks to fit (down to `MIN_QUESTION_FONT_SIZE`), since a Button grows to its text and would cover its neighbours;
+  a two-line question needs an 80 px button (Delete Song, Reset all).
 - `StepperSpinBox.gd` (class `StepperSpinBox`): number between big − and + buttons for the pointer; hold repeats.
 - `RoundedQuad.gdshader`: a flat colour quad with round corners for UI in 3D (WarningIcon), cut by alpha scissor
   and alpha to coverage like the canvases, never blended.

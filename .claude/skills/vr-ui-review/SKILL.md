@@ -191,7 +191,8 @@ The cloud sessions have no headset and can't reach beatsaver.com, so render the 
    alone: a name, an icon or a mark goes with it.
 5. Code checks that a render won't show:
    - `tests/test_menu_layout.tscn` passes (overlaps, gaps under 4 px, controls spilling out of their box); a
-     new panel or state gets added to it with its worst-case content;
+     new panel or state gets added to it with its worst-case content, including text a press swaps in (a
+     `ConfirmButton`'s question for the longest name: a Button grows to its text and covers its neighbours);
    - visuals that change without pointer input (progress, cover loaded, list refreshed) call
      `canvas._input_update()`, or the headset shows a stale frame (`game/ui/AGENTS.md`);
    - nodes inside a canvas are found with `find_child` or exported `NodePath`s, since the canvas
