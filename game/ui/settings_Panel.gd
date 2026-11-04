@@ -34,6 +34,7 @@ signal benchmark_requested()
 @onready var right_saber_rotx_control := $Tabs/Advanced/VBox/right_saber_offset/rot_row/rotx as SpinBox
 @onready var right_saber_roty_control := $Tabs/Advanced/VBox/right_saber_offset/rot_row/roty as SpinBox
 @onready var right_saber_rotz_control := $Tabs/Advanced/VBox/right_saber_offset/rot_row/rotz as SpinBox
+@onready var mirror_rotation_control := $Tabs/Advanced/VBox/right_saber_offset/mirror_rotation as CheckButton
 @onready var player_height_offset_control := $Tabs/Gameplay/VBox/player_height_offset/pos as SpinBox
 @onready var audio_master_control := $Tabs/Audio/VBox/audio/master/master_slider as HSlider
 @onready var audio_music_control := $Tabs/Audio/VBox/audio/music/music_slider as HSlider
@@ -51,6 +52,8 @@ const SWATCH_SIZE := 24
 var _play_ui_sound_demo := false
 var left_saber_col_state := false
 var right_saber_col_state := false
+## True while _show_rotations fills the angle rows, so their changes aren't written back.
+var _showing_rotations := false
 
 @export var main_menu_ref : MainMenu
 
@@ -151,15 +154,11 @@ func set_controls_from_settings() -> void:
 	left_saber_posx_control.value = Settings.left_saber_offset_pos.x
 	left_saber_posy_control.value = Settings.left_saber_offset_pos.y
 	left_saber_posz_control.value = Settings.left_saber_offset_pos.z
-	left_saber_rotx_control.value = Settings.left_saber_offset_rot.x
-	left_saber_roty_control.value = Settings.left_saber_offset_rot.y
-	left_saber_rotz_control.value = Settings.left_saber_offset_rot.z
 	right_saber_posx_control.value = Settings.right_saber_offset_pos.x
 	right_saber_posy_control.value = Settings.right_saber_offset_pos.y
 	right_saber_posz_control.value = Settings.right_saber_offset_pos.z
-	right_saber_rotx_control.value = Settings.right_saber_offset_rot.x
-	right_saber_roty_control.value = Settings.right_saber_offset_rot.y
-	right_saber_rotz_control.value = Settings.right_saber_offset_rot.z
+	mirror_rotation_control.button_pressed = Settings.mirror_saber_rotation
+	_show_rotations()
 	player_height_offset_control.value = Settings.player_height_offset
 	audio_master_control.value = Settings.audio_master
 	audio_music_control.value = Settings.audio_music
@@ -476,13 +475,13 @@ func _on_left_saber_pos_z_changed(value: float) -> void:
 	Settings.left_saber_offset_pos.z = value
 
 func _on_left_saber_rot_x_changed(value: float) -> void:
-	Settings.left_saber_offset_rot.x = value
+	_set_left_rotation(0, value)
 
 func _on_left_saber_rot_y_changed(value: float) -> void:
-	Settings.left_saber_offset_rot.y = value
+	_set_left_rotation(1, value)
 
 func _on_left_saber_rot_z_changed(value: float) -> void:
-	Settings.left_saber_offset_rot.z = value
+	_set_left_rotation(2, value)
 
 func _on_right_saber_pos_x_changed(value: float) -> void:
 	Settings.right_saber_offset_pos.x = value
@@ -494,13 +493,54 @@ func _on_right_saber_pos_z_changed(value: float) -> void:
 	Settings.right_saber_offset_pos.z = value
 
 func _on_right_saber_rot_x_changed(value: float) -> void:
-	Settings.right_saber_offset_rot.x = value
+	_set_right_rotation(0, value)
 
 func _on_right_saber_rot_y_changed(value: float) -> void:
-	Settings.right_saber_offset_rot.y = value
+	_set_right_rotation(1, value)
 
 func _on_right_saber_rot_z_changed(value: float) -> void:
-	Settings.right_saber_offset_rot.z = value
+	_set_right_rotation(2, value)
+
+## Sets one axis of the left saber's angle; with mirroring on, the right row follows.
+func _set_left_rotation(axis: int, value: float) -> void:
+	if _showing_rotations:
+		return
+	var rot := Settings.left_saber_offset_rot
+	rot[axis] = value
+	Settings.left_saber_offset_rot = rot
+	_show_rotations()
+
+## Sets one axis of the right saber's angle; with mirroring on, it sets the left one mirrored, so both rows move.
+func _set_right_rotation(axis: int, value: float) -> void:
+	if _showing_rotations:
+		return
+	var rot := Settings.right_saber_rotation()
+	rot[axis] = value
+	if Settings.mirror_saber_rotation:
+		Settings.left_saber_offset_rot = Settings.mirrored(rot)
+	else:
+		Settings.right_saber_offset_rot = rot
+	_show_rotations()
+
+## Turning mirroring off keeps the right saber where it was, so it can be tuned on its own from there.
+func _on_mirror_rotation_toggled(button_pressed: bool) -> void:
+	if not button_pressed:
+		Settings.right_saber_offset_rot = Settings.right_saber_rotation()
+	Settings.mirror_saber_rotation = button_pressed
+	_show_rotations()
+
+## Shows both sabers' angles in their rows without the rows writing them back.
+func _show_rotations() -> void:
+	_showing_rotations = true
+	var left := Settings.left_saber_offset_rot
+	var right := Settings.right_saber_rotation()
+	left_saber_rotx_control.value = left.x
+	left_saber_roty_control.value = left.y
+	left_saber_rotz_control.value = left.z
+	right_saber_rotx_control.value = right.x
+	right_saber_roty_control.value = right.y
+	right_saber_rotz_control.value = right.z
+	_showing_rotations = false
 
 func _on_player_height_offset_changed(value: float) -> void:
 	Settings.player_height_offset = value

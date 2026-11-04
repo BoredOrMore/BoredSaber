@@ -60,7 +60,7 @@ func _update_size_and_angle():
 		extra_offset_pos = Settings.left_saber_offset_pos
 	else:
 		@warning_ignore("unsafe_cast")				
-		extra_offset_rot = Settings.right_saber_offset_rot
+		extra_offset_rot = Settings.right_saber_rotation()
 		extra_offset_pos = Settings.right_saber_offset_pos
 
 	if Settings.claws:
@@ -115,7 +115,7 @@ func on_settings_changed(key: StringName) -> void:
 			_update_size_and_angle()
 		&"left_saber_offset_rot":
 			_update_size_and_angle()
-		&"right_saber_offset_rot":
+		&"right_saber_offset_rot", &"mirror_saber_rotation":
 			_update_size_and_angle()
 
 func _ready() -> void:

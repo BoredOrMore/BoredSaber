@@ -765,6 +765,10 @@ text = "Reset"
 icon = ExtResource("icon_undo-2")
 script = ExtResource("icon_button")
 
+[node name="mirror_rotation" type="CheckButton" parent="Tabs/Advanced/VBox/right_saber_offset"]
+layout_mode = 2
+text = "Mirror the left saber's rotation"
+
 [node name="show_collisions" type="CheckButton" parent="Tabs/Advanced/VBox"]
 layout_mode = 2
 text = "Show hit boxes"
@@ -862,6 +866,7 @@ scroll_without_pointer = true
 [connection signal="value_changed" from="Tabs/Gameplay/VBox/player_height_offset/pos" to="." method="_on_player_height_offset_changed"]
 [connection signal="pressed" from="Tabs/Gameplay/VBox/player_height_offset/measure" to="." method="_on_measure_height_pressed"]
 [connection signal="toggled" from="Tabs/Gameplay/VBox/swing_scoring" to="." method="_on_swing_scoring_toggled"]
+[connection signal="toggled" from="Tabs/Advanced/VBox/right_saber_offset/mirror_rotation" to="." method="_on_mirror_rotation_toggled"]
 [connection signal="toggled" from="Tabs/Advanced/VBox/show_collisions" to="." method="_on_show_collisions_toggled"]
 [connection signal="toggled" from="Tabs/Advanced/VBox/show_debug" to="." method="_on_show_debug_toggled"]
 [connection signal="toggled" from="Tabs/Advanced/VBox/spectator_view" to="." method="_on_spectator_view_toggled"]

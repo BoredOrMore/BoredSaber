@@ -34,7 +34,7 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
 - `test_swing_rating.tscn` / `.gd` - checks `LightSaber.swept` (swing angles as Beat Saber measures them): a steady
   approach counts in full, a step whose plane turned past 90° ends the count, a follow-through stops at the turn back.
 - `test_sabers.tscn` / `.gd` - every saber in `Settings.SABER_VISUALS` loads, takes a colour and runs a frame without a
-  script error stopping it part-way; the particle sword finds its particles.
+  script error stopping it part-way; the particle sword finds its particles; the right saber's angle mirrored from the left (`Settings.right_saber_rotation`) or its own.
 - `test_beatmap.tscn` / `.gd` + `data/beatmap/` (small v2, v3, v4 maps) - `Map.load_beatmap`: counts, stack order (popped
   from the back), lanes, layers, colours and cut directions of notes, bombs, walls, arcs, chains and light events in
   each format, plain and mirrored (`Settings.flip`); `half_jump_beats_for`/`set_note_jump`; gradual rotation; v2 rotation events adding up in degrees; where the track turns (`get_turns`, `track_rotation`) and the turn cue (`cue_rotation`); 90/360

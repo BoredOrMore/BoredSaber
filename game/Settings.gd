@@ -160,6 +160,11 @@ var right_saber_offset_rot: Vector3:
 	set(value):
 		right_saber_offset_rot = value
 		set_and_emit(&"right_saber_offset_rot", value)
+## On, the right saber takes the left one's angle mirrored (right_saber_rotation), so the two can't drift apart.
+var mirror_saber_rotation: bool:
+	set(value):
+		mirror_saber_rotation = value
+		set_and_emit(&"mirror_saber_rotation", value)
 var cube_cuts_falloff: bool:
 	set(value):
 		cube_cuts_falloff = value
@@ -472,6 +477,7 @@ var default_values = {
 	left_saber_offset_rot = Vector3(0, 5, 0),
 	right_saber_offset_pos = Vector3.ZERO,
 	right_saber_offset_rot = Vector3(0, -5, 0),
+	mirror_saber_rotation = true,
 	disable_map_color = false,
 	player_height_offset = 0.0,
 	audio_master = 0.8,
@@ -515,6 +521,14 @@ var default_values = {
 func cast_or_default(key: String, to_type: int = -1) -> Variant:
 	var default = default_values[key] if key in default_values else null
 	return convert(config.get_value(SECTION, key, default), typeof(default) if to_type < 0 else to_type)
+
+## The right saber's angle: the left one's mirrored while mirror_saber_rotation is on, else its own.
+func right_saber_rotation() -> Vector3:
+	return mirrored(left_saber_offset_rot) if mirror_saber_rotation else right_saber_offset_rot
+
+## A saber angle seen in a mirror between the hands: pitch kept, yaw and roll reversed.
+static func mirrored(rot: Vector3) -> Vector3:
+	return Vector3(rot.x, -rot.y, -rot.z)
 
 func set_and_emit(key: StringName, value: Variant) -> void:
 	config.set_value(SECTION, String(key), value if default_values[key] != value else null)

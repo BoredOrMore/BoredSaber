@@ -139,7 +139,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   difficulty and the modifier chips, rarer ones behind "More modifiers"),
   `settings_Panel.gd/.tscn` (class `SettingsPanel`, tabs Gameplay/Visuals/Audio/Advanced; Visuals in
   sections Quality/Look/Effects and Advanced in Saber grip/Cast/Developer, `MenuSection`s built in `_ready`, the
-  saber grip and developer rows behind Show buttons), `HighscorePanel.gd/.tscn`,
+  saber grip and developer rows behind Show buttons; "Mirror the left saber's rotation", on by default, gives the right
+  saber the left one's angle mirrored, `Settings.right_saber_rotation`), `HighscorePanel.gd/.tscn`,
   `Pause_Panel.gd/.tscn` (signals `continue_button`/`restart_button`/`mainmenu_button`), `EndScore.gd/.tscn` (3D `MeshInstance3D`, not a
   canvas; `RankHalo.gdshader` glows round its result ring; a FAILED / SONG CLEARED banner under the song's name, and after a
   fail "Failed at M:SS of M:SS" in place of the ring; "Practice this part" beside Retry after a fail (signal `practice_part`);
