@@ -11,15 +11,16 @@ stencil_mode write, compare_always, 1;
 // neutral band of far dust with a nebula in the two note colours, two planets (one with a moon, one ringed) and
 // shooting stars, all worked out per pixel from the view direction, and the source the notes come from far down the track: a white-hot core in a glow of the lights' colour
 // (env_light; AGENTS.md "Light", rule 2). BLOCKOUT, untuned.
-// Drawn on a window quad over each portal (MRSpace.show_windows), its corners pushed out along the eye's rays to
-// FAR_DISTANCE: the same pixels as the hole, at the sky's depth, so only the portals' pixels pay for the sky (Bored,
-// 2026-11-03; a sphere round the room ran this for every pixel of the view and discarded most of them).
+// Drawn on a window quad over each portal (MRSpace.show_windows), its corners pushed out along the rendered eye's rays
+// to FAR_DISTANCE: each eye's pixels of the hole exactly, at the sky's depth, so only the portals' pixels pay for the
+// sky (Bored, 2026-11-03; a sphere round the room ran this for every pixel of the view and discarded most of them).
+// No discard: pushed from the head's centre the window needed a margin cut back per pixel, and that discard alone cost
+// about 4 of the frame's 9.4 Mcyc (bench --only mr, 2026-11-04: every live part left out together saved nothing).
 global uniform vec4 env_light;
 global uniform vec4 left_saber_color;
 global uniform vec4 right_saber_color;
 // DebugView.MR_SKY_NO_* (bench --only mr): the live parts left out one at a time to measure each
 global uniform int debug_view;
-#include "res://game/env/portal_mask.gdshaderinc"
 
 // stars: cells per unit of direction (more = more, smaller stars), the share of cells that hold one, a star's radius
 // in cells, the brightest star
@@ -97,7 +98,10 @@ void vertex() {
 		POSITION = vec4(VERTEX.xy, 0.0, 1.0);
 	} else {
 		vec3 corner = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
-		world_position = CAMERA_POSITION_WORLD + normalize(corner - CAMERA_POSITION_WORLD) * FAR_DISTANCE;
+		// the rendered eye: the point its projection (the eye's offset included) sends to w = 0 at the view's centre
+		vec4 eye_view = INV_PROJECTION_MATRIX * vec4(0.0, 0.0, 1.0, 0.0);
+		vec3 eye = (INV_VIEW_MATRIX * vec4(eye_view.xyz / eye_view.w, 1.0)).xyz;
+		world_position = eye + normalize(corner - eye) * FAR_DISTANCE;
 		POSITION = PROJECTION_MATRIX * (VIEW_MATRIX * vec4(world_position, 1.0));
 	}
 }
@@ -246,13 +250,8 @@ void fragment() {
 	} else {
 		vec3 d = normalize(world_position - CAMERA_POSITION_WORLD);
 		vec3 p = d * STAR_CELLS;
-		// the derivatives first, while every pixel of the quad still runs; then the window's margin round the hole (the
-		// two eyes see the hole a little apart) stops here
 		float pixel = length(fwidth(p));
 		float pixel_angle = length(fwidth(d));
-		if (!portal_mask_through_any(CAMERA_POSITION_WORLD, world_position)) {
-			discard;
-		}
 		vec3 stored = (debug_view & 67108864) != 0 ? vec3(0.3) : texture(baked, d).rgb;
 		vec3 layers = stored * stored / BAKE_GAIN;
 		bool planets = (debug_view & 16777216) == 0;

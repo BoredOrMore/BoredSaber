@@ -154,8 +154,8 @@ code that reads the walls and cuts the portals: `game/scripts/MixedReality.gd`, 
   thin strip, 2026-11-02). Desktop check: `tools/capture/portal_capture.tscn`. Untuned, not yet on the headset.
 - `MRSpace.tscn` / `MRSpace.gd`: the world seen through the portals (owner's concept C, "the room floats in space",
   2026-11-02). Root at the origin, nothing near it, no track or deck; the room code instances it behind the portals.
-  Builds the sky as one window quad per portal (`show_windows`, called by `MixedReality._show_portals`; each portal
-  grown by `SKY_WINDOW_MARGIN`) with `MRSpaceSky.gdshader`, Monolith's cloud sea (`MonolithCloudSea`, owner's pick,
+  Builds the sky as one window quad per portal (`show_windows`, called by `MixedReality._show_portals`; each the size
+  of its portal, corners pushed out from the rendered eye, no discard) with `MRSpaceSky.gdshader`, Monolith's cloud sea (`MonolithCloudSea`, owner's pick,
   drawn with `MRSpaceCloudSea.gdshader` at `RENDER_PRIORITY_MIN`) dropped by `SEA_DROP` so its rim stays under the
   notes' source and dimmed to `SEA_BRIGHTNESS` (the sea's `brightness`, 1 in Monolith), and `DUST_COUNT` points of
   `MRSpaceDust.gdshader` kept out of the notes' path. The sky is geometry because mixed reality draws no

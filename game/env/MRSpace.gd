@@ -11,9 +11,6 @@ extends Node3D
 const SKY_SHADER := preload("res://game/env/MRSpaceSky.gdshader")
 const DUST_SHADER := preload("res://game/env/MRSpaceDust.gdshader")
 const SEA_SHADER := preload("res://game/env/MRSpaceCloudSea.gdshader")
-## how far each sky window reaches past its portal's edges, in metres: the two eyes see the hole a little apart, and
-## the shader cuts the window back to the hole (MRSpaceSky.gdshader)
-const SKY_WINDOW_MARGIN := 0.1
 ## how far the cloud sea sits below where Monolith puts it (its bowl's floor about 57 m down, its far rim about +30 m
 ## up), in metres
 const SEA_DROP := 110.0
@@ -119,8 +116,7 @@ func show_windows(places: Array[Transform3D], sizes: Array[Vector2]) -> void:
 		add_child(window)
 		_windows.append(window)
 	for i in places.size():
-		var size := sizes[i] + Vector2.ONE * SKY_WINDOW_MARGIN * 2.0
-		_windows[i].global_transform = places[i].scaled_local(Vector3(size.x, size.y, 1.0))
+		_windows[i].global_transform = places[i].scaled_local(Vector3(sizes[i].x, sizes[i].y, 1.0))
 	_window_count = places.size()
 	_show_sky()
 
