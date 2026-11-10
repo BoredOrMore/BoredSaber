@@ -1,5 +1,8 @@
 # Download page: level before download against the measured level
 
+Since 2026-11-10 the page takes its levels from BeatLeader's stars once they arrive and keeps this estimate only until
+then or without them (`doc/research/difficulty-rating.md`).
+
 The Download page shows each BeatSaver difficulty's level (Easy..Expert+) before the map is downloaded
 (`BeatSaverSongInfo.level_of`); after download the song menu measures it from the map file (`MapStats.level_of`).
 The owner found the two often disagree (2026-10-27).

@@ -16,7 +16,7 @@ previous one:
 
 A swing that reaches the far column on the other hand's side (left hand in column 3, right hand in
 column 0) is a **crossover**, weight 1. The **flow percent** is the weighted count over all swings.
-Implemented in `MapStats._awkward_percent`.
+Implemented in `MapStats._swing_parts` (`flow`).
 
 ## Results
 
@@ -39,7 +39,8 @@ the player confirmed both feel confusing to swing.
 | Twisty | 4–10 % | |
 | Tangled | 10 % and up | about 13 % |
 
-Tangled difficulties count one overall level harder; only those at 25 % or more (the worst 5 % of the
+Tangled difficulties counted one overall level harder until 2026-11-10, when the turns joined the star rating
+(`doc/research/difficulty-rating.md`); only those at 25 % or more (the worst 5 % of the
 sample, hardly playable) are left out of the song list. The 1 s window and the band edges are a data-based starting point; confirm with
 headset playtests.
 

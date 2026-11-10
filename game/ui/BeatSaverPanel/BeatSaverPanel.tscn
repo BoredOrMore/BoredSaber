@@ -248,6 +248,8 @@ scroll_node_path = NodePath("../ItemList")
 
 [node name="PreviewDownload" type="HTTPRequest" parent="."]
 
+[node name="StarsDownload" type="HTTPRequest" parent="."]
+
 [connection signal="item_selected" from="ItemList" to="." method="_on_ItemList_item_selected"]
 [connection signal="button_up" from="download" to="." method="_on_download_button_up"]
 [connection signal="button_up" from="search" to="." method="_on_search_button_up"]
@@ -260,3 +262,4 @@ scroll_node_path = NodePath("../ItemList")
 [connection signal="request_completed" from="CoverDownload" to="." method="_update_cover"]
 [connection signal="request_completed" from="DetailCoverDownload" to="." method="_on_detail_cover_completed"]
 [connection signal="request_completed" from="PreviewDownload" to="." method="_on_preview_download_completed"]
+[connection signal="request_completed" from="StarsDownload" to="." method="_on_stars_completed"]

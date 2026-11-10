@@ -118,7 +118,8 @@ const PRACTICE_SPEED_STEP := 10
 ## The song list's difficulty levels from easiest, computed from how a map plays rather than the mapper's
 ## label: [name, colour, least seconds a note is visible before reaching the player, least median seconds
 ## between two swings of one hand]. Edges are the midpoints between the medians of neighbouring BeatSaver
-## difficulties (doc/research/reaction-time-and-swing-gap.md); not yet confirmed by headset playtests.
+## difficulties (doc/research/reaction-time-and-swing-gap.md); not yet confirmed by headset playtests. The song list's
+## level itself comes from STAR_LEVEL_TOPS; these columns set the reaction time levels and Get songs' estimate.
 const DIFFICULTY_LEVELS := [
 	["Easy", Color(0.24, 0.7, 0.44), 1.04, 0.866],
 	["Normal", Color(0.35, 0.69, 0.96), 0.903, 0.646],
@@ -126,12 +127,16 @@ const DIFFICULTY_LEVELS := [
 	["Expert", Color(0.91, 0.3, 0.24), 0.645, 0.383],
 	["Expert+", Color(0.74, 0.5, 0.86), 0.0, 0.0],
 ]
-## Swing flow levels from smoothest: [name, least percent of awkward swings (MapStats._awkward_percent)].
+## Highest BeatLeader stars (MapStats.stars) of each difficulty level but the last, from Easy: midpoints between the median
+## stars of neighbouring mapper labels over 1,094 BeatSaver difficulties (doc/research/difficulty-rating.md; owner
+## agreed, 2026-11-10).
+const STAR_LEVEL_TOPS := [3.94, 4.59, 5.49, 6.64]
+## Swing flow levels from smoothest: [name, least percent of awkward swings (MapStats._swing_parts)].
 ## Edges from doc/research/swing-flow.md (BeatSaver map data: about 70% of difficulties are under 4%,
 ## about 13% at 10% or more); not yet confirmed by headset playtests.
 const FLOW_LEVELS := [ ["Smooth", 0.0], ["Twisty", 4.0], ["Tangled", 10.0] ]
 ## Difficulties with at least this percent of awkward swings are left out of the song list: hardly playable
-## (the worst 5% of the BeatSaver sample, doc/research/swing-flow.md). Tangled ones below it stay, one level up.
+## (the worst 5% of the BeatSaver sample, doc/research/swing-flow.md).
 const FLOW_HIDDEN_PERCENT := 25.0
 ## Wall workout labels by MapStats.workout_level: no sets, some sets, or at least WORKOUT_SET_SHARE of the song
 ## in sets (doc/research/wall-workout.md).

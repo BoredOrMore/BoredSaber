@@ -227,6 +227,12 @@ Above the list one row holds Search (icon), the sort (A–Z by song name, the de
 - Search: BeatSaver matches whole words or their start, not typos, and reads Japanese a character at a time (kana
   searches pull in noise; real titles are in kanji, which romaji can't give). A search that finds nothing is tried
   once more with each word cut short (`close_query`), the status saying "No exact match · close to …" (`_close_to`).
+- Levels: a row's strip starts from BeatSaver's numbers (`BeatSaverSongInfo.level_of`'s estimate), then BeatLeader's
+  stars replace it as they arrive (`StarsDownload`, `update_next_stars`, one map at a time, the rows in view first,
+  parsed on a worker thread by `parse_stars`; `stars_at` reads between BeatLeader's 0.85x/1x/1.2x/1.5x ratings for the
+  Speed modifier), on the song menu's cut-offs (`MapStats.star_level`; owner 2026-11-10,
+  `doc/research/difficulty-rating.md`). The level filter checks a row once, when it is added; rows stay when their
+  stars later move them to another level.
 - Download (:312): rejects HTML bodies; a `WorkerThreadPool` task (`_save_song`, awaited a frame at a time) writes
   the zip to `APPDATA_PATH/temp` and unpacks it to `Songs/<hash>/`; once the queue is empty
   `main_menu_ref.add_downloaded_songs` reads just those folders' info on another task and adds them to the list (no

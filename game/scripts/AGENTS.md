@@ -67,7 +67,10 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
   corners round (`COVER_CORNER`), for every cover `BackgroundImgLoader` loads and the Download page's cards.
 - `Loudness.gd` (class `Loudness`, all `static`) - plays songs at -14 LUFS: measures a song's BS.1770 loudness on a
   worker thread, caches it in `user://loudness.json`, and sets the Music/MusicPreview bus's `AudioEffectAmplify`.
-- `MapStats.gd` - cached note count / length / NPS per difficulty, menu filters, `count_all_async`.
+- `MapStats.gd` - cached note count / length / NPS / swing parts per difficulty, menu filters, `count_all_async`. A
+  difficulty's level (`level_of`) is its rating on BeatLeader's star scale (`stars`: the burst, how often the hands
+  cross the body or each other, how often a swing turns; `_swing_parts`) cut at `Constants.STAR_LEVEL_TOPS`
+  (`doc/research/difficulty-rating.md`). Changing what `_count` stores needs `STATS_VERSION` bumped.
 - `LinkedList.gd` - small deque used by `BackgroundImgLoader` and `SwingableRayCast` debug trail.
 
 ## How it connects

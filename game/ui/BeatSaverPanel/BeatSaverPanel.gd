@@ -27,6 +27,9 @@ class BeatSaverSongInfo extends RefCounted:
 	## at: both made on the page's worker thread (_parse_page), so adding the row does no work per song on the main
 	## thread (owner, 2026-10-30: Get songs still hitched as each page of 50 came in).
 	var row_text: String
+	## BeatLeader's stars of the newest version's difficulties (parse_stars), "<mode>/<difficulty>" -> stars at each of
+	## STAR_SPEEDS (0 where BeatLeader has none); empty until they arrive.
+	var stars := {}
 	var _levels: Array = []
 	var _levels_speed := 0.0
 
@@ -74,18 +77,69 @@ class BeatSaverSongInfo extends RefCounted:
 	## levels of 195 (doc/research/download-level-estimate.md). Stacks and chains make it a little under 1.
 	const SWING_GAP_PER_NOTE_GAP := 0.82
 
-	## Difficulty a map difficulty plays at before it is downloaded (an index in Constants.DIFFICULTY_LEVELS): the
-	## harder of its reaction time and its swing pace estimated from notes per second. Downloaded maps use the measured
-	## swing gap and swing flow instead (MapStats.level_of). Against them (doc/research/download-level-estimate.md, 195
-	## difficulties of the headset's 53 songs and the Mac's 18) it matches 73%, within one level 95%; BeatSaver's
-	## parity count no longer adds a level (67% with it). Most misses read easier: dense bursts the average hides.
-	## `speed` is the Speed modifier (the current one by default).
+	## Song speeds BeatLeader rates each difficulty at: its Slower Song, plain, Faster Song and Super Fast Song.
+	const STAR_SPEEDS := [0.85, 1.0, 1.2, 1.5]
+	## BeatLeader's keys for the stars at each of STAR_SPEEDS: the plain one on the difficulty, the others in its
+	## modifiersRating.
+	const STAR_KEYS := ["ssStars", "stars", "fsStars", "sfStars"]
+
+	## Difficulty a map difficulty plays at before it is downloaded (an index in Constants.DIFFICULTY_LEVELS) at the
+	## Speed modifier `speed` (the current one by default): from BeatLeader's stars once they arrived, on the same
+	## scale as the song menu's levels (MapStats.star_level; owner, 2026-11-10: the estimate below put Gurenge Hard a
+	## level too easy). Until then, or without stars, the harder of its reaction time and its swing pace estimated from
+	## notes per second: against the measured levels (doc/research/download-level-estimate.md) that matched 73%, most
+	## misses reading easier because the average hides dense bursts.
 	func level_of(diff: Dictionary, speed := MapStats._speed()) -> int:
+		var rated := stars_at("%s/%s" % [Utils.get_str(diff, "characteristic", "Standard"),
+			Utils.get_str(diff, "difficulty", "")], speed)
+		if rated > 0.0:
+			return MapStats.star_level(rated)
 		var level := MapStats.reaction_level(reaction_seconds(diff, speed))
 		var nps := Utils.get_float(diff, "nps", 0.0)
 		if nps > 0.0:
 			level = maxi(level, MapStats.swing_pace_level(SWING_GAP_PER_NOTE_GAP * 2.0 / nps / speed))
 		return mini(level, Constants.DIFFICULTY_LEVELS.size() - 1)
+
+	## BeatLeader's stars of one difficulty ("<mode>/<difficulty>") at the song speed `speed`, read between the speeds
+	## BeatLeader rates (STAR_SPEEDS) and carried on past the ends along the nearest two; 0 when BeatLeader has no stars
+	## for it at this speed.
+	func stars_at(key: String, speed: float) -> float:
+		var rated: Array = stars.get(key, [])
+		if rated.is_empty() or float(rated[1]) <= 0.0:
+			return 0.0
+		if is_equal_approx(speed, 1.0):
+			return float(rated[1])
+		if rated.has(0.0):
+			return 0.0
+		var i := 0
+		while i < STAR_SPEEDS.size() - 2 and speed > float(STAR_SPEEDS[i + 1]):
+			i += 1
+		var weight := (speed - float(STAR_SPEEDS[i])) / (float(STAR_SPEEDS[i + 1]) - float(STAR_SPEEDS[i]))
+		return lerpf(float(rated[i]), float(rated[i + 1]), weight)
+
+	## Takes BeatLeader's stars for this map (parse_stars); its levels are worked out again.
+	func set_stars(rated: Dictionary) -> void:
+		stars = rated
+		_levels_speed = 0.0
+
+	## Parses BeatLeader's leaderboards for one map hash into `parsed` as one dictionary, "<mode>/<difficulty>" -> stars at
+	## each of STAR_SPEEDS (0 where missing); left empty when the body isn't BeatLeader's answer. On a worker thread.
+	static func parse_stars(body: PackedByteArray, parsed: Array) -> void:
+		var json: Variant = JSON.parse_string(body.get_string_from_utf8())
+		if not json is Dictionary:
+			return
+		var rated := {}
+		for board: Variant in Utils.get_array(json as Dictionary, "leaderboards", []):
+			if not board is Dictionary:
+				continue
+			var difficulty := Utils.get_dict(board as Dictionary, "difficulty", {})
+			var modifiers := Utils.get_dict(difficulty, "modifiersRating", {})
+			var values := []
+			for key: String in STAR_KEYS:
+				values.append(Utils.get_float(difficulty if key == "stars" else modifiers, key, 0.0))
+			if float(values[1]) > 0.0:
+				rated["%s/%s" % [Utils.get_str(difficulty, "modeName", ""), Utils.get_str(difficulty, "difficultyName", "")]] = values
+		parsed.append(rated)
 
 	## Seconds a note of one difficulty (from versions[0].diffs) is visible before reaching the player, at the Speed
 	## modifier `speed` (the current one by default).
@@ -204,6 +258,7 @@ var _preview_url := ""
 @onready var httpcoverdownload := $CoverDownload as HTTPRequest
 @onready var httpdetailcover := $DetailCoverDownload as HTTPRequest
 @onready var httppreviewdownload := $PreviewDownload as HTTPRequest
+@onready var httpstars := $StarsDownload as HTTPRequest
 @onready var goto_maps_by := $gotoMapsBy as Button
 @onready var download_button := $download as Button
 @onready var filter_rows := $FiltersPanel/Rows as VBoxContainer
@@ -590,6 +645,7 @@ func update_list(req: BeatSaverRequest) -> void:
 		_song_index.clear()
 		_cover_list += 1
 		_cover_fetched.clear()
+		_stars_fetched.clear()
 		_finished_covers.clear()
 		item_selected = -1
 		_total_songs = -1
@@ -601,6 +657,7 @@ func update_list(req: BeatSaverRequest) -> void:
 	if not httpcoverdownload:
 		return
 	_cancel_cover()
+	_cancel_stars()
 	httpreq.cancel_request()
 	_list_request += 1
 	prev_page_available = req.page
@@ -705,6 +762,7 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 	_redraw()
 	
 	_update_all_covers()
+	update_next_stars()
 	_fill_short_list()
 	if result == 0:
 		if item_list.item_count > 0:
@@ -1366,8 +1424,9 @@ func _near_end() -> bool:
 
 ## Fetches the next page once the player scrolls near the end of the list.
 func _on_ListV_Scroll_value_changed(_new_value: float) -> void:
-	# covers newly scrolled into view come next (one is picked at once if none is downloading)
+	# covers and stars newly scrolled into view come next (one is picked at once if none is downloading)
 	update_next_cover()
+	update_next_stars()
 	if _near_end():
 		if next_page_available == -1:
 			# no next page to load
@@ -1423,3 +1482,62 @@ func _on_BeatSaverPanel_visibility_changed() -> void:
 			_reload()
 		else:
 			_on_clear_search_pressed()
+
+## BeatLeader's ratings of one map by its hash (owner, 2026-11-10: Get songs takes its levels from BeatLeader's stars).
+const STARS_URL := "https://api.beatleader.xyz/leaderboards/hash/%s"
+## The song whose stars are downloading (-1: none), and the songs whose stars were asked for; like covers, the next is
+## the one nearest the top of the view.
+var _stars_index := -1
+var _stars_fetched := {}
+
+## Stops the stars download, so its song is asked for again later.
+func _cancel_stars() -> void:
+	httpstars.cancel_request()
+	_stars_fetched.erase(_stars_index)
+	_stars_index = -1
+
+## Starts downloading BeatLeader's stars for the map nearest the top of the view not yet asked for (rows below it
+## first, then above), unless one is downloading.
+func update_next_stars() -> void:
+	if _stars_index >= 0:
+		return
+	var first := item_list.first_shown()
+	for step in maxi(first + 1, song_data.size() - first):
+		for index: int in [first + step, first - step - 1]:
+			if index < 0 or index >= song_data.size() or _stars_fetched.has(index):
+				continue
+			_stars_fetched[index] = true
+			var hash := song_data[index].get_hash()
+			if hash.is_empty():
+				continue
+			_stars_index = index
+			if httpstars.request(STARS_URL % hash) != OK:
+				vr.log_warning("Stars request failed: %s" % hash)
+				_stars_index = -1
+				continue
+			return
+
+## A map's stars arrived: the next download starts at once while these are parsed on a worker thread, then the map's
+## level strip (and its details, when picked) show the levels from them. A failed request leaves the estimate.
+func _on_stars_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	var index := _stars_index
+	var list := _cover_list
+	_stars_index = -1
+	update_next_stars()
+	if result != 0 or response_code != 200 or index < 0 or index >= song_data.size():
+		return
+	var song: BeatSaverSongInfo = song_data[index]
+	var parsed := []
+	# low priority: the pool's high-priority threads would compete with the game's own for the cores
+	var task := WorkerThreadPool.add_task(BeatSaverSongInfo.parse_stars.bind(body, parsed), false)
+	while not WorkerThreadPool.is_task_completed(task):
+		await get_tree().process_frame
+	WorkerThreadPool.wait_for_task_completion(task)
+	if parsed.is_empty() or list != _cover_list or index >= song_data.size() or song_data[index] != song:
+		return
+	song.set_stars(parsed[0])
+	item_list.set_item_strip(index, _strip(song))
+	if index == item_selected:
+		_show_details(song)
+	if item_list.shows(index) or index == item_selected:
+		_redraw()

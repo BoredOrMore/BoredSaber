@@ -7,15 +7,16 @@ class_name MapStats
 
 static var CACHE_FILEPATH := Constants.CONFIG_ROOT_PATH + "map_stats.json"
 
-# "<map path>|<difficulty file>" -> {notes, seconds, nps, gap, flow, squats, side_steps, sets, set_seconds}
+# "<map path>|<difficulty file>" -> {notes, seconds, nps, gap, flow, burst, turn, cross, crossed, squats, side_steps, sets,
+# set_seconds}
 static var _cache := {}
 static var _cache_mutex := Mutex.new()
 static var _loaded := false
 static var _thread: Thread
 ## Bumped when the counting rules change, so cached entries are counted again.
-const STATS_VERSION := 2
+const STATS_VERSION := 3
 
-## Returns {notes, seconds, nps, gap, flow} for one difficulty, counting it now if it isn't cached yet.
+## Returns {notes, seconds, nps, gap, flow, burst, turn, cross, crossed, ...} for one difficulty, counting it now if it isn't cached yet.
 static func get_stats(info: MapInfo, difficulty: DifficultyInfo) -> Dictionary:
 	var stats := get_cached(info, difficulty)
 	if stats.is_empty():
@@ -94,7 +95,8 @@ static func _count(info: MapInfo, difficulty: DifficultyInfo) -> Dictionary:
 	var seconds_per_beat := 60.0 / info.beats_per_minute if info.beats_per_minute > 0.0 else 0.0
 	var seconds := last_beat * seconds_per_beat
 	var stats := {"version": STATS_VERSION, "notes": notes, "seconds": seconds, "nps": notes / seconds if seconds > 0.0 else 0.0,
-		"gap": _swing_gap(hand_beats, seconds_per_beat), "flow": _awkward_percent(hand_notes, seconds_per_beat)}
+		"gap": _swing_gap(hand_beats, seconds_per_beat)}
+	stats.merge(_swing_parts(hand_notes, seconds_per_beat))
 	stats.merge(_workout(_walls(map_data), seconds_per_beat))
 	return stats
 
@@ -189,13 +191,33 @@ const AWKWARD_WITHIN_SECONDS := 1.0
 const CUT_VECTORS: Array[Vector2] = [Vector2(0, 1), Vector2(0, -1), Vector2(-1, 0), Vector2(1, 0),
 	Vector2(-0.7071, 0.7071), Vector2(0.7071, 0.7071), Vector2(-0.7071, -0.7071), Vector2(0.7071, -0.7071)]
 
-## Percent of swings that don't flow, from doc/research/swing-flow.md: within AWKWARD_WITHIN_SECONDS of the
-## same hand's last swing, a swing that turns 90 degrees from the natural follow-through (the reverse of the
-## last swing) counts 1, one that turns further (a reset: down then down again) counts 2, and reaching the far
-## column of the other hand's side (left hand in column 3, right hand in column 0) counts 1.
-static func _awkward_percent(hand_notes: Array[Array], seconds_per_beat: float) -> float:
+## Seconds of the window the burst is counted in, and how far the window steps (doc/research/difficulty-rating.md).
+const BURST_WINDOW_SECONDS := 4.0
+const BURST_STEP_SECONDS := 1.0
+## The burst is this share of the way up the windows' swing rates (their 90th percentile): the song's hardest stretches,
+## not its single busiest moment.
+const BURST_PERCENTILE := 0.9
+## A swing within this of the other hand's last swing, the left hand right of the right one, has the arms crossed.
+const CROSSED_WITHIN_SECONDS := 0.25
+
+## How a difficulty's swings move, from doc/research/swing-flow.md and doc/research/difficulty-rating.md: per hand,
+## notes closer than SAME_SWING_SECONDS are one swing (its first arrow sets the direction, its notes' columns where the
+## hand goes). Returns, each over all swings:
+## - flow: percent of swings that don't flow: within AWKWARD_WITHIN_SECONDS of the same hand's last swing, a swing that
+##   turns 90 degrees from the natural follow-through (the reverse of the last swing) counts 1, one that turns further (a
+##   reset: down then down again) counts 2, and reaching the far column of the other hand's side (left hand in column
+##   3, right hand in column 0) counts 1;
+## - turn: the same without the far columns;
+## - cross: percent of swings across the body's middle, reaching the far column counting 1 and the near one 0.5;
+## - crossed: percent of swings made with the arms crossed (CROSSED_WITHIN_SECONDS);
+## - burst: swings a second, both hands, in the song's hardest stretches (BURST_*).
+static func _swing_parts(hand_notes: Array[Array], seconds_per_beat: float) -> Dictionary:
 	var swings := 0
 	var awkward := 0
+	var turned := 0
+	var cross := 0.0
+	# [time, hand, mean column] of every swing
+	var events: Array[Vector3] = []
 	for hand in hand_notes.size():
 		var hand_list := hand_notes[hand]
 		hand_list.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
@@ -206,26 +228,71 @@ static func _awkward_percent(hand_notes: Array[Array], seconds_per_beat: float) 
 			# notes this close together are one swing (a stack or a window); its first arrow sets the direction
 			var time: float = hand_list[i][0] * seconds_per_beat
 			var vector := Vector2.ZERO
-			var crosses := false
+			var far := false
+			var near := false
+			var columns := 0.0
+			var count := 0
 			while i < hand_list.size() and hand_list[i][0] * seconds_per_beat - time < SAME_SWING_SECONDS:
 				var direction: int = hand_list[i][1]
 				if vector == Vector2.ZERO and direction >= 0 and direction < CUT_VECTORS.size():
 					vector = CUT_VECTORS[direction]
-				crosses = crosses or hand_list[i][2] == (3 if hand == 0 else 0)
+				var column: int = hand_list[i][2]
+				far = far or column == (3 if hand == 0 else 0)
+				near = near or column == (2 if hand == 0 else 1)
+				columns += column
+				count += 1
 				i += 1
 			swings += 1
-			if crosses:
+			events.append(Vector3(time, hand, columns / count))
+			if far:
 				awkward += 1
+				cross += 1.0
+			elif near:
+				cross += 0.5
 			if time - last_time < AWKWARD_WITHIN_SECONDS and vector != Vector2.ZERO and last_vector != Vector2.ZERO:
 				var turn := rad_to_deg(vector.angle_to(-last_vector))
-				if absf(turn) > 112.5:
-					awkward += 2
-				elif absf(turn) > 67.5:
-					awkward += 1
+				var weight := 2 if absf(turn) > 112.5 else (1 if absf(turn) > 67.5 else 0)
+				awkward += weight
+				turned += weight
 			# a dot is cut along the natural follow-through
 			last_vector = vector if vector != Vector2.ZERO else -last_vector
 			last_time = time
-	return 100.0 * awkward / swings if swings > 0 else 0.0
+	if swings == 0:
+		return {"flow": 0.0, "turn": 0.0, "cross": 0.0, "crossed": 0.0, "burst": 0.0}
+	events.sort_custom(func(a: Vector3, b: Vector3) -> bool: return a.x < b.x)
+	var crossed := 0
+	# [time, column] of each hand's last swing
+	var last: Array[Vector2] = [Vector2(-INF, 0.0), Vector2(-INF, 0.0)]
+	for event in events:
+		var hand := int(event.y)
+		last[hand] = Vector2(event.x, event.z)
+		var other := last[1 - hand]
+		if event.x - other.x < CROSSED_WITHIN_SECONDS and last[0].y > last[1].y:
+			crossed += 1
+	return {"flow": 100.0 * awkward / swings, "turn": 100.0 * turned / swings, "cross": 100.0 * cross / swings,
+		"crossed": 100.0 * crossed / swings, "burst": _burst(events)}
+
+## Swings a second in the song's hardest stretches: the BURST_PERCENTILE of the swing counts in BURST_WINDOW_SECONDS
+## windows stepped BURST_STEP_SECONDS from the first swing; the whole song's rate when it is shorter than a window.
+## `events` are [time, hand, column] in time order.
+static func _burst(events: Array[Vector3]) -> float:
+	var first := events[0].x
+	var length := events[-1].x - first
+	if length <= BURST_WINDOW_SECONDS:
+		return events.size() / maxf(length, BURST_WINDOW_SECONDS)
+	var rates := PackedFloat32Array()
+	var end := 0
+	var start := 0
+	var window := first
+	while window < events[-1].x - BURST_WINDOW_SECONDS:
+		while start < events.size() and events[start].x < window:
+			start += 1
+		while end < events.size() and events[end].x < window + BURST_WINDOW_SECONDS:
+			end += 1
+		rates.append((end - start) / BURST_WINDOW_SECONDS)
+		window += BURST_STEP_SECONDS
+	rates.sort()
+	return rates[int(BURST_PERCENTILE * (rates.size() - 1))]
 
 ## Index in Constants.FLOW_LEVELS for a percent of awkward swings.
 static func flow_level(percent: float) -> int:
@@ -290,18 +357,35 @@ static func swing_pace_level(gap: float) -> int:
 static func reaction_level_of(info: MapInfo, difficulty: DifficultyInfo) -> int:
 	return reaction_level(reaction_seconds(info, difficulty))
 
-## Difficulty of one map difficulty as the song list shows it (an index in Constants.DIFFICULTY_LEVELS): the
-## harder of its reaction time level and its swing pace level, at the current Speed modifier, one level up
-## when its swings are Tangled. Mappers' own labels and reaction time alone ranked maps that swing fast or
-## twist as easy. Without counted stats only reaction time counts.
+## How hard a difficulty plays in BeatLeader stars, from its swing parts (_swing_parts) at the Speed modifier `speed`:
+## a linear fit to BeatLeader's stars over 1,094 BeatSaver difficulties (doc/research/difficulty-rating.md). Faster
+## songs swing faster, so the burst scales with the speed; the share of crossing and turning swings doesn't.
+const STARS_PER_BURST := 0.593
+const STARS_PER_CROSS := 0.062
+const STARS_PER_CROSSED := 0.077
+const STARS_PER_TURN := 0.022
+const STARS_BASE := 2.225
+static func stars(stats: Dictionary, speed := _speed()) -> float:
+	return STARS_BASE + STARS_PER_BURST * float(stats.get("burst", 0.0)) * speed \
+		+ STARS_PER_CROSS * float(stats.get("cross", 0.0)) + STARS_PER_CROSSED * float(stats.get("crossed", 0.0)) \
+		+ STARS_PER_TURN * float(stats.get("turn", 0.0))
+
+## Index in Constants.DIFFICULTY_LEVELS for a rating in BeatLeader stars (Constants.STAR_LEVEL_TOPS).
+static func star_level(rating: float) -> int:
+	for i in Constants.STAR_LEVEL_TOPS.size():
+		if rating < float(Constants.STAR_LEVEL_TOPS[i]):
+			return i
+	return Constants.STAR_LEVEL_TOPS.size()
+
+## Difficulty of one map difficulty as the song list shows it (an index in Constants.DIFFICULTY_LEVELS), at the current
+## Speed modifier: its stars (how fast its hardest stretches swing, how often the hands cross the body or each other,
+## how often a swing turns) on BeatLeader's scale. Mappers' labels, reaction time and the median swing gap ranked maps
+## less like BeatLeader than this (53% of levels matched against 74%, doc/research/difficulty-rating.md). Without
+## counted stats only reaction time counts.
 static func level_of(info: MapInfo, difficulty: DifficultyInfo, stats: Dictionary) -> int:
-	var level := reaction_level_of(info, difficulty)
-	var gap := float(stats.get("gap", 0.0)) / _speed()
-	if gap > 0.0:
-		level = maxi(level, swing_pace_level(gap))
-	if flow_level(float(stats.get("flow", 0.0))) == Constants.FLOW_LEVELS.size() - 1:
-		level += 1
-	return mini(level, Constants.DIFFICULTY_LEVELS.size() - 1)
+	if not stats.has("burst"):
+		return reaction_level_of(info, difficulty)
+	return star_level(stars(stats))
 
 ## The length filter entry [id, label, min, max] from Constants.LENGTH_FILTERS with this id (a saved setting).
 static func length_filter(id: int) -> Array:
