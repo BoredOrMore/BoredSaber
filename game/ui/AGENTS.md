@@ -82,7 +82,8 @@ Design and review UI with the repo skills `.claude/skills/vr-ui-design/SKILL.md`
   swing flow, length, workout sets; the `StatPill` kind) in a centred flow; the song menu's stats under the
   difficulty and, as a table's header (one pill per column, with its unit), the Download page's details, whose
   levels sit in rounded `LevelBar`s with their numbers in columns under it.
-  `LevelStrip.gd` draws a row's level strip (Easy..Expert+ slots, the player's level framed, "≈" while estimated)
+  `LevelStrip.gd` draws a row's level strip (Easy..Expert+ slots, the player's level framed, "≈" while estimated,
+  "Loading…" while BeatLeader's stars are on their way: `Mark`)
   into one image, shared by every row with the same strip.
   The menu's "Get songs" opens it directly (`BeepSaber_Game._open_beatsaver`) in place of the song menu, laid out
   like it (owner, 2026-10-29, layout A): 1753x745 px at scale 2.4 on the menus' 2 m cylinder, where the song menu is,
@@ -227,9 +228,11 @@ Above the list one row holds Search (icon), the sort (A–Z by song name, the de
 - Search: BeatSaver matches whole words or their start, not typos, and reads Japanese a character at a time (kana
   searches pull in noise; real titles are in kanji, which romaji can't give). A search that finds nothing is tried
   once more with each word cut short (`close_query`), the status saying "No exact match · close to …" (`_close_to`).
-- Levels: a row's strip starts from BeatSaver's numbers (`BeatSaverSongInfo.level_of`'s estimate), then BeatLeader's
-  stars replace it as they arrive (`StarsDownload`, `update_next_stars`, one map at a time, the rows in view first,
-  parsed on a worker thread by `parse_stars`; `stars_at` reads between BeatLeader's 0.85x/1x/1.2x/1.5x ratings for the
+- Levels: a row's strip says "Loading…" over empty slots while BeatLeader's stars are on their way
+  (`BeatSaverSongInfo.rating`; the details show "…" bars), then shows BeatLeader's levels; only once BeatLeader can't
+  give them (no answer within `STARS_TIMEOUT_SECONDS`, an error, or no stars for the map's mode) the estimate from
+  BeatSaver's numbers with "≈" (`BeatSaverSongInfo.level_of`; owner 2026-11-11). The stars come (`StarsDownload`,
+  `update_next_stars`, one map at a time, the rows in view first, parsed on a worker thread by `parse_stars`; `stars_at` reads between BeatLeader's 0.85x/1x/1.2x/1.5x ratings for the
   Speed modifier), on the song menu's cut-offs (`MapStats.star_level`; owner 2026-11-10,
   `doc/research/difficulty-rating.md`). The level filter checks a row once, when it is added; rows stay when their
   stars later move them to another level.

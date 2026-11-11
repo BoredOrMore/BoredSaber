@@ -1,6 +1,6 @@
 extends Node
 # Headless checks for the difficulty rating (MapStats._swing_parts, stars, star_level; doc/research/difficulty-rating.md)
-# and Get songs' BeatLeader stars (BeatSaverSongInfo.parse_stars, stars_at, level_of).
+# and Get songs' BeatLeader stars (BeatSaverSongInfo.parse_stars, stars_at, level_of, rating).
 # Run: godot --headless --path . res://tests/test_map_stats.tscn
 
 var failures := 0
@@ -82,12 +82,23 @@ func _ready() -> void:
 		"versions": [{"hash": "x", "diffs": [{"characteristic": "Standard", "difficulty": "Hard", "njs": 13.0, "offset": 1.0, "nps": 3.045}]}]})
 	var diff: Dictionary = (song.versions[0] as Dictionary).diffs[0]
 	var estimate := song.level_of(diff, 1.0)
+	check(song.rating == BeatSaverPanel.BeatSaverSongInfo.Rating.LOADING, "levels wait for BeatLeader at first")
 	song.set_stars(parsed[0])
+	check(song.rating == BeatSaverPanel.BeatSaverSongInfo.Rating.STARS, "stars for its mode rate it")
 	check(is_equal_approx(song.stars_at("Standard/Hard", 1.0), 5.51), "plain speed reads the plain stars")
 	check(is_equal_approx(song.stars_at("Standard/Hard", 1.1), (5.51 + 5.90) / 2.0), "speeds between are read between")
 	check(song.stars_at("Standard/Hard", 1.75) > 6.52, "past Super Fast carries on up")
 	check(song.stars_at("Standard/Expert", 1.0) > 0.0 and song.stars_at("Standard/Expert", 1.25) == 0.0,
 		"without speed ratings only the plain speed is known")
+	var other := BeatSaverPanel.BeatSaverSongInfo.new({"versions": [{"hash": "y", "diffs": [{"characteristic": "Standard",
+		"difficulty": "Hard"}]}]})
+	other.set_stars({"360Degree/Hard": [0.0, 5.0, 0.0, 0.0]})
+	check(other.rating == BeatSaverPanel.BeatSaverSongInfo.Rating.ESTIMATE, "no stars for its mode: the estimate")
+	var lost := BeatSaverPanel.BeatSaverSongInfo.new({"versions": []})
+	lost.stars_failed()
+	check(lost.rating == BeatSaverPanel.BeatSaverSongInfo.Rating.ESTIMATE, "BeatLeader not reached: the estimate")
+	var strip := LevelStrip.strip_image([2], 2, LevelStrip.Mark.LOADING)
+	check(strip.get_size() == Vector2i(LevelStrip.WIDTH, LevelStrip.STRIP), "the loading strip keeps the strip's size")
 	check(estimate == 2 and song.level_of(diff, 1.0) == 3, "Gurenge Hard: ≈Hard by estimate, Expert by BeatLeader (was %d, now %d)" % [estimate, song.level_of(diff, 1.0)])
 
 	if failures > 0:

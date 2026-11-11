@@ -84,8 +84,9 @@ Expert+.
 
 Before download the notes aren't there, so Get songs asks BeatLeader for the map's stars
 (`api.beatleader.xyz/leaderboards/hash/<hash>`, about 10 KB, one map at a time, the rows in view first) and puts them
-on the same cut-offs, reading between BeatLeader's 0.85x, 1x, 1.2x and 1.5x ratings for the Speed modifier. Until
-they arrive, or when BeatLeader has none, it keeps the old estimate. The owner's example: LiSA's Gurenge (BeatSaver
+on the same cut-offs, reading between BeatLeader's 0.85x, 1x, 1.2x and 1.5x ratings for the Speed modifier. While
+they are on their way the strip says "Loading…"; only when BeatLeader can't give them (no answer in 10 s, an error, or
+no stars for the map) it shows the old estimate with "≈" (owner, 2026-11-11). The owner's example: LiSA's Gurenge (BeatSaver
 5270) Hard showed ≈Hard and plays at Expert (5.51 stars); its Expert showed ≈Expert and plays at Expert+ (7.31).
 
 ## Limits
