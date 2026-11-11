@@ -85,9 +85,33 @@ Expert+.
 Before download the notes aren't there, so Get songs asks BeatLeader for the map's stars
 (`api.beatleader.xyz/leaderboards/hash/<hash>`, about 10 KB, one map at a time, the rows in view first) and puts them
 on the same cut-offs, reading between BeatLeader's 0.85x, 1x, 1.2x and 1.5x ratings for the Speed modifier. While
-they are on their way the strip says "Loading…"; only when BeatLeader can't give them (no answer in 10 s, an error, or
-no stars for the map) it shows the old estimate with "≈" (owner, 2026-11-11). The owner's example: LiSA's Gurenge (BeatSaver
-5270) Hard showed ≈Hard and plays at Expert (5.51 stars); its Expert showed ≈Expert and plays at Expert+ (7.31).
+they are on their way the strip says "Loading…"; only when BeatLeader can't give them (no answer in 3 s, an error, or
+no stars for the map) it shows an estimate with "≈" (owner, 2026-11-11). One map that BeatLeader doesn't answer marks it
+down for the page: every map still waiting shows its estimate at once, and the next page asks again. The owner's
+example: LiSA's Gurenge (BeatSaver 5270) Hard showed ≈Hard and plays at Expert (5.51 stars); its Expert showed ≈Expert
+and plays at Expert+ (7.31).
+
+### The estimate (when BeatLeader can't answer)
+
+The old estimate (the harder of the reaction time level and a swing pace from notes per second,
+`doc/research/download-level-estimate.md`) matched BeatLeader's level for 57.3 % of the 1,094 difficulties, shown
+harder 31.0 %, easier 11.7 %, and two levels or more off for 50. The owner picked a refit (option A, 2026-11-11):
+least squares of BeatLeader's stars on what BeatSaver's map data gives before download, 5-fold cross-validated by map
+(`doc/research/difficulty_fit_beatsaver.py`, which also fetches BeatSaver's data for the sample):
+
+| Inputs | R² | Same level | Shown harder | Shown easier |
+|---|---|---|---|---|
+| Old estimate | - | 57.3 % | 31.0 % | 11.7 % |
+| notes per second | 0.81 | 61.9 % | 21.8 % | 16.4 % |
+| + NJS | 0.81 | 63.4 % | 21.9 % | 14.6 % |
+| + parity warnings (the game's) | 0.86 | 69.5 % | 18.0 % | 12.5 % |
+
+stars = 0.987 + 0.787 x notes per second + 0.119 x NJS + 0.115 x parity warnings (% of notes; BeatSaver's parity
+check flags awkward swings) (`BeatSaverSongInfo.estimated_stars`). Two levels or more off: 10 of 1,094 (cross-validated). Reaction time,
+bombs, walls, parity errors and resets add nothing. Gurenge Hard comes out at 5.47 (Hard, just under 5.49), its
+Expert at 6.76 (Expert+, as BeatLeader). The Speed modifier multiplies notes per second and NJS; not checked against
+BeatLeader's speed ratings. The level filter asks BeatSaver for the notes per second that put a map at the picked
+level with an NJS of 10-19 and warnings of 0-7.75 % (5th-95th percentiles), which keeps 99 % of each level's maps.
 
 ## Limits
 

@@ -231,7 +231,10 @@ Above the list one row holds Search (icon), the sort (A–Z by song name, the de
 - Levels: a row's strip says "Loading…" over empty slots while BeatLeader's stars are on their way
   (`BeatSaverSongInfo.rating`; the details show "…" bars), then shows BeatLeader's levels; only once BeatLeader can't
   give them (no answer within `STARS_TIMEOUT_SECONDS`, an error, or no stars for the map's mode) the estimate from
-  BeatSaver's numbers with "≈" (`BeatSaverSongInfo.level_of`; owner 2026-11-11). The stars come (`StarsDownload`,
+  BeatSaver's numbers with "≈" (`BeatSaverSongInfo.estimated_stars`: notes per second, NJS and parity warnings fitted
+  to BeatLeader's stars; owner 2026-11-11). One map BeatLeader doesn't answer sets `_stars_down`: every map still
+  waiting shows its estimate at once, and the next page asks again. The level filter's BeatSaver query
+  (`nps_window`) asks for the notes per second the estimate puts at that level. The stars come (`StarsDownload`,
   `update_next_stars`, one map at a time, the rows in view first, parsed on a worker thread by `parse_stars`; `stars_at` reads between BeatLeader's 0.85x/1x/1.2x/1.5x ratings for the
   Speed modifier), on the song menu's cut-offs (`MapStats.star_level`; owner 2026-11-10,
   `doc/research/difficulty-rating.md`). The level filter checks a row once, when it is added; rows stay when their

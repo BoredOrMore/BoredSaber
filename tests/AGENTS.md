@@ -33,7 +33,8 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
   arms crossed, resets, the burst following the fast stretch), `MapStats.stars` (faster and crossing rate harder) and
   `star_level`'s cut-offs; Get songs' `BeatSaverSongInfo.parse_stars` (unrated difficulties left out), `stars_at` between
   BeatLeader's rated speeds, the rating (loading, then stars, or the estimate when BeatLeader has none for the mode or
-  can't be reached; the loading strip's size), and Gurenge Hard moving from ≈Hard to Expert once its stars arrive.
+  can't be reached; the loading strip's size), the fallback estimate (`estimated_stars`: Gurenge Hard near its 5.51
+  stars, faster songs harder) and the level filter's notes-per-second windows, and Gurenge Hard moving from ≈Hard to Expert once its stars arrive.
 - `test_song_search.tscn` / `.gd` - `SongSearch` (the song menu's search): kana read as romaji, case, spaces,
   punctuation, long vowels and doubled letters alike, every typed word, tags; `BeatSaverPanel.close_query`; the AI
   mark in saved tags; Get songs listing a 360°-only map by its 360° difficulties.

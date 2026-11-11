@@ -90,6 +90,15 @@ func _ready() -> void:
 	check(song.stars_at("Standard/Hard", 1.75) > 6.52, "past Super Fast carries on up")
 	check(song.stars_at("Standard/Expert", 1.0) > 0.0 and song.stars_at("Standard/Expert", 1.25) == 0.0,
 		"without speed ratings only the plain speed is known")
+	var gurenge_hard := {"nps": 3.045, "njs": 13.0, "notes": 703.0, "paritySummary": {"warns": 33.0}}
+	var guessed := BeatSaverPanel.BeatSaverSongInfo.estimated_stars(gurenge_hard, 1.0)
+	check(absf(guessed - 5.47) < 0.02, "the estimate reads Gurenge Hard near BeatLeader's 5.51 (got %.2f)" % guessed)
+	check(BeatSaverPanel.BeatSaverSongInfo.estimated_stars(gurenge_hard, 1.2) > guessed, "a faster song estimates harder")
+	for level in Constants.DIFFICULTY_LEVELS.size():
+		var window := BeatSaverPanel.nps_window(level)
+		var low_ok := level == 0 or window.x < BeatSaverPanel.nps_window(level - 1).y
+		check(low_ok and (window.y == 0.0) == (level == Constants.DIFFICULTY_LEVELS.size() - 1),
+			"level %d's notes-per-second window overlaps the one below and is open only at the top (got %s)" % [level, window])
 	var other := BeatSaverPanel.BeatSaverSongInfo.new({"versions": [{"hash": "y", "diffs": [{"characteristic": "Standard",
 		"difficulty": "Hard"}]}]})
 	other.set_stars({"360Degree/Hard": [0.0, 5.0, 0.0, 0.0]})

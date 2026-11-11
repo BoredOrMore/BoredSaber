@@ -77,10 +77,13 @@ class BeatSaverSongInfo extends RefCounted:
 		return 100.0 * (Utils.get_float(parity, "errors", 0.0) + Utils.get_float(parity, "warns", 0.0)
 			+ Utils.get_float(parity, "resets", 0.0)) / notes
 
-	## Median same-hand swing gap over 2 / notes per second (each hand takes about half the notes): 0.84 over the
-	## test headset's 77 Standard difficulties (doc/research/flow_research.py), refit to 0.82 against the measured
-	## levels of 195 (doc/research/download-level-estimate.md). Stacks and chains make it a little under 1.
-	const SWING_GAP_PER_NOTE_GAP := 0.82
+	## The estimate of a difficulty's BeatLeader stars from BeatSaver's numbers (estimated_stars): a linear fit over
+	## 1,094 difficulties (doc/research/difficulty-rating.md, owner 2026-11-11: option A). Notes per second, how fast
+	## the notes come (NJS) and the percent of notes BeatSaver's parity check warns about (awkward swings).
+	const ESTIMATE_STARS_BASE := 0.987
+	const ESTIMATE_STARS_PER_NPS := 0.787
+	const ESTIMATE_STARS_PER_NJS := 0.119
+	const ESTIMATE_STARS_PER_WARN := 0.115
 
 	## Song speeds BeatLeader rates each difficulty at: its Slower Song, plain, Faster Song and Super Fast Song.
 	const STAR_SPEEDS := [0.85, 1.0, 1.2, 1.5]
@@ -91,19 +94,21 @@ class BeatSaverSongInfo extends RefCounted:
 	## Difficulty a map difficulty plays at before it is downloaded (an index in Constants.DIFFICULTY_LEVELS) at the
 	## Speed modifier `speed` (the current one by default): from BeatLeader's stars once they arrived, on the same
 	## scale as the song menu's levels (MapStats.star_level; owner, 2026-11-10: the estimate below put Gurenge Hard a
-	## level too easy). Until then, or without stars, the harder of its reaction time and its swing pace estimated from
-	## notes per second: against the measured levels (doc/research/download-level-estimate.md) that matched 73%, most
-	## misses reading easier because the average hides dense bursts.
+	## level too easy). Until then, or without stars, estimated_stars on the same cut-offs: it matched BeatLeader's level
+	## 69.5% (the old reaction time and swing pace estimate 57.3%).
 	func level_of(diff: Dictionary, speed := MapStats._speed()) -> int:
 		var rated := stars_at("%s/%s" % [Utils.get_str(diff, "characteristic", "Standard"),
 			Utils.get_str(diff, "difficulty", "")], speed)
-		if rated > 0.0:
-			return MapStats.star_level(rated)
-		var level := MapStats.reaction_level(reaction_seconds(diff, speed))
-		var nps := Utils.get_float(diff, "nps", 0.0)
-		if nps > 0.0:
-			level = maxi(level, MapStats.swing_pace_level(SWING_GAP_PER_NOTE_GAP * 2.0 / nps / speed))
-		return mini(level, Constants.DIFFICULTY_LEVELS.size() - 1)
+		return MapStats.star_level(rated if rated > 0.0 else estimated_stars(diff, speed))
+
+	## A difficulty's BeatLeader stars estimated from BeatSaver's numbers (ESTIMATE_STARS_*) at the song speed `speed`,
+	## which speeds the notes per second and the notes' approach alike (not checked against BeatLeader's speed ratings).
+	static func estimated_stars(diff: Dictionary, speed: float) -> float:
+		var notes := Utils.get_float(diff, "notes", 0.0)
+		var warns := Utils.get_float(Utils.get_dict(diff, "paritySummary", {}), "warns", 0.0)
+		return ESTIMATE_STARS_BASE + (ESTIMATE_STARS_PER_NPS * Utils.get_float(diff, "nps", 0.0)
+			+ ESTIMATE_STARS_PER_NJS * Utils.get_float(diff, "njs", 0.0)) * speed \
+			+ ESTIMATE_STARS_PER_WARN * (100.0 * warns / notes if notes > 0.0 else 0.0)
 
 	## BeatLeader's stars of one difficulty ("<mode>/<difficulty>") at the song speed `speed`, read between the speeds
 	## BeatLeader rates (STAR_SPEEDS) and carried on past the ends along the nearest two; 0 when BeatLeader has no stars
@@ -230,15 +235,28 @@ static func picked_level() -> int:
 	var id := Settings.beatsaver_filter_reaction
 	return id - 1 if id > 0 and id <= Constants.DIFFICULTY_LEVELS.size() else -1
 
-## BeatSaver's notes-per-second window for a level, so its pages come back with maps near it (the level is the
-## harder of reaction time and the swing pace from notes per second, so the window is the pace's): [min, max], 0 for
-## no bound.
+## The NJS and the percent of parity warnings that 90% of maps lie between (5th and 95th percentiles over the 1,094
+## difficulties of doc/research/difficulty-rating.md), so nps_window keeps the maps of a level with any usual ones.
+const WINDOW_NJS := Vector2(10.0, 19.0)
+const WINDOW_WARNS := Vector2(0.0, 7.75)
+
+## BeatSaver's notes-per-second window for a level, so its pages come back with maps near it: the notes per second
+## that BeatSaverSongInfo.estimated_stars puts at that level for some NJS and warnings in WINDOW_NJS and WINDOW_WARNS
+## (99% of each level's maps in the sample): [min, max], 0 for no bound.
 static func nps_window(level: int) -> Vector2:
-	var thresholds := Constants.DIFFICULTY_LEVELS.map(func(l: Array) -> float: return float(l[3]))
-	var k := BeatSaverSongInfo.SWING_GAP_PER_NOTE_GAP * 2.0 / MapStats._speed()
-	var low: float = k / thresholds[level - 1] if level > 0 else 0.0
-	var high: float = k / thresholds[level] if thresholds[level] > 0.0 else 0.0
-	return Vector2(low, high)
+	var speed := MapStats._speed()
+	var tops: Array = Constants.STAR_LEVEL_TOPS
+	var per_nps := BeatSaverSongInfo.ESTIMATE_STARS_PER_NPS * speed
+	var base := BeatSaverSongInfo.ESTIMATE_STARS_BASE
+	var low := 0.0
+	if level > 0:
+		low = (float(tops[level - 1]) - base - BeatSaverSongInfo.ESTIMATE_STARS_PER_NJS * WINDOW_NJS.y * speed
+			- BeatSaverSongInfo.ESTIMATE_STARS_PER_WARN * WINDOW_WARNS.y) / per_nps
+	var high := 0.0
+	if level < tops.size():
+		high = (float(tops[level]) - base - BeatSaverSongInfo.ESTIMATE_STARS_PER_NJS * WINDOW_NJS.x * speed
+			- BeatSaverSongInfo.ESTIMATE_STARS_PER_WARN * WINDOW_WARNS.x) / per_nps
+	return Vector2(maxf(low, 0.0), high)
 
 ## Icons of the big button: download, or play once the song is in the library.
 const DOWNLOAD_ICON := preload("res://game/ui/icons/download.svg")
@@ -780,6 +798,7 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 	_redraw()
 	
 	_update_all_covers()
+	_stars_down = false
 	update_next_stars()
 	_fill_short_list()
 	if result == 0:
@@ -1510,9 +1529,12 @@ func _on_BeatSaverPanel_visibility_changed() -> void:
 
 ## BeatLeader's ratings of one map by its hash (owner, 2026-11-10: Get songs takes its levels from BeatLeader's stars).
 const STARS_URL := "https://api.beatleader.xyz/leaderboards/hash/%s"
-## How long a map's stars may take before the estimate shows instead (an answer takes about 0.2 s; Nielsen's 10 s
-## limit for waiting without progress).
-const STARS_TIMEOUT_SECONDS := 10.0
+## How long a map's stars may take before the estimate shows instead: an answer takes about 0.2 s (owner, 2026-11-11:
+## 10 s was too long).
+const STARS_TIMEOUT_SECONDS := 3.0
+## BeatLeader didn't answer (no connection, a timeout or a server error): every map still waiting shows the estimate
+## at once, and BeatLeader is asked again when the next page or list comes (owner, 2026-11-11).
+var _stars_down := false
 ## The song whose stars are downloading (-1: none), and the songs whose stars were asked for; like covers, the next is
 ## the one nearest the top of the view.
 var _stars_index := -1
@@ -1528,6 +1550,12 @@ func _cancel_stars() -> void:
 ## first, then above), unless one is downloading.
 func update_next_stars() -> void:
 	if _stars_index >= 0:
+		return
+	if _stars_down:
+		for index in song_data.size():
+			if not _stars_fetched.has(index):
+				_stars_fetched[index] = true
+				_stars_failed(index)
 		return
 	var first := item_list.first_shown()
 	for step in maxi(first + 1, song_data.size() - first):
@@ -1549,10 +1577,12 @@ func _on_stars_completed(result: int, response_code: int, _headers: PackedString
 	var index := _stars_index
 	var list := _cover_list
 	_stars_index = -1
+	if result != HTTPRequest.RESULT_SUCCESS or response_code >= 500:
+		_stars_down = true
 	update_next_stars()
 	if index < 0 or index >= song_data.size():
 		return
-	if result != 0 or response_code != 200:
+	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
 		vr.log_warning("Stars download failed: result %d, code %d" % [result, response_code])
 		_stars_failed(index)
 		return
