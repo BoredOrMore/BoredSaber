@@ -27,6 +27,14 @@ class BeatSaverSongInfo extends RefCounted:
 	## at: both made on the page's worker thread (_parse_page), so adding the row does no work per song on the main
 	## thread (owner, 2026-10-30: Get songs still hitched as each page of 50 came in).
 	var row_text: String
+	## BeatLeader's stars of the newest version's difficulties (parse_stars), "<mode>/<difficulty>" -> stars at each of
+	## STAR_SPEEDS (0 where BeatLeader has none); empty until they arrive.
+	var stars := {}
+	## Where the levels shown before download come from: BeatLeader, still on its way; BeatLeader's stars; or the
+	## estimate from BeatSaver's numbers, once BeatLeader couldn't be reached or has no stars for the map's mode (owner,
+	## 2026-11-11: "Loading…" while asking, the estimate only once sure).
+	enum Rating { LOADING, STARS, ESTIMATE }
+	var rating := Rating.LOADING
 	var _levels: Array = []
 	var _levels_speed := 0.0
 
@@ -69,23 +77,86 @@ class BeatSaverSongInfo extends RefCounted:
 		return 100.0 * (Utils.get_float(parity, "errors", 0.0) + Utils.get_float(parity, "warns", 0.0)
 			+ Utils.get_float(parity, "resets", 0.0)) / notes
 
-	## Median same-hand swing gap over 2 / notes per second (each hand takes about half the notes): 0.84 over the
-	## test headset's 77 Standard difficulties (doc/research/flow_research.py), refit to 0.82 against the measured
-	## levels of 195 (doc/research/download-level-estimate.md). Stacks and chains make it a little under 1.
-	const SWING_GAP_PER_NOTE_GAP := 0.82
+	## The estimate of a difficulty's BeatLeader stars from BeatSaver's numbers (estimated_stars): a linear fit over
+	## 1,094 difficulties (doc/research/difficulty-rating.md, owner 2026-11-11: option A). Notes per second, how fast
+	## the notes come (NJS) and the percent of notes BeatSaver's parity check warns about (awkward swings).
+	const ESTIMATE_STARS_BASE := 0.987
+	const ESTIMATE_STARS_PER_NPS := 0.787
+	const ESTIMATE_STARS_PER_NJS := 0.119
+	const ESTIMATE_STARS_PER_WARN := 0.115
 
-	## Difficulty a map difficulty plays at before it is downloaded (an index in Constants.DIFFICULTY_LEVELS): the
-	## harder of its reaction time and its swing pace estimated from notes per second. Downloaded maps use the measured
-	## swing gap and swing flow instead (MapStats.level_of). Against them (doc/research/download-level-estimate.md, 195
-	## difficulties of the headset's 53 songs and the Mac's 18) it matches 73%, within one level 95%; BeatSaver's
-	## parity count no longer adds a level (67% with it). Most misses read easier: dense bursts the average hides.
-	## `speed` is the Speed modifier (the current one by default).
+	## Song speeds BeatLeader rates each difficulty at: its Slower Song, plain, Faster Song and Super Fast Song.
+	const STAR_SPEEDS := [0.85, 1.0, 1.2, 1.5]
+	## BeatLeader's keys for the stars at each of STAR_SPEEDS: the plain one on the difficulty, the others in its
+	## modifiersRating.
+	const STAR_KEYS := ["ssStars", "stars", "fsStars", "sfStars"]
+
+	## Difficulty a map difficulty plays at before it is downloaded (an index in Constants.DIFFICULTY_LEVELS) at the
+	## Speed modifier `speed` (the current one by default): from BeatLeader's stars once they arrived, on the same
+	## scale as the song menu's levels (MapStats.star_level; owner, 2026-11-10: the estimate below put Gurenge Hard a
+	## level too easy). Until then, or without stars, estimated_stars on the same cut-offs: it matched BeatLeader's level
+	## 69.5% (the old reaction time and swing pace estimate 57.3%).
 	func level_of(diff: Dictionary, speed := MapStats._speed()) -> int:
-		var level := MapStats.reaction_level(reaction_seconds(diff, speed))
-		var nps := Utils.get_float(diff, "nps", 0.0)
-		if nps > 0.0:
-			level = maxi(level, MapStats.swing_pace_level(SWING_GAP_PER_NOTE_GAP * 2.0 / nps / speed))
-		return mini(level, Constants.DIFFICULTY_LEVELS.size() - 1)
+		var rated := stars_at("%s/%s" % [Utils.get_str(diff, "characteristic", "Standard"),
+			Utils.get_str(diff, "difficulty", "")], speed)
+		return MapStats.star_level(rated if rated > 0.0 else estimated_stars(diff, speed))
+
+	## A difficulty's BeatLeader stars estimated from BeatSaver's numbers (ESTIMATE_STARS_*) at the song speed `speed`,
+	## which speeds the notes per second and the notes' approach alike (not checked against BeatLeader's speed ratings).
+	static func estimated_stars(diff: Dictionary, speed: float) -> float:
+		var notes := Utils.get_float(diff, "notes", 0.0)
+		var warns := Utils.get_float(Utils.get_dict(diff, "paritySummary", {}), "warns", 0.0)
+		return ESTIMATE_STARS_BASE + (ESTIMATE_STARS_PER_NPS * Utils.get_float(diff, "nps", 0.0)
+			+ ESTIMATE_STARS_PER_NJS * Utils.get_float(diff, "njs", 0.0)) * speed \
+			+ ESTIMATE_STARS_PER_WARN * (100.0 * warns / notes if notes > 0.0 else 0.0)
+
+	## BeatLeader's stars of one difficulty ("<mode>/<difficulty>") at the song speed `speed`, read between the speeds
+	## BeatLeader rates (STAR_SPEEDS) and carried on past the ends along the nearest two; 0 when BeatLeader has no stars
+	## for it at this speed.
+	func stars_at(key: String, speed: float) -> float:
+		var rated: Array = stars.get(key, [])
+		if rated.is_empty() or float(rated[1]) <= 0.0:
+			return 0.0
+		if is_equal_approx(speed, 1.0):
+			return float(rated[1])
+		if rated.has(0.0):
+			return 0.0
+		var i := 0
+		while i < STAR_SPEEDS.size() - 2 and speed > float(STAR_SPEEDS[i + 1]):
+			i += 1
+		var weight := (speed - float(STAR_SPEEDS[i])) / (float(STAR_SPEEDS[i + 1]) - float(STAR_SPEEDS[i]))
+		return lerpf(float(rated[i]), float(rated[i + 1]), weight)
+
+	## Takes BeatLeader's stars for this map (parse_stars); its levels are worked out again.
+	func set_stars(rated: Dictionary) -> void:
+		stars = rated
+		rating = Rating.STARS if rated.keys().any(func(key: String) -> bool: return key.begins_with(mode + "/")) \
+				else Rating.ESTIMATE
+		_levels_speed = 0.0
+
+	## BeatLeader couldn't give this map's stars: its levels are the estimate.
+	func stars_failed() -> void:
+		rating = Rating.ESTIMATE
+		_levels_speed = 0.0
+
+	## Parses BeatLeader's leaderboards for one map hash into `parsed` as one dictionary, "<mode>/<difficulty>" -> stars at
+	## each of STAR_SPEEDS (0 where missing); left empty when the body isn't BeatLeader's answer. On a worker thread.
+	static func parse_stars(body: PackedByteArray, parsed: Array) -> void:
+		var json: Variant = JSON.parse_string(body.get_string_from_utf8())
+		if not json is Dictionary:
+			return
+		var rated := {}
+		for board: Variant in Utils.get_array(json as Dictionary, "leaderboards", []):
+			if not board is Dictionary:
+				continue
+			var difficulty := Utils.get_dict(board as Dictionary, "difficulty", {})
+			var modifiers := Utils.get_dict(difficulty, "modifiersRating", {})
+			var values := []
+			for key: String in STAR_KEYS:
+				values.append(Utils.get_float(difficulty if key == "stars" else modifiers, key, 0.0))
+			if float(values[1]) > 0.0:
+				rated["%s/%s" % [Utils.get_str(difficulty, "modeName", ""), Utils.get_str(difficulty, "difficultyName", "")]] = values
+		parsed.append(rated)
 
 	## Seconds a note of one difficulty (from versions[0].diffs) is visible before reaching the player, at the Speed
 	## modifier `speed` (the current one by default).
@@ -164,15 +235,28 @@ static func picked_level() -> int:
 	var id := Settings.beatsaver_filter_reaction
 	return id - 1 if id > 0 and id <= Constants.DIFFICULTY_LEVELS.size() else -1
 
-## BeatSaver's notes-per-second window for a level, so its pages come back with maps near it (the level is the
-## harder of reaction time and the swing pace from notes per second, so the window is the pace's): [min, max], 0 for
-## no bound.
+## The NJS and the percent of parity warnings that 90% of maps lie between (5th and 95th percentiles over the 1,094
+## difficulties of doc/research/difficulty-rating.md), so nps_window keeps the maps of a level with any usual ones.
+const WINDOW_NJS := Vector2(10.0, 19.0)
+const WINDOW_WARNS := Vector2(0.0, 7.75)
+
+## BeatSaver's notes-per-second window for a level, so its pages come back with maps near it: the notes per second
+## that BeatSaverSongInfo.estimated_stars puts at that level for some NJS and warnings in WINDOW_NJS and WINDOW_WARNS
+## (99% of each level's maps in the sample): [min, max], 0 for no bound.
 static func nps_window(level: int) -> Vector2:
-	var thresholds := Constants.DIFFICULTY_LEVELS.map(func(l: Array) -> float: return float(l[3]))
-	var k := BeatSaverSongInfo.SWING_GAP_PER_NOTE_GAP * 2.0 / MapStats._speed()
-	var low: float = k / thresholds[level - 1] if level > 0 else 0.0
-	var high: float = k / thresholds[level] if thresholds[level] > 0.0 else 0.0
-	return Vector2(low, high)
+	var speed := MapStats._speed()
+	var tops: Array = Constants.STAR_LEVEL_TOPS
+	var per_nps := BeatSaverSongInfo.ESTIMATE_STARS_PER_NPS * speed
+	var base := BeatSaverSongInfo.ESTIMATE_STARS_BASE
+	var low := 0.0
+	if level > 0:
+		low = (float(tops[level - 1]) - base - BeatSaverSongInfo.ESTIMATE_STARS_PER_NJS * WINDOW_NJS.y * speed
+			- BeatSaverSongInfo.ESTIMATE_STARS_PER_WARN * WINDOW_WARNS.y) / per_nps
+	var high := 0.0
+	if level < tops.size():
+		high = (float(tops[level]) - base - BeatSaverSongInfo.ESTIMATE_STARS_PER_NJS * WINDOW_NJS.x * speed
+			- BeatSaverSongInfo.ESTIMATE_STARS_PER_WARN * WINDOW_WARNS.x) / per_nps
+	return Vector2(maxf(low, 0.0), high)
 
 ## Icons of the big button: download, or play once the song is in the library.
 const DOWNLOAD_ICON := preload("res://game/ui/icons/download.svg")
@@ -204,6 +288,7 @@ var _preview_url := ""
 @onready var httpcoverdownload := $CoverDownload as HTTPRequest
 @onready var httpdetailcover := $DetailCoverDownload as HTTPRequest
 @onready var httppreviewdownload := $PreviewDownload as HTTPRequest
+@onready var httpstars := $StarsDownload as HTTPRequest
 @onready var goto_maps_by := $gotoMapsBy as Button
 @onready var download_button := $download as Button
 @onready var filter_rows := $FiltersPanel/Rows as VBoxContainer
@@ -242,16 +327,20 @@ func _local_map(song: BeatSaverSongInfo) -> MapInfo:
 			return info
 	return null
 
-## The map's levels: measured once it is in the library, else BeatSaver's estimate; [levels, estimated].
+## The map's levels: measured once it is in the library, else BeatLeader's or the estimate (rating); [levels,
+## LevelStrip.Mark].
 func _levels(song: BeatSaverSongInfo) -> Array:
 	var info := _local_map(song) if _in_library(song) else null
 	if info == null:
-		return [song.estimated_levels(), true]
+		var mark := {BeatSaverSongInfo.Rating.LOADING: LevelStrip.Mark.LOADING,
+			BeatSaverSongInfo.Rating.STARS: LevelStrip.Mark.NONE,
+			BeatSaverSongInfo.Rating.ESTIMATE: LevelStrip.Mark.ESTIMATE}[song.rating] as LevelStrip.Mark
+		return [song.estimated_levels(), mark]
 	var levels := []
 	for difficulty in info.difficulty_beatmaps:
 		if (difficulty.characteristic if difficulty.characteristic != "" else "Standard") == song.mode:
 			levels.append(MapStats.level_of(info, difficulty, MapStats.get_stats(info, difficulty)))
-	return [levels, false]
+	return [levels, LevelStrip.Mark.NONE]
 
 ## A map's row text, as the song menu names its songs: "Artist - Title" (the map's name when it has neither), "AI · "
 ## before it for an AI's map and its mode after it when it isn't Standard (" (360°)").
@@ -283,15 +372,16 @@ func _side_text(song: BeatSaverSongInfo) -> String:
 	var seconds := int(song.duration)
 	return "%d:%02d" % [seconds / 60, seconds % 60]
 
-## Level strips by kind (levels, the player's level, estimated), each one texture shared by every row that shows it.
+## Level strips by kind (levels, the player's level, LevelStrip.Mark), each one texture shared by every row that shows it.
 var _strip_textures := {}
 
-## A map's level strip: measured once it is in the library, else BeatSaver's estimate.
+## A map's level strip: measured once it is in the library, else BeatLeader's, loading or the estimate (_levels).
 func _strip(song: BeatSaverSongInfo) -> Texture2D:
 	var levels := _levels(song)
 	var key := "%s|%d|%s" % [levels[0], picked_level(), levels[1]]
 	if not _strip_textures.has(key):
-		_strip_textures[key] = ImageTexture.create_from_image(LevelStrip.strip_image(levels[0], picked_level(), levels[1]))
+		_strip_textures[key] = ImageTexture.create_from_image(LevelStrip.strip_image(levels[0], picked_level(),
+				levels[1] as LevelStrip.Mark))
 	return _strip_textures[key]
 
 func _ready() -> void:
@@ -328,6 +418,7 @@ func _ready() -> void:
 	main_menu_ref.song_list_changed.connect(on_song_list_changed)
 	
 	LevelStrip.prepare(self)
+	httpstars.timeout = STARS_TIMEOUT_SECONDS
 	_add_details_toggle()
 	_make_details_box()
 	_reload_timer.one_shot = true
@@ -590,6 +681,7 @@ func update_list(req: BeatSaverRequest) -> void:
 		_song_index.clear()
 		_cover_list += 1
 		_cover_fetched.clear()
+		_stars_fetched.clear()
 		_finished_covers.clear()
 		item_selected = -1
 		_total_songs = -1
@@ -601,6 +693,7 @@ func update_list(req: BeatSaverRequest) -> void:
 	if not httpcoverdownload:
 		return
 	_cancel_cover()
+	_cancel_stars()
 	httpreq.cancel_request()
 	_list_request += 1
 	prev_page_available = req.page
@@ -705,6 +798,8 @@ func _on_HTTPRequest_request_completed(result: int, _response_code: int, _header
 	_redraw()
 	
 	_update_all_covers()
+	_stars_down = false
+	update_next_stars()
 	_fill_short_list()
 	if result == 0:
 		if item_list.item_count > 0:
@@ -866,8 +961,9 @@ func _details_text(song: BeatSaverSongInfo) -> String:
 			if not modes.has(shown):
 				modes.append(shown)
 			continue
+		var loading := _loading_levels(song)
 		var level: Array = Constants.DIFFICULTY_LEVELS[song.level_of(d)]
-		var line: String = level[0]
+		var line: String = LevelStrip.LOADING_TEXT if loading else level[0]
 		if song.bpm > 0.0:
 			line += " · Notes %.2f s ahead" % song.reaction_seconds(d)
 		var flow := MapStats.flow_level(BeatSaverSongInfo.parity_percent(d))
@@ -876,7 +972,7 @@ func _details_text(song: BeatSaverSongInfo) -> String:
 		var walls := int(Utils.get_float(d, "obstacles", 0))
 		if walls > 0:
 			line += " · %s walls" % Hud._grouped(walls)
-		text += "\n[color=#%s]%s[/color]" % [(level[1] as Color).to_html(false), line]
+		text += "\n[color=#%s]%s[/color]" % [muted if loading else (level[1] as Color).to_html(false), line]
 	if not modes.is_empty():
 		text += "\n[color=#%s]Also %s[/color]" % [muted, ", ".join(modes)]
 	var description := song.description.strip_edges().replace("\n", " ")
@@ -887,9 +983,9 @@ func _details_text(song: BeatSaverSongInfo) -> String:
 	return text
 
 ## Each difficulty of the map's mode as a rounded bar across the panel in its level's colour, with its name ("≈" while
-## estimated) and its numbers in columns under a header of stats pills (StatPills: time to get ready, notes per second,
-## swing flow, each icon with its unit), measured once the map is in the library; the player's level (the level
-## filter) framed in UI_ACCENT; then what "≈" means. A table, so all five levels' numbers fit the song menu's side
+## estimated; a plain bar with "…" while BeatLeader's stars are on their way) and its numbers in columns under a header
+## of stats pills (StatPills: time to get ready, notes per second, swing flow, each icon with its unit), measured once
+## the map is in the library; the player's level (the level filter) framed in UI_ACCENT; then what "≈" means. A table, so all five levels' numbers fit the song menu's side
 ## panel (owner, 2026-10-29: every level's pills and numbers; one pill row per level took 632 of 341 px).
 func _level_row_controls(song: BeatSaverSongInfo) -> Array[Control]:
 	var controls: Array[Control] = []
@@ -897,7 +993,8 @@ func _level_row_controls(song: BeatSaverSongInfo) -> Array[Control]:
 	if rows.is_empty():
 		return controls
 	rows.sort_custom(func(a: Array, b: Array) -> bool: return a[0] < b[0])
-	var estimated := _local_map(song) == null
+	var loading := _loading_levels(song)
+	var estimated := _local_map(song) == null and song.rating == BeatSaverSongInfo.Rating.ESTIMATE
 	var header := HBoxContainer.new()
 	header.add_theme_constant_override(&"separation", 0)
 	var corner := Control.new()
@@ -915,18 +1012,18 @@ func _level_row_controls(song: BeatSaverSongInfo) -> Array[Control]:
 		var bar := PanelContainer.new()
 		bar.theme_type_variation = &"LevelBar"
 		var colored := bar.get_theme_stylebox(&"panel", &"LevelBar").duplicate() as StyleBoxFlat
-		colored.bg_color = entry[1]
+		colored.bg_color = Constants.UI_SURFACE if loading else entry[1]
 		# the name keeps off the rounded left end; the columns line up with the header's pills
 		colored.content_margin_left = LEVEL_BAR_MARGIN
 		colored.content_margin_right = 0.0
-		if row[0] == picked_level():
+		if row[0] == picked_level() and not loading:
 			colored.border_color = Constants.UI_ACCENT
 			colored.set_border_width_all(LEVEL_FRAME)
 		bar.add_theme_stylebox_override(&"panel", colored)
 		var line := HBoxContainer.new()
 		line.add_theme_constant_override(&"separation", 0)
 		bar.add_child(line)
-		var texts := ["%s%s" % [entry[0], " ≈" if estimated else ""], "%.2f" % row[1],
+		var texts := ["…" if loading else "%s%s" % [entry[0], " ≈" if estimated else ""], "%.2f" % row[1],
 			"%.1f" % row[2] if row[2] > 0.0 else "–", "%d%%" % roundi(row[3])]
 		for k in texts.size():
 			var label := Label.new()
@@ -934,12 +1031,12 @@ func _level_row_controls(song: BeatSaverSongInfo) -> Array[Control]:
 			label.custom_minimum_size.x = LEVEL_COLUMNS[k]
 			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT if k == 0 else HORIZONTAL_ALIGNMENT_CENTER
 			label.add_theme_font_size_override(&"font_size", LEVEL_BAR_SIZE)
-			label.add_theme_color_override(&"font_color", Constants.UI_PANEL)
+			label.add_theme_color_override(&"font_color", Constants.UI_TEXT if loading else Constants.UI_PANEL)
 			line.add_child(label)
 		controls.append(bar)
-	if estimated:
+	if estimated or loading:
 		var hint := Label.new()
-		hint.text = ESTIMATE_HINT
+		hint.text = LevelStrip.LOADING_TEXT if loading else ESTIMATE_HINT
 		hint.add_theme_font_size_override(&"font_size", 22)
 		hint.add_theme_color_override(&"font_color", Constants.UI_TEXT_MUTED)
 		hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1000,6 +1097,11 @@ func _show_no_song() -> void:
 
 ## Icons in the details' pills, the size of their 22 px text.
 const PILL_ICON_SIZE := 24
+
+## True while a map not yet downloaded waits for BeatLeader's stars: its details show LevelStrip.LOADING_TEXT for its
+## levels.
+func _loading_levels(song: BeatSaverSongInfo) -> bool:
+	return _local_map(song) == null and song.rating == BeatSaverSongInfo.Rating.LOADING
 
 ## Each difficulty of the map's mode (Standard, else 360° or 90°) as [level, seconds to get ready, notes per second, flow percent]: measured from the map
 ## file once it is in the library (MapStats), else from BeatSaver's data.
@@ -1366,8 +1468,9 @@ func _near_end() -> bool:
 
 ## Fetches the next page once the player scrolls near the end of the list.
 func _on_ListV_Scroll_value_changed(_new_value: float) -> void:
-	# covers newly scrolled into view come next (one is picked at once if none is downloading)
+	# covers and stars newly scrolled into view come next (one is picked at once if none is downloading)
 	update_next_cover()
+	update_next_stars()
 	if _near_end():
 		if next_page_available == -1:
 			# no next page to load
@@ -1423,3 +1526,91 @@ func _on_BeatSaverPanel_visibility_changed() -> void:
 			_reload()
 		else:
 			_on_clear_search_pressed()
+
+## BeatLeader's ratings of one map by its hash (owner, 2026-11-10: Get songs takes its levels from BeatLeader's stars).
+const STARS_URL := "https://api.beatleader.xyz/leaderboards/hash/%s"
+## How long a map's stars may take before the estimate shows instead: an answer takes about 0.2 s (owner, 2026-11-11:
+## 10 s was too long).
+const STARS_TIMEOUT_SECONDS := 3.0
+## BeatLeader didn't answer (no connection, a timeout or a server error): every map still waiting shows the estimate
+## at once, and BeatLeader is asked again when the next page or list comes (owner, 2026-11-11).
+var _stars_down := false
+## The song whose stars are downloading (-1: none), and the songs whose stars were asked for; like covers, the next is
+## the one nearest the top of the view.
+var _stars_index := -1
+var _stars_fetched := {}
+
+## Stops the stars download, so its song is asked for again later.
+func _cancel_stars() -> void:
+	httpstars.cancel_request()
+	_stars_fetched.erase(_stars_index)
+	_stars_index = -1
+
+## Starts downloading BeatLeader's stars for the map nearest the top of the view not yet asked for (rows below it
+## first, then above), unless one is downloading.
+func update_next_stars() -> void:
+	if _stars_index >= 0:
+		return
+	if _stars_down:
+		for index in song_data.size():
+			if not _stars_fetched.has(index):
+				_stars_fetched[index] = true
+				_stars_failed(index)
+		return
+	var first := item_list.first_shown()
+	for step in maxi(first + 1, song_data.size() - first):
+		for index: int in [first + step, first - step - 1]:
+			if index < 0 or index >= song_data.size() or _stars_fetched.has(index):
+				continue
+			_stars_fetched[index] = true
+			var hash := song_data[index].get_hash()
+			if hash.is_empty() or httpstars.request(STARS_URL % hash) != OK:
+				vr.log_warning("Stars request failed: %s" % hash)
+				_stars_failed(index)
+				continue
+			_stars_index = index
+			return
+
+## A map's stars arrived: the next download starts at once while these are parsed on a worker thread, then the map's
+## level strip (and its details, when picked) show the levels from them. A failed request shows the estimate.
+func _on_stars_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	var index := _stars_index
+	var list := _cover_list
+	_stars_index = -1
+	if result != HTTPRequest.RESULT_SUCCESS or response_code >= 500:
+		_stars_down = true
+	update_next_stars()
+	if index < 0 or index >= song_data.size():
+		return
+	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
+		vr.log_warning("Stars download failed: result %d, code %d" % [result, response_code])
+		_stars_failed(index)
+		return
+	var song: BeatSaverSongInfo = song_data[index]
+	var parsed := []
+	# low priority: the pool's high-priority threads would compete with the game's own for the cores
+	var task := WorkerThreadPool.add_task(BeatSaverSongInfo.parse_stars.bind(body, parsed), false)
+	while not WorkerThreadPool.is_task_completed(task):
+		await get_tree().process_frame
+	WorkerThreadPool.wait_for_task_completion(task)
+	if list != _cover_list or index >= song_data.size() or song_data[index] != song:
+		return
+	if parsed.is_empty():
+		_stars_failed(index)
+		return
+	song.set_stars(parsed[0])
+	_show_rating(index)
+
+## BeatLeader couldn't give a map's stars: its row and details show the estimate.
+func _stars_failed(index: int) -> void:
+	song_data[index].stars_failed()
+	_show_rating(index)
+
+## Shows a map's levels again after its rating changed: its strip, its details when picked, a redraw when in view.
+func _show_rating(index: int) -> void:
+	var song: BeatSaverSongInfo = song_data[index]
+	item_list.set_item_strip(index, _strip(song))
+	if index == item_selected:
+		_show_details(song)
+	if item_list.shows(index) or index == item_selected:
+		_redraw()

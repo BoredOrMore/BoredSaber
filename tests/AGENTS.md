@@ -28,6 +28,13 @@ Engine-level checks that run without a headset or XR runtime. CI runs every one 
 - `test_room_outline.tscn` / `.gd` - `RoomOutline.find_portal` on the room read on the headset (2026-11-02): the
   portal lands on the front wall 3.67 m ahead, inside the wall, between floor and ceiling; facing back finds the wall
   behind; no walls, no portal; the outline draws and an empty room hides it.
+- `test_map_stats.tscn` / `.gd` - the difficulty rating (`doc/research/difficulty-rating.md`): `MapStats._swing_parts` on
+  made-up hands (no turns or crossing for clean down-up swings in each hand's lane, near columns half and far ones whole,
+  arms crossed, resets, the burst following the fast stretch), `MapStats.stars` (faster and crossing rate harder) and
+  `star_level`'s cut-offs; Get songs' `BeatSaverSongInfo.parse_stars` (unrated difficulties left out), `stars_at` between
+  BeatLeader's rated speeds, the rating (loading, then stars, or the estimate when BeatLeader has none for the mode or
+  can't be reached; the loading strip's size), the fallback estimate (`estimated_stars`: Gurenge Hard near its 5.51
+  stars, faster songs harder) and the level filter's notes-per-second windows, and Gurenge Hard moving from ≈Hard to Expert once its stars arrive.
 - `test_song_search.tscn` / `.gd` - `SongSearch` (the song menu's search): kana read as romaji, case, spaces,
   punctuation, long vowels and doubled letters alike, every typed word, tags; `BeatSaverPanel.close_query`; the AI
   mark in saved tags; Get songs listing a 360°-only map by its 360° difficulties.
