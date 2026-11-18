@@ -169,7 +169,9 @@ constraints apply here unchanged.
   lines up with saber collisions.
 - Physics rate: `project.godot` doesn't set `physics/common/physics_ticks_per_second`, so it is Godot's 60 until
   `vr.apply_refresh_rate()` sets it to the display rate (72, or 90) once XR starts; desktop runs and headless
-  tests stay at 60 (checked with Godot 4.6.2, 2026-10-31). Physics is GodotPhysics3D.
+  tests stay at 60 (checked with Godot 4.6.2, 2026-10-31). Physics is GodotPhysics3D. `physics/common/physics_jitter_fix` stays at Godot's
+  default 0.5 (one tick per frame when the rates match): at 0.0 frames ran 0 or 2 ticks, and the second repeats the
+  controller pose (2026-11-18).
 - `LightSaber._physics_process` writes `left_saber`/`right_saber` globals (declared in
   `project.godot` `[shader_globals]`); renaming them breaks `Arc.gdshader`.
 - Compatibility renderer only (root `AGENTS.md`): no Vulkan-only shader features; GPU particles are
