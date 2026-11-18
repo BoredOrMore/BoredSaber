@@ -300,8 +300,12 @@ func set_saber(saber_path: String) -> void:
 func set_swingcast_enabled(value: bool) -> void:
 	_swing_cast.set_raycasts_enabled(value)
 
-func _handle_area_collided(area: Area3D) -> void:
+## Cuts what a blade ray hit. A ray that starts inside a hitbox only counts for this saber's own notes (and chain
+## links): a hand that passes through a bomb's or a wrong-colour note's box without the blade crossing it isn't a hit.
+func _handle_area_collided(area: Area3D, from_inside: bool) -> void:
 	if Scoreboard.paused: return
+	var own_layer := CollisionLayerConstants.LeftNote_bit if type == 0 else CollisionLayerConstants.RightNote_bit
+	if from_inside and not area.get_collision_layer_value(own_layer): return
 	var cut_object := area.get_parent()
 	if not cut_object is Cuttable: return
 	var note := cut_object as Cuttable

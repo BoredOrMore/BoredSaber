@@ -3,7 +3,10 @@
 extends RayCast3D
 class_name SwingableRayCast
 
-signal area_collided(area: Area3D)
+## from_inside: the ray started inside the area (Godot gives such a hit no normal); the receiver decides whether it
+## counts. Rays start inside a note's hitbox whenever the hand or the blade's lower part is already in it (the box
+## reaches about 10 cm in front of the player at the hit plane); without these hits Godot skipped that note entirely.
+signal area_collided(area: Area3D, from_inside: bool)
 
 @export var num_collision_raycasts: int = 8
 
@@ -27,6 +30,7 @@ var _debug_curr_balls: Array[MeshInstance3D] = []
 var _debug_raycast_trail := LinkedList.new()
 
 func _ready() -> void:
+	hit_from_inside = true
 	await get_tree().physics_frame
 	
 	# use discrete RayCasts for continuous collision detection between _physics_process()
@@ -36,6 +40,7 @@ func _ready() -> void:
 		new_ray.collision_mask = collision_mask
 		new_ray.collide_with_areas = collide_with_areas
 		new_ray.collide_with_bodies = collide_with_bodies
+		new_ray.hit_from_inside = true
 		# only cast through force_raycast_update() in _physics_process()
 		new_ray.enabled = false
 		add_child(new_ray)
@@ -91,7 +96,7 @@ func _physics_process(_delta: float) -> void:
 	var coll := get_collider()
 	if coll is Area3D:
 		core_ray_collision_count += 1
-		area_collided.emit(coll)
+		area_collided.emit(coll, get_collision_normal() == Vector3.ZERO)
 	
 	# ---------------------
 	
@@ -109,7 +114,7 @@ func _physics_process(_delta: float) -> void:
 			coll = ray.get_collider()
 			if coll is Area3D:
 				aux_ray_collision_count += 1
-				area_collided.emit(coll)
+				area_collided.emit(coll, ray.get_collision_normal() == Vector3.ZERO)
 		
 		_prev_ray_positions[i] = ray.global_transform.origin
 		

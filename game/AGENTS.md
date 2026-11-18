@@ -36,7 +36,7 @@ constraints apply here unchanged.
   along the lane at `Map.beat_distance * Map.beats_per_second()`; `Arc._process` moves per render
   frame. All stop while `Scoreboard.paused`.
 - Cutting: `SwingableRayCast.area_collided` -> `LightSaber._handle_area_collided()` (wired in
-  `LightSaber.tscn`) -> `Cuttable.cut(saber, speed, plane, controller)`. `BeepCube.cut` scores via
+  `LightSaber.tscn`; a ray that started inside a box counts only on the saber's own notes and chain links) -> `Cuttable.cut(saber, speed, plane, controller)`. `BeepCube.cut` scores via
   `Scoreboard.note_cut` or `bad_cut("wrong saber")` and emits `cutted(correct_saber)` (arcs listen);
   `ChainLink.cut` -> `Scoreboard.chain_link_cut`; `Bomb.cut` -> `bad_cut("bomb")`.
 - Miss: `Cuttable._physics_process` calls `on_miss()` past `Constants.MISS_Z`; cubes/links report
