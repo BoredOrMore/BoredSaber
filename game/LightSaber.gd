@@ -25,6 +25,9 @@ var second_extra_offset_rot := Vector3.ZERO
 
 var saber_end := Vector3.ZERO
 var saber_end_past := Vector3.ZERO
+## the tip's last step that moved: a physics tick repeated with the same controller pose (two ticks in one frame, as
+## on a dropped frame) moves it zero, which judged a good swing as a bad angle
+var _tip_move := Vector3.ZERO
 var last_dt := 0.0
 ## how hard the controller buzzes while the blade touches the floor or the platform
 const FLOOR_RUMBLE := 0.3
@@ -264,6 +267,8 @@ func _physics_process(delta: float) -> void:
 	rotation_degrees = offset_rot + extra_offset_rot + second_extra_offset_rot
 	saber_end_past = saber_end
 	saber_end = saber_visual.tip.global_transform.origin
+	if not saber_end.is_equal_approx(saber_end_past):
+		_tip_move = saber_end - saber_end_past
 	var time := Time.get_ticks_msec()
 	if Settings.swing_scoring:
 		_update_history(time)
@@ -318,8 +323,8 @@ func _handle_area_collided(area: Area3D, from_inside: bool) -> void:
 	controller.simple_rumble(0.75, 0.1)
 	
 	var o := controller.global_transform.origin
-	var controller_speed: Vector3 = (saber_end - saber_end_past) / last_dt
-	var cutplane := Plane(o, saber_end, saber_end_past + Vector3(0, 0, Map.beat_distance * Map.beats_per_second() * 2.0 * last_dt)) # Account for relative position to track speed
+	var controller_speed: Vector3 = _tip_move / last_dt
+	var cutplane := Plane(o, saber_end, saber_end - _tip_move + Vector3(0, 0, Map.beat_distance * Map.beats_per_second() * 2.0 * last_dt)) # Account for relative position to track speed
 	note.cut(self, controller_speed, cutplane, controller)
 
 func _on_AnimationPlayer_animation_started(_anim_name: StringName) -> void:
