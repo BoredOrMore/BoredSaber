@@ -7,8 +7,3 @@ src_data
 .godot/
 android/build/*
 /addons/godotopenxrvendors
-
-# built by CI from native/pico_room (see native/pico_room/AGENTS.md)
-game/native/bin/
-native/pico_room/.sconsign.dblite
-*.os

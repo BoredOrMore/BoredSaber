@@ -146,8 +146,8 @@ the Auto pool; BLOCKOUT 2026-10-31; cloud sea and hills from GPT, owner 2026-11-
   black with a neutral horizon glow behind the slab (`SLAB_DIR` must match `MonolithRig.SLAB_YAW`; no `bg_<type>`) and
   a fainter neutral one all round so the hills stand as silhouettes.
 
-Room-aware mixed reality (portals in the real walls; plan https://claude.ai/artifact/GGNL7bgEiekk4VeT4G3aVy; the room
-code that reads the walls and cuts the portals: `game/scripts/MixedReality.gd`, `RoomOutline.gd`)
+Mixed reality's portals (the room scan was dropped, Bored 2026-11-19: the portal floats ahead; the code that places
+them and sets the mask: `game/scripts/MixedReality.gd`, `MRPortal.gd`)
 - `PortalRim.gdshader`: the rim round a portal, on one `QuadMesh` 1 x 1 per portal (centred, facing into the room, +y
   up) that it stretches by the uniform `portal_size_m` (width, height in metres) plus `RIM_REACH`; a white-hot strip on
   the cut edge with a `light_color` glow fading out over the wall, the hole left clear (owner's pick of three, the
@@ -182,9 +182,9 @@ code that reads the walls and cuts the portals: `game/scripts/MixedReality.gd`, 
   wall through a portal's hole (for what lies only beyond the walls: the MR world, which is also behind and below the
   room, and the deck); `portal_mask_shows`, also true on the room's side of every portal's
   wall (for what comes into the room: notes, the curbs and their light strips, the floor reflection). Globals `mr_portal_count` and `mr_portal_0`..`3` (world to the portal's unit square, +z out of
-  the room; `RoomOutline.portal_mask_transform`), set by `MixedReality.gd`; with no portals everything shows, so stages
+  the room; `MRPortal.portal_mask_transform`), set by `MixedReality.gd`; with no portals everything shows, so stages
   outside mixed reality are unchanged. `portal_mask_through_any`: the MR sky (right after its derivatives), dust and
-  `MonolithCloudSea.gdshader` (first thing), and at the end of their fragment `TrackDeck` and `EnvSolid.gdshaderinc` (only
+  `MonolithCloudSea.gdshader` (first thing), and at the end of their fragment `TrackDeck` (only in `TrackDeckMR`) and `EnvSolid.gdshaderinc` (only
   with `PORTAL_MASK`, the track's pieces' `EnvSolidTrack`: the stages' scenery is hidden in mixed reality, and the
   discard on every stage's solids stopped the GPU's early depth test; its `portal_room_side` switches it to
   `portal_mask_shows`, set only on the curbs' own material in `TrackDeck`) (Bored, 2026-11-03: in the room only the curbs with their light strips and the notes'
@@ -197,8 +197,9 @@ Metal Factory (underground power plant)
 - `MetalFactoryRig.gd` (tool): pistons over anvils, gear rings, energy rails, wall kit with vents, vault, drive gears.
   No beams or moving heads: diagonal/waving light goes to vents (`set_vent_colors`); `slam`/`breathe`/`turn_gears`
   follow beat and intensity; `CPUParticles3D` sparks in note colours (`set_spark_colors`). `METAL_SHEEN`, `MATCAP`.
-- `EnvSolidMetal.gdshader`: EnvSolid with `METAL` + `VENTS`. `EnvSolidTrack.gdshader`: the same plus `PORTAL_MASK`, for the
-  track's edges, curbs and platform pieces (`TrackDeck.gd`), the only solids mixed reality shows.
+- `EnvSolidMetal.gdshader`: EnvSolid with `METAL` + `VENTS`, also the track's edges, curbs and platform pieces outside
+  mixed reality. `EnvSolidTrack.gdshader`: the same plus `PORTAL_MASK`, which `TrackDeck.use_portal_mask` swaps onto
+  those pieces only while mixed reality is on (the mask's discard stops the GPU's early depth test, 2026-11-19).
 - `MetalFactorySky.gdshader`: near-black opening, deliberately ignores `bg_<type>` light params.
 
 Shared scenery
@@ -223,7 +224,9 @@ Shared scenery
   turning made players dizzy, owner 2026-10-29; then no lane floor either) there is no deck, curbs or edge strips
   ahead, no floor reflection; the map's track lights light the platform's ring (`Floor.set_round(radius, lights)`), and
   the turn cue chevron (`CUE_*`, `Constants.TURN_CUE_COLOR`) shows.
-- `TrackDeck.gdshader`: deck skin per stage (`SKINS`: plates, tread plate, dark glass), lane grooves, `fade_z`.
+- `TrackDeck.gdshaderinc`: deck skin per stage (`SKINS`: plates, tread plate, dark glass), lane grooves, `fade_z`;
+  `TrackDeck.gdshader` draws it outside mixed reality, `TrackDeckMR.gdshader` with `PORTAL_MASK` in it
+  (`TrackDeck.use_portal_mask`, called from `EventDriver.show_scenery_for_mixed_reality`).
 - `track_turn.gdshaderinc`: `track_angle` and `track_xz(world)`, a point's place on the unturned track, so the deck's
   grooves and skin and the far fade (`TrackDeck.gdshader`, `EnvSolid.gdshaderinc`'s `fade_z`, `LightStrip.gdshader`) turn
   with the track on 90/360 maps; set on the deck, curb and edge-strip materials by `TrackDeck.turn` and

@@ -6,8 +6,7 @@ func _ready(game: BeepSaber_Game) -> void:
 	game.main_menu._show()
 	game.profiles_canvas._hide()
 	game._update_slash_block.call_deferred()
-	# the room setup, when open, takes the pointer (BeepSaber_Game.open_room_setup)
-	game.main_menu.disable_collision = game.room_setup_canvas.visible
+	game.main_menu.disable_collision = false
 	game.settings_canvas._hide()
 	game.show_MapSourceDialogs(true)
 	game.endscore._hide()
