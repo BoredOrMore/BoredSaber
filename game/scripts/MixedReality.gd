@@ -1,18 +1,10 @@
 extends Node
 
-## A room scan found the real room: PicoRoom's pieces (walls, floor, furniture) in the XROrigin3D's space.
-signal room_found(pieces: Array)
-## A room scan found no room.
-signal room_missing()
-
 ## The rim round each portal, and the world seen through the portals.
 const PORTAL_RIM_SHADER := preload("res://game/env/PortalRim.gdshader")
 const MR_SPACE_SCENE := preload("res://game/env/MRSpace.tscn")
 ## How many portals the mask shader takes (portal_mask.gdshaderinc's mr_portal_0..3).
 const MAX_PORTALS := 4
-## The room scan and its setup panel stay in the code but are off for now (Bored, 2026-11-03): mixed reality opens a
-## portal floating in front of the player instead (RoomOutline.floating_portal).
-const ROOM_SCAN_ENABLED := false
 ## How long a 90/360 map's portal takes to grow from its centre when objects start coming from its direction, and to
 ## shrink back once they have passed (Bored, 2026-11-03: grows from the centre). UNTUNED.
 const PORTAL_OPEN_SECONDS := 0.5
@@ -22,19 +14,13 @@ const PORTAL_OPEN_SECONDS := 0.5
 const PORTAL_GLIDE_SECONDS := 0.5
 
 var floor_albedo_texture : Texture2D = null
-## The real room's outline, made on the first room scan (PICO headsets only).
-var _room_outline: RoomOutline = null
-## The last scanned room's pieces, or empty.
-var _room_pieces: Array = []
-## Whether the outline should show when there is a room.
-var _outline_shown := false
-## One rim per portal, children of XROrigin3D like the room's poses.
+## One rim per portal, children of XROrigin3D.
 var _portal_rims: Array[MeshInstance3D] = []
 ## The world behind the portals, made with the first portal.
 var _space: MRSpace = null
-## The loaded map's objects' box (RoomOutline.map_extent), which the floating portal grows to take.
+## The loaded map's objects' box (MRPortal.map_extent), which the floating portal grows to take.
 var _map_extent := Rect2()
-## A 90/360 map's objects as RoomOutline.map_turns gives them, the index of the next one not yet counted, and the
+## A 90/360 map's objects as MRPortal.map_turns gives them, the index of the next one not yet counted, and the
 ## counted ones still to pass the player; empty on a map whose lanes don't turn.
 var _turns := []
 var _next_turn := 0
@@ -50,7 +36,7 @@ func _ready() -> void:
 	set_process(false)
 
 
-## Turns passthrough and the see-through floor on or off; turning it on scans the real room.
+## Turns passthrough and the see-through floor on or off; turning it on opens the portal floating ahead.
 func set_mixed_reality(mr: bool):
 	var xr_interface := XRServer.find_interface("OpenXR") as XRInterface
 	if xr_interface and xr_interface.is_passthrough_supported():
@@ -86,44 +72,20 @@ func set_mixed_reality(mr: bool):
 	
 	(get_node("/root/BeepSaber/event_driver") as EventDriver).show_scenery_for_mixed_reality()
 
-	_forget_room()
-	if mr and ROOM_SCAN_ENABLED and can_scan_room():
-		(get_node("/root/BeepSaber") as BeepSaber_Game).open_room_setup()
-	elif mr:
+	_show_portals([])
+	if mr:
 		_show_floating_portal()
 
 
-## Returns whether this headset can scan the real room (PICO's room functions, through the PicoRoom plugin).
-func can_scan_room() -> bool:
-	return Engine.has_singleton("PicoRoom") and Engine.get_singleton("PicoRoom").call("is_supported")
 
 
-## Opens PICO's room scan; ends in room_found or room_missing (Bored, 2026-11-02: every time mixed reality turns on).
-func scan_room() -> void:
-	var room := Engine.get_singleton("PicoRoom")
-	if not room.is_connected("room_loaded", _on_room_loaded):
-		room.connect("room_loaded", _on_room_loaded)
-		room.connect("room_not_found", _on_room_not_found)
-		vr.pose_recentered.connect(_on_recentered)
-	_forget_room()
-	room.call("scan_room")
 
 
-## Shows or hides the room's outline (shown while the player checks the room).
-func show_room_outline(shown: bool) -> void:
-	_outline_shown = shown
-	if _room_outline:
-		_room_outline.visible = shown and not _room_pieces.is_empty()
 
 
-## Drops the scanned room, its outline and its portals.
-func _forget_room() -> void:
-	_room_pieces = []
-	show_room_outline(false)
-	_show_portals([])
 
 
-## Cuts `portals` (RoomOutline.find_portal results, in XROrigin3D's space) into the real walls: a rim round each, and
+## Cuts `portals` (MRPortal.floating_portal results, in XROrigin3D's space): a rim round each, and
 ## the world behind showing only through them; an empty list closes them all, so stages outside mixed reality draw whole.
 func _show_portals(portals: Array) -> void:
 	assert(portals.size() <= MAX_PORTALS, "the portal mask takes %d portals" % MAX_PORTALS)
@@ -165,7 +127,7 @@ func _show_portals(portals: Array) -> void:
 		rim_material.set_shader_parameter(&"portal_size_m", size)
 		rim_material.set_shader_parameter(&"light_color", light)
 		RenderingServer.global_shader_parameter_set(StringName("mr_portal_%d" % i),
-			RoomOutline.portal_mask_transform(origin.global_transform * place, size))
+			MRPortal.portal_mask_transform(origin.global_transform * place, size))
 		world_places.append(origin.global_transform * place)
 		sizes.append(size)
 	if _space == null:
@@ -182,22 +144,22 @@ func show_space_parts(sky: bool, sea: bool, dust: bool, flat_sky: bool) -> void:
 		_space.show_parts(sky, sea, dust, flat_sky)
 
 
-## Opens the portal floating ahead of the player along the track, for when there is no room scan.
+## Opens the portal floating ahead of the player along the track.
 func _show_floating_portal() -> void:
 	var origin := get_node("/root/BeepSaber/XROrigin3D") as XROrigin3D
 	var spot := origin.to_local(Vector3(0, 0, Constants.PLAYER_Z))
-	_show_portals([RoomOutline.floating_portal(spot, origin.global_basis.inverse() * Vector3.FORWARD, _map_extent)])
+	_show_portals([MRPortal.floating_portal(spot, origin.global_basis.inverse() * Vector3.FORWARD, _map_extent)])
 
 
 ## Grows the floating portal to take every object of the map just loaded (BeepSaber_Game._start_map), so none comes in
 ## beside it (Bored, 2026-11-03). Outside mixed reality it skips the walk over the map's objects.
 func fit_portal_to_map() -> void:
-	_map_extent = RoomOutline.map_extent() if Settings.mixed_reality else Rect2()
-	_turns = RoomOutline.map_turns() if Settings.mixed_reality else []
+	_map_extent = MRPortal.map_extent() if Settings.mixed_reality else Rect2()
+	_turns = MRPortal.map_turns() if Settings.mixed_reality else []
 	_next_turn = 0
 	_coming = []
 	_last_beat = 0.0
-	if Settings.mixed_reality and not ROOM_SCAN_ENABLED:
+	if Settings.mixed_reality:
 		_show_floating_portal()
 
 
@@ -205,7 +167,7 @@ func fit_portal_to_map() -> void:
 ## objects are coming from, from just before the first of them flies in until the last has passed the player (Bored,
 ## 2026-11-03); a map whose lanes don't turn keeps its one portal ahead.
 func follow_map(current_beat: float) -> void:
-	if _turns.is_empty() or not Settings.mixed_reality or ROOM_SCAN_ENABLED:
+	if _turns.is_empty() or not Settings.mixed_reality:
 		return
 	if not is_processing():
 		# the one portal ahead becomes the first of them, closing unless objects come from ahead
@@ -222,14 +184,14 @@ func follow_map(current_beat: float) -> void:
 		_coming.append(_turns[_next_turn])
 		_next_turn += 1
 	_coming = _coming.filter(func(turn: Array) -> bool: return turn[1] >= current_beat)
-	var wanted := RoomOutline.turn_portals(_coming.map(func(turn: Array) -> float: return turn[2]), MAX_PORTALS)
+	var wanted := MRPortal.turn_portals(_coming.map(func(turn: Array) -> float: return turn[2]), MAX_PORTALS)
 	for portal in _turn_portals:
 		portal["wanted"] = false
 	for want in wanted:
 		var match_index := -1
 		for i in _turn_portals.size():
 			var gap := absf(angle_difference(_turn_portals[i]["angle"], want.x))
-			if not _turn_portals[i]["wanted"] and gap <= RoomOutline.PORTAL_TURN_MERGE \
+			if not _turn_portals[i]["wanted"] and gap <= MRPortal.PORTAL_TURN_MERGE \
 					and (match_index < 0 or gap < absf(angle_difference(_turn_portals[match_index]["angle"], want.x))):
 				match_index = i
 		if match_index < 0:
@@ -276,7 +238,7 @@ func _show_turn_portals() -> void:
 		# a lane turned `angle` about the player's standing point (Cuttable.add_lane_rotation) comes in from this way
 		var inward := Vector3(sin(angle), 0.0, -cos(angle))
 		var spot := Vector3(0.0, 0.0, Constants.LANE_PIVOT_Z) - inward * (Constants.PLAYER_Z - Constants.LANE_PIVOT_Z)
-		var place := RoomOutline.floating_portal(origin.to_local(spot), origin.global_basis.inverse() * inward,
+		var place := MRPortal.floating_portal(origin.to_local(spot), origin.global_basis.inverse() * inward,
 			_map_extent, portal["spread"])
 		place["size"] = (place["size"] as Vector2) * open
 		portals.append(place)
@@ -289,44 +251,17 @@ func stop_following_map() -> void:
 		return
 	set_process(false)
 	_turn_portals.clear()
-	if Settings.mixed_reality and not ROOM_SCAN_ENABLED:
+	if Settings.mixed_reality:
 		_show_floating_portal()
 
 
-## Keeps the scanned room and redraws its outline, with the portal where the track meets the wall.
-func _on_room_loaded(pieces: Array) -> void:
-	if not Settings.mixed_reality:
-		return
-	_room_pieces = pieces
-	if _room_outline == null:
-		_room_outline = RoomOutline.new()
-		get_node("/root/BeepSaber/XROrigin3D").add_child(_room_outline)
-	# the track runs along the scene's -z from the player's standing point; the room's poses are in the origin's space
-	var origin := _room_outline.get_parent() as XROrigin3D
-	var spot := origin.to_local(Vector3(0, 0, Constants.PLAYER_Z))
-	var direction := origin.global_basis.inverse() * Vector3.FORWARD
-	_room_outline.show_room(pieces, spot, direction)
-	show_room_outline(_outline_shown)
-	var portal := RoomOutline.find_portal(pieces, spot, direction)
-	_show_portals([] if portal.is_empty() else [portal])
-	room_found.emit(pieces)
 
 
-## Reads the room again after a recenter, which moves the play space the room's poses are in.
-func _on_recentered() -> void:
-	if Settings.mixed_reality and not _room_pieces.is_empty():
-		Engine.get_singleton("PicoRoom").call("reload_room")
 
 
 ## Puts the floating portal back in front of the track after BeepSaber_Game.recenter moved the play space (its rim
 ## rides on XROrigin3D, its mask is in world space); the game recenters at start and from Settings, not only on the
 ## headset's recenter. A 90/360 map's portals redraw each frame anyway.
 func play_space_moved() -> void:
-	if Settings.mixed_reality and not ROOM_SCAN_ENABLED and not is_processing():
+	if Settings.mixed_reality and not is_processing():
 		_show_floating_portal()
-
-
-## Tells the room setup that no room was found.
-func _on_room_not_found() -> void:
-	_forget_room()
-	room_missing.emit()

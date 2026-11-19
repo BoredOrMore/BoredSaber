@@ -56,7 +56,7 @@ func _ready() -> void:
 			(world as MRSpace).show_windows([place], [portal])
 			# and the cloud sea and dust cut themselves to the hole with the portal mask, as in the game (MixedReality)
 			RenderingServer.global_shader_parameter_set(&"mr_portal_count", 1)
-			RenderingServer.global_shader_parameter_set(&"mr_portal_0", RoomOutline.portal_mask_transform(place, portal))
+			RenderingServer.global_shader_parameter_set(&"mr_portal_0", MRPortal.portal_mask_transform(place, portal))
 	else:
 		var backdrop := MeshInstance3D.new()
 		var plane := QuadMesh.new()
