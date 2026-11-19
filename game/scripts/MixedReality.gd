@@ -190,10 +190,10 @@ func _show_floating_portal() -> void:
 
 
 ## Grows the floating portal to take every object of the map just loaded (BeepSaber_Game._start_map), so none comes in
-## beside it (Bored, 2026-11-03).
+## beside it (Bored, 2026-11-03). Outside mixed reality it skips the walk over the map's objects.
 func fit_portal_to_map() -> void:
-	_map_extent = RoomOutline.map_extent()
-	_turns = RoomOutline.map_turns()
+	_map_extent = RoomOutline.map_extent() if Settings.mixed_reality else Rect2()
+	_turns = RoomOutline.map_turns() if Settings.mixed_reality else []
 	_next_turn = 0
 	_coming = []
 	_last_beat = 0.0
