@@ -36,7 +36,8 @@ shader does the same.
 - `Arc/` — `Arc.gd` (mesh from `ArcInfo.mesh_arrays`, magnet material on head cut), `Arc.gdshader`
   (reads `left_saber`/`right_saber`). Static `left_material`/`right_material(_magnet)` are shared.
 - `Bomb/` — `Bomb.gd`, `BombGlow.gdshader` + `bomb_glow.tres` (`danger_color`); `BombMerged.gdshader` draws body and
-  glow hull in one call (`Bomb.merged_mesh`, the default); `BombMesh.tscn` + `BombBody.gdshader` are the two-mesh
+  glow hull in one call (`Bomb.merged_mesh`, the default; body in `BombMerged.gdshaderinc`, `BombMergedMR.gdshader`
+  adds the portal mask, swapped in by `Bomb.use_portal_mask` only in mixed reality); `BombMesh.tscn` + `BombBody.gdshader` are the two-mesh
   bomb `Bomb.classic` brings back to compare.
 - `Wall/` — `Wall.gd` (resizes box mesh/shape per wall), `FramedWall.gdshader` + `framed_wall.tres` (the wall: box plus
   edge bars, one draw call).

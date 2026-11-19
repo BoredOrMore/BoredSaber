@@ -14,8 +14,12 @@ class_name TrackDeck
 ## platform stays.
 ## Sizes in metres; untuned.
 
+## the deck's and the other pieces' shaders: without the portal mask, and with it in mixed reality (use_portal_mask): the
+## mask's discard stops the GPU's early depth test, so it is left out everywhere else
 const DECK_SHADER := preload("res://game/env/TrackDeck.gdshader")
-const ENV_SOLID := preload("res://game/env/EnvSolidTrack.gdshader")
+const DECK_SHADER_MR := preload("res://game/env/TrackDeckMR.gdshader")
+const ENV_SOLID := preload("res://game/env/EnvSolidMetal.gdshader")
+const ENV_SOLID_MR := preload("res://game/env/EnvSolidTrack.gdshader")
 const EDGE_MODEL := preload("res://game/models/track_edge.glb")
 ## the low block that closes the platform behind the player (track_end.glb, tools/models/track_end.py), 1 m wide as
 ## built, stretched across the deck and both edges (EDGE_REACH out on each side), turned to face away from the track
@@ -282,6 +286,13 @@ func turn(angle: float) -> void:
 	deck_material.set_shader_parameter(&"track_angle", angle)
 	for material: ShaderMaterial in [_curb_material, _room_curb_material]:
 		material.set_shader_parameter(&"track_angle", angle)
+
+## Draws the deck and its pieces with the portal mask while mixed reality is on (`on`), and without it otherwise.
+func use_portal_mask(on: bool) -> void:
+	deck_material.shader = DECK_SHADER_MR if on else DECK_SHADER
+	for material: ShaderMaterial in [_curb_material, _room_curb_material]:
+		material.shader = ENV_SOLID_MR if on else ENV_SOLID
+
 
 ## Fits the deck to environment `id`: its skin (TrackDeck.gdshader: Metal Factory's tread plate, Neon Grid's dark glass,
 ## plain plates elsewhere) and its far end and fade.

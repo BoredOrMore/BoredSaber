@@ -6,6 +6,9 @@ class_name Bomb
 ## BombMerged.gdshader, instead of BombMesh.tscn's two (body and hull), which classic brings back to compare
 ## (stage_capture --bomb classic).
 const MERGED_MATERIAL := preload("res://game/notes/Bomb/bomb_merged.tres")
+## the merged bomb's shader without the portal mask, and with it in mixed reality (use_portal_mask)
+const MERGED_SHADER := preload("res://game/notes/Bomb/BombMerged.gdshader")
+const MERGED_SHADER_MR := preload("res://game/notes/Bomb/BombMergedMR.gdshader")
 static var classic := false
 static var _merged: ArrayMesh
 
@@ -50,6 +53,11 @@ static func merged_mesh(body: Mesh, hull: Mesh) -> ArrayMesh:
 	_merged = ArrayMesh.new()
 	_merged.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 	return _merged
+
+## Draws every merged bomb with the portal mask while mixed reality is on (`on`), and without it (no discard) otherwise.
+static func use_portal_mask(on: bool) -> void:
+	var material: ShaderMaterial = MERGED_MATERIAL
+	material.shader = MERGED_SHADER_MR if on else MERGED_SHADER
 
 func set_collision_disabled(value: bool) -> void:
 	collision_shape.disabled = value

@@ -5,7 +5,9 @@ class_name FloorReflection
 ## two MultiMeshes (one draw call each) drawn by FloorReflection.gdshader: no second render, no screen read. Off where
 ## the deck isn't (the round 90/360 platform). In mixed reality the reflections lie on the real floor. Untuned.
 
+## its shader without the portal mask, and with it in mixed reality: the mask's discard stops the GPU's early depth test
 const SHADER := preload("res://game/FloorReflection.gdshader")
+const SHADER_MR := preload("res://game/FloorReflectionMR.gdshader")
 ## at most this many notes are mirrored at once (the pool presizes 100; a dense map shows about 30 in flight)
 const MAX_NOTES := 64
 ## how strong the reflection is at the deck's surface (owner, 2026-10-28: 0.3 too clear, 0.12 too faint, picked 0.275),
@@ -63,6 +65,10 @@ func _process(_delta: float) -> void:
 	_material.set_shader_parameter(&"floor_y", floor_y)
 	_prepass.set_shader_parameter(&"floor_y", floor_y)
 	_material.set_shader_parameter(&"strength", MIXED_REALITY_STRENGTH if Settings.mixed_reality else STRENGTH)
+	var shader := SHADER_MR if Settings.mixed_reality else SHADER
+	if _material.shader != shader:
+		_material.shader = shader
+		_prepass.shader = shader
 	var mirror := Transform3D(Basis.from_scale(Vector3(1.0, -1.0, 1.0)), Vector3(0.0, 2.0 * floor_y, 0.0))
 	var count := 0
 	for node in _track.get_children():

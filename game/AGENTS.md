@@ -101,7 +101,8 @@ constraints apply here unchanged.
   source, where the blades touch (`BeepSaber_Game._rumble_on_clash`) and where a blade sinks into the floor or
   platform (`LightSaber`, with the burn mark). `SparkStreak.gdshader` + the static `spark_mesh()`: Metal Factory's
   trailed sparks.
-- `FloorReflection.gd` (class `FloorReflection`) + `FloorReflection.gdshader` — the notes and blades faintly mirrored in
+- `FloorReflection.gd` (class `FloorReflection`) + `FloorReflection.gdshader` (body in `FloorReflection.gdshaderinc`;
+  `FloorReflectionMR.gdshader` adds the portal mask, used only in mixed reality) — the notes and blades faintly mirrored in
   the deck: two MultiMeshes refilled each frame, drawn at the deck's depth in a depth-only pass then colour, so a lower
   note's reflection hides an upper one's (no second render, no screen read); fades by depth and distance; off with
   the deck (round 90/360 platform); in mixed reality shown in the room too, at `MIXED_REALITY_STRENGTH` 0.3 (Bored, 2026-11-03), and through the portal. Made in `BeepSaber_Game._ready`; `stage_capture --notes 1` shows it too.

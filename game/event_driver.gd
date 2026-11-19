@@ -507,6 +507,9 @@ func show_scenery_for_mixed_reality() -> void:
 	_dust.visible = not Settings.mixed_reality
 	# Metal Factory has no moving heads: its lights glow in the wall vents
 	_fixtures.visible = not Settings.mixed_reality and Settings.background != "simple" and environment != "metal_factory"
+	# the portal mask only in mixed reality: its discard costs the GPU's early depth test on every stage
+	track_deck.use_portal_mask(Settings.mixed_reality)
+	Bomb.use_portal_mask(Settings.mixed_reality)
 	# mixed reality is a stage of its own (Bored, 2026-11-03): no other stage's lasers or rings; they come back with the
 	# next light event
 	if Settings.mixed_reality:
