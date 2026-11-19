@@ -120,7 +120,6 @@ ui_end={
 
 [physics]
 
-common/physics_jitter_fix=0.0
 3d/physics_engine="GodotPhysics3D"
 
 [rendering]

@@ -25,6 +25,14 @@ var second_extra_offset_rot := Vector3.ZERO
 
 var saber_end := Vector3.ZERO
 var saber_end_past := Vector3.ZERO
+## the tip's last step that moved: a physics tick repeated with the same controller pose (two ticks in one frame, as
+## on a dropped frame) moves it zero, which judged a good swing as a bad angle
+var _tip_move := Vector3.ZERO
+## A ray that starts inside a note's hitbox counts only while the tip moves at least this fast (m/s): a hand resting
+## in a note's box (it reaches about 10 cm in front of the player) was cut at once with no swing and judged a bad
+## angle (headset log, 2026-11-18). 2 m/s is Beat Saber's "too slow" limit as the modding community reads its code;
+## UNTUNED here.
+const INSIDE_HIT_MIN_SPEED := 2.0
 var last_dt := 0.0
 ## how hard the controller buzzes while the blade touches the floor or the platform
 const FLOOR_RUMBLE := 0.3
@@ -264,6 +272,8 @@ func _physics_process(delta: float) -> void:
 	rotation_degrees = offset_rot + extra_offset_rot + second_extra_offset_rot
 	saber_end_past = saber_end
 	saber_end = saber_visual.tip.global_transform.origin
+	if not saber_end.is_equal_approx(saber_end_past):
+		_tip_move = saber_end - saber_end_past
 	var time := Time.get_ticks_msec()
 	if Settings.swing_scoring:
 		_update_history(time)
@@ -300,8 +310,18 @@ func set_saber(saber_path: String) -> void:
 func set_swingcast_enabled(value: bool) -> void:
 	_swing_cast.set_raycasts_enabled(value)
 
-func _handle_area_collided(area: Area3D) -> void:
+## Cuts what a blade ray hit. A ray that starts inside a hitbox only counts for this saber's own notes (and chain
+## links) and only mid-swing: a hand that passes through a bomb's or a wrong-colour note's box, or rests in a note's
+## box, without the blade crossing it isn't a hit.
+func _handle_area_collided(area: Area3D, from_inside: bool) -> void:
 	if Scoreboard.paused: return
+	var own_layer := CollisionLayerConstants.LeftNote_bit if type == 0 else CollisionLayerConstants.RightNote_bit
+	if from_inside:
+		if not area.get_collision_layer_value(own_layer): return
+		var tip_speed := _tip_move.length() / last_dt
+		# for the cut-detection research (2026-11-18): how often a hit starts inside, and how many wait for the swing
+		print("inside_hit saber %d speed %.2f %s" % [type, tip_speed, "cut" if tip_speed >= INSIDE_HIT_MIN_SPEED else "wait"])
+		if tip_speed < INSIDE_HIT_MIN_SPEED: return
 	var cut_object := area.get_parent()
 	if not cut_object is Cuttable: return
 	var note := cut_object as Cuttable
@@ -314,8 +334,8 @@ func _handle_area_collided(area: Area3D) -> void:
 	controller.simple_rumble(0.75, 0.1)
 	
 	var o := controller.global_transform.origin
-	var controller_speed: Vector3 = (saber_end - saber_end_past) / last_dt
-	var cutplane := Plane(o, saber_end, saber_end_past + Vector3(0, 0, Map.beat_distance * Map.beats_per_second() * 2.0 * last_dt)) # Account for relative position to track speed
+	var controller_speed: Vector3 = _tip_move / last_dt
+	var cutplane := Plane(o, saber_end, saber_end - _tip_move + Vector3(0, 0, Map.beat_distance * Map.beats_per_second() * 2.0 * last_dt)) # Account for relative position to track speed
 	note.cut(self, controller_speed, cutplane, controller)
 
 func _on_AnimationPlayer_animation_started(_anim_name: StringName) -> void:

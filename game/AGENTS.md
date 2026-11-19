@@ -36,7 +36,7 @@ constraints apply here unchanged.
   along the lane at `Map.beat_distance * Map.beats_per_second()`; `Arc._process` moves per render
   frame. All stop while `Scoreboard.paused`.
 - Cutting: `SwingableRayCast.area_collided` -> `LightSaber._handle_area_collided()` (wired in
-  `LightSaber.tscn`) -> `Cuttable.cut(saber, speed, plane, controller)`. `BeepCube.cut` scores via
+  `LightSaber.tscn`; a ray that started inside a box counts only on the saber's own notes and chain links) -> `Cuttable.cut(saber, speed, plane, controller)`. `BeepCube.cut` scores via
   `Scoreboard.note_cut` or `bad_cut("wrong saber")` and emits `cutted(correct_saber)` (arcs listen);
   `ChainLink.cut` -> `Scoreboard.chain_link_cut`; `Bomb.cut` -> `bad_cut("bomb")`.
 - Miss: `Cuttable._physics_process` calls `on_miss()` past `Constants.MISS_Z`; cubes/links report
@@ -169,7 +169,9 @@ constraints apply here unchanged.
   lines up with saber collisions.
 - Physics rate: `project.godot` doesn't set `physics/common/physics_ticks_per_second`, so it is Godot's 60 until
   `vr.apply_refresh_rate()` sets it to the display rate (72, or 90) once XR starts; desktop runs and headless
-  tests stay at 60 (checked with Godot 4.6.2, 2026-10-31). Physics is GodotPhysics3D.
+  tests stay at 60 (checked with Godot 4.6.2, 2026-10-31). Physics is GodotPhysics3D. `physics/common/physics_jitter_fix` stays at Godot's
+  default 0.5 (one tick per frame when the rates match): at 0.0 frames ran 0 or 2 ticks, and the second repeats the
+  controller pose (2026-11-18).
 - `LightSaber._physics_process` writes `left_saber`/`right_saber` globals (declared in
   `project.godot` `[shader_globals]`); renaming them breaks `Arc.gdshader`.
 - Compatibility renderer only (root `AGENTS.md`): no Vulkan-only shader features; GPU particles are
