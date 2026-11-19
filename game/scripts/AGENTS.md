@@ -59,7 +59,7 @@ Autoloads (`project.godot` `[autoload]`): `Utils`, `MixedReality`, `Highscores`,
 - `UIRaycast/` - `UIRaycast` laser pointer, `UIRaycastTarget.gd` (Area3D base), `UIRaycastButton` (3D button, `pressed`/`released`).
 - `SwingableRayCast/` - `SwingableRayCast`: saber ray plus swept sub-rays, signal `area_collided(area, from_inside)`.
   All rays hit from inside (`hit_from_inside`); `from_inside` is true when a ray started in the area (no normal), and
-  `LightSaber._handle_area_collided` keeps those only for its own notes and chain links (2026-11-18: rays starting in a
+  `LightSaber._handle_area_collided` keeps those only for its own notes and chain links, while the tip moves `INSIDE_HIT_MIN_SPEED` or faster (2026-11-18: rays starting in a
   note's 1 m deep box, the hand or the blade's lower part, were skipped by Godot, so visible hits didn't count).
 - `SongUploader/` - `SongUploader` HTTP server (`prompt.html`, `style.css` are served as-is).
 - `webxr/webxr_initializer.*` - "Enter VR" button for the Web export.
